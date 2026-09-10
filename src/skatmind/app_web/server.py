@@ -13,15 +13,14 @@ from importlib.resources import files
 from urllib.parse import parse_qs, quote, urlsplit
 
 from skatmind.capture_web.contracts import MATCH_CAPTURE_WEB_MAX_REQUEST_BYTES
-from skatmind.capture_web.rendering import render_match_capture_web_body_v1
 from skatmind.corpus_web.contracts import LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES
 from skatmind.corpus_web.downloads import (
     LearningCorpusPreparedDownloadUnavailableError,
 )
-from skatmind.corpus_web.rendering import render_learning_corpus_web_body_v1
 from skatmind.corpus_web.uploads import parse_learning_corpus_multipart_upload_v1
 from skatmind.errors import SkatMindError, SkatMindInvariantError, SkatMindWorkflowError
 from skatmind.match_workspace_persistence_codec import resume_match_workspace_document_v1
+from skatmind.match_workspace_progress import build_match_workspace_progress_v1
 
 from .context import AppWebContextV1
 from .contracts import APP_ROUTE_PATHS
@@ -93,6 +92,10 @@ from .guided_contracts import (
     REVIEW_UPDATE_PLAYERS_ACTION_ROUTE_PATH,
 )
 from .json_transfer import FRONTEND_JSON_MAX_FILE_BYTES, parse_frontend_json_import_v1
+from .language_form_preservation import (
+    apply_language_page_values_v1,
+    parse_language_page_values_v1,
+)
 from .learning_frontend import (
     build_unified_learning_download_v1,
     build_unified_learning_state_v1,
@@ -184,11 +187,16 @@ from .session_frontend import (
     reload_guided_session_v1,
     rewind_guided_session_v1,
 )
-from .stateful_rendering import (
-    render_guided_session_v1,
-    render_managed_category_landing_v1,
-    render_match_to_learning_transfer_v1,
+from .stateful_localization import managed_name
+from .stateful_rendering import render_managed_category_landing_v1
+from .task_first_learning_rendering import (
+    render_task_first_learning_v1,
+    render_task_first_transfer_v1,
 )
+from .task_first_match_rendering import render_task_first_match_v1
+from .task_first_match_state import build_task_first_match_page_state_v1
+from .task_first_projections import project_task_first_match_v1
+from .task_first_session_rendering import render_task_first_session_v1
 from .translation_catalog import translate_frontend_message_v1
 from .validation_contracts import (
     FRONTEND_VALIDATION_PRESERVATION_VERSION,
@@ -235,8 +243,8 @@ _ASSETS = {
         "text/css; charset=utf-8",
     ),
     "/matches/assets/capture.js": (
-        "skatmind.capture_web",
-        "assets/capture.js",
+        "skatmind.app_web",
+        "assets/workflow.js",
         "text/javascript; charset=utf-8",
     ),
     "/learning/assets/corpus.css": (
@@ -473,6 +481,17 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         content_type: str = "text/plain; charset=utf-8",
         extra_headers: tuple[tuple[str, str], ...] = (),
     ) -> None:
+        if (self.command == "GET" and status == HTTPStatus.OK
+                and content_type == "text/html; charset=utf-8"):
+            with self.server.app_context.lock:
+                retained = self.server.app_context.language_page_values
+                if retained is not None and retained.route == self._safe_current_return_path():
+                    self.server.app_context.language_page_values = None
+                else:
+                    retained = None
+            if retained is not None:
+                self._validate_language_binding(retained)
+                content = apply_language_page_values_v1(content, retained)
         self._send_bytes(
             status,
             content.encode("utf-8"),
@@ -677,7 +696,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             title_key = "error.internal.title"
         else:
             title_key = "error.bad_request.title"
-        message_key = _COMMON_ERROR_MESSAGE_KEYS.get(message)
+        message_key = _COMMON_ERROR_MESSAGE_KEYS.get(message, (
+            "error.internal.message" if status >= HTTPStatus.INTERNAL_SERVER_ERROR else
+            "error.conflict.message" if status == HTTPStatus.CONFLICT else
+            "error.bad_request.message"))
         if status == HTTPStatus.NOT_FOUND and title in {
             "Artifact unavailable",
             "Download unavailable",
@@ -688,7 +710,6 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             render_app_error_page_v1(
                 self.server.app_context.browser_state,
                 title_key=title_key,
-                message=None if message_key is not None else message,
                 message_key=message_key,
                 frontend=self._frontend_state(),
                 return_to=getattr(
@@ -696,7 +717,6 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     "_profile_action_return_to",
                     self._safe_current_return_path(),
                 ),
-                untranslated_message=message_key is None,
             ),
             content_type="text/html; charset=utf-8",
             extra_headers=extra_headers,
@@ -762,6 +782,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             extra_stylesheets=extra_stylesheets,
             extra_scripts=extra_scripts,
             untranslated_workflow_body=untranslated_workflow_body,
+            task_first=feedback_identity is not None,
         )
         families = (
             (feedback_family, "local_settings", "profile")
@@ -1264,8 +1285,37 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             parsed.append(KnownPlayerPlatformIdV1(platform.strip(), player_id.strip()))
         return tuple(parsed)
 
+    def _validate_language_binding(self, values) -> None:
+        route = values.route
+        with self.server.app_context.lock:
+            context = self.server.app_context
+            if route == "/sessions/current":
+                active = context.managed_stateful.active_session
+                revision = None if active is None else active.state.revision
+            elif (route.startswith(("/matches/position/", "/matches/reports/"))
+                  or route == "/matches/current"):
+                active = context.managed_stateful.active_match
+                revision = None if active is None else active.workspace.revision
+            elif route == "/learning/current":
+                active = context.managed_stateful.active_learning
+                revision = None if active is None else active.corpus.store.document.catalog.revision
+            else:
+                active = None
+                revision = (context.analyze_state.revision if route == "/analyze" else
+                            context.review_state.revision if route == "/review" else None)
+            expected_handle = None if active is None else active.handle
+            if values.source_handle != expected_handle:
+                raise StaleFrontendWorkflowRevisionError
+            if values.source_revision is not None and values.source_revision != str(revision):
+                raise StaleFrontendWorkflowRevisionError
+
     def _profile_operation(self, path: str, body: bytes, content_type: str) -> None:
         values = self._text_form(body, content_type)
+        language_values = None
+        if path == FRONTEND_LANGUAGE_ACTION_ROUTE and "_frontend_language_values" in values:
+            language_values = parse_language_page_values_v1(
+                values.pop("_frontend_language_values"), route=values.get("return_to", ""))
+            self._validate_language_binding(language_values)
         if path == FRONTEND_LANGUAGE_ACTION_ROUTE:
             fields = {"language", "profile_generation", "return_to"}
             return_to = values.get("return_to", "")
@@ -1327,6 +1377,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 language=values["language"],
                 expected_generation=generation,
             )
+            with self.server.app_context.lock:
+                self.server.app_context.language_page_values = language_values
         elif path == FRONTEND_PROFILE_RESET_ACTION_ROUTE:
             if values["confirm_reset"] != "on":
                 raise ValueError("Profile reset requires explicit confirmation.")
@@ -1630,18 +1682,23 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
     def _session_page(self, *, status: int = HTTPStatus.OK) -> None:
         active = self._active_session()
         notice = self._take_creation_notice("sessions")
+        with self.server.app_context.lock:
+            profile = self.server.app_context.frontend_profile.document
+        locale = self._frontend_state().locale
         self._content_page(
             "/sessions",
-            title="Guided Session",
+            title=managed_name(locale, profile, "sessions", active.state.session_id),
             content=notice
-            + render_guided_session_v1(
+            + render_task_first_session_v1(
                 active,
+                locale=locale,
                 show_operation_notice=status < HTTPStatus.BAD_REQUEST,
             ),
             status=status,
             feedback_family="sessions",
             feedback_identity=active,
             last_valid_result_retained=active.execution is not None,
+            untranslated_workflow_body=False,
         )
 
     def _match_page(
@@ -1657,10 +1714,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
     ) -> None:
         with active.capture.lock:
             select_unified_match_position_v1(active, position)
-            state = build_unified_match_state_v1(
-                active,
-                selected_report_id=report_id,
-            )
+            view = project_task_first_match_v1(active.workspace, selected_position=position)
+            state = build_task_first_match_page_state_v1(active, view, report_id=report_id)
             result = active.last_result
             transfer_notice = active.transfer_notice
             active.transfer_notice = None
@@ -1685,30 +1740,46 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         )
         with self.server.app_context.lock:
             learning = self.server.app_context.managed_stateful.active_learning
+            profile = self.server.app_context.frontend_profile.document
+        locale = self._frontend_state().locale
+        title = managed_name(locale, profile, "matches", state["match"]["match_id"],
+                             state["match"]["title"])
         learning_state = None if learning is None else build_unified_learning_state_v1(learning)
-        transfer = render_match_to_learning_transfer_v1(
+        transfer = render_task_first_transfer_v1(
             learning_state,
-            report_id=report_id,
-            target_managed_handle=None if learning is None else learning.handle,
+            source_handle=active.handle,
+            source_id=state["match"]["match_id"],
+            source_label=title,
+            report_id=(report_id if state["selected_report"] is not None
+                and state["selected_report"]["report_kind"] == "decision_analysis"
+                and state["selected_report"]["details"]["status"] == "executed" else None),
+            target_handle=None if learning is None else learning.handle,
+            target_label=None if learning is None else managed_name(
+                locale, profile, "corpora", learning_state["corpus"]["corpus_id"]),
+            locale=locale,
         )
-        body = self._take_creation_notice("matches") + render_match_capture_web_body_v1(
-            state,
-            route_prefix="/matches",
-            notice=notice,
-            notice_kind=notice_kind,
+        body = self._take_creation_notice("matches") + render_task_first_match_v1(
+            state, view,
             managed_handle=active.handle,
-            additional_content=transfer,
+            transfer=transfer,
+            locale=locale,
         )
+        if notice is not None:
+            key = ("task.operation.conflict" if notice_kind in {"warning", "error"}
+                   else "task.operation.saved")
+            body += (
+                '<p role="status">' + escape(translate_frontend_message_v1(locale, key)) + '</p>'
+            )
         self._content_page(
             "/matches",
-            title="Managed Match capture",
+            title=title,
             content=body,
             status=status,
             extra_stylesheets=("/matches/assets/capture.css",),
-            extra_scripts=("/matches/assets/capture.js",),
             feedback_family="matches",
             feedback_identity=active,
             last_valid_result_retained=report_id is not None,
+            untranslated_workflow_body=False,
         )
 
     def _match_creation_page(self, *, status: int = HTTPStatus.OK) -> None:
@@ -1748,28 +1819,48 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             if result is not None and result.http_status == HTTPStatus.CONFLICT
             else "info"
         )
-        body = self._take_creation_notice("corpora") + render_learning_corpus_web_body_v1(
+        with self.server.app_context.lock:
+            profile = self.server.app_context.frontend_profile.document
+            discovery = self.server.app_context.managed_stateful.discoveries.get("matches")
+            recorded_active = self.server.app_context.managed_stateful.active_match
+            feedback = self.server.app_context.form_feedback.current(
+                "learning", active_identity=active)
+        locale = self._frontend_state().locale
+        active_recorded = None
+        if recorded_active is not None:
+            with recorded_active.capture.lock:
+                workspace = recorded_active.workspace
+                progress = build_match_workspace_progress_v1(workspace)
+                active_recorded = (
+                    workspace.match_definition.match_id, workspace.match_definition.title,
+                    progress.occupied_slot_count, progress.passed_deal_count,
+                )
+        body = self._take_creation_notice("corpora") + render_task_first_learning_v1(
             state,
-            route_prefix="/learning",
-            notice=notice,
-            notice_kind=notice_kind,
             managed_handle=active.handle,
+            locale=locale,
+            profile=profile,
+            recorded=() if discovery is None else discovery.view.items,
+            active_recorded=active_recorded,
+            rejected_build=(feedback is not None
+                and feedback.form_key == "learning.operation.prepare_learning_artifacts"),
         )
+        if notice is not None:
+            key = ("task.operation.conflict" if notice_kind in {"warning", "error"}
+                   else "task.operation.saved")
+            body += (
+                '<p role="status">' + escape(translate_frontend_message_v1(locale, key)) + '</p>'
+            )
         self._content_page(
             "/learning",
-            title="Managed Learning Corpus",
+            title=managed_name(locale, profile, "corpora", state["corpus"]["corpus_id"]),
             content=body,
             status=status,
-            empty_state_key=(
-                "learning_data"
-                if isinstance(state.get("matches"), list) and not state["matches"]
-                else None
-            ),
             extra_stylesheets=("/learning/assets/corpus.css",),
-            extra_scripts=("/learning/assets/corpus.js",),
             feedback_family="learning",
             feedback_identity=active,
             last_valid_result_retained=active.corpus.prepared_artifacts is not None,
+            untranslated_workflow_body=False,
         )
 
     def _stateful_download(self, path: str) -> bool:

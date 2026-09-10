@@ -19,7 +19,7 @@ FRONTEND_TRANSLATION_CATALOG_VERSION = 1
 LOCAL_FRONTEND_PROFILE_VERSION = 1
 ```
 
-Issues #216 through #219 retain the complete frozen policy vocabulary and implement:
+Issues #216 through #220 implement the complete frozen policy vocabulary in order:
 
 ```text
 technical_contracts_and_machine_values_remain_english
@@ -27,15 +27,17 @@ unified_frontend_visible_content_supports_german_and_english
 one_private_local_frontend_profile_per_managed_data_root
 saved_language_overrides_browser_language
 browser_language_bootstraps_only_without_saved_preference
+user_facing_names_replace_required_manual_internal_ids
+normal_workflows_are_task_first_and_profile_driven
+advanced_settings_are_secondary_explicit_and_explained
 validation_preserves_safe_values_and_workflow_context
 home_separates_record_analyze_learn_and_product_information
-user_facing_names_replace_required_manual_internal_ids
 language_and_profile_never_change_product_semantics
 no_external_translation_profile_sync_or_cloud_service
 ```
 
 The task-first active-workflow and complete Advanced/Technical-detail policies
-remain frozen and future-owned by Issue #220. The grouped Home policy is implemented
+are implemented by Issue #220. The grouped Home policy is implemented
 by Issue #217 and documented in
 [Bilingual Home information architecture](bilingual_home_information_architecture.md).
 
@@ -301,12 +303,12 @@ Issue #216 provides German and English presentation for:
 Every unified page contains the textual `Deutsch` and `English` selector. It is
 a native authenticated POST form and works without JavaScript.
 
-Analyze, Review, and active Session, Match, and Learning workflow bodies are not
-fully translated. Session, Match, and Learning landings and creation forms are
-bilingual through Issue #219. When German is active, remaining future-owned
-English regions are explicitly marked. This avoids silent language mixing and
-does not claim complete German workflow coverage. Complete active-workflow
-translation remains Issue #220.
+Analyze, Review, Results, and active Session, Match, and Learning workflow bodies
+are bilingual through Issue #220. Session, Match, and Learning landings and creation
+forms remain bilingual through Issue #219. The obsolete transitional-English
+marker is removed. Exact user content and machine values remain untranslated;
+raw technical values are disclosed explicitly. The implementation is documented in
+[Task-first bilingual stateful workflows](task_first_bilingual_stateful_workflows.md).
 
 ## State and security
 
@@ -372,40 +374,40 @@ Known Players, profile-driven Player/default behavior, generated IDs, labels,
 and simplified bilingual creation forms are implemented by Issue #219 and
 documented in [Profile-driven stateful creation](profile_driven_stateful_creation.md).
 Task-first active stateful layouts and complete bilingual workflow coverage
-remain Issue #220.
+are implemented by Issue #220.
 
 The current finding state is:
 
 ```text
 UAT-FINDING-001:
-    further partially remediated
-    open
+    implementation remediation complete through Issue #220
+    open pending repeated UAT-01
 
 UAT-FINDING-002:
     resolved by Issue #213
 
 UAT-FINDING-003:
-    Home and concept remediation implemented
-    open pending Issue #220 and repeated UAT-01
+    Home, concept, and active-workflow distinction implemented
+    open pending repeated UAT-01
 
 UAT-FINDING-004:
     resolved by Issue #214
 
 UAT-FINDING-005:
-    creation-form scope implemented by Issue #219
-    open for relevant Issue #220 views and repeated UAT-01
+    creation and relevant active-view remediation implemented
+    open pending repeated UAT-01
 
 UAT-FINDING-006:
     Issue #218 implementation complete
     open pending repeated UAT-01
 
 UAT-FINDING-007:
-    profile/default/creation scope implemented through Issue #219
-    open pending Issue #220
+    task-first remediation implemented
+    open pending repeated UAT-01
 
 UAT-FINDING-008:
-    bilingual Home, concept, and creation-page coverage implemented
-    open pending Issue #220
+    German and English unified-frontend implementation complete
+    open pending repeated UAT-01
 
 Repeated UAT-01:
     failed
@@ -426,5 +428,5 @@ B-07:
 Package `1.0.0` and Release preparation remain not ready. The Issue #216
 correction and both required post-merge Ubuntu jobs passed. Issues #217 through
 #219 implement their assigned Home/concept, validation, and profile-driven
-creation scopes. Issue #220, "Add task-first bilingual Session, Match, and
-Learning workflows," is the exact next action.
+creation scopes. After Issue #220 merge and green exact-commit `check` and
+`v1-supported-platform-matrix`, repeat UAT-01 under Issue #208.

@@ -239,4 +239,10 @@ stateful empty-state guidance without translating all workflow bodies. Issue
 #218 implements private safe form-state preservation and localized accessible
 validation feedback. Issue #219 implements private profile-driven creation and
 local Player/default/label management without changing the standalone advanced
-interfaces. Issue #220 is the exact next action.
+interfaces. Issue #220 implements task-first active workflows and localization.
+
+The task-first projections, bilingual active workflows, localized guided/Result
+presentation, and optional language-form enhancement are documented in
+[Task-first bilingual stateful workflows](task_first_bilingual_stateful_workflows.md).
+After merge and green exact-commit `check` and `v1-supported-platform-matrix`,
+repeat UAT-01 under Issue #208. Implementation does not close its findings.

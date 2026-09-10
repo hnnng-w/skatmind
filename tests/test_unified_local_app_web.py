@@ -264,7 +264,8 @@ def test_all_authenticated_routes_render_shared_navigation_and_one_h1(
         assert html.count('aria-current="page"') == 1
         positions = [html.index(f">{escape(label)}</a>") for label in APP_NAVIGATION_LABELS]
         assert positions == sorted(positions)
-        assert "<script" not in html
+        assert '<script src="/matches/assets/capture.js" defer></script>' in html
+        assert "<script>" not in html
         assert "http://" not in html and "https://" not in html
 
 
@@ -531,7 +532,10 @@ def test_managed_session_http_lifecycle_command_and_download(
     html = body.decode("utf-8")
     assert status == 200
     assert "web-game" in html
-    assert html.count('action="/sessions/command"') == 10
+    assert all(f'name="kind" value="{kind}"' in html for kind in (
+        "set_game_metadata", "record_dealt_card", "set_declarer", "set_declaration",
+        "record_discard", "record_play", "set_game_event", "set_game_end",
+        "promote_to_retrospective", "set_public_hand"))
 
     status, headers, body = _request(
         server,
@@ -651,7 +655,7 @@ def test_shared_route_parse_failure_targets_submitted_session_command(
         body=body,
     )
     assert status == 400
-    assert b"Set Declaration - correction only in this phase</summary>" in response
+    assert b"Save declaration</summary>" in response
     with server.app_context.lock:
         feedback = server.app_context.form_feedback.current(
             "sessions",
@@ -851,7 +855,7 @@ def test_managed_match_learning_and_explicit_transfer_http_lifecycle(
     assert status == 200
     learning_html = body.decode("utf-8")
     assert "This learning collection has no Match data" in learning_html
-    assert "explicitly add it here" in learning_html
+    assert "Add selected Matches to this collection." in learning_html
     assert "Nothing is imported, selected, analyzed, or built automatically" in learning_html
 
     status, headers, _body = _post_form(
@@ -872,7 +876,7 @@ def test_managed_match_learning_and_explicit_transfer_http_lifecycle(
     html = body.decode("utf-8")
     assert status == 200
     assert html.count("<h1>") == 1
-    assert '<div id="capture-app">' in html
+    assert '<div id="task-first-match">' in html
     assert 'action="/matches/api/v1/operation"' in html
     assert 'action="/matches/transfer-workspace"' in html
     assert f'name="managed_handle" value="{match.handle}"' in html
@@ -1015,7 +1019,7 @@ def test_rejected_report_transfer_rerenders_the_originating_report_form(
     assert status == 409
     assert b"The form is out of date" in body
     assert f'name="report_id" value="{report_id}"'.encode() in body
-    assert b"Transfer this Decision Report source" in body
+    assert b"Transfer executed decision Report source" in body
 
 
 def test_about_identity_runtime_local_boundaries_and_closed_storage_disclosure(

@@ -27,6 +27,8 @@ IMPLEMENTED_BILINGUAL_FRONTEND_POLICIES = (
     "saved_language_overrides_browser_language",
     "browser_language_bootstraps_only_without_saved_preference",
     "user_facing_names_replace_required_manual_internal_ids",
+    "normal_workflows_are_task_first_and_profile_driven",
+    "advanced_settings_are_secondary_explicit_and_explained",
     "validation_preserves_safe_values_and_workflow_context",
     "home_separates_record_analyze_learn_and_product_information",
     "language_and_profile_never_change_product_semantics",
@@ -105,8 +107,8 @@ class BrowserSafeFrontendProfileStateV1:
 def validate_bilingual_frontend_contract_v1() -> None:
     if len(BILINGUAL_FRONTEND_POLICIES) != len(set(BILINGUAL_FRONTEND_POLICIES)):
         raise ValueError("Bilingual frontend policies must not repeat.")
-    if not set(IMPLEMENTED_BILINGUAL_FRONTEND_POLICIES).issubset(BILINGUAL_FRONTEND_POLICIES):
-        raise ValueError("Implemented policies must belong to the frozen vocabulary.")
+    if IMPLEMENTED_BILINGUAL_FRONTEND_POLICIES != BILINGUAL_FRONTEND_POLICIES:
+        raise ValueError("Implemented policies must equal the complete ordered frozen vocabulary.")
     if SUPPORTED_FRONTEND_LOCALES != ("de", "en"):
         raise ValueError("Supported frontend locales must remain canonical.")
     if FRONTEND_REFERENCE_LOCALE != "en" or FRONTEND_FALLBACK_LOCALE != "en":

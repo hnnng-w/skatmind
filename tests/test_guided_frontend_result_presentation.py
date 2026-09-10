@@ -376,7 +376,6 @@ def test_historical_projection_covers_outcome_reviews_and_bounded_families() -> 
 
     summary = {detail.label: detail.value for detail in presentation.sections[0].details}
     assert summary == {
-        "Game": "game-<unsafe>",
         "Status": "complete",
         "Players": "Alex, Blair, Rearhand",
         "Declarer": "Blair",
@@ -401,6 +400,8 @@ def test_historical_projection_covers_outcome_reviews_and_bounded_families() -> 
         "Decision reviews remain bounded to their retained public evidence and do not "
         "establish one globally optimal game policy.",
     )
+    assert any(detail.label == "Game ID" and detail.value == "game-<unsafe>"
+               for detail in presentation.sections[4].details)
     alternatives = presentation.sections[2].tables
     assert [row[0] for row in alternatives[0].rows] == ["1", "2"]
     assert alternatives[1].rows[0][6] == "timeout"
@@ -426,7 +427,8 @@ def test_historical_renderer_escapes_values_and_excludes_raw_result_content() ->
 
     assert html.count("<section ") == 5
     assert "game-&lt;unsafe&gt;" in html
-    assert "player-&lt;a&gt;" in html
+    assert "player-&lt;a&gt;" not in html
+    assert "Unnamed Player" in html
     assert "A completed game has no single whole-game Card recommendation." in html
     assert html.index('<th scope="row">1</th>') < html.index('<th scope="row">2</th>')
     assert "timeout" in html

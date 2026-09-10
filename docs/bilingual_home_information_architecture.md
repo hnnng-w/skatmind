@@ -20,7 +20,7 @@ vocabulary with exactly:
 home_separates_record_analyze_learn_and_product_information
 ```
 
-The complete implemented subset through Issue #219, in canonical vocabulary
+The complete implemented tuple through Issue #220, in canonical vocabulary
 order, is:
 
 ```text
@@ -30,6 +30,8 @@ one_private_local_frontend_profile_per_managed_data_root
 saved_language_overrides_browser_language
 browser_language_bootstraps_only_without_saved_preference
 user_facing_names_replace_required_manual_internal_ids
+normal_workflows_are_task_first_and_profile_driven
+advanced_settings_are_secondary_explicit_and_explained
 validation_preserves_safe_values_and_workflow_context
 home_separates_record_analyze_learn_and_product_information
 language_and_profile_never_change_product_semantics
@@ -38,7 +40,7 @@ no_external_translation_profile_sync_or_cloud_service
 
 Issue #218 adds validation preservation and Issue #219 adds user-facing names and
 profile-driven creation. Task-first active workflows and the complete explained
-Advanced/Technical hierarchy remain owned by Issue #220.
+Advanced/Technical hierarchy are implemented by Issue #220.
 
 ## Private values
 
@@ -259,11 +261,11 @@ The English and German catalogs add sorted parity-checked `home.group.*`,
 `home.scope_guide.*`, `home.task.*`, `concept.*`, `empty.*`, and `related.*`
 keys. Visible German or English Issue #217 copy is not hard-coded in Python.
 
-On a German workflow page, the localized Product concept, related links, empty
-state, landing page, and Issue-#219 creation form appear in German. Remaining
-future-owned active dashboard regions retain explicit language boundaries. Home
-is fully localized and has no transitional region. This does not claim complete
-active-workflow translation; that remains Issue #220.
+On a German workflow page, the Product concept, related links, empty state,
+landing page, and creation form appear in German. Issue #220 completes the active
+dashboard, guided Analyze/Review, and fixed Result translation boundary. Home
+and active workflows have no transitional-English region. See
+[Task-first bilingual stateful workflows](task_first_bilingual_stateful_workflows.md).
 
 The packaged CSS adds only the semantic Home grouping, compact cards, scope and
 concept guides, empty states, responsive long-label handling, native disclosure,
@@ -299,26 +301,26 @@ Private Corpus downloads:   10
 
 ## UAT and next action
 
-The post-Issue-#219 state is:
+The post-Issue-#220 implementation state is:
 
 ```text
 UAT-FINDING-001:
-    further partially remediated
-    open
+    implementation remediation complete through Issue #220
+    open pending repeated UAT-01
 
 UAT-FINDING-002:
     resolved by Issue #213
 
 UAT-FINDING-003:
-    Home and concept remediation implemented
-    open pending Issue #220 and repeated UAT-01
+    Home, concept, and active-workflow distinction implemented
+    open pending repeated UAT-01
 
 UAT-FINDING-004:
     resolved by Issue #214
 
 UAT-FINDING-005:
-    creation-form scope implemented
-    open for relevant Issue #220 views and repeated UAT-01
+    creation and relevant active-view remediation implemented
+    open pending repeated UAT-01
 
 UAT-FINDING-006:
     open
@@ -326,12 +328,12 @@ UAT-FINDING-006:
     pending repeated UAT-01
 
 UAT-FINDING-007:
-    profile/default/creation scope implemented
-    open pending Issue #220
+    task-first remediation implemented
+    open pending repeated UAT-01
 
 UAT-FINDING-008:
-    bilingual Home, concept, and creation-page coverage implemented
-    open pending Issue #220
+    German and English unified-frontend implementation complete
+    open pending repeated UAT-01
 
 Repeated UAT-01:
     failed
@@ -350,8 +352,8 @@ B-07:
 ```
 
 Issue #219 does not repeat UAT or close a finding. Package `1.0.0` and Release
-preparation remain not ready. The exact next action is:
+preparation remain not ready. After merge and green exact-commit CI, the next action is:
 
 ```text
-Issue #220 - Add task-first bilingual Session, Match, and Learning workflows
+Repeat UAT-01 under Issue #208.
 ```

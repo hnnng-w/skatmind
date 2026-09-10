@@ -737,7 +737,7 @@ Issue #219:
     profile-driven creation scope implemented
 
 Issue #220:
-    exact next action
+    task-first bilingual workflow implementation complete; post-merge CI required
 
 Issue #208:
     open
@@ -758,19 +758,19 @@ UAT-FINDING-004:
     resolved
 
 UAT-FINDING-001:
-    further partially remediated
-    open
+    implementation remediation complete through Issue #220
+    open pending repeated UAT-01
 
 UAT-FINDING-002:
     resolved
 
 UAT-FINDING-003:
-    Home and concept remediation implemented
-    open pending Issue #220 and repeated UAT-01
+    Home, Product-concept, and active-workflow distinction implemented
+    open pending repeated UAT-01
 
 UAT-FINDING-005:
-    creation-form scope implemented by Issue #219
-    open for relevant Issue #220 views and repeated UAT-01
+    creation and relevant active-view remediation implemented
+    open pending repeated UAT-01
 
 UAT-FINDING-006:
     open
@@ -778,12 +778,12 @@ UAT-FINDING-006:
     pending repeated UAT-01
 
 UAT-FINDING-007:
-    profile/default/creation scope implemented through Issue #219
-    open pending Issue #220
+    task-first remediation implemented
+    open pending repeated UAT-01
 
 UAT-FINDING-008:
-    bilingual Home, concept, and creation-page coverage implemented
-    open pending Issue #220
+    German and English unified-frontend implementation complete
+    open pending repeated UAT-01
 
 Issue #214:
     resolved
@@ -805,5 +805,5 @@ The 53-row ledger remains exactly 19 `satisfied`, 34
 `satisfied_with_approved_bounded_scope`, and zero in each unresolved
 classification. Frontend and UAT work remains under B-09 outside that ledger and
 does not reopen B-06. Issue #219 is implemented without changing the historical
-Issue-#207 technical conclusion. Issue #220, "Add task-first bilingual Session,
-Match, and Learning workflows," is the exact next action.
+Issue-#207 technical conclusion. After Issue #220 merge and green exact-commit
+`check` and `v1-supported-platform-matrix`, repeat UAT-01 under Issue #208.

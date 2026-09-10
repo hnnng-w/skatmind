@@ -249,7 +249,7 @@ def test_product_concepts_and_related_routes_are_localized_without_mutation() ->
         state,
         "/sessions",
         title="Retained workflow title",
-        content="<p>Future-owned English form</p>",
+        content="<p>Retained user text</p>",
         frontend=_frontend("de"),
         empty_state_key="sessions",
     )
@@ -257,10 +257,6 @@ def test_product_concepts_and_related_routes_are_localized_without_mutation() ->
     assert "nicht automatisch in ein Match eingefügt" in german
     assert "Noch keine erfassten einzelnen Spiele" in german
     assert german.index("Noch keine erfassten einzelnen Spiele") < german.index(
-        '<div class="english-workflow-body" lang="en">'
+        "<p>Retained user text</p>"
     )
-    assert (
-        '<div class="english-workflow-body" lang="en">'
-        "<p>Future-owned English form</p></div>"
-        in german
-    )
+    assert "english-workflow-body" not in german

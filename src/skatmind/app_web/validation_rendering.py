@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from html import escape
 
+from .form_parsing import FormValuesV1
 from .form_registry import FrontendFormDefinitionV1, FrontendFormFieldV1
 from .translation_catalog import translate_frontend_message_v1
 from .validation_contracts import FrontendSubmittedFormStateV1
@@ -79,11 +80,12 @@ def instrument_registered_forms_v1(
     def instrument(match: re.Match[str]) -> str:
         opening, content, closing = match.groups()
         action = _attribute(opening, "action")
+        media_type = _attribute(opening, "enctype") or "application/x-www-form-urlencoded"
         candidates = tuple(
             definition
             for definition in definitions
             if definition.action_route == action
-            and definition.media_type == "application/x-www-form-urlencoded"
+            and definition.media_type == media_type
         )
         if not candidates:
             return match.group(0)
@@ -102,23 +104,31 @@ def instrument_registered_forms_v1(
                 break
         instance = counts.get(definition.form_key, 0)
         counts[definition.form_key] = instance + 1
-        metadata = f'<input type="hidden" name="_frontend_form_instance" value="{instance}">'
+        fields = " ".join(field.field_key for field in definition.safe_fields
+                          if field.control_type != "file" and not field.clear_after_rejection)
+        opening = _set_attribute(opening, "data-preserve-fields", fields)
+        metadata = (f'<input type="hidden" name="_frontend_form_instance" value="{instance}">'
+                    if media_type == "application/x-www-form-urlencoded" else "")
         return opening + metadata + content + closing
 
     return _FORM_BLOCK.sub(instrument, html)
 
 
 def _open_containing_details(html: str, form_start: int, form_end: int) -> str:
-    candidate = None
-    for match in _DETAILS_OPEN.finditer(html, 0, form_start):
-        candidate = match
-    if candidate is None:
-        return html
-    close = html.find("</details>", candidate.end())
-    if close < form_end or " open" in candidate.group(0):
-        return html
-    opened = candidate.group(0)[:-1] + " open>"
-    return html[: candidate.start()] + opened + html[candidate.end() :]
+    stack = []
+    containers = []
+    for match in re.finditer(r"<details\b[^>]*>|</details>", html, re.IGNORECASE):
+        if match.group(0).lower().startswith("</"):
+            if stack:
+                opening = stack.pop()
+                if opening.end() <= form_start and match.start() >= form_end:
+                    containers.append(opening)
+        else:
+            stack.append(match)
+    for opening in sorted(containers, key=lambda item: item.start(), reverse=True):
+        if re.search(r"\sopen(?:\s|=|>)", opening.group(0), re.IGNORECASE) is None:
+            html = html[:opening.end() - 1] + " open>" + html[opening.end():]
+    return html
 
 
 def _open_field_details(block: str, field: str) -> str:
@@ -130,15 +140,7 @@ def _open_field_details(block: str, field: str) -> str:
     )
     if control is None:
         return block
-    candidate = None
-    for match in _DETAILS_OPEN.finditer(block, 0, control.start()):
-        close = block.find("</details>", match.end())
-        if close >= control.end():
-            candidate = match
-    if candidate is None or " open" in candidate.group(0):
-        return block
-    opened = candidate.group(0)[:-1] + " open>"
-    return block[: candidate.start()] + opened + block[candidate.end() :]
+    return _open_containing_details(block, control.start(), control.end())
 
 
 def _insert_field_messages(block: str, field: str, messages: str) -> str:
@@ -158,7 +160,11 @@ def _insert_field_messages(block: str, field: str, messages: str) -> str:
 
 
 def _replace_values(block: str, state: FrontendSubmittedFormStateV1) -> str:
-    for entry in state.safe_visible_values.entries:
+    return _replace_safe_values(block, state.safe_visible_values)
+
+
+def _replace_safe_values(block: str, values_state: FormValuesV1) -> str:
+    for entry in values_state.entries:
         field = re.escape(entry.field)
         values = entry.values
 
@@ -206,6 +212,7 @@ def _replace_values(block: str, state: FrontendSubmittedFormStateV1) -> str:
         def replace_select(
             match: re.Match[str],
             retained_values: tuple[str, ...] = values,
+            field_name: str = entry.field,
         ) -> str:
             nonlocal select_index
             options = re.sub(r"\s+selected(?:=\"selected\")?", "", match.group(2))
@@ -217,6 +224,10 @@ def _replace_values(block: str, state: FrontendSubmittedFormStateV1) -> str:
                 re.IGNORECASE,
             )
             options = option_pattern.sub(r"\1 selected\2", options, count=1)
+            if (field_name in {"card", "cards", "actual_card_played"}
+                    and re.fullmatch(r"[CSHD](?:A|10|K|Q|J|9|8|7)", retained_value)
+                    and " selected" not in options):
+                options = f'<option value="{selected}" selected>{selected}</option>' + options
             return match.group(1) + options + match.group(3)
 
         block = select_pattern.sub(replace_select, block)

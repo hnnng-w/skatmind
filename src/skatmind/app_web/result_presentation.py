@@ -9,6 +9,8 @@ from skatmind.information_set_search_workflow import (
 )
 from skatmind.recommendation_workflow import COMPATIBLE_WORLD_MINIMAX_METHOD
 
+from .render_locale import localized_render, message
+
 RESULT_SECTION_TITLES_V1 = (
     "Summary",
     "Recommendation",
@@ -249,7 +251,7 @@ def _position_alternatives(document: Mapping[str, object]) -> ResultSectionV1:
     if table is None:
         return ResultSectionV1(
             title="Alternatives",
-            paragraphs=("No Candidate comparison is available for this Result.",),
+            paragraphs=(message("result.no_candidates"),),
         )
     return ResultSectionV1(title="Alternatives", tables=(table,))
 
@@ -382,7 +384,7 @@ def _build_position_presentation(
     _optional_detail(recommendation_details, "Decision quality", review, "decision_quality")
     recommendation_paragraph = recommendation.get("reason")
     if type(recommendation_paragraph) is not str or not recommendation_paragraph:
-        recommendation_paragraph = "No Card recommendation is available from this Result."
+        recommendation_paragraph = message("result.no_recommendation")
 
     evidence_details, technical_details = _search_evidence(document)
     _optional_detail(evidence_details, "Samples", settings, "sample_count")
@@ -426,14 +428,14 @@ def _build_position_presentation(
         )
 
     limits = [
-        "The analysis is bounded by its selected method, samples, and public budget.",
-        "Only information available at the analysis cutoff is used.",
-        "Opponent behavior follows the fixed public policy settings used for this analysis.",
-        "Search is not a perfect-play claim.",
-        "Compatible-world counts and samples are evidence coverage, not calibrated probability.",
+        message("result.limit.budget"),
+        message("result.limit.cutoff"),
+        message("result.limit.policy"),
+        message("result.limit.search"),
+        message("result.limit.probability"),
     ]
     if review.get("actual_card_played") is not None:
-        limits.append("The actual Card is observed retrospective evidence, not ground truth.")
+        limits.append(message("result.limit.observed"))
 
     return BrowserSafeResultPresentationV1(
         workflow=_POSITION_WORKFLOW,
@@ -465,7 +467,9 @@ def _build_position_presentation(
     )
 
 
-def _immediate_review_table(review: Mapping[str, object]) -> ResultTableV1 | None:
+def _immediate_review_table(
+    review: Mapping[str, object], player_names=None,
+) -> ResultTableV1 | None:
     decisions = _objects(review.get("decisions"))
     if not decisions:
         return None
@@ -478,7 +482,8 @@ def _immediate_review_table(review: Mapping[str, object]) -> ResultTableV1 | Non
                 _text(decision.get("decision_index")),
                 _text(decision.get("trick_number")),
                 _text(decision.get("play_index")),
-                _text(decision.get("acting_player_id")),
+                (player_names or {}).get(
+                    decision.get("acting_player_id"), message("result.unlabeled_player")),
                 _text(decision.get("actual_card_played")),
                 _text(recommendation.get("card")),
                 _text(comparison.get("decision_quality", decision.get("status"))),
@@ -570,13 +575,18 @@ def _information_set_review_table(review: Mapping[str, object]) -> ResultTableV1
 
 
 def _historical_alternatives(summary: Mapping[str, object]) -> ResultSectionV1:
+    player_names = {
+        player.get("player_id"): (
+            player.get("player_label") or message(f"creation.seat.{player['seat']}"))
+        for player in _objects(_object(summary.get("record")).get("players"))
+    }
     immediate = _object(summary.get("historical_game_review_summary"))
     search = _object(summary.get("historical_search_review_summary"))
     information_set = _object(summary.get("historical_information_set_search_review_summary"))
     tables = tuple(
         table
         for table in (
-            _immediate_review_table(immediate),
+            _immediate_review_table(immediate, player_names),
             _search_review_table(search),
             _information_set_review_table(information_set),
         )
@@ -585,7 +595,7 @@ def _historical_alternatives(summary: Mapping[str, object]) -> ResultSectionV1:
     if not tables:
         return ResultSectionV1(
             title="Alternatives",
-            paragraphs=("No chronological Decision comparison was requested.",),
+            paragraphs=(message("result.no_review"),),
         )
     return ResultSectionV1(title="Alternatives", tables=tables)
 
@@ -669,19 +679,19 @@ def _historical_evidence(
     )
 
     limits = [
-        "Historical comparisons use only information available at each Decision cutoff.",
-        "Search is bounded and is not a perfect-play claim.",
-        "Opponent behavior follows the fixed public policy settings used for each review.",
-        "Compatible-world counts and samples are evidence coverage, not calibrated probability.",
-        "Observed Cards are retrospective evidence, not ground truth.",
+        message("result.limit.historical_cutoff"),
+        message("result.limit.search"),
+        message("result.limit.policy"),
+        message("result.limit.probability"),
+        message("result.limit.observed"),
     ]
     if replay:
         limits.append(
-            "Replay Coaching is bounded to retained review evidence and makes no causal claim."
+            message("result.limit.coaching")
         )
         limits.extend(_safe_public_limitations(replay.get("limitations"), "Replay Coaching"))
     if information_coaching:
-        limits.append("Information-set Coaching uses complete Candidate evidence without fallback.")
+        limits.append(message("result.limit.information_coaching"))
         limits.extend(
             _safe_public_limitations(
                 information_coaching.get("limitations"),
@@ -690,13 +700,12 @@ def _historical_evidence(
         )
     if tactical:
         limits.append(
-            "Tactical motifs are structural observations, not quality, intent, signaling, "
-            "communication, or causal claims."
+            message("result.limit.tactical")
         )
         limits.extend(_safe_public_limitations(tactical.get("limitations"), "Tactical Review"))
     if ending.get("kind") == "party_wide_all_remaining_tricks_claim":
         limits.append(
-            "Claim adjudication is limited to the bounded party-wide all-remaining-Tricks form."
+            message("result.limit.claim")
         )
     return details, limits
 
@@ -788,18 +797,17 @@ def _build_historical_presentation(
         display = (
             label
             if type(label) is str and label
-            else seat.replace("_", " ").title()
+            else message(f"creation.seat.{seat}")
             if type(seat) is str and seat
-            else "Unlabeled Player"
+            else message("result.unlabeled_player")
         )
         visible_players.append(display)
         if type(player_id) is str:
             player_labels[player_id] = display
     declarer_id = record.get("declarer_player_id")
-    declarer = player_labels.get(declarer_id, "Unlabeled Player")
+    declarer = player_labels.get(declarer_id, message("result.unlabeled_player"))
 
     summary_details = [
-        _detail("Game", summary.get("game_id", record.get("game_id"))),
         _detail("Status", summary.get("status")),
         _detail("Players", ", ".join(visible_players) if visible_players else None),
         _detail("Declarer", declarer),
@@ -843,6 +851,7 @@ def _build_historical_presentation(
 
     evidence_details, limits = _historical_evidence(summary)
     technical_details = _historical_technical_details(execution, summary)
+    technical_details.append(_detail("Game ID", summary.get("game_id", record.get("game_id"))))
     immediate_review = _object(summary.get("historical_game_review_summary"))
     search_review = _object(summary.get("historical_search_review_summary"))
     information_review = _object(
@@ -861,12 +870,11 @@ def _build_historical_presentation(
     ):
         _optional_detail(recommendation_details, label, source, key)
     recommendation_paragraphs = [
-        "A completed game has no single whole-game Card recommendation."
+        message("result.whole_game")
     ]
     if recommendation_details:
         recommendation_paragraphs.append(
-            "Decision reviews remain bounded to their retained public evidence and do not "
-            "establish one globally optimal game policy."
+            message("result.limit.global")
         )
     return BrowserSafeResultPresentationV1(
         workflow=_HISTORICAL_WORKFLOW,
@@ -892,6 +900,7 @@ def _build_historical_presentation(
     )
 
 
+@localized_render
 def build_result_presentation_v1(
     execution: ExecutionResultV1,
 ) -> BrowserSafeResultPresentationV1:

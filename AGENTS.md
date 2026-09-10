@@ -610,15 +610,15 @@ header compatibility defect and a separate stale matrix-smoke filename
 expectation. The correction and both required Ubuntu jobs passed, completing
 Issue #216. Issue #217 implements the grouped bilingual Home, clarified Product
 concepts, related links, and stateful empty-state guidance. UAT-FINDING-001 is
-further partially remediated/open; UAT-FINDING-003 has its Home and concept
-remediation implemented/open pending Issue #220 and repeated UAT-01; and UAT-
-FINDING-008 has bilingual Home and concept coverage implemented/open pending
-Issue #220. Issue #218 implements private safe submitted-value preservation and
+implementation-remediated/open; UAT-FINDING-003 has Home, concept, and active-view
+remediation implemented/open pending repeated UAT-01; and UAT-
+FINDING-008 has complete German/English frontend implementation, open pending
+repeated UAT-01. Issue #218 implements private safe submitted-value preservation and
 localized accessible validation feedback; UAT-FINDING-006 remains open pending
 repeated UAT-01. Issue #219 implements private known Players, local creation
 defaults and display labels, generated frontend identities, bilingual name-first
 Session/Match/Learning creation, secondary JSON transfer, and Product-first/
-profile-second failure handling. Issue #220 is the exact next action. Issue #208
+profile-second failure handling. Issue #220 implements task-first bilingual workflows. Issue #208
 remains open, UAT-02 through
 UAT-12 remain paused, B-09 and B-07 remain open, B-06 remains closed, and
 Package `1.0.0` and Release preparation are not ready. No v1 Release title,
@@ -924,11 +924,11 @@ did not pass. Issue #215 freezes the authoritative bilingual profile-driven
 frontend UX contract. Issue #216 implements the private local frontend profile,
 locale foundation, and bilingual common shell. Issue #217 implements the private
 grouped bilingual Home information architecture, Product concepts, related links,
-and useful empty states while full workflow translation remains incomplete
-through Issue #220. Issue #218 implements private validation preservation and
+and useful empty states; Issue #220 completes task-first active workflows and
+frontend translation. Issue #218 implements private validation preservation and
 localized feedback without changing Product behavior. Issue #219 implements
 private profile-driven normal creation and local Player/default/label management
-without changing Product contracts. Issue #220 is the exact next action. UAT-02
+without changing Product contracts. After merge and green CI, repeat UAT-01. UAT-02
 through UAT-12 remain paused, B-09 and B-07
 remain open, B-06 remains closed,
 and Package `1.0.0` and Release preparation are not ready.
@@ -1061,6 +1061,12 @@ The issue update comment should include:
 * whether the issue is ready to close or should remain open
 
 ## Completion criteria
+
+The Issue-#220 implementation is documented in
+[`docs/task_first_bilingual_stateful_workflows.md`](docs/task_first_bilingual_stateful_workflows.md).
+The next maintainer action after merge and green exact-commit `check` and
+`v1-supported-platform-matrix` is to repeat UAT-01 under Issue #208. Agents do
+not perform UAT or close its findings.
 
 A task is complete only when:
 

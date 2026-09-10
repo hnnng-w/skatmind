@@ -178,5 +178,12 @@ Issue #219 integrates profile-driven Session, Match, and Learning creation,
 friendly fields, generated internal IDs, known-Player selection, saved defaults,
 and local display labels into this validation layer. Its implementation is
 documented in [Profile-driven stateful creation](profile_driven_stateful_creation.md).
-Issue #220 is the exact next action and retains task-first active-workflow layout
-and complete workflow translation ownership.
+Issue #220 implements task-first active layouts, nested-disclosure error opening,
+and complete workflow translation through this same registry.
+
+Its optional packaged language enhancement preserves allowlisted unsubmitted
+controls and explicit disclosure state in a bounded, active-item/revision-bound,
+one-return presentation envelope. The language POST writes only the explicit
+preference; it accepts no Product facts. Native operations and validation remain
+usable without JavaScript. See [Task-first bilingual stateful
+workflows](task_first_bilingual_stateful_workflows.md).

@@ -326,8 +326,8 @@ contains no source path or query.
 Normal workflows use semantic server-rendered forms, visible labels, text status,
 keyboard-operable native Card controls, field-linked error summaries, local error
 descriptions, native collapsed disclosures, semantic Result headings and tables,
-normal download links, visible focus, and responsive packaged CSS. No JavaScript
-is required or currently shipped.
+normal download links, visible focus, and responsive packaged CSS. JavaScript is
+optional; Issue #220 adds only a progressive language-form preservation enhancement.
 
 ## Current boundary and UAT state
 
@@ -344,8 +344,8 @@ B-06 remains closed; and Package `1.0.0` and Release preparation are not ready.
 Issue #215 freezes the authoritative
 [bilingual profile-driven frontend UX contract](bilingual_profile_driven_frontend_ux_contract.md).
 Issue #216 implements the shared private profile/localization foundation. When
-German is active, future-owned Analyze and Review bodies remain explicitly
-marked English pending Issue #220. Issue #217 adds localized one-Decision
+German is active, Issue #220 now renders Analyze, Review, and fixed Result text
+through the German catalog. Issue #217 adds localized one-Decision
 current/retrospective and one-completed-Game guidance plus safe related links
 outside that English region without changing either workflow. Issue #218 adds
 accepted-versus-submitted state separation, safe rejected-value preservation,
@@ -353,4 +353,4 @@ and localized accessible contextual validation without changing workflow
 execution. Issue #219 changes only private stateful creation, profile settings,
 and managed display presentation; it does not change Analyze or Review execution.
 See [Profile-driven stateful creation](profile_driven_stateful_creation.md).
-Issue #220 is the exact next action.
+Issue #220 is documented in [Task-first bilingual stateful workflows](task_first_bilingual_stateful_workflows.md).

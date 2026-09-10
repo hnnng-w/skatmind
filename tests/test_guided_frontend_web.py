@@ -915,7 +915,8 @@ def test_validation_is_field_local_accessible_and_advanced_groups_are_exact(
         for group in groups:
             assert page_html.count(f"<summary>{group}</summary>") == 1
         assert "<details open" not in page_html
-        assert "<script" not in page_html
+        assert '<script src="/matches/assets/capture.js" defer></script>' in page_html
+        assert "<script>" not in page_html
 
 
 def test_exact_one_mebibyte_upload_reaches_file_validation_and_oversize_is_413(

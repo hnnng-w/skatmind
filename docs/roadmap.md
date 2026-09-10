@@ -1567,7 +1567,12 @@ private known Players, generated frontend identities, saved defaults and display
 labels, bilingual name-first Session/Match/Learning creation, and Product-first/
 profile-second failure handling. Its assigned UAT-FINDING-005 and UAT-FINDING-
 007 creation portions and UAT-FINDING-008 creation-page coverage are implemented
-without closing those findings. Issue #220 is the exact next action. Issue #208 remains open; UAT-02 through
+without closing those findings. Issue #220 completes implementation remediation. Issue #208 remains open; UAT-02 through
 UAT-12 remain paused; B-09 and B-07 remain open; B-06 remains closed; and
 Package `1.0.0` and Release preparation are not ready. No v1 Release title,
 theme, date, tag, or publication commit is frozen.
+
+Issue #220 is documented in [Task-first bilingual stateful
+workflows](task_first_bilingual_stateful_workflows.md). The next maintainer action
+after merge and green exact-commit `check` and `v1-supported-platform-matrix` is
+to repeat UAT-01 under Issue #208. The technical ledger remains closed.

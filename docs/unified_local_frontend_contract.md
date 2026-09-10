@@ -36,14 +36,14 @@ Approved target contract:
     the complete required behavior frozen by Issue #209
 
 Implemented behavior:
-    the Issue #209 target plus the Issue #216 through #219 profile,
-    information-architecture, validation-preservation, and creation slices
+    the Issue #209 target plus the Issue #216 through #220 profile,
+    information-architecture, validation, creation, and task-first bilingual slices
 ```
 
 Current executable contracts, Public APIs, persistence formats, browser
 protocols, Schemas, and information controls remain authoritative while the
 implemented target remains in use. Issue #209 changed none of them; Issues #210
-through #219 add only their assigned private frontend and onboarding boundaries.
+through #220 add only their assigned private frontend and onboarding boundaries.
 
 ## UAT source
 
@@ -793,14 +793,14 @@ Issue #218 implements registered contextual validation with safe submitted-value
 workflow-context, Result, wizard-step, and language-switch preservation.
 Issue #219 implements private known Players, generated identities, local
 defaults/display labels, and friendly bilingual Session/Match/Learning creation.
-UAT-FINDING-001 is further partially remediated and open; UAT-FINDING-003 has its
-Home/concept remediation implemented and remains open pending Issue #220 and
-repeated UAT-01; UAT-FINDING-007 has its profile/default/creation scope
-implemented and remains open pending Issue #220; and UAT-FINDING-008 has
-bilingual Home/concept/creation coverage and remains open pending Issue #220. UAT-FINDING-006 has
+UAT-FINDING-001 is implementation-remediated and open; UAT-FINDING-003 has its
+Home/concept/active-workflow distinction implemented and remains open pending
+repeated UAT-01; UAT-FINDING-007 has its task-first remediation
+implemented and remains open pending repeated UAT-01; UAT-FINDING-008 has complete
+German/English frontend implementation and remains open pending UAT-01. UAT-FINDING-006 has
 its Issue #218 implementation complete and remains open pending repeated UAT-01.
-The creation-form scope of UAT-FINDING-005 is implemented but remains open for
-relevant Issue-#220 views and repeated UAT-01. Issue #220 is the exact next action.
+Creation and relevant active-view remediation for UAT-FINDING-005 is implemented;
+it remains open pending repeated UAT-01 after merge and green exact-commit CI.
 
 UAT-02 through UAT-12 remain paused. Frontend work remains part of B-09 outside
 the technical ledger and must not reopen B-06. B-07 remains open.
@@ -840,3 +840,7 @@ collaboration, encryption, complete-solver, perfect-play, or ground-truth claim.
 Four-player table support remains unconditionally out of scope. Other Product
 limitations remain governed by `docs/v1_scope.md` and the completed technical
 traceability ledger.
+
+The Issue-#220 implementation is documented in [Task-first bilingual stateful
+workflows](task_first_bilingual_stateful_workflows.md). Both required post-merge jobs
+must pass before the maintainer repeats UAT-01 under Issue #208.

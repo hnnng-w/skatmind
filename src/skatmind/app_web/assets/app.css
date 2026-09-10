@@ -12,6 +12,61 @@
   font-family: Georgia, "Times New Roman", serif;
 }
 
+#session-app > .panel,
+#task-first-match > .panel,
+#task-first-learning > .panel {
+  padding: clamp(1rem, 3vw, 1.8rem);
+  margin-block: 1rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+#session-app .form-grid,
+#task-first-match .form-grid,
+#task-first-learning .form-grid {
+  display: grid;
+  gap: 0.8rem;
+  max-width: 65rem;
+}
+
+button.secondary,
+details button {
+  color: var(--green-dark);
+  background: var(--surface);
+  border: 1px solid var(--green);
+}
+
+.technical-details,
+#session-app > details,
+#task-first-match > details,
+#task-first-learning > details {
+  margin-block: 1rem;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+}
+
+.technical-details pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.round-slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.position-card small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 42rem) {
+  .round-slots {
+    grid-template-columns: 1fr;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -335,14 +390,12 @@ h1 {
 
 .local-notice,
 .scope-note,
-.translation-status,
 .profile-warning {
   max-width: 64rem;
   margin: 1rem 0;
   border-left: 0.35rem solid var(--gold);
 }
 
-.translation-status,
 .profile-warning {
   max-width: 64rem;
   margin: 1rem 0;

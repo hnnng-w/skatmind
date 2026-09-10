@@ -379,19 +379,6 @@ def _about(
     return _text(frontend, "page.about.title"), content
 
 
-def _workflow_boundary(
-    content: str,
-    frontend: BrowserSafeFrontendProfileStateV1,
-) -> str:
-    if frontend.locale != "de":
-        return content
-    return (
-        '<aside class="translation-status" role="status">'
-        f"{_translated(frontend, 'translation.english_body_notice')}</aside>"
-        f'<div class="english-workflow-body" lang="en">{content}</div>'
-    )
-
-
 def _shell(
     state: BrowserSafeApplicationStateV1,
     route: str,
@@ -427,7 +414,8 @@ def _shell(
             for path in extra_stylesheets
         ),
         "{{EXTRA_SCRIPTS}}": "".join(
-            f'<script src="{escape(path, quote=True)}" defer></script>' for path in extra_scripts
+            f'<script src="{escape(path, quote=True)}" defer></script>'
+            for path in dict.fromkeys(("/matches/assets/capture.js", *extra_scripts))
         ),
     }
     template = _template()
@@ -465,10 +453,12 @@ def render_app_page_v1(
         title, content = _home(state, frontend_state)
     elif route == "/analyze":
         title = _text(frontend_state, "page.analyze.title")
-        content = render_analyze_workflow_v1(analyze_state or ProcessLocalFrontendWorkflowStateV1())
+        content = render_analyze_workflow_v1(
+            analyze_state or ProcessLocalFrontendWorkflowStateV1(), locale=frontend_state.locale)
     elif route == "/review":
         title = _text(frontend_state, "page.review.title")
-        content = render_review_workflow_v1(review_state or ProcessLocalFrontendWorkflowStateV1())
+        content = render_review_workflow_v1(
+            review_state or ProcessLocalFrontendWorkflowStateV1(), locale=frontend_state.locale)
     elif route == "/about":
         if not isinstance(storage_root, Path):
             raise ValueError("About rendering requires one private storage Path.")
@@ -476,10 +466,7 @@ def render_app_page_v1(
     else:
         title, content = _placeholder(route, frontend_state)
     if route in _WORKFLOW_ROUTES:
-        content = _workflow_concept(route, frontend_state) + _workflow_boundary(
-            content,
-            frontend_state,
-        )
+        content = _workflow_concept(route, frontend_state) + content
     return _shell(
         state,
         route,
@@ -502,6 +489,7 @@ def render_app_content_page_v1(
     frontend: BrowserSafeFrontendProfileStateV1 | None = None,
     return_to: str | None = None,
     untranslated_workflow_body: bool = True,
+    task_first: bool = False,
     empty_state_key: str | None = None,
     extra_stylesheets: tuple[str, ...] = (),
     extra_scripts: tuple[str, ...] = (),
@@ -532,11 +520,16 @@ def render_app_content_page_v1(
         localized_content = _workflow_concept(route, frontend_state)
         if empty_state_key is not None:
             localized_content += _empty_state(empty_state_key, frontend_state)
-    rendered_content = localized_content + (
-        _workflow_boundary(content, frontend_state)
-        if untranslated_workflow_body and route in _WORKFLOW_ROUTES
-        else content
-    )
+    active_task_first = task_first
+    if active_task_first:
+        localized_content = (
+            '<details class="secondary-action"><summary>'
+            + _translated(frontend_state, "home.details.more") + '</summary>'
+            + localized_content + '</details>'
+        )
+    rendered_content = ("" if active_task_first else localized_content) + content
+    if active_task_first:
+        rendered_content += localized_content
     return _shell(
         state,
         route,
@@ -577,8 +570,6 @@ def render_app_error_page_v1(
         if message_key is not None
         else escape(str(message))
     )
-    if untranslated_message and frontend_state.locale == "de":
-        resolved_message = f'<div lang="en" class="english-workflow-body">{resolved_message}</div>'
     content = (
         '<section class="placeholder">'
         f"<p>{resolved_message}</p>"

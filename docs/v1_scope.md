@@ -365,7 +365,7 @@ localized accessible validation feedback without changing Product or stable
 contracts. Issue #219 implements private profile-driven Session, Match, and
 Learning creation, generated frontend identities, and local Player/default/label
 management without changing scope classifications or stable contracts. Issue
-#220 is the exact next action. Issue #208 remains
+#220 implements task-first bilingual active workflows. Issue #208 remains
 open; UAT-02 through
 UAT-12 remain paused; B-09 and B-07 remain open; B-06 remains closed; and
 Package `1.0.0` and Release preparation are not ready.
@@ -983,7 +983,7 @@ subset without changing that rule or ledger. Issue #218 implements the private
 validation-preservation subset without changing that rule or ledger. Issue #219
 implements the private profile-driven creation subset without changing that rule
 or ledger; see [Profile-driven stateful creation](profile_driven_stateful_creation.md).
-Issue #220 is the exact next action.
+After Issue #220 merge and green exact-commit CI, repeat UAT-01 under Issue #208.
 Issue #208 remains open; UAT-02 through
 UAT-12 remain paused; B-09 and B-07 remain open; B-06 remains closed; and
 Package `1.0.0` and Release preparation are not ready.

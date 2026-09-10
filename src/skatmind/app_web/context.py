@@ -14,6 +14,7 @@ from .state import build_browser_safe_application_state_v1
 from .workflow_state import ProcessLocalFrontendWorkflowStateV1
 
 if TYPE_CHECKING:
+    from .language_form_preservation import LanguagePageValuesV1
     from .stateful_context import ManagedStatefulContextV1
 
 
@@ -41,6 +42,7 @@ class AppWebContextV1:
     profile_lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
     profile_redirect_return_to: str | None = field(default=None, repr=False)
     stateful_creation_notices: dict[str, str] = field(default_factory=dict, repr=False)
+    language_page_values: LanguagePageValuesV1 | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         from .stateful_context import ManagedStatefulContextV1

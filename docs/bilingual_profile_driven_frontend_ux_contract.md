@@ -8,7 +8,7 @@ implements its private profile/localization and common-shell foundation. Issue
 #217 implements the information-architecture and Product-concept slice. Issue
 #218 implements validation preservation and localized feedback. Issue #219
 implements profile-driven creation and local Player/default/label management.
-Issue #220 retains task-first active-workflow and complete-translation ownership.
+Issue #220 implements task-first active workflows and completes frontend translation.
 
 This document must keep three states distinct:
 
@@ -16,8 +16,8 @@ This document must keep three states distinct:
 Current behavior:
     the bilingual common shell, private profile, grouped Home, Product concepts,
     related links, empty-state guidance, and validation preservation implemented
-    through Issue #219, including bilingual profile-driven creation, with
-    explicitly marked English active workflow bodies
+    through Issue #220, including bilingual profile-driven creation and
+    task-first bilingual active workflows
 
 Approved target contract:
     the future behavior frozen by Issue #215 in this document
@@ -62,7 +62,7 @@ UAT-FINDING-001:
     A primary frontend exists, but normal stateful Product workflows are not yet
     acceptable.
     Severity: blocker
-    Status: further partially remediated through Issue #219, open
+    Status: implementation remediation complete through Issue #220, open pending UAT-01
 
 UAT-FINDING-002:
     CLI onboarding was an unstructured expert interface.
@@ -71,8 +71,8 @@ UAT-FINDING-002:
 UAT-FINDING-003:
     Session, Match, Review, and Learning are not sufficiently distinguished.
     Severity: major
-    Status: Home and concept remediation implemented by Issue #217, open pending
-    Issue #220 and repeated UAT-01
+    Status: Home, concept, and active-workflow distinction implemented; open
+    pending repeated UAT-01
 
 UAT-FINDING-004:
     Valid browser form submissions were rejected as Forbidden.
@@ -82,8 +82,8 @@ UAT-FINDING-005:
     Normal forms expose internal identifiers, enums, timestamps, and technical
     metadata.
     Severity: major
-    Status: creation-form scope implemented by Issue #219, open for applicable
-    Issue-#220 views and repeated UAT-01
+    Status: creation and relevant active-view remediation implemented; open
+    pending repeated UAT-01
 
 UAT-FINDING-006:
     Validation failures can discard entered values and break the current
@@ -95,14 +95,14 @@ UAT-FINDING-007:
     Stateful workflows expose too many fields and advanced concepts before the
     next normal Skat task is clear.
     Severity: major
-    Status: profile/default/creation scope implemented through Issue #219, open
-    pending Issue #220
+    Status: task-first remediation implemented through Issue #220; open
+    pending repeated UAT-01
 
 UAT-FINDING-008:
     Complete German and English workflow coverage is unavailable.
     Severity: major
-    Status: bilingual Home, concept, and creation-page coverage implemented
-    through Issue #219, open pending Issue #220
+    Status: German and English unified-frontend implementation complete;
+    open pending repeated UAT-01
 ```
 
 Issues #216, #217, and #219 further partially remediate UAT-FINDING-001. Issue #216
@@ -181,10 +181,10 @@ no_external_translation_profile_sync_or_cloud_service
 ```
 
 These policies remain internal and must not become Public API exports. Issues
-#216 through #219 implement the ten-policy subset listed in
+#216 through #220 implement the complete ordered policy tuple listed in
 [Local frontend profile and localization](local_frontend_profile_and_localization.md);
-the task-first active-workflow and complete Advanced-detail policies remain
-future-owned by Issue #220.
+the task-first active-workflow and complete Advanced-detail policies are
+implemented by Issue #220.
 
 ## Current behavior
 
@@ -192,8 +192,8 @@ Package `0.17.0` currently provides a German/English common shell, grouped Home,
 Product-concept and empty-state guidance, About, authorization, and generic common-error presentation. Exact HTML
 `lang`, global language selection, saved/browser/fallback resolution, strict
 catalogs, and private profile persistence are implemented. Session, Match, and
-Learning landing and creation pages are bilingual; active workflow bodies remain
-explicitly transitional where Issue #220 translation is pending. Machine Routes
+Learning landing, creation, and active workflow pages are bilingual through
+Issue #220, with task-first active layouts. Machine Routes
 and identifiers remain English and locale-neutral. Unified frontend POST forms now use registered,
 bounded, process-local submitted-form preservation and localized contextual
 `400`/`409` feedback as documented in
@@ -204,7 +204,7 @@ information hierarchy with Match Capture first. Normal stateful creation forms
 use names, known Players, friendly fields, generated private identities, saved
 defaults, and secondary import. About provides local Player/default management,
 and managed landing pages provide private display labels. Complete active-
-workflow translation and task-first layouts remain pending Issue #220.
+workflow translation and task-first layouts are implemented by Issue #220.
 
 The managed data root retains exactly the managed categories `sessions`,
 `matches`, and `corpora`. An optional private `frontend-profile.json` is a direct
@@ -880,28 +880,28 @@ The exact remaining finding state and ownership is:
 
 ```text
 UAT-FINDING-001:
-    further partially remediated through Issue #219
-    open pending Issue #220 and repeated UAT-01
+    implementation remediation complete through Issue #220
+    open pending repeated UAT-01
 
 UAT-FINDING-003:
-    Home and concept remediation implemented by Issue #217
-    open pending Issue #220 and repeated UAT-01
+    Home, Product-concept, and active-workflow distinction implemented
+    open pending repeated UAT-01
 
 UAT-FINDING-005:
-    creation-form scope implemented by Issue #219
-    open for relevant Issue #220 views and repeated UAT-01
+    creation and relevant active-view remediation implemented
+    open pending repeated UAT-01
 
 UAT-FINDING-006:
     Issue #218 implementation complete
     open pending repeated UAT-01
 
 UAT-FINDING-007:
-    profile/default/creation scope implemented through Issue #219
-    open pending Issue #220
+    task-first remediation implemented
+    open pending repeated UAT-01
 
 UAT-FINDING-008:
-    bilingual Home, concept, and creation-page coverage implemented through #219
-    open pending Issue #220
+    German and English unified-frontend implementation complete
+    open pending repeated UAT-01
 ```
 
 The resolved finding state remains:
@@ -962,18 +962,18 @@ Package 1.0.0 preparation:
 ```
 
 The completed 53-row technical ledger must not be reopened. Issue #219
-implements profile-driven creation without changing that ledger. The exact next
-implementation action is:
+implements profile-driven creation without changing that ledger. After Issue #220
+merge and green exact-commit CI, the next maintainer action is:
 
 ```text
-Issue #220 - Add task-first bilingual Session, Match, and Learning workflows
+Repeat UAT-01 under Issue #208.
 ```
 
 ## Non-goals and accepted limitations
 
 Issues #216 through #219 do not implement task-first active stateful layouts,
 the complete Advanced/Technical-detail hierarchy, or complete active-workflow
-translation. Those changes remain owned by Issue #220. None creates a tag or
+translation. Those changes are implemented by Issue #220. None creates a tag or
 Release.
 
 Issue #215 must not translate or change the CLI, Public Python API, JSON,

@@ -110,8 +110,8 @@ remain normal visible states; rejected/unavailable responses use contextual HTTP
 ## Match Capture
 
 `/matches` lists managed Workspaces, offers a bilingual no-JSON Match creation
-flow and strict secondary Workspace import, and embeds the existing Capture body and
-packaged progressive assets under namespaced routes. Every metadata, Game,
+flow and strict secondary Workspace import, with task-first bilingual presentation
+under existing namespaced routes through Issue #220. Every metadata, Game,
 Card, Commentary, response, passed-deal, clear, Statistics, materialization,
 Decision-analysis, Historical-analysis, Report, and export action delegates to
 the existing Capture context and operations.
@@ -133,8 +133,8 @@ submission.
 ## Learning
 
 `/learning` lists and creates managed Corpora and strictly opens existing Corpus
-directories. The active page embeds the existing Learning Corpus body and local
-assets under namespaced routes. Workspace and executed Decision Report-source
+directories. Issue #220 provides the task-first bilingual active Learning page
+under existing namespaced routes. Workspace and executed Decision Report-source
 imports, explicit Current selection, Reload, source removal/clear, explicit
 artifact preparation, and all ten authenticated canonical downloads reuse the
 existing Corpus context and operations.
@@ -205,9 +205,9 @@ invalidates older feedback. Successful actions retain HTTP `303`. File controls
 are always cleared and require explicit reselection. Raw Product, persistence,
 path, handle, and exception details do not become validation presentation.
 
-The unified app adapts existing Capture and Corpus HTML only after their shared
-renderers return. Standalone `skatmind capture` and `skatmind corpus` output and
-transport therefore remain unchanged.
+The unified app uses focused private task-first renderers over existing Product
+views. Standalone `skatmind capture` and `skatmind corpus` renderers, output, and
+transport remain unchanged.
 
 Creation validates values and current profile state, generates identities, and
 persists the authoritative Product exactly once before attempting one optional
@@ -231,10 +231,14 @@ closed; and Package `1.0.0` and Release preparation are not ready.
 Issue #215 freezes the authoritative
 [bilingual profile-driven frontend UX contract](bilingual_profile_driven_frontend_ux_contract.md).
 Issue #216 implements the shared private profile/localization foundation. When
-German is active, remaining future-owned active Session, Match, and Learning
-bodies retain explicit language boundaries pending Issue #220. Issue #217 adds localized Product-
+German is active, Issue #220 now renders active Session, Match, and Learning
+pages in German. Issue #217 adds localized Product-
 unit guidance, safe related links, and useful no-Session, no-Match, no-collection,
 and active-empty-collection states outside those regions. Issue #218 implements
 contextual stateful validation without changing Product operations. Issue #219
 implements bilingual profile-driven creation and local Player/default/label
-management. Issue #220 is the exact next action.
+management. Issue #220 implements task-first workflows and complete localization.
+
+See [Task-first bilingual stateful workflows](task_first_bilingual_stateful_workflows.md).
+After merge and green exact-commit `check` and `v1-supported-platform-matrix`,
+the next maintainer action is to repeat UAT-01 under Issue #208.

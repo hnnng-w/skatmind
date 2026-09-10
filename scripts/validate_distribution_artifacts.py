@@ -144,6 +144,7 @@ APP_RESOURCE_PREFIX = "skatmind/app_web/"
 APP_RESOURCE_NAMES = (
     "templates/app.html",
     "assets/app.css",
+    "assets/workflow.js",
     "locales/de.json",
     "locales/en.json",
 )
@@ -1148,6 +1149,7 @@ app_resource_root = importlib.resources.files("skatmind.app_web")
 app_resource_names = (
     "templates/app.html",
     "assets/app.css",
+    "assets/workflow.js",
     "locales/de.json",
     "locales/en.json",
 )
@@ -1185,6 +1187,19 @@ frontend_catalogs = load_frontend_translation_catalogs_v1()
 assert tuple(frontend_catalogs) == ("de", "en")
 assert "validation.summary.heading" in frontend_catalogs["en"]
 assert "validation.summary.heading" in frontend_catalogs["de"]
+for locale in ("de", "en"):
+    assert "task.session.state" in frontend_catalogs[locale]
+    assert "task.match.overview" in frontend_catalogs[locale]
+    assert "task.learning.build" in frontend_catalogs[locale]
+from skatmind.app_web.localization_contracts import (
+    BILINGUAL_FRONTEND_POLICIES,
+    IMPLEMENTED_BILINGUAL_FRONTEND_POLICIES,
+)
+from skatmind.app_web.task_first_projections import project_task_first_learning_v1
+assert IMPLEMENTED_BILINGUAL_FRONTEND_POLICIES == BILINGUAL_FRONTEND_POLICIES
+assert project_task_first_learning_v1({
+    "matches": [], "current_match_snapshots": [], "strategy_sources": []
+}).primary_action is None
 assert load_frontend_profile_file_v1(app_home.root).status == "absent"
 assert not (app_home.root / "frontend-profile.json").exists()
 app_server = start_app_web_server_v1(app_context, port=0, token="app-distribution-token")

@@ -1,5 +1,7 @@
+# ruff: noqa: E501 - Keep complete server-rendered elements legible.
 from __future__ import annotations
 
+from dataclasses import replace
 from html import escape
 
 from .guided_contracts import (
@@ -8,6 +10,9 @@ from .guided_contracts import (
     REVIEW_REQUEST_DOWNLOAD_ROUTE_PATH,
     REVIEW_RESULT_DOWNLOAD_ROUTE_PATH,
 )
+from .render_locale import html_message as _t
+from .render_locale import localized_render
+from .result_localization import RESULT_LABEL_KEYS, result_label, result_value
 from .result_presentation import (
     BrowserSafeResultPresentationV1,
     ResultSectionV1,
@@ -21,7 +26,7 @@ def _details(values) -> str:
     return (
         '<dl class="result-details">'
         + "".join(
-            f"<dt>{escape(detail.label)}</dt><dd>{escape(detail.value)}</dd>" for detail in values
+            f"<dt>{escape(result_label(detail.label))}</dt><dd>{escape(result_value(detail.label, detail.value))}</dd>" for detail in values
         )
         + "</dl>"
     )
@@ -38,11 +43,11 @@ def _items(values) -> str:
 
 
 def _table(table: ResultTableV1) -> str:
-    headings = "".join(f'<th scope="col">{escape(column)}</th>' for column in table.columns)
+    headings = "".join(f'<th scope="col">{escape(result_label(column))}</th>' for column in table.columns)
     rows = "".join(
         "<tr>"
         + "".join(
-            (f'<th scope="row">{escape(cell)}</th>' if index == 0 else f"<td>{escape(cell)}</td>")
+            (f'<th scope="row">{escape(cell)}</th>' if index == 0 else f"<td>{escape(result_value(table.columns[index], cell))}</td>")
             for index, cell in enumerate(row)
         )
         + "</tr>"
@@ -50,7 +55,7 @@ def _table(table: ResultTableV1) -> str:
     )
     return (
         '<div class="result-table-wrap"><table>'
-        f"<caption>{escape(table.caption)}</caption>"
+        f"<caption>{escape(result_label(table.caption))}</caption>"
         f"<thead><tr>{headings}</tr></thead><tbody>{rows}</tbody>"
         "</table></div>"
     )
@@ -86,18 +91,19 @@ def _download_links(
     if request_download_available:
         links.append(
             f'<li><a href="{escape(request_href, quote=True)}" '
-            "download>Download exact Request JSON</a></li>"
+            f'download>{_t("guided.request_download")}</a></li>'
         )
     if result_download_available:
         links.append(
             f'<li><a href="{escape(result_href, quote=True)}" '
-            "download>Download exact Result JSON</a></li>"
+            f'download>{_t("task.result_download")}</a></li>'
         )
     if not links:
         return ""
-    return '<nav aria-label="Result downloads"><ul>' + "".join(links) + "</ul></nav>"
+    return f'<nav aria-label="{_t("task.learning.results")}"><ul>' + "".join(links) + "</ul></nav>"
 
 
+@localized_render
 def render_result_presentation_v1(
     presentation: BrowserSafeResultPresentationV1,
     *,
@@ -127,19 +133,40 @@ def render_result_presentation_v1(
             raise ValueError("Custom Result download routes must be absolute local routes.")
 
     rendered = []
+    technical_extras = []
     for index, section in enumerate(presentation.sections):
         identifier = f"result-section-{index + 1}"
+        if section.title != "Technical details":
+            technical_extras.extend(detail for detail in section.details
+                                    if detail.label not in RESULT_LABEL_KEYS or "fixed policy" in detail.label)
+            if section.title == "Recommendation" and presentation.workflow == "position_analysis":
+                technical_extras.extend(section.paragraphs)
+                section = replace(section, paragraphs=())
+            technical_extras.extend(item for item in section.items if item.startswith(
+                ("Replay Coaching:", "Information-set Coaching:", "Tactical Review:")))
+            section = replace(section,
+                details=tuple(detail for detail in section.details if detail.label in RESULT_LABEL_KEYS and "fixed policy" not in detail.label),
+                items=tuple(item for item in section.items if not item.startswith(
+                    ("Replay Coaching:", "Information-set Coaching:", "Tactical Review:"))))
         body = _section_body(section)
         if index == 0 and presentation.warnings:
             body = (
-                '<aside aria-label="Result warnings"><h3>Warnings</h3>'
-                + _items(presentation.warnings)
+                f'<aside aria-label="{_t("result.warnings")}"><h3>{_t("result.warnings")}</h3>'
+                + f'<p>{_t("result.warning_count", count=len(presentation.warnings))}</p>'
                 + "</aside>"
                 + body
             )
         if section.title == "Technical details":
+            exact = [*technical_extras, *presentation.warnings]
+            body += '<div lang="en">' + ''.join(
+                '<p>' + escape(item if isinstance(item, str) else f"{item.label}: {item.value}") + '</p>'
+                for item in exact) + '</div>'
+            body += '<dl lang="en">' + ''.join(
+                '<dt>' + escape(detail.label) + '</dt><dd>' + escape(detail.value) + '</dd>'
+                for original in presentation.sections for detail in original.details
+                if original.title != "Technical details") + '</dl>'
             body = (
-                "<details><summary>Show Technical details</summary>"
+                f'<details><summary>{_t("task.technical")}</summary>'
                 + body
                 + _download_links(
                     page=effective_page,
@@ -152,7 +179,7 @@ def render_result_presentation_v1(
             )
         rendered.append(
             f'<section aria-labelledby="{identifier}">'
-            f'<h2 id="{identifier}">{escape(section.title)}</h2>{body}</section>'
+            f'<h2 id="{identifier}">{escape(result_label(section.title))}</h2>{body}</section>'
         )
     return '<div class="result-presentation">' + "".join(rendered) + "</div>"
 

@@ -719,8 +719,8 @@ The shared shell, grouped Home, Product-concept and empty-state guidance, About,
 authorization, and common errors now support German and English. Browser
 language is used only when no explicit
 language is saved in the private managed-root profile; the global selector saves
-an explicit preference. Workflow-specific bodies remain explicitly marked
-English where Issue #220 translation is still pending. See [Local frontend
+an explicit preference. Issue #220 adds task-first bilingual active workflows
+and completes guided and Result localization. See [Local frontend
 profile and localization](docs/local_frontend_profile_and_localization.md) and
 [Bilingual Home information architecture](docs/bilingual_home_information_architecture.md).
 Advanced JSON automation and direct Package-1.x compatibility are documented in
@@ -1992,7 +1992,7 @@ without product-code change. Issue #202 closes B-02 and makes P-10 and P-13
   friendly bilingual Session/Match/Learning creation, and Product-first/profile-
   second failure handling. It further partially remediates UAT-FINDING-001 and
   implements its assigned portions of UAT-FINDING-005, UAT-FINDING-007, and UAT-
-  FINDING-008 without closing them. Issue #220 is the exact next action. Issue #208 remains
+  FINDING-008 without closing them. Issue #220 completes implementation remediation. Issue #208 remains
   open; UAT-02 through UAT-12
   remain paused; B-09 and B-07 remain open; B-06 remains closed; and Package
   `1.0.0` and Release preparation are not ready. No v1 Release title, theme,
@@ -2014,9 +2014,9 @@ documented in the [application shell](docs/unified_local_frontend_application_sh
 [Profile-driven stateful creation](docs/profile_driven_stateful_creation.md),
 [Advanced CLI automation](docs/advanced_cli_automation_interface.md), and the
 [unified local frontend contract](docs/unified_local_frontend_contract.md). The
-authoritative remaining Issue-#220 task-first and complete-translation boundary
-is the [bilingual profile-driven frontend UX
-contract](docs/bilingual_profile_driven_frontend_ux_contract.md).
+implemented Issue-#220 boundary is documented in
+[Task-first bilingual stateful workflows](docs/task_first_bilingual_stateful_workflows.md).
+After merge and green exact-commit CI, repeat UAT-01 under Issue #208.
 The Historical integration is documented in [Historical party-wide
   Claim](docs/historical_party_wide_claim.md). The private boundary is documented in [Party-wide Claim
   contracts](docs/party_wide_claim_contracts.md), the [Party-wide Claim proof

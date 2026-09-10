@@ -160,6 +160,7 @@ def test_app_web_resources_are_local_package_data() -> None:
     expected = {
         "templates/app.html",
         "assets/app.css",
+        "assets/workflow.js",
         "locales/de.json",
         "locales/en.json",
     }

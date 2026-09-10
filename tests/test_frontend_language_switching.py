@@ -222,7 +222,7 @@ def test_browser_german_does_not_write_and_localizes_shell_home_about_and_errors
     assert "Seite nicht gefunden" in missing.decode()
 
 
-def test_german_workflow_bodies_are_explicitly_marked_as_transitional_english(
+def test_german_workflow_bodies_use_catalogs_without_transitional_english(
     localized_server: SkatMindAppWebServerV1,
 ) -> None:
     server = localized_server
@@ -232,11 +232,9 @@ def test_german_workflow_bodies_are_explicitly_marked_as_transitional_english(
         status, _headers, body = _request(server, "GET", route, headers=german)
         html = body.decode()
         assert status == 200
-        assert "vorübergehend auf Englisch verfügbar" in html
-        assert '<div class="english-workflow-body" lang="en">' in html
-        assert html.index('class="concept-guide"') < html.index(
-            '<div class="english-workflow-body" lang="en">'
-        )
+        assert "english-workflow-body" not in html
+        assert "translation-status" not in html
+        assert "Nur im laufenden Prozess" in html
     expected = {
         "/sessions": "Noch keine erfassten einzelnen Spiele",
         "/matches": "Noch keine erfassten Matches",

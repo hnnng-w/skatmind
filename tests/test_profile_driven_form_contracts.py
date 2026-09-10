@@ -48,6 +48,8 @@ def test_private_version_policy_and_nested_field_order_are_exact() -> None:
         "saved_language_overrides_browser_language",
         "browser_language_bootstraps_only_without_saved_preference",
         "user_facing_names_replace_required_manual_internal_ids",
+        "normal_workflows_are_task_first_and_profile_driven",
+        "advanced_settings_are_secondary_explicit_and_explained",
         "validation_preserves_safe_values_and_workflow_context",
         "home_separates_record_analyze_learn_and_product_information",
         "language_and_profile_never_change_product_semantics",

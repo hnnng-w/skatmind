@@ -1764,15 +1764,15 @@ bilingual common shell. The Issue #216 correction and both required Ubuntu jobs
 passed. Issue #217 implements the grouped bilingual Home, Product concepts, safe
 related links, and useful stateful empty states. UAT-FINDING-001 is further
 partially remediated/open; UAT-FINDING-003 has its Home and concept remediation
-implemented/open pending Issue #220 and repeated UAT-01; and UAT-FINDING-008 has
-bilingual Home and concept coverage implemented/open pending Issue #220. Issue
+implemented through active workflows/open pending repeated UAT-01; UAT-FINDING-008 has
+complete bilingual frontend coverage/open pending repeated UAT-01. Issue
 #218 implements private safe form-state preservation and localized accessible
 validation feedback. UAT-FINDING-006 has its implementation complete but remains
 open pending repeated UAT-01. Issue #219 implements private known Players,
 generated frontend identities, saved creation defaults and display labels,
 bilingual name-first Session/Match/Learning creation, secondary JSON transfer,
-and Product-first/profile-second persistence semantics. Issue #220 is the exact
-next action. Issue #208
+and Product-first/profile-second persistence semantics. Issue #220 implements
+task-first bilingual active workflows. Issue #208
 remains open, UAT-02 through
 UAT-12 remain paused, B-09 and B-07 remain open, B-06 remains closed, and
 Package `1.0.0` and Release preparation are not ready.
@@ -2377,8 +2377,8 @@ separate from accepted workflow/Product state, bounded safe-value preservation,
 localized accessible contextual feedback, and successful PRG. Issue #219,
 "Reduce setup friction with generated IDs, known-player selection, and saved
 defaults," is implemented in [Profile-driven stateful
-creation](profile_driven_stateful_creation.md). Issue #220, "Add task-first
-bilingual Session, Match, and Learning workflows," is the exact next action.
+creation](profile_driven_stateful_creation.md). Issue #220 implements task-first
+bilingual workflows. After merge and green exact-commit CI, repeat UAT-01 under #208.
 
 Maintainer Microsoft Edge verification resolved Issue #214 and
 UAT-FINDING-004. Repeated UAT-01 nevertheless failed. Issue #208 remains open;
@@ -2398,6 +2398,11 @@ Issue #218 is documented in
 [Frontend validation state and localized feedback](frontend_validation_state_and_localized_feedback.md).
 Issue #219 is documented in [Profile-driven stateful
 creation](profile_driven_stateful_creation.md).
+
+Issue #220 is documented in [Task-first bilingual stateful
+workflows](task_first_bilingual_stateful_workflows.md). Both required jobs,
+`check` and `v1-supported-platform-matrix`, must pass on the exact merged commit
+before the maintainer repeats UAT-01. Implementation does not close UAT findings.
 
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player

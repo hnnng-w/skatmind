@@ -189,8 +189,8 @@ responses, and successful `303` PRG without changing standalone servers. Issue
 selection handles, saved creation defaults and labels, bilingual name-first
 Session/Match/Learning creation, and strict Product-first/profile-second
 publication. The implementation is documented in [Profile-driven stateful
-creation](profile_driven_stateful_creation.md). Issue #220 is the exact next
-action. Issue #208 remains open; UAT-02 through
+creation](profile_driven_stateful_creation.md). Issue #220 implements task-first
+bilingual active workflows. Issue #208 remains open; UAT-02 through
 UAT-12 remain paused; B-09 and B-07 remain open; B-06 remains closed; and
 Package `1.0.0` and Release preparation are not ready. See
 [Advanced CLI automation](advanced_cli_automation_interface.md).
@@ -1297,5 +1297,9 @@ The grouped Home and Product-concept presentation is documented in
 [Bilingual Home information architecture](bilingual_home_information_architecture.md).
 The profile-backed creation adapter is documented in [Profile-driven stateful
 creation](profile_driven_stateful_creation.md). The implemented foundation and
-remaining Issue-#220 task-first and complete-translation UX are governed by the
+implemented Issue-#220 task-first and complete-translation UX are governed by the
 [Bilingual profile-driven frontend UX contract](bilingual_profile_driven_frontend_ux_contract.md).
+
+The implementation architecture, unchanged operation boundaries, and exact next
+maintainer action are documented in
+[Task-first bilingual stateful workflows](task_first_bilingual_stateful_workflows.md).

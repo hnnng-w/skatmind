@@ -141,8 +141,8 @@ preparation, automatic Learning import, or Match-to-Corpus transfer.
 
 ## Validation and packaging
 
-The unified frontend now has exactly 44 POST routes and 77 registered form
-definitions. The strict German and English catalogs contain the same 463 keys.
+The unified frontend retains exactly 44 POST routes and 77 registered form
+definitions. Issue #220 extends the strict parity-checked German and English catalogs.
 Focused tests cover profile compatibility and persistence, generated domains and
 collision handling, known-Player operations, friendly creation translation,
 safe validation retention, bilingual rendering, one-call Product/profile
@@ -158,18 +158,20 @@ Schema, example, generated output, or Package entry point is introduced.
 Issue #219 further partially remediates UAT-FINDING-001, implements the creation-
 form portion of UAT-FINDING-005, implements the profile/default/creation portion
 of UAT-FINDING-007, and adds bilingual creation pages toward UAT-FINDING-008.
-Those findings remain open pending their applicable Issue-#220 work and repeated
-UAT-01.
+Issue #220 implements their applicable active-view remediation. Findings remain
+open pending repeated UAT-01.
 
-The exact next action is:
+After Issue #220 merge and green exact-commit CI, the next maintainer action is:
 
 ```text
-Issue #220 - Add task-first bilingual Session, Match, and Learning workflows
+Repeat UAT-01 under Issue #208.
 ```
 
-Issue #220 owns next-action active Session layout, minimal Match Game entry,
+Issue #220 implements next-action active Session layout, minimal Match Game entry,
 Learning prerequisites and Build-insights flow, plain-language Snapshot and
 Preparation presentation, complete Advanced/Technical-detail separation, and
-remaining German and English workflow coverage. UAT-02 through UAT-12 remain
+complete German and English workflow coverage. UAT-02 through UAT-12 remain
 paused; B-09 and B-07 remain open; Package `1.0.0` and Release preparation are
 not ready.
+
+See [Task-first bilingual stateful workflows](task_first_bilingual_stateful_workflows.md).
