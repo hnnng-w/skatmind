@@ -618,7 +618,11 @@ localized accessible validation feedback; UAT-FINDING-006 remains open pending
 repeated UAT-01. Issue #219 implements private known Players, local creation
 defaults and display labels, generated frontend identities, bilingual name-first
 Session/Match/Learning creation, secondary JSON transfer, and Product-first/
-profile-second failure handling. Issue #220 implements task-first bilingual workflows. Issue #208
+profile-second failure handling. Issue #220 implements task-first bilingual workflows.
+Repeated maintainer UAT-01 failed again on September 11, 2026, including the lack
+of actionable review after 30 recorded Session Plays. Issue #221 implements direct
+saved-own-decision review with exact source-bound process-local Results and
+retained downloads; other findings remain open. Issue #208
 remains open, UAT-02 through
 UAT-12 remain paused, B-09 and B-07 remain open, B-06 remains closed, and
 Package `1.0.0` and Release preparation are not ready. No v1 Release title,
@@ -928,7 +932,9 @@ and useful empty states; Issue #220 completes task-first active workflows and
 frontend translation. Issue #218 implements private validation preservation and
 localized feedback without changing Product behavior. Issue #219 implements
 private profile-driven normal creation and local Player/default/label management
-without changing Product contracts. After merge and green CI, repeat UAT-01. UAT-02
+without changing Product contracts. September 11 repeated UAT-01 failed. Issue
+#221 adds bounded direct recorded-own-decision review; it does not resolve the
+remaining umbrella findings. UAT-02
 through UAT-12 remain paused, B-09 and B-07
 remain open, B-06 remains closed,
 and Package `1.0.0` and Release preparation are not ready.
@@ -1064,9 +1070,12 @@ The issue update comment should include:
 
 The Issue-#220 implementation is documented in
 [`docs/task_first_bilingual_stateful_workflows.md`](docs/task_first_bilingual_stateful_workflows.md).
-The next maintainer action after merge and green exact-commit `check` and
-`v1-supported-platform-matrix` is to repeat UAT-01 under Issue #208. Agents do
-not perform UAT or close its findings.
+The September 11 repeated maintainer UAT-01 failed. Issue #221 implements only
+the direct recorded-own-decision Session review path documented in
+[`docs/session_recorded_decision_review.md`](docs/session_recorded_decision_review.md).
+Exact merged-commit `check` and `v1-supported-platform-matrix` remain required,
+with a future focused affected-path retest. Issue #208 and unresolved findings
+remain open; agents do not perform UAT or close its findings.
 
 A task is complete only when:
 

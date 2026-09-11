@@ -98,7 +98,7 @@ kinds, phase-aware entry, accepted-Log history, strict-prefix Undo, one-Command
 correction, explicit Reload, automatic existing Decision Checkpoint collection,
 and canonical Session JSON download.
 
-Position analysis and completed-game Review are separate explicit actions. They
+Current-position analysis and full Historical review are separate explicit actions. They
 export through the existing Session contracts and execute through the existing
 Public/Application boundary. Execution runs outside locks and publishes only if
 the Session generation and content fingerprint remain unchanged. Request and
@@ -106,6 +106,17 @@ Result downloads use retained immutable bytes; no render or download executes a
 workflow. Existing unavailable, rejected, conflict, partial, and stale outcomes
 remain normal visible states; rejected/unavailable responses use contextual HTTP
 `400`, and conflict/stale responses use contextual HTTP `409`.
+
+Issue #221 adds visible **Review recorded decisions** on the active page. Its
+private `POST /sessions/review-decision` resolves an opaque exact-context selection
+to one saved own-decision snapshot and accepted actual Card, invokes the existing
+Checkpoint review exporter and guided executor once, and publishes source-labelled
+Results with exact retained downloads. Observed ancestors remain eligible after
+all 30 Plays and Game End without full Historical export readiness. Missing,
+pending, future, diverged, and ended-without-play coverage is explained separately.
+The read-only operation checks source-file freshness and exact active identity,
+generation/content, and attempt ordering before publication. See
+[Review recorded Session decisions](session_recorded_decision_review.md).
 
 ## Match Capture
 
@@ -197,7 +208,7 @@ public JSON API.
 All lifecycle and active-item POST forms are covered by the private canonical
 registry documented in
 [Frontend validation state and localized feedback](frontend_validation_state_and_localized_feedback.md).
-The complete unified registry has 44 POST routes and 77 definitions. Creation
+The complete unified registry has 45 POST routes and 78 definitions. Creation
 and settings forms use profile-generation checks and exact opaque form identity.
 Rejected safe values remain on the exact originating form. The active Session,
 Match, or Learning Corpus is retained, and switching that exact active object
@@ -240,5 +251,8 @@ implements bilingual profile-driven creation and local Player/default/label
 management. Issue #220 implements task-first workflows and complete localization.
 
 See [Task-first bilingual stateful workflows](task_first_bilingual_stateful_workflows.md).
-After merge and green exact-commit `check` and `v1-supported-platform-matrix`,
-the next maintainer action is to repeat UAT-01 under Issue #208.
+Repeated maintainer UAT-01 on September 11, 2026 failed after 30 recorded Plays
+left no discoverable direct Session decision review. Issue #221 addresses that
+bounded path; other findings remain open. Exact merged-commit `check` and
+`v1-supported-platform-matrix` are still required, followed by a focused
+affected-path retest when scheduled by the maintainer.

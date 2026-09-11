@@ -208,6 +208,12 @@ their source revision or Request.
 See [Session CLI and end-to-end capture](session_cli_and_end_to_end_capture.md)
 for collection, persistence, and review command behavior.
 
+Issue #221 connects these same public observation and review-export wrappers to
+the active unified Session page. It groups saved observed variants deterministically
+and executes one explicitly selected own decision with its frozen configuration,
+including after 30 Plays, without requiring full Historical readiness or re-entry.
+See [Review recorded Session decisions](session_recorded_decision_review.md).
+
 ## Boundaries
 
 Decision Observations and review exports are derived values. They are not stored

@@ -102,6 +102,14 @@ seeds, methods, budgets, and review-family defaults inside Advanced disclosures.
 Information-set review is never the primary recording action. Results are retained
 only under the existing process-local publication rules.
 
+Issue #221 adds **Review recorded decisions** near the opened Game summary and a
+visible compact list after the primary recording action. Saved observed own
+decisions have Player/Trick/Card-position/actual-Card labels and direct actions,
+including after all 30 Plays. Current-position analysis and full Historical review
+keep independent readiness. Exact source binding, variant selection, read-only
+execution, Result lifetime, and contextual bilingual feedback are documented in
+[Review recorded Session decisions](session_recorded_decision_review.md).
+
 ## Match
 
 The active page begins with Match progress, Next empty or active position,
@@ -170,7 +178,7 @@ Review, and shared Result presentation use catalog messages; their workflow
 semantics are unchanged. The transitional English-workflow marker is removed.
 Exact diagnostic/machine text remains under Technical details.
 
-The Issue-#218 registry still has 44 POST Routes and 77 form definitions. Existing
+With Issue #221 the registry has 45 POST Routes and 78 form definitions. Existing
 same-form `400`, contextual `409`, safe-value allowlists, field links, focused error
 summaries, file reselection, and successful `303` PRG remain in force. Selected
 canonical Card codes survive rejection even if no longer in the current palette.
@@ -208,19 +216,19 @@ and strict installed loading in clean Wheel and sdist environments.
 ## UAT and maintainer gate
 
 ```text
-UAT-FINDING-001: implementation remediation complete through Issue #220;
-                 open pending repeated UAT-01
+UAT-FINDING-001: task-first implementation through Issue #220;
+                  open after failed September 11 repeated UAT-01
 UAT-FINDING-002: resolved
 UAT-FINDING-003: Home, Product-concept, and active-workflow distinction implemented;
-                 open pending repeated UAT-01
+                  open after failed September 11 repeated UAT-01
 UAT-FINDING-004: resolved
 UAT-FINDING-005: creation and relevant active-view remediation implemented;
-                 open pending repeated UAT-01
-UAT-FINDING-006: Issue #218 implementation complete; open pending repeated UAT-01
-UAT-FINDING-007: task-first remediation implemented; open pending repeated UAT-01
+                  open after failed September 11 repeated UAT-01
+UAT-FINDING-006: Issue #218 implementation complete; open after repeated UAT-01
+UAT-FINDING-007: task-first remediation implemented; open after repeated UAT-01
 UAT-FINDING-008: German and English unified-frontend implementation complete;
-                 open pending repeated UAT-01
-Repeated UAT-01: failed
+                  open after failed September 11 repeated UAT-01
+Repeated UAT-01: failed again on September 11, 2026
 UAT-02 through UAT-12: paused
 Issue #208: open
 B-09: open
@@ -229,8 +237,10 @@ B-06: closed
 Package 1.0.0 preparation: not ready
 ```
 
-The completed 53-row technical ledger is not reopened. Issue #220 remains
-conditional on both `check` and `v1-supported-platform-matrix` passing on the exact
-merged `main` commit. After merge and green exact-commit CI, the next maintainer
-action is **Repeat UAT-01 under Issue #208.** The implementation does not perform
-that UAT, close findings, create another Issue, or publish anything.
+The completed 53-row technical ledger and Issue #220 are not reopened. The
+September 11 repeated UAT failure included the lack of actionable review after 30
+Session Plays. Issue #221 implements only that direct recorded-decision path;
+other Match, Learning, settings, layout, and language-control findings remain
+outside it. Both `check` and `v1-supported-platform-matrix` must pass on the exact
+merged commit. Implementation and automated tests do not constitute maintainer
+UAT acceptance or close its findings.

@@ -187,6 +187,15 @@ from .session_frontend import (
     reload_guided_session_v1,
     rewind_guided_session_v1,
 )
+from .session_recorded_review import (
+    RecordedDecisionReviewConflictError,
+    execute_recorded_session_decision_v1,
+    require_recorded_review_file_fresh_v1,
+)
+from .session_recorded_review_form import (
+    parse_recorded_review_selection_v1,
+    recorded_review_feedback_v1,
+)
 from .stateful_localization import managed_name
 from .stateful_rendering import render_managed_category_landing_v1
 from .task_first_learning_rendering import (
@@ -302,6 +311,7 @@ _STATEFUL_POST_ROUTES = {
     "/sessions/undo",
     "/sessions/analyze",
     "/sessions/review",
+    "/sessions/review-decision",
     "/matches/import",
     "/matches/open",
     "/matches/api/v1/create",
@@ -548,6 +558,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             path = urlsplit(raw_path).path
         except ValueError:
             return "/"
+        if path == "/sessions/review-decision" or getattr(self, "_session_page_return", False):
+            return "/sessions/current"
         return path if is_safe_frontend_return_path_v1(path) else "/"
 
     def _authorize_get(self, path: str, query: str) -> bool:
@@ -1231,6 +1243,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         definition = getattr(self, "_current_form_definition", None)
         if type(definition) is not FrontendFormDefinitionV1:
             return False
+        if definition.form_key == "session.review_decision" and issues is None:
+            issues = (recorded_review_feedback_v1(error, status=status),)
         if issues is None:
             if status in {
                 HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
@@ -1573,7 +1587,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             previous = self.server.app_context.managed_stateful.activate_session(active)
         if previous is not None:
             with previous.lock:
-                previous.execution = None
+                previous.clear_execution()
 
     def _activate_match(self, active) -> None:
         with self.server.app_context.lock:
@@ -1680,7 +1694,18 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         )
 
     def _session_page(self, *, status: int = HTTPStatus.OK) -> None:
+        self._session_page_return = True
         active = self._active_session()
+        with active.lock:
+            if active.recorded_review_source is not None:
+                try:
+                    require_recorded_review_file_fresh_v1(active)
+                except RecordedDecisionReviewConflictError as error:
+                    status = HTTPStatus.CONFLICT
+                    self._retain_form_feedback(
+                        get_frontend_form_by_key_v1("session.review_decision"),
+                        issues=(recorded_review_feedback_v1(error, status=status),), status=status,
+                    )
         notice = self._take_creation_notice("sessions")
         with self.server.app_context.lock:
             profile = self.server.app_context.frontend_profile.document
@@ -1693,6 +1718,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 active,
                 locale=locale,
                 show_operation_notice=status < HTTPStatus.BAD_REQUEST,
+                game_label=managed_name(locale, profile, "sessions", active.state.session_id),
             ),
             status=status,
             feedback_family="sessions",
@@ -1867,6 +1893,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if path in _SESSION_DOWNLOAD_ROUTES:
             active = self._active_session()
             with active.lock:
+                if not path.endswith("session.json") and active.recorded_review_source is not None:
+                    require_recorded_review_file_fresh_v1(active)
                 if path.endswith("session.json"):
                     content = build_guided_session_persistence_download_v1(active)
                     filename = "skatmind-managed-session.json"
@@ -2135,7 +2163,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self._redirect("/sessions/current")
 
     def _session_operation(self, path: str, values: dict[str, str]) -> None:
-        active = self._bound_active("sessions", values)
+        try:
+            active = self._bound_active("sessions", values)
+        except KeyError as error:
+            if path == "/sessions/review-decision":
+                raise RecordedDecisionReviewConflictError("context_changed") from error
+            raise
         expected_revision = self._form_integer(
             values,
             "expected_revision",
@@ -2146,6 +2179,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 raise StaleFrontendWorkflowRevisionError
         values = dict(values)
         del values["expected_revision"]
+        if path == "/sessions/review-decision":
+            selection = parse_recorded_review_selection_v1(values)
+            execute_recorded_session_decision_v1(
+                self.server.app_context, active, selection=selection,
+            )
+            self._redirect("/sessions/current#session-result")
+            return
         if path == "/sessions/command":
             edit = build_session_edit_from_form_v1(
                 values,
@@ -2633,6 +2673,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         except LearningCorpusPreparedDownloadUnavailableError as error:
             status = HTTPStatus.NOT_FOUND if error.reason == "missing" else HTTPStatus.CONFLICT
             self._error_page(status, "Artifact unavailable", "Prepared sources changed.")
+        except RecordedDecisionReviewConflictError as error:
+            self._retain_form_feedback(
+                get_frontend_form_by_key_v1("session.review_decision"),
+                issues=(recorded_review_feedback_v1(error, status=HTTPStatus.CONFLICT),),
+                status=HTTPStatus.CONFLICT,
+            )
+            self._session_page(status=HTTPStatus.CONFLICT)
         except RuntimeError as error:
             if "stale" in str(error).lower():
                 self._error_page(

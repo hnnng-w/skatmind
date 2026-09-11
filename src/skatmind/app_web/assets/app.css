@@ -50,6 +50,35 @@ details button {
   overflow-wrap: anywhere;
 }
 
+.recorded-decisions {
+  list-style: none;
+  padding: 0;
+}
+
+.recorded-decisions li {
+  border-top: 1px solid var(--line);
+  padding-block: 0.6rem;
+}
+
+.recorded-decisions form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+.recorded-decisions p {
+  flex: 1 1 22rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+#recorded-decisions h2,
+.recorded-review-source,
+.recorded-decisions button {
+  overflow-wrap: anywhere;
+}
+
 .round-slots {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

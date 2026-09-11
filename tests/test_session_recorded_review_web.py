@@ -1,0 +1,338 @@
+from __future__ import annotations
+
+import http.client
+import json
+from concurrent.futures import ThreadPoolExecutor
+from html.parser import HTMLParser
+from threading import Event
+from urllib.parse import urlencode
+
+import pytest
+from test_frontend_language_switching import localized_server as _localized_server
+from test_historical_game import build_historical_input
+
+import skatmind.app_web.execution as execution_module
+from skatmind.api.v1 import serialize_result
+from skatmind.app_web.translation_catalog import translate_frontend_message_v1 as text
+
+
+@pytest.fixture
+def localized_server(tmp_path):
+    yield from _localized_server.__wrapped__(tmp_path)
+
+
+class Forms(HTMLParser):
+    """Submit native returned controls, including the exact server-owned bindings."""
+
+    def __init__(self, html):
+        super().__init__()
+        self.forms = []
+        self.current = None
+        self.select = None
+        self.feed(html)
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "form":
+            self.current = {"action": attrs["action"], "values": {}}
+            self.forms.append(self.current)
+        elif self.current is not None:
+            values = self.current["values"]
+            if tag == "input" and "name" in attrs and attrs.get("type") != "file":
+                if attrs.get("type") not in {"checkbox", "radio"} or "checked" in attrs:
+                    values[attrs["name"]] = attrs.get("value", "")
+            elif tag == "select":
+                self.select = attrs["name"]
+            elif tag == "option" and self.select is not None:
+                if self.select not in values or "selected" in attrs:
+                    values[self.select] = attrs.get("value", "")
+
+    def handle_endtag(self, tag):
+        if tag == "form":
+            self.current = None
+        elif tag == "select":
+            self.select = None
+
+    def find(self, action, *, kind=None, index=0):
+        return [form for form in self.forms if form["action"] == action
+                and (kind is None or form["values"].get("kind") == kind)][index]
+
+
+class Browser:
+    def __init__(self, server):
+        self.server = server
+        self.cookie = ""
+        status, headers, _ = self.request("GET", "/?token=localization-test-token")
+        assert status == 303
+        self.cookie = headers["set-cookie"].split(";", 1)[0]
+
+    def request(self, method, route, values=None, headers=None):
+        connection = http.client.HTTPConnection("127.0.0.1", self.server.port, timeout=120)
+        supplied = {"Cookie": self.cookie, "Accept-Language": "en"}
+        if method == "POST":
+            supplied.update({"Origin": self.server.origin,
+                             "Content-Type": "application/x-www-form-urlencoded"})
+        supplied.update(headers or {})
+        body = None if values is None else urlencode(values).encode("ascii")
+        connection.request(method, route, body=body, headers=supplied)
+        response = connection.getresponse()
+        result = (response.status, dict((k.lower(), v) for k, v in response.getheaders()),
+                  response.read())
+        connection.close()
+        return result
+
+    def page(self, route="/sessions/current"):
+        status, _, content = self.request("GET", route)
+        assert status == 200, (status, content.decode())
+        return content.decode()
+
+    def submit(self, form, **overrides):
+        return self.request("POST", form["action"], {**form["values"], **overrides})
+
+    def command(self, kind, **values):
+        form = Forms(self.page()).find("/sessions/command", kind=kind)
+        status, headers, content = self.submit(form, **values)
+        assert status == 303, (status, content.decode())
+        assert headers["location"] == "/sessions/current"
+
+
+def record_live_game(browser, *, play_count=6):
+    data = build_historical_input(hand_game=True, declarer_player_id="player-a", bid_value=24)
+    form = Forms(browser.page("/sessions")).find("/sessions/create")
+    status, _, content = browser.submit(
+        form, game_name="Synthetic recorded Game", capture_mode="live",
+        player_1_name="Alexandra Long-Synthetic-Player-Name", player_2_name="Boris",
+        player_3_name="Clara", perspective_seat="forehand",
+        save_players="false", save_preferences="false",
+    )
+    assert status == 303, content.decode()
+    browser.command("set_game_metadata")
+    for card in data["players"][0]["initial_hand"]:
+        browser.command("record_dealt_card", card=card)
+    browser.command("set_declarer")
+    browser.command("set_declaration", game_type="grand", hand_game="true", bid_value="24")
+    plays = [play for trick in data["tricks"] for play in trick["plays"]]
+    for play in plays[:play_count]:
+        # Complete-deal knowledge chooses legal observed Cards only. Opponent hands
+        # and Skat are never submitted, nor is any Checkpoint injected.
+        browser.command("record_play", card=play["card"])
+    return data, plays
+
+
+def review_first(browser):
+    page = browser.page()
+    form = Forms(page).find("/sessions/review-decision")
+    assert set(form["values"]) == {
+        "managed_handle", "expected_revision", "decision_selection", "_frontend_form_instance",
+    }
+    status, headers, content = browser.submit(form)
+    assert status == 303, (status, content.decode())
+    assert headers["location"] == "/sessions/current#session-result"
+    page = browser.page()
+    assert 'id="session-result"' in page
+    assert "Synthetic recorded Game" in page
+    assert "Alexandra Long-Synthetic-Player-Name" in page
+    assert 'class="recorded-review-source"' in page
+    return page, form
+
+
+def test_real_http_record_review_all_30_plays_reopen_and_exact_downloads(
+    localized_server, monkeypatch,
+):
+    browser = Browser(localized_server)
+    calls = []
+    real_execute = execution_module.execute
+    def counted(request, **kwargs):
+        calls.append(request)
+        return real_execute(request, **kwargs)
+    monkeypatch.setattr(execution_module, "execute", counted)
+    _, plays = record_live_game(browser)
+    context = localized_server.app_context.managed_stateful.active_session
+    profile = localized_server.app_context.frontend_profile
+    original = context.path.read_bytes()
+    frozen = context.decision_checkpoints[0].request.to_dict()["document"]
+    page, early_form = review_first(browser)
+    assert len(calls) == 1
+    assert "Trick 1 · Card position 1 · Actual Card" in page
+    assert "Recommended Card" in page and "Decision quality" in page
+    assert context.path.read_bytes() == original
+    request_bytes = browser.request("GET", "/sessions/downloads/request.json")[2]
+    result_bytes = browser.request("GET", "/sessions/downloads/result.json")[2]
+    assert request_bytes == context.execution.request_json_bytes
+    assert result_bytes == context.execution.result_json_bytes
+    assert json.loads(result_bytes) == serialize_result(context.execution.result)
+    assert json.loads(request_bytes) == {
+        **frozen, "analysis_mode": "post_game_review", "actual_card_played": plays[0]["card"],
+    }
+    browser.page()
+    assert len(calls) == 1 and context.path.read_bytes() == original
+
+    for play in plays[6:]:
+        browser.command("record_play", card=play["card"])
+    assert context.execution is context.recorded_review_source is None
+    # All 30 Plays are recorded; neither promotion nor full original evidence is required.
+    assert context.state.capture_mode == "live"
+    assert context.state.validation.historical_export.status == "unavailable"
+    assert len([record for record in context.state.command_log
+                if record.command.kind == "record_play"]) == 30
+    assert len(context.decision_checkpoints) >= 10
+    original = context.path.read_bytes()
+    assert browser.submit(early_form)[0] == 409
+    assert len(calls) == 1
+    page, _ = review_first(browser)
+    assert len(calls) == 2
+    assert "10 of 10 recorded own Plays" in page
+    assert "Full Historical review is unavailable" in page
+    assert browser.request("GET", "/sessions/downloads/request.json")[2] == request_bytes
+    assert context.path.read_bytes() == original
+    browser.command("set_game_end")
+    assert context.state.phase == "ended"
+    page, last_form = review_first(browser)
+    assert len(calls) == 3 and "10 of 10 recorded own Plays" in page
+    saved = context.path.read_bytes()
+    assert browser.request("GET", "/sessions/downloads/session.json")[2] == saved
+
+    open_form = Forms(browser.page("/sessions")).find("/sessions/open")
+    assert browser.submit(open_form)[0] == 303
+    reopened = localized_server.app_context.managed_stateful.active_session
+    assert reopened is not context and reopened.execution is reopened.recorded_review_source is None
+    assert reopened.decision_checkpoints == context.decision_checkpoints
+    assert browser.request("GET", "/sessions/downloads/result.json")[0] == 404
+    assert browser.submit(last_form)[0] == 409 and len(calls) == 3
+    assert reopened.execution is reopened.recorded_review_source is None
+    review_first(browser)
+    assert len(calls) == 4
+    assert browser.request("GET", "/sessions/downloads/request.json")[2] == request_bytes
+    assert reopened.path.read_bytes() == saved
+    assert localized_server.app_context.frontend_profile is profile
+    assert localized_server.app_context.managed_stateful.active_match is None
+    assert localized_server.app_context.managed_stateful.active_learning is None
+
+
+def test_http_validation_language_security_and_retained_source(localized_server, monkeypatch):
+    browser = Browser(localized_server)
+    record_live_game(browser)
+    page, form = review_first(browser)
+    context = localized_server.app_context.managed_stateful.active_session
+    execution, source = context.execution, context.recorded_review_source
+    saved = context.path.read_bytes()
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Passive or rejected actions must not execute")
+    monkeypatch.setattr(execution_module, "execute", forbidden)
+    for extra in ("actual_card_played", "hand", "request", "sample_count", "random_seed"):
+        status, _, body = browser.submit(form, **{extra: "forged"})
+        assert status == 400
+        html = body.decode()
+        assert text("en", "validation.recorded_review.invalid_fields") in html
+        assert 'role="alert"' in html
+        assert 'name="return_to" value="/sessions/current"' in html
+        assert context.execution is execution and context.recorded_review_source is source
+    # The rejected source selection and feedback stay in this Session with native language POST.
+    language = Forms(html).find("/actions/profile/language")
+    status, headers, _ = browser.submit(language, language="de")
+    assert status == 303 and headers["location"] == "/sessions/current"
+    german = browser.page()
+    assert text("de", "recorded_review.title") in german
+    assert text("de", "validation.recorded_review.invalid_fields") in german
+    assert 'class="recorded-review-source"' in german
+    assert form["values"]["decision_selection"] in german
+    assert "Alexandra Long-Synthetic-Player-Name" in german
+    assert context.execution is execution and context.recorded_review_source is source
+    downloaded = browser.request("GET", "/sessions/downloads/result.json")[2]
+    assert downloaded == execution.result_json_bytes
+    assert browser.submit(form, decision_selection="f" * 64)[0] == 409
+    assert browser.submit(form, decision_selection="unknown")[0] == 400
+    for origin in ("null", "https://forged.invalid"):
+        assert browser.request("POST", form["action"], form["values"],
+                               headers={"Origin": origin})[0] == 403
+    assert browser.request("POST", form["action"], form["values"],
+                           headers={"Cookie": "wrong"})[0] == 403
+    assert context.path.read_bytes() == saved
+    assert context.execution is execution and context.recorded_review_source is source
+
+
+def test_http_external_edit_invalidates_review_download_without_reloading(localized_server):
+    browser = Browser(localized_server)
+    record_live_game(browser)
+    review_first(browser)
+    context = localized_server.app_context.managed_stateful.active_session
+    document = context.document
+    context.path.write_bytes(b"{}\n")
+    assert browser.request("GET", "/sessions/downloads/result.json")[0] == 409
+    assert context.execution is context.recorded_review_source is None
+    assert context.document is document and context.path.read_bytes() == b"{}\n"
+
+
+def test_http_out_of_order_different_decisions_keep_newer_label_and_downloads(
+    localized_server, monkeypatch,
+):
+    browser = Browser(localized_server)
+    record_live_game(browser)
+    forms = Forms(browser.page())
+    first_form = forms.find("/sessions/review-decision")
+    second_form = forms.find("/sessions/review-decision", index=1)
+    entered, release = Event(), Event()
+    calls = 0
+    original = execution_module.execute
+    def execute(request, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            entered.set()
+            assert release.wait(30)
+        return original(request, **kwargs)
+    monkeypatch.setattr(execution_module, "execute", execute)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(browser.submit, first_form)
+        assert entered.wait(30)
+        assert browser.submit(second_form)[0] == 303
+        context = localized_server.app_context.managed_stateful.active_session
+        execution, source = context.execution, context.recorded_review_source
+        release.set()
+        status, _, html = first.result(timeout=30)
+    assert status == 409 and calls == 2
+    assert context.execution is execution and context.recorded_review_source is source
+    assert source.decision.selection == second_form["values"]["decision_selection"]
+    source_block = html.decode().split('class="recorded-review-source"', 1)[1].split('</p>', 1)[0]
+    assert "Trick 2" in source_block
+    downloaded = browser.request("GET", "/sessions/downloads/request.json")[2]
+    assert downloaded == execution.request_json_bytes
+
+
+def test_http_current_position_and_unavailable_historical_keep_correct_labels(localized_server):
+    browser = Browser(localized_server)
+    _, plays = record_live_game(browser, play_count=3)
+    for play in plays[3:]:
+        if any(form["action"] == "/sessions/analyze" for form in Forms(browser.page()).forms):
+            break
+        browser.command("record_play", card=play["card"])
+    page, _ = review_first(browser)
+    context = localized_server.app_context.managed_stateful.active_session
+    assert context.recorded_review_source is not None
+    current_form = Forms(page).find("/sessions/analyze")
+    assert browser.submit(current_form)[0] == 303
+    assert context.execution.request.document["analysis_mode"] == "live_decision"
+    assert context.recorded_review_source is None
+    assert 'class="recorded-review-source"' not in browser.page()
+    _, form = review_first(browser)
+    retained, source = context.execution, context.recorded_review_source
+    status, _, _ = browser.request("POST", "/sessions/review", {
+        "managed_handle": form["values"]["managed_handle"],
+        "expected_revision": form["values"]["expected_revision"],
+    })
+    assert status == 400
+    assert context.execution is retained and context.recorded_review_source is source
+
+
+def test_http_no_active_session_rejects_foreign_selection_contextually(
+    localized_server, monkeypatch,
+):
+    browser = Browser(localized_server)
+    def forbidden(*args, **kwargs):
+        raise AssertionError("An inactive Session cannot execute review")
+    monkeypatch.setattr(execution_module, "execute", forbidden)
+    status, _, content = browser.request("POST", "/sessions/review-decision", {
+        "managed_handle": "a" * 64, "expected_revision": "1", "decision_selection": "b" * 64,
+    })
+    assert status == 409
+    assert 'action="/sessions/create"' in content.decode()

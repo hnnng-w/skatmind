@@ -370,6 +370,8 @@ def apply_validation_feedback_to_html_v1(
         if definition.form_key == "profile.managed_label"
         else ("player_handle",)
         if definition.form_key in {"profile.player_update", "profile.player_remove"}
+        else ("decision_selection",)
+        if definition.form_key == "session.review_decision"
         else ()
     )
     form_identity = tuple(
@@ -380,6 +382,14 @@ def apply_validation_feedback_to_html_v1(
     form_instance = None if form_identity else state.form_instance
     bounds = _find_form_bounds(html, definition, form_instance, form_identity)
     if bounds is None:
+        if definition.form_key == "session.review_decision":
+            summary = _render_summary(
+                state, translated, field_definitions, rendered_fields, locale=locale,
+                fallback_anchor="recorded-decisions",
+                last_valid_result_retained=last_valid_result_retained,
+            )
+            return html.replace('<div id="recorded-review-feedback"></div>',
+                                '<div id="recorded-review-feedback">' + summary + '</div>', 1)
         return _prepend_to_main(
             html,
             _render_summary(

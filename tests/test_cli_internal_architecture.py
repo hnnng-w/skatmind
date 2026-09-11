@@ -644,6 +644,7 @@ def test_app_web_layering_and_startup_execution_boundaries() -> None:
         "result_presentation.py",
         "session_form_translation.py",
         "session_frontend.py",
+        "session_recorded_review.py",
         "workflow_state.py",
     }
     forbidden = (

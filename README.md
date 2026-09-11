@@ -715,6 +715,12 @@ landing pages. See [Guided analysis and Results](docs/unified_local_frontend_gui
 the [managed stateful workflows](docs/unified_local_frontend_stateful_workflows.md),
 the [profile-driven creation layer](docs/profile_driven_stateful_creation.md),
 and the [application shell](docs/unified_local_frontend_application_shell.md).
+On an opened Session, **Review recorded decisions** lists saved own decisions by
+Player, Trick, Card position, and actual Card. Review one directly after later
+Plays or all 30 Plays, without re-entering the Game or requiring complete
+Historical export. Source-labelled Results and exact downloads remain process-local;
+missing decision snapshots are explained rather than reconstructed. See
+[Review recorded Session decisions](docs/session_recorded_decision_review.md).
 The shared shell, grouped Home, Product-concept and empty-state guidance, About,
 authorization, and common errors now support German and English. Browser
 language is used only when no explicit
@@ -1992,7 +1998,10 @@ without product-code change. Issue #202 closes B-02 and makes P-10 and P-13
   friendly bilingual Session/Match/Learning creation, and Product-first/profile-
   second failure handling. It further partially remediates UAT-FINDING-001 and
   implements its assigned portions of UAT-FINDING-005, UAT-FINDING-007, and UAT-
-  FINDING-008 without closing them. Issue #220 completes implementation remediation. Issue #208 remains
+  FINDING-008 without closing them. Issue #220 implements task-first bilingual
+  workflows. Repeated maintainer UAT-01 failed again on September 11, 2026,
+  including the lack of actionable review after 30 Session Plays. Issue #221
+  implements the bounded direct recorded-own-decision review path. Issue #208 remains
   open; UAT-02 through UAT-12
   remain paused; B-09 and B-07 remain open; B-06 remains closed; and Package
   `1.0.0` and Release preparation are not ready. No v1 Release title, theme,
@@ -2016,7 +2025,11 @@ documented in the [application shell](docs/unified_local_frontend_application_sh
 [unified local frontend contract](docs/unified_local_frontend_contract.md). The
 implemented Issue-#220 boundary is documented in
 [Task-first bilingual stateful workflows](docs/task_first_bilingual_stateful_workflows.md).
-After merge and green exact-commit CI, repeat UAT-01 under Issue #208.
+The September 11 repeated UAT remains failed. Issue #221 is documented in
+[Review recorded Session decisions](docs/session_recorded_decision_review.md).
+Exact merged-commit `check` and `v1-supported-platform-matrix` remain required;
+a future focused retest covers the affected Session path without claiming full
+UAT remediation.
 The Historical integration is documented in [Historical party-wide
   Claim](docs/historical_party_wide_claim.md). The private boundary is documented in [Party-wide Claim
   contracts](docs/party_wide_claim_contracts.md), the [Party-wide Claim proof

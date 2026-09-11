@@ -218,6 +218,13 @@ score, or decision quality.
 
 ## Result presentation
 
+Issue #221 reuses `execute_guided_frontend_review_v1` directly for an exported
+Session Checkpoint Position Request in `post_game_review` mode, with default
+output-validating options and no manual Review draft. The active Session page
+uses this same Result presentation with a separate exact recorded-decision source
+label and its existing authenticated Session downloads. See
+[Review recorded Session decisions](session_recorded_decision_review.md).
+
 Successful Results appear before the secondary raw-JSON import controls. Result
 content uses these exact sections and order:
 

@@ -261,6 +261,8 @@ def _field(
         reflection_length=(
             0
             if control == "file"
+            else 64
+            if name == "decision_selection"
             else 4
             if control == "card"
             else 8192
@@ -918,6 +920,14 @@ _FORMS: list[FrontendFormDefinitionV1] = [
         },
     ),
     _definition(
+        "session.review_decision",
+        "/sessions/review-decision",
+        ("decision_selection",),
+        page="/sessions/current",
+        active="sessions",
+        success="/sessions/current#session-result",
+    ),
+    _definition(
         "session.review",
         "/sessions/review",
         (
@@ -1295,6 +1305,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             "/sessions/undo",
             "/sessions/analyze",
             "/sessions/review",
+            "/sessions/review-decision",
             "/matches/import",
             "/matches/open",
             "/matches/api/v1/create",

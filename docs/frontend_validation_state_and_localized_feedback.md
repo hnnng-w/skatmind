@@ -34,7 +34,7 @@ API exports and are not persisted.
 
 ## Canonical Form Registry
 
-`FRONTEND_FORM_REGISTRY` covers all 44 unified frontend POST routes through 77
+`FRONTEND_FORM_REGISTRY` covers all 45 unified frontend POST routes through 78
 exact definitions. Shared routes are split by their existing discriminator:
 
 ```text
@@ -59,6 +59,13 @@ retained. Text and repeated values are bounded; fixed select and radio values
 use explicit allowlists; Card selections use canonical Card limits. Omitted
 checkbox and repeated Card groups retain an explicit empty presentation value so
 a rejected form does not restore an older accepted selection.
+
+Issue #221 adds `session.review_decision` at `/sessions/review-decision`.
+Only its 64-character opaque `decision_selection` may be retained for exact form
+targeting. Expired selections receive feedback at the recorded-decision section.
+Same-context `400`, contextual `409`, and native language return keep the Session
+selected; source labels and retained Request/Result bytes remain atomic. See
+[Review recorded Session decisions](session_recorded_decision_review.md).
 
 When one definition has several rendered instances, the unified renderer adds a
 bounded process-local ordinal hidden field. It identifies only the rendered form

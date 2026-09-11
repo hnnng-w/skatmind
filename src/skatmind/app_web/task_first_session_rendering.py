@@ -11,6 +11,10 @@ from skatmind.session_incremental_validation import _has_exact_playable_hand
 from .result_presentation import build_result_presentation_v1
 from .result_rendering import render_result_presentation_v1
 from .session_frontend import GuidedSessionContextV1
+from .session_recorded_review_rendering import (
+    render_recorded_review_source_v1,
+    render_recorded_session_decisions_v1,
+)
 from .stateful_localization import player_name, text, translated
 from .task_first_contracts import TaskFirstSessionV1
 from .task_first_projections import project_task_first_session_v1
@@ -138,7 +142,7 @@ def _command(context, locale, view, kind, *, normal=False, correction=False):
     return form(locale, "/sessions/command", fields, f"task.command.{kind}", primary=normal)
 
 
-def _analysis(context, locale, view):
+def _analysis(context, locale, view, game_label):
     base = hidden("managed_handle", context.handle) + hidden("expected_revision", context.state.revision)
     position_fields = (
         input_field(locale, "sample_count", "task.field.sample_count", 100, kind="number")
@@ -166,12 +170,14 @@ def _analysis(context, locale, view):
             controls += form(locale, f"/sessions/{route}", base
                 + disclosure(locale, "task.advanced", fields), label)
         else:
-            controls += paragraph(locale, "task.session.analysis_blocked")
+            controls += paragraph(locale, f"recorded_review.{route}_unavailable")
     diagnostics = context.state.validation.diagnostics
     controls += '<ul>' + ''.join('<li>' + translated(locale, "task.session.readiness."
         + ("historical" if item.blocks_historical_export else "position")
         + "." + item.path.strip("/")) + '</li>' for item in diagnostics) + '</ul>'
     if context.execution is not None:
+        controls += '<div id="session-result" tabindex="-1">'
+        controls += render_recorded_review_source_v1(context, locale=locale, game_label=game_label)
         controls += render_result_presentation_v1(
             build_result_presentation_v1(context.execution.result, locale=locale),
             request_download_available=True, result_download_available=True,
@@ -179,11 +185,13 @@ def _analysis(context, locale, view):
             result_download_route="/sessions/downloads/result.json",
             locale=locale,
         )
+        controls += '</div>'
     return section(locale, "task.session.analysis", controls)
 
 
 def render_task_first_session_v1(
     context: GuidedSessionContextV1, *, locale: str = "en", show_operation_notice: bool = True,
+    game_label: str | None = None,
 ) -> str:
     with context.lock:
         view = project_task_first_session_v1(context.state)
@@ -194,12 +202,15 @@ def render_task_first_session_v1(
         current += paragraph(locale, f"task.session.phase_help.{facts.phase}")
         current += paragraph(locale, "task.session.perspective",
                              player=player_name(locale, facts.players, facts.local_player_id))
+        current += '<p><a href="#recorded-decisions">' + translated(
+            locale, "recorded_review.title") + '</a></p>'
         primary = view.workflow.primary_action
         normal = section(locale, "task.session.state", current)
         normal += section(locale, "task.session.next", paragraph(locale, view.workflow.next_task_key))
         normal += section(locale, "task.session.primary", _command(
             context, locale, view, primary, normal=True) if primary else paragraph(
                 locale, "task.session.next.complete"))
+        normal += render_recorded_session_decisions_v1(context, locale=locale)
         entered = '<ul>' + ''.join('<li>' + escape(label) + '</li>' for _, label in _players(locale, facts)) + '</ul>'
         for player in facts.players:
             hand = facts.remaining_hand_for(player.player_id)
@@ -234,7 +245,8 @@ def render_task_first_session_v1(
         if facts.game_end_reason is not None:
             entered += paragraph(locale, f"task.value.{facts.game_end_reason}")
         normal += section(locale, "task.session.entered", entered)
-        if show_operation_notice and context.last_operation is not None:
+        if (show_operation_notice and context.last_operation is not None
+                and context.recorded_review_source is None):
             normal += paragraph(locale, "task.operation." + (
                 "conflict" if context.last_operation.status in {"conflict", "stale"} else
                 "partial" if context.last_operation.status == "partial" else
@@ -242,7 +254,7 @@ def render_task_first_session_v1(
         optional = ''.join(disclosure(locale, f"task.command.{kind}",
             _command(context, locale, view, kind)) for kind in view.workflow.secondary_actions)
         normal += disclosure(locale, "task.session.optional", optional)
-        normal += _analysis(context, locale, view)
+        normal += _analysis(context, locale, view, game_label or text(locale, "page.session_current.title"))
         corrections = paragraph(locale, "task.session.correction_help")
         corrections += ''.join(disclosure(locale, f"task.command.{kind}",
             _command(context, locale, view, kind, correction=True)) for kind in SESSION_COMMAND_KINDS)
@@ -251,7 +263,8 @@ def render_task_first_session_v1(
             + input_field(locale, "target_revision", "task.field.target_revision", kind="number", required=True),
             "task.session.undo")
         corrections += form(locale, "/sessions/reload", hidden("managed_handle", context.handle), "common.action.reload")
-        normal += disclosure(locale, "task.session.corrections", corrections)
+        normal += '<div id="session-history">' + disclosure(
+            locale, "task.session.corrections", corrections) + '</div>'
         normal += '<p><a href="/sessions/downloads/session.json" download>' + translated(
             locale, "task.session.download") + '</a></p>'
         normal += technical_details(locale, {

@@ -141,7 +141,8 @@ preparation, automatic Learning import, or Match-to-Corpus transfer.
 
 ## Validation and packaging
 
-The unified frontend retains exactly 44 POST routes and 77 registered form
+With the additive Issue-#221 recorded-decision review action, the unified frontend
+has exactly 45 POST routes and 78 registered form
 definitions. Issue #220 extends the strict parity-checked German and English catalogs.
 Focused tests cover profile compatibility and persistence, generated domains and
 collision handling, known-Player operations, friendly creation translation,

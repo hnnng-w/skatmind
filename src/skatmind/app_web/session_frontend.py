@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import os
+import secrets
 import threading
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import skatmind.api.v1.session as session_api
 import skatmind.api.v1.session.files as session_files
@@ -26,6 +28,9 @@ from .managed_item_storage import (
     build_managed_item_storage_path_v1,
     validate_managed_direct_child_path_v1,
 )
+
+if TYPE_CHECKING:
+    from .session_recorded_review import RecordedReviewSourceV1
 
 
 def default_session_position_export_options_v1(
@@ -106,6 +111,9 @@ class GuidedSessionContextV1:
     generation: int = 1
     last_operation: GuidedSessionOperationResultV1 | None = None
     execution: GuidedFrontendExecutionV1 | None = field(default=None, repr=False)
+    recorded_review_source: RecordedReviewSourceV1 | None = field(default=None, repr=False)
+    execution_attempt: object | None = field(default=None, repr=False)
+    review_selection_key: bytes = field(default_factory=lambda: secrets.token_bytes(32), repr=False)
     lock: threading.RLock = field(default_factory=threading.RLock, repr=False)
 
     def __post_init__(self) -> None:
@@ -123,6 +131,17 @@ class GuidedSessionContextV1:
     @property
     def state(self) -> session_api.SessionStateV1:
         return self.document.state
+
+    def begin_execution(self) -> object:
+        """Caller owns the Session lock; a newer attempt supersedes older work."""
+        self.execution_attempt = object()
+        return self.execution_attempt
+
+    def clear_execution(self) -> None:
+        """Clear retained bytes and their label together; invalidate in-flight work."""
+        self.execution = None
+        self.recorded_review_source = None
+        self.execution_attempt = None
 
     @property
     def decision_checkpoints(
@@ -267,7 +286,7 @@ def reload_guided_session_v1(context: GuidedSessionContextV1) -> GuidedSessionOp
             raise ValueError("Managed Session identity changed on disk.")
         context.document = loaded
         context.generation += 1
-        context.execution = None
+        context.clear_execution()
         context.last_operation = GuidedSessionOperationResultV1(
             status="reloaded",
             message="The Session was reloaded; process-local Results were discarded.",
@@ -318,7 +337,7 @@ def _persist_session_mutation(
     else:
         context.document = persistence
         context.generation += 1
-        context.execution = None
+        context.clear_execution()
         operation = GuidedSessionOperationResultV1(
             status=result_status,
             message="The Session edit was persisted.",
@@ -505,6 +524,7 @@ def execute_guided_session_position_v1(
         source_generation = context.generation
         source_fingerprint = context.document.content_fingerprint
         request = exported.value.request
+        attempt = context.begin_execution()
     execution = execute_guided_frontend_analysis_v1(
         request,
         options=execution_options,
@@ -513,6 +533,7 @@ def execute_guided_session_position_v1(
         if (
             context.generation != source_generation
             or context.document.content_fingerprint != source_fingerprint
+            or context.execution_attempt is not attempt
         ):
             operation = GuidedSessionOperationResultV1(
                 status="stale",
@@ -520,6 +541,7 @@ def execute_guided_session_position_v1(
             )
         else:
             context.execution = execution
+            context.recorded_review_source = None
             operation = GuidedSessionOperationResultV1(
                 status="executed",
                 message="Position analysis completed for the current Session revision.",
@@ -546,6 +568,7 @@ def execute_guided_session_historical_v1(
         source_generation = context.generation
         source_fingerprint = context.document.content_fingerprint
         request = exported.value.request
+        attempt = context.begin_execution()
     execution = execute_guided_frontend_review_v1(
         request,
         options=execution_options,
@@ -554,6 +577,7 @@ def execute_guided_session_historical_v1(
         if (
             context.generation != source_generation
             or context.document.content_fingerprint != source_fingerprint
+            or context.execution_attempt is not attempt
         ):
             operation = GuidedSessionOperationResultV1(
                 status="stale",
@@ -561,6 +585,7 @@ def execute_guided_session_historical_v1(
             )
         else:
             context.execution = execution
+            context.recorded_review_source = None
             operation = GuidedSessionOperationResultV1(
                 status="executed",
                 message="Completed-game Review finished for the current Session revision.",

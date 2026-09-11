@@ -1772,7 +1772,10 @@ open pending repeated UAT-01. Issue #219 implements private known Players,
 generated frontend identities, saved creation defaults and display labels,
 bilingual name-first Session/Match/Learning creation, secondary JSON transfer,
 and Product-first/profile-second persistence semantics. Issue #220 implements
-task-first bilingual active workflows. Issue #208
+task-first bilingual active workflows. Repeated maintainer UAT-01 failed again
+on September 11, 2026, including inaccessible actionable review after 30 Session
+Plays. Issue #221 adds direct review of saved own-decision snapshots, exact
+source-labelled process-local Results, and existing retained downloads. Issue #208
 remains open, UAT-02 through
 UAT-12 remain paused, B-09 and B-07 remain open, B-06 remains closed, and
 Package `1.0.0` and Release preparation are not ready.
@@ -2378,7 +2381,10 @@ localized accessible contextual feedback, and successful PRG. Issue #219,
 "Reduce setup friction with generated IDs, known-player selection, and saved
 defaults," is implemented in [Profile-driven stateful
 creation](profile_driven_stateful_creation.md). Issue #220 implements task-first
-bilingual workflows. After merge and green exact-commit CI, repeat UAT-01 under #208.
+bilingual workflows. Repeated maintainer UAT-01 failed again on September 11,
+2026. Issue #221 addresses only direct review of recorded own Session decisions:
+saved checkpoints, deterministic variant selection, accepted actual Cards, frozen
+Requests, exact context/file/attempt guards, and source-labelled retained Results.
 
 Maintainer Microsoft Edge verification resolved Issue #214 and
 UAT-FINDING-004. Repeated UAT-01 nevertheless failed. Issue #208 remains open;
@@ -2400,9 +2406,13 @@ Issue #219 is documented in [Profile-driven stateful
 creation](profile_driven_stateful_creation.md).
 
 Issue #220 is documented in [Task-first bilingual stateful
-workflows](task_first_bilingual_stateful_workflows.md). Both required jobs,
-`check` and `v1-supported-platform-matrix`, must pass on the exact merged commit
-before the maintainer repeats UAT-01. Implementation does not close UAT findings.
+workflows](task_first_bilingual_stateful_workflows.md). Issue #221 is documented
+in [Review recorded Session decisions](session_recorded_decision_review.md).
+Both required jobs, `check` and `v1-supported-platform-matrix`, must pass on the
+exact merged commit. A future focused retest can open a recorded Game, review an
+earlier own decision after 30 Plays, recognize its comparison and source, then
+reopen and review the saved decision again. This does not request another complete
+walkthrough now. Implementation does not close UAT findings or reopen #220/B-06.
 
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
