@@ -5,6 +5,11 @@ from typing import Any
 from skatmind.deck import get_full_deck
 from skatmind.game_declaration import GameDeclaration
 from skatmind.match_source_metadata import MediaTimecodeV1
+from skatmind.observed_trace_diagnostics import (
+    ObservedTraceDiagnostic,
+    ObservedTraceError,
+    follow_suit_diagnostic,
+)
 from skatmind.performance_rating import validate_stable_list_entry_identifier
 from skatmind.rules import get_legal_cards, get_trick_points, get_trick_winner
 
@@ -237,9 +242,11 @@ def _validate_perspective_replay(
     for play in plays:
         if play.player_id == perspective_player_id:
             if play.card not in remaining_hand:
-                raise ValueError(
+                raise ObservedTraceError(
                     f"Observed decision {play.decision_index}: perspective Player does "
-                    f"not own remaining Card '{play.card}'."
+                    f"not own remaining Card '{play.card}'.",
+                    ObservedTraceDiagnostic("ownership", play.decision_index,
+                                            play.card, play.player_id),
                 )
             legal_cards = get_legal_cards(
                 remaining_hand,
@@ -247,9 +254,10 @@ def _validate_perspective_replay(
                 declaration.game_type,
             )
             if play.card not in legal_cards:
-                raise ValueError(
+                raise ObservedTraceError(
                     f"Observed decision {play.decision_index}: perspective Player "
-                    f"illegally plays '{play.card}'; legal Cards are {legal_cards}."
+                    f"illegally plays '{play.card}'; legal Cards are {legal_cards}.",
+                    follow_suit_diagnostic(plays, play, legal_cards, declaration.game_type),
                 )
             remaining_hand.remove(play.card)
         current_trick.append(play.card)
@@ -284,9 +292,11 @@ def _validate_complete_replay(
             )
         legal_cards = get_legal_cards(hand, current_trick, declaration.game_type)
         if play.card not in legal_cards:
-            raise ValueError(
+            raise ObservedTraceError(
                 f"Observed decision {play.decision_index}: Player '{play.player_id}' "
-                f"illegally plays '{play.card}'; legal Cards are {legal_cards}."
+                f"illegally plays '{play.card}'; legal Cards are {legal_cards}.",
+                follow_suit_diagnostic(plays, play, legal_cards, declaration.game_type,
+                                       complete_replay=True),
             )
         hand.remove(play.card)
         current_trick.append(play.card)
@@ -333,7 +343,13 @@ def validate_observed_game_trace_v1(
                 f"Observed decision {play.decision_index} references an unknown Game Player."
             )
         if play.card in seen_cards:
-            raise ValueError(f"Observed Card '{play.card}' is played more than once.")
+            witness = next(item for item in retained_plays[:expected_index - 1]
+                           if item.card == play.card)
+            raise ObservedTraceError(
+                f"Observed Card '{play.card}' is played more than once.",
+                ObservedTraceDiagnostic("duplicate", play.decision_index, play.card,
+                                        play.player_id, witness.decision_index, witness.card),
+            )
         seen_cards.add(play.card)
         play_counts[play.player_id] += 1
         if play_counts[play.player_id] > 10:
@@ -351,21 +367,31 @@ def validate_observed_game_trace_v1(
             previous_present_timecode = start
 
         if discarded_cards is not None and play.card in discarded_cards:
-            raise ValueError(f"Discarded Card '{play.card}' cannot appear in Plays.")
+            raise ObservedTraceError(
+                f"Discarded Card '{play.card}' cannot appear in Plays.",
+                ObservedTraceDiagnostic("discard", play.decision_index, play.card, play.player_id),
+            )
         if (
             perspective_initial_hand is not None
             and play.card in perspective_initial_hand
             and play.player_id != perspective_player_id
         ):
-            raise ValueError(
-                f"Observed Card '{play.card}' belongs to the perspective initial hand."
+            raise ObservedTraceError(
+                f"Observed Card '{play.card}' belongs to the perspective initial hand.",
+                ObservedTraceDiagnostic("ownership", play.decision_index, play.card,
+                                        play.player_id, expected_player_id=perspective_player_id),
             )
         if original_skat is not None and play.card in original_skat and declaration is not None:
             if declaration.hand_game:
-                raise ValueError(f"Hand-game original Skat Card '{play.card}' cannot be played.")
+                raise ObservedTraceError(
+                    f"Hand-game original Skat Card '{play.card}' cannot be played.",
+                    ObservedTraceDiagnostic("skat", play.decision_index, play.card, play.player_id),
+                )
             if play.player_id != declarer_player_id:
-                raise ValueError(
-                    f"Original Skat Card '{play.card}' may be played only by the Declarer."
+                raise ObservedTraceError(
+                    f"Original Skat Card '{play.card}' may be played only by the Declarer.",
+                    ObservedTraceDiagnostic("skat", play.decision_index, play.card,
+                                            play.player_id, expected_player_id=declarer_player_id),
                 )
 
     expected_leader = seat_order_player_ids[0]
@@ -377,9 +403,11 @@ def validate_observed_game_trace_v1(
         expected_order = _player_order_from_leader(expected_leader, seat_order_player_ids)
         expected_player_id = expected_order[len(current_trick_plays)]
         if play.player_id != expected_player_id:
-            raise ValueError(
+            raise ObservedTraceError(
                 f"Observed decision {play.decision_index} must be played by "
-                f"'{expected_player_id}', got '{play.player_id}'."
+                f"'{expected_player_id}', got '{play.player_id}'.",
+                ObservedTraceDiagnostic("wrong_actor", play.decision_index, play.card,
+                                        play.player_id, expected_player_id=expected_player_id),
             )
         current_trick_plays.append(play)
         current_trick_cards.append(play.card)

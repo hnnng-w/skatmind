@@ -322,6 +322,12 @@ This is optimistic conflict detection, not distributed locking. Another writer
 can still race after the final target check and before replacement. No lock,
 retry, merge, cloud, or multi-user coordination claim is made.
 
+Issue #222 binds private recovery previews to exact Workspace content, position,
+Game, target Play, and active context, then rechecks source freshness and rebuilds
+at Apply. One successful replacement or rewind uses one existing CAS Save;
+read-only previews and rejected changes do not write. It adds no persistence
+field or migration. See [Match recording error recovery](match_recording_error_recovery.md).
+
 ## Private-data boundary
 
 Workspace files are private local working data. They may contain source URLs and

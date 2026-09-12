@@ -138,6 +138,11 @@ strict-before-Match eligibility and existing Profile derivation. Browser changes
 neither apply a Profile nor analyze automatically. Confirmations for existing
 destructive operations remain required by the Product boundary.
 
+Issue #222 places linked accepted Trick history, evidence-supported warnings, and
+native correction/rewind previews beside normal Card entry. Source-bound Apply
+reuses authoritative Game construction and Workspace CAS persistence. See
+[Match recording error recovery](match_recording_error_recovery.md).
+
 ## Explicit transfer and Learning
 
 Transfer displays friendly source-Match and target-collection labels and whether
@@ -178,7 +183,7 @@ Review, and shared Result presentation use catalog messages; their workflow
 semantics are unchanged. The transitional English-workflow marker is removed.
 Exact diagnostic/machine text remains under Technical details.
 
-With Issue #221 the registry has 45 POST Routes and 78 form definitions. Existing
+With Issue #222 the registry has 49 POST Routes and 82 form definitions. Existing
 same-form `400`, contextual `409`, safe-value allowlists, field links, focused error
 summaries, file reselection, and successful `303` PRG remain in force. Selected
 canonical Card codes survive rejection even if no longer in the current palette.

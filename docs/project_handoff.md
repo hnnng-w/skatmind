@@ -2408,6 +2408,11 @@ creation](profile_driven_stateful_creation.md).
 Issue #220 is documented in [Task-first bilingual stateful
 workflows](task_first_bilingual_stateful_workflows.md). Issue #221 is documented
 in [Review recorded Session decisions](session_recorded_decision_review.md).
+Issue #222 adds [Match recording error recovery](match_recording_error_recovery.md):
+typed trace diagnostics, derived partial-record warnings, linked accepted Trick
+history, retained-suffix single-Card previews, explicit rewind effects, and exact
+source/CAS Apply. Synthetic late-completion coverage does not reproduce the
+unavailable original maintainer trace. UAT findings remain open.
 Both required jobs, `check` and `v1-supported-platform-matrix`, must pass on the
 exact merged commit. A future focused retest can open a recorded Game, review an
 earlier own decision after 30 Plays, recognize its comparison and source, then

@@ -1180,8 +1180,8 @@ assert FRONTEND_TRANSLATION_CATALOG_VERSION == 1
 assert LOCAL_FRONTEND_PROFILE_VERSION == 1
 assert FRONTEND_INFORMATION_ARCHITECTURE_VERSION == 1
 assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-assert len(UNIFIED_FRONTEND_POST_ROUTES) == 45
-assert len(FRONTEND_FORM_REGISTRY) == 78
+assert len(UNIFIED_FRONTEND_POST_ROUTES) == 49
+assert len(FRONTEND_FORM_REGISTRY) == 82
 validate_frontend_form_registry_v1()
 frontend_catalogs = load_frontend_translation_catalogs_v1()
 assert tuple(frontend_catalogs) == ("de", "en")
@@ -1190,6 +1190,7 @@ assert "validation.summary.heading" in frontend_catalogs["de"]
 for locale in ("de", "en"):
     assert "task.session.state" in frontend_catalogs[locale]
     assert "task.match.overview" in frontend_catalogs[locale]
+    assert "recovery.correct" in frontend_catalogs[locale]
     assert "task.learning.build" in frontend_catalogs[locale]
 from skatmind.app_web.localization_contracts import (
     BILINGUAL_FRONTEND_POLICIES,

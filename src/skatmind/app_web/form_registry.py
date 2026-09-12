@@ -23,6 +23,7 @@ from .frontend_profile_operations import (
 from .guided_contracts import GUIDED_ACTION_ROUTE_PATHS
 from .json_transfer import FRONTEND_JSON_MAX_FILE_BYTES
 from .managed_item_contracts import MANAGED_ITEM_MAX_IMPORT_BYTES
+from .match_recovery import RECOVERY_ROUTES
 from .position_form import (
     POSITION_ANALYSIS_METHODS_V1,
     POSITION_FORM_CARD_FIELDS_V1,
@@ -74,6 +75,7 @@ _CHECKBOX_FIELDS = {
     "use_profile_presets",
 }
 _DESTRUCTIVE_FIELDS = {
+    "confirm_apply",
     "confirm_clear",
     "confirm_clear_snapshot",
     "confirm_replace",
@@ -262,7 +264,7 @@ def _field(
             0
             if control == "file"
             else 64
-            if name == "decision_selection"
+            if name in {"decision_selection", "recovery_selection"}
             else 4
             if control == "card"
             else 8192
@@ -1066,6 +1068,18 @@ _FORMS: list[FrontendFormDefinitionV1] = [
     ),
 ]
 
+for action, fields in (
+    ("select", ("recovery_selection",)),
+    ("preview", ("recovery_selection", "card")),
+    ("apply", ("recovery_selection", "confirm_apply")),
+    ("cancel", ()),
+):
+    _FORMS.append(_definition(
+        f"match.recovery.{action}", f"/matches/recovery/{action}", fields,
+        page="/matches/current", active="matches", success="contextual",
+        body_limit=MATCH_CAPTURE_WEB_MAX_REQUEST_BYTES,
+    ))
+
 for kind in SESSION_COMMAND_KINDS:
     session_controls: dict[str, str] = {}
     session_choices: dict[str, tuple[str, ...]] = {}
@@ -1314,6 +1328,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             "/matches/api/v1/analysis",
             "/matches/transfer-workspace",
             "/matches/transfer-report",
+            *RECOVERY_ROUTES,
             "/learning/create",
             "/learning/open",
             "/learning/api/v1/operations",

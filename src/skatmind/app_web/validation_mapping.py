@@ -3,10 +3,12 @@ from __future__ import annotations
 import re
 
 from skatmind.errors import SkatMindWorkflowError
+from skatmind.observed_trace_diagnostics import ObservedTraceError
 
 from .form_parsing import FormFieldErrorV1
 from .form_registry import FrontendFormDefinitionV1
 from .frontend_profile_operations import FrontendProfilePersistenceConflictError
+from .match_recovery import MatchRecoveryConflict
 from .validation_contracts import FrontendValidationIssueV1
 
 
@@ -86,6 +88,10 @@ def map_frontend_exception_v1(
     *,
     status: int,
 ) -> tuple[FrontendValidationIssueV1, ...]:
+    if isinstance(error, ObservedTraceError) and definition.active_context_requirement == "matches":
+        return (_issue(None, "validation.message.match_recording_conflict"),)
+    if isinstance(error, MatchRecoveryConflict):
+        return (_issue(None, f"validation.message.match_recovery_{error.reason}"),)
     fields = tuple(field.field_key for field in definition.safe_fields)
     lowered = str(error).lower()
     declared_field = getattr(error, "field_key", None)

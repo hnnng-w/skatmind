@@ -133,6 +133,9 @@ from .match_frontend import (
     reload_unified_match_v1,
     select_unified_match_position_v1,
 )
+from .match_recovery import RECOVERY_ROUTES, MatchRecoveryConflict, recording_selections
+from .match_recovery_http import dispatch_match_recovery
+from .match_recovery_rendering import render_match_recovery
 from .profile_driven_creation import (
     PROFILE_DRIVEN_LEARNING_CREATE_FIELDS,
     PROFILE_DRIVEN_MATCH_CREATE_FIELDS,
@@ -320,6 +323,7 @@ _STATEFUL_POST_ROUTES = {
     "/matches/api/v1/analysis",
     "/matches/transfer-workspace",
     "/matches/transfer-report",
+    *RECOVERY_ROUTES,
     "/learning/create",
     "/learning/open",
     "/learning/api/v1/operations",
@@ -560,6 +564,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             return "/"
         if path == "/sessions/review-decision" or getattr(self, "_session_page_return", False):
             return "/sessions/current"
+        match_position = getattr(self, "_match_page_return", None)
+        if match_position is not None:
+            return f"/matches/position/{match_position}"
         return path if is_safe_frontend_return_path_v1(path) else "/"
 
     def _authorize_get(self, path: str, query: str) -> bool:
@@ -1006,9 +1013,16 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         definition = getattr(self, "_current_form_definition", None)
         if type(definition) is FrontendFormDefinitionV1:
             with self.server.app_context.lock:
-                self.server.app_context.form_feedback.clear(
-                    definition.active_context_requirement or "profile"
-                )
+                retained = None
+                if definition.form_key in {"match.recovery.select", "match.recovery.preview"}:
+                    retained = self.server.app_context.form_feedback.current(
+                        "matches",
+                        active_identity=self.server.app_context.managed_stateful.active_match,
+                    )
+                if retained is None or retained.form_key != "match.operation.append_plays":
+                    self.server.app_context.form_feedback.clear(
+                        definition.active_context_requirement or "profile"
+                    )
         self._send_text(
             HTTPStatus.SEE_OTHER,
             "",
@@ -1518,6 +1532,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             raise RuntimeError("Profile action route dispatch is incomplete.")
         with self.server.app_context.profile_lock:
             self.server.app_context.profile_redirect_return_to = return_to
+        if path == FRONTEND_LANGUAGE_ACTION_ROUTE and _MATCH_POSITION_PATTERN.fullmatch(return_to):
+            with self.server.app_context.lock:
+                active = self.server.app_context.managed_stateful.active_match
+            if active is not None and return_to == f"/matches/position/{active.selected_position}":
+                fragment = ("match-recovery" if active.recovery.selected is not None
+                            else "match-recording")
+                self._redirect(return_to + "#" + fragment)
+                return
         self._redirect(return_to)
 
     def _download(self, path: str) -> None:
@@ -1590,11 +1612,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 previous.clear_execution()
 
     def _activate_match(self, active) -> None:
-        with self.server.app_context.lock:
-            previous = self.server.app_context.managed_stateful.activate_match(active)
-        if previous is not None:
-            with previous.capture.lock:
-                previous.capture.report_store.clear()
+        with self.server.app_context.managed_stateful.match_lifecycle_lock:
+            with self.server.app_context.lock:
+                previous = self.server.app_context.managed_stateful.activate_match(active)
+            if previous is not None:
+                with previous.capture.lock:
+                    previous.capture.report_store.clear()
+                    previous.recovery.clear()
 
     def _activate_learning(self, active) -> None:
         with self.server.app_context.lock:
@@ -1738,6 +1762,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         operation_notice: str | None = None,
         operation_notice_kind: str = "info",
     ) -> None:
+        self._match_page_return = position if report_id is None else None
         with active.capture.lock:
             select_unified_match_position_v1(active, position)
             view = project_task_first_match_v1(active.workspace, selected_position=position)
@@ -1745,6 +1770,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             result = active.last_result
             transfer_notice = active.transfer_notice
             active.transfer_notice = None
+            recovery = render_match_recovery(active, self._frontend_state().locale,
+                                              recording_selections(active))
         notice = (
             operation_notice
             or transfer_notice
@@ -1789,6 +1816,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             managed_handle=active.handle,
             transfer=transfer,
             locale=locale,
+            recovery=recovery,
         )
         if notice is not None:
             key = ("task.operation.conflict" if notice_kind in {"warning", "error"}
@@ -2326,7 +2354,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     raise SkatMindInvariantError("Applied analysis did not retain a Report.")
                 self._redirect(f"/matches/reports/{report_id}")
             else:
-                self._redirect(f"/matches/position/{position}")
+                self._redirect(f"/matches/position/{position}#match-recording")
             return
         definition = self._current_form_definition
         self._retain_form_feedback(
@@ -2598,7 +2626,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             )
             return
         values = self._text_form(body, content_type)
-        if path == "/sessions/create":
+        if path in RECOVERY_ROUTES:
+            try:
+                active = self._bound_active("matches", values)
+            except KeyError as error:
+                raise MatchRecoveryConflict() from error
+            self._redirect(dispatch_match_recovery(self.server.app_context, active, path, values))
+        elif path == "/sessions/create":
             self._create_session(values)
         elif path == "/sessions/open":
             self._open_managed_item("sessions", values)
@@ -2724,7 +2758,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     max_bytes = _MANAGED_IMPORT_MAX_REQUEST_BYTES
                 elif parsed.path == "/learning/api/v1/operations":
                     max_bytes = LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES
-                elif parsed.path.startswith("/matches/api/v1/"):
+                elif parsed.path.startswith("/matches/api/v1/") or parsed.path in RECOVERY_ROUTES:
                     max_bytes = MATCH_CAPTURE_WEB_MAX_REQUEST_BYTES
                 else:
                     max_bytes = APP_WEB_MAX_REQUEST_BYTES

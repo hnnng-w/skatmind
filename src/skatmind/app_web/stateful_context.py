@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from threading import RLock
 
 from .contracts import ManagedHomeV1
 from .learning_frontend import UnifiedLearningContextV1
@@ -29,6 +30,7 @@ class ManagedStatefulContextV1:
     )
     active_session: GuidedSessionContextV1 | None = field(default=None, repr=False)
     active_match: UnifiedMatchContextV1 | None = field(default=None, repr=False)
+    match_lifecycle_lock: RLock = field(default_factory=RLock, repr=False)
     active_learning: UnifiedLearningContextV1 | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:

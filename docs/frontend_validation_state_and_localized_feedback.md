@@ -34,7 +34,7 @@ API exports and are not persisted.
 
 ## Canonical Form Registry
 
-`FRONTEND_FORM_REGISTRY` covers all 45 unified frontend POST routes through 78
+`FRONTEND_FORM_REGISTRY` covers all 49 unified frontend POST routes through 82
 exact definitions. Shared routes are split by their existing discriminator:
 
 ```text
@@ -66,6 +66,12 @@ targeting. Expired selections receive feedback at the recorded-decision section.
 Same-context `400`, contextual `409`, and native language return keep the Session
 selected; source labels and retained Request/Result bytes remain atomic. See
 [Review recorded Session decisions](session_recorded_decision_review.md).
+
+Issue #222 adds four exact private Match recovery forms. Only the replacement
+Card and opaque selection are safe retained fields; Apply confirmation is cleared.
+Typed authoritative trace diagnostics are captured before generic mapping, and
+stale recovery feedback stays beside the selected Game's recording controls.
+See [Match recording error recovery](match_recording_error_recovery.md).
 
 When one definition has several rendered instances, the unified renderer adds a
 bounded process-local ordinal hidden field. It identifies only the rendered form

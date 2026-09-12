@@ -1579,6 +1579,10 @@ theme, date, tag, or publication commit is frozen.
 Issue #220 is documented in [Task-first bilingual stateful
 workflows](task_first_bilingual_stateful_workflows.md). Issue #221 is documented
 in [Review recorded Session decisions](session_recorded_decision_review.md).
+Issue #222 implements [Match recording error recovery](match_recording_error_recovery.md)
+with evidence-supported diagnostics and warnings, linked Trick history, explicit
+one-Card correction or rewind previews, and source-bound atomic Apply. The original
+maintainer trace remains unverified; synthetic regressions cover late replay.
 Exact merged-commit `check` and `v1-supported-platform-matrix` remain required,
-with a future focused Session affected-path retest. The September 11 repeated
+with future focused Session and Match affected-path retests. The September 11 repeated
 UAT failure and unresolved findings remain open; the technical ledger remains closed.

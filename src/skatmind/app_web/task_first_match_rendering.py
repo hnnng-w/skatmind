@@ -213,7 +213,7 @@ def _reports(state, handle, locale):
     return content
 
 
-def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en", transfer=""):
+def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en", transfer="", recovery=None):
     handle = managed_handle
     progress = state["progress"]
     body = section(locale, "task.match.progress", paragraph(locale, "task.match.progress_value",
@@ -244,7 +244,7 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
         positions += '</div></section>'
     body += section(locale, "task.match.overview", positions)
     game = state["game"]
-    task = paragraph(locale, view.workflow.next_task_key)
+    task = '<div id="match-recovery-feedback"></div>' + ("" if recovery is None else recovery[0]) + paragraph(locale, view.workflow.next_task_key)
     if view.workflow.primary_action == "start_game":
         task += form(locale, "/matches/api/v1/operation", _hidden(state, handle, "start_game"),
                      "task.match.action.start_game", primary=True)
@@ -261,11 +261,11 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     if game is not None:
         task += '<ul>' + ''.join('<li>' + translated(locale, f"task.match.action.{step}") + ' — '
             + translated(locale, "task.recorded") + '</li>' for step in view.workflow.completed_steps) + '</ul>'
-        task += '<ol>' + ''.join('<li>' + escape(_name(state, locale, play["player_id"])) + ': '
-            + cards_summary(locale, (play["card"],)) + '</li>' for play in game["plays"]) + '</ol>'
-    body += section(locale, "task.match.record_or_pass", task)
+        task += (recovery[1] if recovery is not None else '<ol>' + ''.join('<li>' + escape(_name(state, locale, play["player_id"])) + ': '
+            + cards_summary(locale, (play["card"],)) + '</li>' for play in game["plays"]) + '</ol>')
+    body += '<div id="match-recording" tabindex="-1">' + section(locale, "task.match.record_or_pass", task) + '</div>'
     body += transfer
-    body += disclosure(locale, "task.match.evidence", _evidence(state, handle, locale))
+    body += disclosure(locale, "task.match.evidence", '<div id="match-evidence">' + _evidence(state, handle, locale) + '</div>')
     body += disclosure(locale, "task.match.annotations", _annotations(state, handle, locale))
     metadata = {**state["match"], **state["source"],
         "match_timecode_start": state["source"]["match_timecode"]["start"],
@@ -298,8 +298,8 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
         corrections += operation_form(state, handle, locale, "start_game")
         corrections += operation_form(state, handle, locale, "mark_passed_deal")
     if game is not None:
-        corrections += operation_form(state, handle, locale, "set_declaration", values={
-            **(game["declaration"] or {}), "declarer_player_id": game["declarer_player_id"]})
+        corrections += '<div id="match-declaration">' + operation_form(state, handle, locale, "set_declaration", values={
+            **(game["declaration"] or {}), "declarer_player_id": game["declarer_player_id"]}) + '</div>'
         corrections += operation_form(state, handle, locale, "set_game_timecode", values={
             "game_timecode_start": game["game_timecode"]["start"], "game_timecode_end": game["game_timecode"]["end"]})
         corrections += operation_form(state, handle, locale, "append_plays")

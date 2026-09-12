@@ -141,6 +141,12 @@ metadata remains under Advanced. A date alone does not invent `played_at`, and
 saved platform IDs are never copied into Product metadata without explicit
 submission.
 
+Issue #222 adds private Match correction/rewind previews beside accepted Trick
+history, finite trace diagnostics, and read-only evidence warnings. A Match
+lifecycle gate serializes active switching with recovery Apply; filesystem work
+still holds no app lock. Existing Game/Workspace validation and atomic CAS Save
+remain authoritative. See [Match recording error recovery](match_recording_error_recovery.md).
+
 ## Learning
 
 `/learning` lists and creates managed Corpora and strictly opens existing Corpus
@@ -208,7 +214,7 @@ public JSON API.
 All lifecycle and active-item POST forms are covered by the private canonical
 registry documented in
 [Frontend validation state and localized feedback](frontend_validation_state_and_localized_feedback.md).
-The complete unified registry has 45 POST routes and 78 definitions. Creation
+The complete unified registry has 49 POST routes and 82 definitions. Creation
 and settings forms use profile-generation checks and exact opaque form identity.
 Rejected safe values remain on the exact originating form. The active Session,
 Match, or Learning Corpus is retained, and switching that exact active object

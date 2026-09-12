@@ -166,6 +166,12 @@ any selected retained count. The returned authoritative Workspace removes
 invalid dependent Commentary and Response Links, and the saved result notice
 lists their IDs. There is no second Undo history or branch model.
 
+The unified frontend additionally offers Issue #222's linked Trick diagnostics,
+read-only partial-record warnings, single-Card retained-suffix correction preview,
+and explicit rewind/removal preview. These private unified routes preserve the
+standalone controls described here. See
+[Match recording error recovery](match_recording_error_recovery.md).
+
 Local JavaScript adds focus retention, `/` focus for rapid Card entry,
 `Alt+U` Undo, and `Alt+Left`/`Alt+Right` position navigation. It contains no Skat
 rules, Player-order or Decision-index derivation, Card legality, or Workspace

@@ -42,12 +42,14 @@ from skatmind.match_workspace_persistence import (
     save_match_workspace_file_v1,
 )
 from skatmind.match_workspace_persistence_codec import resume_match_workspace_document_v1
+from skatmind.observed_trace_diagnostics import ObservedTraceError
 
 from .managed_item_contracts import DiscoveredManagedItemV1
 from .managed_item_storage import (
     build_managed_item_storage_path_v1,
     validate_managed_direct_child_path_v1,
 )
+from .match_recovery import MatchRecoveryState, retain_recording_error
 
 _SAFE_WORKSPACE_FILENAME = "managed-match.json"
 UNIFIED_MATCH_EXPORT_KINDS = (
@@ -70,6 +72,7 @@ class UnifiedMatchContextV1:
     selected_position: int = 1
     last_result: MatchCaptureWebResultV1 | None = field(default=None, repr=False)
     transfer_notice: str | None = field(default=None, repr=False)
+    recovery: MatchRecoveryState = field(default_factory=MatchRecoveryState, repr=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.category_root, Path) or not isinstance(self.path, Path):
@@ -208,6 +211,8 @@ def reload_unified_match_v1(
             context.capture,
             selected_position=context.selected_position,
         )
+        context.recovery.clear()
+        context.transfer_notice = None
     context.last_result = result
     return result
 
@@ -222,7 +227,22 @@ def apply_unified_match_operation_v1(
             context.path,
             expected_kind="file",
         )
-        result = apply_match_capture_web_operation_v1(context.capture, values)
+        position = int(values.get("match_position", context.selected_position))
+        select_unified_match_position_v1(context, position)
+        context.recovery.diagnostic = None
+        try:
+            result = apply_match_capture_web_operation_v1(context.capture, values)
+        except ObservedTraceError as error:
+            cards = values.get("cards", ())
+            if isinstance(cards, str):
+                cards = cards.replace(",", " ").split()
+            game = context.workspace.slots[position - 1].observed_game
+            retain_recording_error(context, error, cards,
+                len(game.plays) + 1 if values.get("operation") == "append_plays" else None)
+            raise
+        if result.status == "applied":
+            context.recovery.clear()
+            context.transfer_notice = None
     selected = result.state.get("selected_position")
     if type(selected) is int and 1 <= selected <= 36:
         context.selected_position = selected
@@ -258,6 +278,8 @@ def select_unified_match_position_v1(
 ) -> None:
     if type(position) is not int or not 1 <= position <= 36:
         raise ValueError("position must be an integer from 1 through 36.")
+    if context.selected_position != position:
+        context.recovery.clear()
     context.selected_position = position
 
 

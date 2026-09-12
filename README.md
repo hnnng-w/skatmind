@@ -2027,8 +2027,11 @@ implemented Issue-#220 boundary is documented in
 [Task-first bilingual stateful workflows](docs/task_first_bilingual_stateful_workflows.md).
 The September 11 repeated UAT remains failed. Issue #221 is documented in
 [Review recorded Session decisions](docs/session_recorded_decision_review.md).
+Issue #222 adds [Match recording error recovery](docs/match_recording_error_recovery.md):
+evidence-based conflict locations, linked Trick history, one-Card retained-suffix
+replacement previews, and explicit rewind with source-bound atomic Apply.
 Exact merged-commit `check` and `v1-supported-platform-matrix` remain required;
-a future focused retest covers the affected Session path without claiming full
+a future focused retest covers the affected Session and Match paths without claiming full
 UAT remediation.
 The Historical integration is documented in [Historical party-wide
   Claim](docs/historical_party_wide_claim.md). The private boundary is documented in [Party-wide Claim

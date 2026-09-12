@@ -85,6 +85,60 @@ details button {
   gap: 0.6rem;
 }
 
+#match-recording,
+#match-recovery,
+.match-history li {
+  scroll-margin-block: 1rem;
+  overflow-wrap: anywhere;
+}
+
+#match-recording > .panel {
+  padding: clamp(1rem, 3vw, 1.8rem);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.match-history ol {
+  list-style: none;
+  padding: 0;
+}
+
+.match-history li {
+  border-top: 1px solid var(--line);
+  padding-block: 0.5rem;
+}
+
+.match-recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.match-recovery-actions form {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+#match-recording button,
+#match-recording select {
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.match-diagnostic {
+  border-inline-start: 0.25rem solid var(--gold);
+  padding-inline: 1rem;
+}
+
+#match-recording :target,
+#match-recovery:focus,
+.match-history li:focus {
+  outline: 0.2rem solid var(--focus);
+  outline-offset: 0.2rem;
+}
+
 .position-card small {
   display: block;
   overflow-wrap: anywhere;

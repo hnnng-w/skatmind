@@ -230,6 +230,11 @@ or removed response Decisions. Still-valid annotations remain. Removed IDs are
 reported in deterministic retained order. Undo-last-Play is a convenience
 wrapper over the same truncation operation; it adds no history object.
 
+Issue #222 composes the Game rebuild and Workspace replacement seams in a private
+single-Card recovery adapter, retaining the suffix and all annotations. Explicit
+rewind reuses canonical truncation. It adds no Capture operation enum value or
+partial-validity restriction. See [Match recording error recovery](match_recording_error_recovery.md).
+
 ## Commentary and response links
 
 Commentary remains caller-authored free text without taxonomy, sentiment,
