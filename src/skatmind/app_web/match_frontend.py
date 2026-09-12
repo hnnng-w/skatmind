@@ -70,6 +70,7 @@ class UnifiedMatchContextV1:
     handle: str
     capture: MatchCaptureWebContextV1 = field(repr=False)
     selected_position: int = 1
+    position_generation: int = field(default=0, repr=False)
     last_result: MatchCaptureWebResultV1 | None = field(default=None, repr=False)
     transfer_notice: str | None = field(default=None, repr=False)
     recovery: MatchRecoveryState = field(default_factory=MatchRecoveryState, repr=False)
@@ -245,7 +246,7 @@ def apply_unified_match_operation_v1(
             context.transfer_notice = None
     selected = result.state.get("selected_position")
     if type(selected) is int and 1 <= selected <= 36:
-        context.selected_position = selected
+        select_unified_match_position_v1(context, selected)
     context.last_result = result
     return result
 
@@ -267,7 +268,7 @@ def execute_unified_match_analysis_v1(
     )
     selected = result.state.get("selected_position")
     if type(selected) is int and 1 <= selected <= 36:
-        context.selected_position = selected
+        select_unified_match_position_v1(context, selected)
     context.last_result = result
     return result
 
@@ -280,6 +281,7 @@ def select_unified_match_position_v1(
         raise ValueError("position must be an integer from 1 through 36.")
     if context.selected_position != position:
         context.recovery.clear()
+        context.position_generation += 1
     context.selected_position = position
 
 

@@ -345,6 +345,11 @@ A flag may be decorative but must not be the only language indicator. The
 current language must be identified in text and accessibility state, and the
 HTML `lang` attribute must match the selected locale.
 
+Issue #223 implements two native submit buttons with absolute `de`/`en` targets,
+recognizable labels, mutually consistent `aria-pressed` states, underline and
+keyboard focus. There is no dropdown/Apply step or relative toggle. One activation
+sends one existing language POST and returns a complete server-rendered page.
+
 Changing language must retain the current Route; active Session, Match, or
 Corpus; process-local Analyze or Review draft and Result; current wizard step;
 safe entered values; validation errors; and, where practical, the selected
@@ -355,6 +360,24 @@ Result, create or mutate a Session, Match, or Corpus, select a Snapshot, run
 preparation, clear a form, or clear a Result. It must not reload persistence
 unnecessarily. The only persistence mutation is the explicit profile-language
 update.
+
+The retained Route is the rendered semantic HTML task, including on contextual
+creation/active-action errors; it is not the rejected action URL. The existing safe
+HTML-route allowlist remains strict, with known server-owned focus anchors handled
+separately. Exact bounded source/form bindings reject foreign, reopened,
+equal-revision changed, moved-position, and expired-preview restoration. Rechecks
+after saving never roll back a valid language preference or claim cross-file
+atomicity. Genuine stale Product and profile CAS protections remain authoritative.
+
+Accepted server state and safe submitted rejection state survive native switching
+without JavaScript. Unsent input in another browser form cannot be recovered in
+that mode. The optional same-POST enhancement transfers registered visible controls
+and open/closed disclosures within 262,144 UTF-8 bytes, 256 forms, and 1,024
+disclosures; files, passwords, secrets, transport fields, and destructive
+confirmations are excluded. Client bound failures retain the current page with
+feedback. Validation-required disclosures remain reachable. No persistent draft,
+browser storage, implicit setting save, Product action, or preview-token renewal
+is introduced. See [Local frontend profile and localization](local_frontend_profile_and_localization.md).
 
 ## Private local frontend profile
 

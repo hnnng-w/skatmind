@@ -96,24 +96,25 @@ def _language_selector(
 ) -> str:
     if not is_safe_frontend_return_path_v1(return_to):
         raise ValueError("return_to must identify one safe rendered HTML path.")
-    options = "".join(
+    buttons = "".join(
         (
-            f'<option value="{locale}"'
-            f"{' selected' if frontend.locale == locale else ''}>"
-            f"{_translated(frontend, f'common.language.{locale}')}</option>"
+            f'<button type="submit" name="language" value="{locale}" lang="{locale}" '
+            f'aria-pressed="{str(frontend.locale == locale).lower()}">'
+            f"{_translated(frontend, f'common.language.{locale}')}</button>"
         )
         for locale in ("de", "en")
     )
     return (
         f'<form class="language-selector" method="post" '
         f'action="{FRONTEND_LANGUAGE_ACTION_ROUTE}" '
-        f'aria-label="{_translated(frontend, "language.selector_label")}">'
-        f"<label><span>{_translated(frontend, 'language.select_label')}</span>"
-        f'<select name="language">{options}</select></label>'
+        f'aria-label="{_translated(frontend, "language.selector_label")}" '
+        f'data-preservation-error="{_translated(frontend, "language.preservation_error")}">'
+        f'<span class="language-label">{_translated(frontend, "language.select_label")}</span>'
+        f'<span class="language-buttons">{buttons}</span>'
         f'<input type="hidden" name="profile_generation" '
         f'value="{frontend.profile_generation}">'
         f'<input type="hidden" name="return_to" value="{escape(return_to, quote=True)}">'
-        f'<button type="submit">{_translated(frontend, "language.apply")}</button>'
+        '<span class="language-error" role="alert" tabindex="-1" hidden></span>'
         "</form>"
     )
 
@@ -603,3 +604,26 @@ def render_authorization_failure_v1(frontend: BrowserSafeFrontendProfileStateV1)
         f"<p>{_translated(frontend, 'authorization.next_step')}</p>\n"
         "</main>\n</body>\n</html>\n"
     )
+
+
+def render_language_context_conflict_v1(
+    state: BrowserSafeApplicationStateV1,
+    frontend: BrowserSafeFrontendProfileStateV1,
+    route: str,
+    *,
+    language_saved: bool = False,
+) -> str:
+    if not is_safe_frontend_return_path_v1(route):
+        raise ValueError("Language conflict navigation must use a safe HTML route.")
+    # A disappeared active item still has an applicable family landing.
+    navigation = next((family for family in ("/sessions", "/matches", "/learning")
+                       if route.startswith(family + "/")), route)
+    message = ("validation.message.language_context_saved_conflict" if language_saved
+               else "validation.message.language_context_conflict")
+    return _shell(state, navigation, title=_text(frontend, "error.conflict.title"),
+        content=(
+            '<section class="error-summary" role="alert" tabindex="-1">'
+            f'<p>{_translated(frontend, message)}</p>'
+            f'<a href="{escape(navigation, quote=True)}">'
+            f'{_translated(frontend, "language.open_task")}</a></section>'),
+        frontend=frontend, return_to=navigation, extra_stylesheets=(), extra_scripts=())

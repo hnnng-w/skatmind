@@ -724,8 +724,14 @@ missing decision snapshots are explained rather than reconstructed. See
 The shared shell, grouped Home, Product-concept and empty-state guidance, About,
 authorization, and common errors now support German and English. Browser
 language is used only when no explicit
-language is saved in the private managed-root profile; the global selector saves
-an explicit preference. Issue #220 adds task-first bilingual active workflows
+language is saved in the private managed-root profile. Select **Deutsch** or
+**English** directly with one native button to save that preference and remain in
+the same task, including after a creation error. Safe submitted values and
+translated feedback survive; the optional local script also preserves supported
+unsent controls and disclosures. Without JavaScript, unsent values in another form
+cannot be recovered. Files and destructive confirmations are never copied, and
+language changes execute no Product action. Stale source contexts receive explicit
+feedback rather than restoration into different work. Issue #220 adds task-first bilingual active workflows
 and completes guided and Result localization. See [Local frontend
 profile and localization](docs/local_frontend_profile_and_localization.md) and
 [Bilingual Home information architecture](docs/bilingual_home_information_architecture.md).

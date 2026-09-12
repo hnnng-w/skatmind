@@ -189,15 +189,39 @@ summaries, file reselection, and successful `303` PRG remain in force. Selected
 canonical Card codes survive rejection even if no longer in the current palette.
 Invalid forms apply no Product operation or profile write.
 
+Issue #223 makes language selection one native Deutsch/English button activation
+with an absolute target and effective-locale pressed state. Semantic origins keep
+creation rejections, selected Match Game/Report, active Session/Learning, Review
+step, Analyze, and About in their rendered task. The safe HTML-route allowlist
+remains unchanged; only known server-owned Result/recording/recovery anchors are
+appended separately. A complete PRG response uses one consistent rendering locale.
+
 Native language switching retains authoritative state, active items, selected
-position, rejected safe values, validation issues, and process-local Results. A
-small packaged enhancement additionally transfers unsubmitted allowlisted control
-values and explicitly opened disclosures during the same language POST. It uses no
-browser storage or background request. Its bounded envelope is validated before
-the preference write, bound to the active item/revision, consumed on the matching
-return GET, and never accepted as Product state. File bytes and confirmations are
-excluded. The existing private `/matches/assets/capture.js` resource Route serves
-this unified enhancement; standalone Capture retains its original asset and behavior.
+position, rejected safe values, structured validation issues, and process-local
+Results. A small packaged enhancement additionally transfers registered unsent
+controls and open/closed disclosures during the same POST. Explicit empty,
+unchecked, repeated, and selected values are retained; validation-required
+disclosures remain open. Without JavaScript, unsent values in another browser form
+cannot be recovered. File selections, passwords, secrets, hidden transport fields,
+and destructive confirmations are never copied. Current validated transport fields,
+including profile generations, are regenerated after saving the language.
+
+The optional envelope is limited to 262,144 UTF-8 bytes, 256 forms, and 1,024
+disclosures plus registered field bounds. Client capture failures prevent navigation
+and explain the problem. Exact rendered-page/source/form bindings are checked before
+preference saving and on restoration, including reopen, complete content identity,
+position movement, Review step, repeated identities, and preview expiry. A source
+change after a successful preference save discards the overlay with honest conflict
+feedback; it does not undo that save. Valid #221 Results/downloads, #222 selections,
+preview lifetime and Apply tokens, and Learning artifacts remain unexecuted and
+unchanged. Genuine Product edits retain their normal invalidation behavior.
+
+No browser storage, persistent drafts, implicit preference save, background request,
+or per-tab Product workspace is added. The existing private
+`/matches/assets/capture.js` resource Route serves **`app_web/assets/workflow.js`**;
+standalone Capture retains its original asset and English behavior. Detailed
+binding, conflict, and actual browser evidence is recorded in
+[Local frontend profile and localization](local_frontend_profile_and_localization.md).
 
 ## Accessibility, security, and packaging
 

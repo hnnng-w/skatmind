@@ -9,52 +9,50 @@ document.addEventListener("submit", (event) => {
     return;
   }
   if (!languageForm.matches("form.language-selector")) return;
-  const forms = [];
-  for (const form of document.querySelectorAll("form[data-preserve-fields]")) {
-    if (form === languageForm) continue;
-    const allowed = new Set(form.dataset.preserveFields.split(" "));
-    const values = {};
-    let changed = false;
-    for (const control of form.elements) {
-      if (!allowed.has(control.name) || control.disabled ||
-          ["hidden", "file", "password", "submit", "button"].includes(control.type)) continue;
-      values[control.name] ??= [];
-      if (["radio", "checkbox"].includes(control.type)) {
-        changed ||= control.checked !== control.defaultChecked;
-      } else if (control.tagName === "SELECT") {
-        const initial = Array.from(control.options).find((option) => option.defaultSelected)
-          ?? control.options[0];
-        changed ||= control.value !== (initial?.value ?? "");
-      } else {
-        changed ||= control.value !== control.defaultValue;
+  try {
+    // The native submitter supplies the only language value. Never toggle, fetch,
+    // submit another form, or consult the failed POST URL for the return route.
+    if (event.submitter?.name !== "language" ||
+        !["de", "en"].includes(event.submitter.value)) throw new Error();
+    const forms = [];
+    for (const form of document.querySelectorAll("form[data-language-form]")) {
+      const allowed = new Set(form.dataset.preserveFields.split(" "));
+      const limits = JSON.parse(form.dataset.preserveLimits);
+      const values = {};
+      for (const control of form.elements) {
+        if (!allowed.has(control.name) || control.disabled ||
+            ["hidden", "file", "password", "submit", "button"].includes(control.type)) continue;
+        values[control.name] ??= [];
+        if (["radio", "checkbox"].includes(control.type) && !control.checked) continue;
+        if (control.tagName === "SELECT" && control.multiple) {
+          values[control.name].push(...Array.from(control.selectedOptions, option => option.value));
+        } else {
+          values[control.name].push(control.value);
+        }
       }
-      if (["radio", "checkbox"].includes(control.type) && !control.checked) continue;
-      values[control.name].push(control.value);
+      for (const [name, entries] of Object.entries(values)) {
+        const [length, count] = limits[name];
+        if (entries.length > count || entries.some(value => Array.from(value).length > length)) {
+          throw new Error();
+        }
+      }
+      forms.push({form: form.dataset.languageForm, values});
     }
-    if (!changed) continue;
-    const discriminator = {};
-    for (const name of ["kind", "operation"]) {
-      const control = form.elements.namedItem(name);
-      if (control) discriminator[name] = control.value;
-    }
-    forms.push({action: new URL(form.action).pathname, discriminator,
-      instance: Number(form.elements.namedItem("_frontend_form_instance")?.value ?? 0), values});
+    const disclosures = Array.from(document.querySelectorAll("details"), details => details.open);
+    const payload = JSON.stringify({forms, disclosures});
+    if (forms.length > 256 || disclosures.length > 1024 ||
+        new TextEncoder().encode(payload).length > 262144) throw new Error();
+    const field = document.createElement("input");
+    field.type = "hidden";
+    field.name = "_frontend_language_values";
+    field.value = payload;
+    languageForm.querySelector('[name="_frontend_language_values"]')?.remove();
+    languageForm.append(field);
+  } catch {
+    event.preventDefault();
+    const message = languageForm.querySelector(".language-error");
+    message.textContent = languageForm.dataset.preservationError;
+    message.hidden = false;
+    message.focus();
   }
-  const opened = Array.from(document.querySelectorAll("details"))
-    .flatMap((details, index) => details.open ? [index] : []);
-  const active = document.querySelector("#session-app, #task-first-match, #task-first-learning");
-  const revision = active?.querySelector('[name="expected_revision"]') ??
-    active?.querySelector('[name="expected_catalog_revision"]') ??
-    document.querySelector('#workflow-form [name="revision"]');
-  const field = document.createElement("input");
-  field.type = "hidden";
-  field.name = "_frontend_language_values";
-  const payload = JSON.stringify({forms, open_disclosures: opened,
-    source_handle: active?.querySelector('[name="managed_handle"]')?.value ?? null,
-    source_revision: revision?.value ?? null});
-  languageForm.querySelector('[name="_frontend_language_values"]')?.remove();
-  if ((!forms.length && !opened.length) || forms.length > 256 ||
-      opened.some((index) => index >= 1024) || new TextEncoder().encode(payload).length > 262144) return;
-  field.value = payload;
-  languageForm.append(field);
 });

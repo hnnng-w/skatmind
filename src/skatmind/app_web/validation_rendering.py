@@ -172,14 +172,16 @@ def _replace_safe_values(block: str, values_state: FormValuesV1) -> str:
             rf'<input\b(?=[^>]*\bname="{field}")[^>]*>',
             re.IGNORECASE,
         )
+        input_index = 0
 
         def replace_input(
             match: re.Match[str],
             retained_values: tuple[str, ...] = values,
         ) -> str:
+            nonlocal input_index
             tag = match.group(0)
             control_type = (_attribute(tag, "type") or "text").lower()
-            if control_type in {"file", "hidden", "submit", "button"}:
+            if control_type in {"file", "password", "hidden", "submit", "button"}:
                 return tag
             if control_type in {"checkbox", "radio"}:
                 submitted = _attribute(tag, "value") or "on"
@@ -188,7 +190,9 @@ def _replace_safe_values(block: str, values_state: FormValuesV1) -> str:
                     "checked",
                     "checked" if submitted in retained_values else None,
                 )
-            return _set_attribute(tag, "value", retained_values[0])
+            value = retained_values[min(input_index, len(retained_values) - 1)]
+            input_index += 1
+            return _set_attribute(tag, "value", value)
 
         block = input_pattern.sub(replace_input, block)
 
@@ -216,6 +220,7 @@ def _replace_safe_values(block: str, values_state: FormValuesV1) -> str:
         ) -> str:
             nonlocal select_index
             options = re.sub(r"\s+selected(?:=\"selected\")?", "", match.group(2))
+            multiple = re.search(r"\bmultiple(?:\s|=|>)", match.group(1)) is not None
             retained_value = retained_values[min(select_index, len(retained_values) - 1)]
             select_index += 1
             selected = escape(retained_value, quote=True)
@@ -224,6 +229,15 @@ def _replace_safe_values(block: str, values_state: FormValuesV1) -> str:
                 re.IGNORECASE,
             )
             options = option_pattern.sub(r"\1 selected\2", options, count=1)
+            if not multiple and retained_value == "" and " selected" not in options:
+                options = '<option value="" selected></option>' + options
+            if multiple:
+                for value in retained_values:
+                    pattern = re.compile(
+                        rf'(<option\b(?=[^>]*\bvalue="{re.escape(escape(value, quote=True))}")'
+                        rf'[^>]*)(>)', re.IGNORECASE)
+                    options = pattern.sub(lambda option: _set_attribute(
+                        option.group(0), "selected", "selected"), options)
             if (field_name in {"card", "cards", "actual_card_played"}
                     and re.fullmatch(r"[CSHD](?:A|10|K|Q|J|9|8|7)", retained_value)
                     and " selected" not in options):
@@ -372,6 +386,8 @@ def apply_validation_feedback_to_html_v1(
         if definition.form_key in {"profile.player_update", "profile.player_remove"}
         else ("decision_selection",)
         if definition.form_key == "session.review_decision"
+        else ("report_id",)
+        if definition.form_key == "match.transfer_report"
         else ("recovery_selection",)
         if definition.form_key.startswith("match.recovery.")
         else ()

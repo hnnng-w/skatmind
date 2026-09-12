@@ -258,7 +258,10 @@ POST /actions/profile/recommended-defaults/reset
 POST /actions/profile/managed-label
 ```
 
-Language uses `language`, `profile_generation`, and `return_to`; reset requires
+Language uses `language`, `profile_generation`, and `return_to`; the rendered
+native form also supplies an optional private `_frontend_language_context` binding.
+The optional script adds `_frontend_language_values`. Existing bare language POSTs
+remain supported. Reset requires
 explicit confirmation. Player and preference operations use the current profile
 generation and opaque Player handles. Managed labels additionally bind one exact
 managed family, handle, and discovery generation. All routes require the app
@@ -301,7 +304,14 @@ Issue #216 provides German and English presentation for:
 * common shell status and action vocabulary.
 
 Every unified page contains the textual `Deutsch` and `English` selector. It is
-a native authenticated POST form and works without JavaScript.
+a native authenticated POST form and works without JavaScript. Issue #223 replaces
+the dropdown/Apply pair with two compact native submit buttons. Each activation
+submits exactly one absolute target (`de` or `en`). Mutually exclusive
+`aria-pressed` values, an underline, contrasting surfaces, and visible keyboard
+focus identify the effective rendered locale. Neither button is disabled merely
+because it is active: a browser-resolved locale can still be saved explicitly.
+The selector uses scoped fixed colors so Capture/Corpus root variables and broad
+button rules cannot invert its active presentation.
 
 Analyze, Review, Results, and active Session, Match, and Learning workflow bodies
 are bilingual through Issue #220. Session, Match, and Learning landings and creation
@@ -318,6 +328,106 @@ Review step, active Session, active Match, active Learning Corpus, Match Reports
 Learning sources/prepared artifacts, discovery state, and the current safe
 route. Issue #218 additionally preserves allowlisted submitted browser values
 and validation feedback across language changes without rerunning Product work.
+
+### Semantic origin and exact presentation binding
+
+Issue #223 fixes a reproduced return-path defect: rejected creation POSTs rendered
+valid creation forms while the shell read the mutation request URL and fell back
+to Home. Page renderers now supply their semantic HTML origin explicitly:
+`/sessions`, `/matches/new`, `/learning`, `/sessions/current`, the selected
+`/matches/position/N` or exact `/matches/reports/ID`, `/learning/current`, `/analyze`,
+`/review`, and `/about`. Registered form origins determine contextual rejection
+rendering. Navigation categories, Referer, action URLs, and client location are not
+universal return targets. A safe origin is retained before optional-envelope
+parsing. The HTML-route allowlist is unchanged. Only server-selected existing
+`session-result`, `match-recording`, and `match-recovery` anchors are appended
+separately; client fragments remain rejected.
+
+`language_context.py` retains at most 32 opaque rendered-page bindings, which expire
+after 30 minutes, and one pending return overlay. Bindings retain exact source references,
+complete immutable content, applicable generations, Review state/step, Match
+position movement, selected recovery preview, Report, related transfer target,
+and relevant retained feedback. Reopening an identical item and changing away from
+and back to a Match position invalidate old bindings. Report/source/prepared-state
+changes are also checked. No independent per-tab Product workspace is introduced.
+
+The existing locks protect snapshots; Product locks are never acquired while
+holding the app or profile lock. Before a language save and on its return, strict
+read-only source-file checks detect external changes without replacing active
+state. Applicability is checked again after the separate profile save and before
+rendering an overlay. Pre-save conflicts change neither preference nor Product;
+post-save conflicts retain the valid saved language and discard inapplicable
+presentation values, with distinct localized feedback and applicable navigation.
+There is no profile-and-Product transaction, rollback, retry, or automatic repair.
+
+`language_form_preservation.py` derives form identities from the registered action,
+stable server-rendered hidden identities, and the exact page manifest. An ordinal
+only distinguishes otherwise identical forms within that bound source page.
+Restoration rechecks the complete manifest, including the actual selectable
+identities. A client cannot restore an unqualified field/ordinal into another
+Player, Game, Report, Review step, or form. Transport fields are regenerated from
+the validated current state, including the profile generation after saving a
+language. Genuine stale Product protection remains in force.
+
+| State | Language-switch behavior |
+| --- | --- |
+| Accepted Product data, workflow drafts, Results and artifacts | Retained with or without JavaScript; no Product action executes |
+| Already submitted safe rejected values and structured issues | Retained with or without JavaScript; issues translated at render time |
+| Supported unsent browser controls and disclosure states | Optional JavaScript transfers presentation values in the native language POST |
+| Files, passwords, hidden transport, secrets, destructive confirmations | Never copied/restored through the envelope; files require reselection and confirmations must be explicit again |
+
+The enhancement preserves empty values, repeated Cards, selected choices, and
+checked/unchecked states, distinguishing omission from explicit clearing. It
+preserves open and closed disclosures while forcing validation-required
+disclosures open. It sends at most 256 forms and 1,024 disclosure booleans, with
+registered per-field length/cardinality/choice limits and a maximum **262,144
+UTF-8 bytes** for the envelope. Duplicate JSON keys, malformed structure, foreign
+form identities, unsafe choices, and unknown fields are rejected. If browser
+capture exceeds its bounds, the script prevents navigation and shows a localized
+explanation; it does not truncate or silently drop the draft. The enhancement
+honors the actual submitter and never fetches or submits a second request.
+
+Without JavaScript, the server cannot recover unsent values in another browser
+form. Such values are not server-held drafts. Neither mode creates persistent
+drafts, browser storage, background autosave, or implicitly saved settings.
+Every successful change uses full-page PRG with one request-local rendering
+locale for header, body, feedback, selector, and HTML `lang`.
+
+Valid #221 source-labelled Results/downloads and #222 previews retain their exact
+bytes, selections, and lifetime. Language changes neither execute review nor
+prepare, renew, consume, or confirm an Apply selection. Normal edit, reopen,
+expiry, and source-change invalidation remain authoritative.
+
+### Focused browser evidence
+
+On September 12, synthetic headless Microsoft Edge **152.0.4191.66**, driven with
+the standard-library DevTools Protocol harness, exercised Learning English → German
+→ English, creation-error switching, and Match recovery. The normal opened
+Learning sequence on baseline `80c1d1e` did **not** reproduce the reported inversion;
+its original cause remains unestablished. No locale strings were swapped.
+
+Final native-click checks used **1365×900** and **390×844**, JavaScript enabled and
+disabled, long synthetic names, actual loaded Capture/Corpus CSS, and keyboard
+Enter. Each language activation sent one POST with the named target; URL, HTML
+language, pressed state, translated feedback/body, and saved preference agreed.
+Enhanced unsent input/disclosure and empty required-field checks passed; oversized
+draft capture stayed on the page with no POST. Real Corpus prepared state and
+Match bytes/preview identity remained unchanged.
+
+Sanitized evidence is outside the repository at
+`<temporary-directory>/opencode/language-223-baseline/` and
+`<temporary-directory>/opencode/language-223-final/`. Each has `evidence.json`;
+the final directory includes `learning-*`, `learning-error-*`, `creation-error-*`,
+`creation-feedback-*`, `recovery-selector-*`, and `recovery-context-*` PNGs for
+the viewport/script combinations. The temporary `language_browser.py` and
+`language_final_browser.py` harnesses use no added dependency.
+
+The selector and its focus/active states fit both widths. These inspections also
+exposed out-of-scope visual limitations: light Learning text on light workflow
+panels, and German Match transfer/settings controls extending page width to about
+503 pixels at the narrow viewport. The selector and recovery preview remain within
+their usable column. This is bounded implementation evidence, **not** a passed
+whole-page visual audit or maintainer UAT. Those broader findings remain open.
 
 The implementation preserves loopback-only binding, bootstrap token and app
 cookie, exact Host and Origin validation, `Referrer-Policy: origin`, CSP,

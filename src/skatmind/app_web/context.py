@@ -10,11 +10,11 @@ from .frontend_profile_state import (
     FrontendProfileStateV1,
     build_frontend_profile_state_v1,
 )
+from .language_context import LanguageContextV1
 from .state import build_browser_safe_application_state_v1
 from .workflow_state import ProcessLocalFrontendWorkflowStateV1
 
 if TYPE_CHECKING:
-    from .language_form_preservation import LanguagePageValuesV1
     from .stateful_context import ManagedStatefulContextV1
 
 
@@ -42,7 +42,7 @@ class AppWebContextV1:
     profile_lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
     profile_redirect_return_to: str | None = field(default=None, repr=False)
     stateful_creation_notices: dict[str, str] = field(default_factory=dict, repr=False)
-    language_page_values: LanguagePageValuesV1 | None = field(default=None, repr=False)
+    language_context: LanguageContextV1 = field(default_factory=LanguageContextV1, repr=False)
 
     def __post_init__(self) -> None:
         from .stateful_context import ManagedStatefulContextV1

@@ -92,8 +92,16 @@ from .guided_contracts import (
     REVIEW_UPDATE_PLAYERS_ACTION_ROUTE_PATH,
 )
 from .json_transfer import FRONTEND_JSON_MAX_FILE_BYTES, parse_frontend_json_import_v1
+from .language_context import (
+    LanguageContextConflict,
+    capture_language_source_v1,
+    language_return_location_v1,
+    validate_language_page_v1,
+    validate_language_source_v1,
+)
 from .language_form_preservation import (
     apply_language_page_values_v1,
+    instrument_language_forms_v1,
     parse_language_page_values_v1,
 )
 from .learning_frontend import (
@@ -162,6 +170,7 @@ from .rendering import (
     render_app_error_page_v1,
     render_app_page_v1,
     render_authorization_failure_v1,
+    render_language_context_conflict_v1,
 )
 from .security import (
     APP_WEB_BIND_HOST,
@@ -495,17 +504,29 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         content_type: str = "text/plain; charset=utf-8",
         extra_headers: tuple[tuple[str, str], ...] = (),
     ) -> None:
-        if (self.command == "GET" and status == HTTPStatus.OK
-                and content_type == "text/html; charset=utf-8"):
+        source = getattr(self, "_rendered_language_source", None)
+        if content_type == "text/html; charset=utf-8" and source is not None:
+            content, manifest = instrument_language_forms_v1(content)
+            pending = getattr(self, "_language_return", None)
+            try:
+                validate_language_source_v1(self.server.app_context, source)
+                if pending is not None:
+                    page, overlay = pending
+                    validate_language_page_v1(self.server.app_context, page)
+                    if overlay is not None:
+                        if manifest != page.manifest:
+                            raise LanguageContextConflict
+                        content = apply_language_page_values_v1(content, overlay)
+            except LanguageContextConflict:
+                self._rendered_language_source = None
+                self._language_conflict_page(source.route)
+                return
             with self.server.app_context.lock:
-                retained = self.server.app_context.language_page_values
-                if retained is not None and retained.route == self._safe_current_return_path():
-                    self.server.app_context.language_page_values = None
-                else:
-                    retained = None
-            if retained is not None:
-                self._validate_language_binding(retained)
-                content = apply_language_page_values_v1(content, retained)
+                token = self.server.app_context.language_context.retain(source, manifest)
+            content = content.replace(
+                '<span class="language-buttons">',
+                f'<input type="hidden" name="_frontend_language_context" value="{token}">'
+                '<span class="language-buttons">', 1)
         self._send_bytes(
             status,
             content.encode("utf-8"),
@@ -534,6 +555,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         )
 
     def _frontend_state(self):
+        cached = getattr(self, "_request_frontend", None)
+        if cached is not None:
+            return cached
         request_headers = getattr(self, "headers", None)
         accept_language_values: list[str] = []
         if isinstance(request_headers, Message):
@@ -549,10 +573,11 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         accept_language = accept_language_values[0] if len(accept_language_values) == 1 else None
         with self.server.app_context.lock:
             profile_state = self.server.app_context.frontend_profile
-        return project_browser_safe_frontend_profile_state_v1(
+        self._request_frontend = project_browser_safe_frontend_profile_state_v1(
             profile_state,
             accept_language=accept_language,
         )
+        return self._request_frontend
 
     def _safe_current_return_path(self) -> str:
         raw_path = getattr(self, "path", None)
@@ -638,6 +663,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             self.rfile.read(length)
 
     def _page(self, route: str, *, status: int = HTTPStatus.OK) -> None:
+        self._rendered_language_source = capture_language_source_v1(self.server.app_context, route)
         storage_root = self.server.app_context.managed_home.root if route == "/about" else None
         with self.server.app_context.lock:
             frontend = self._frontend_state()
@@ -651,7 +677,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 profile=(
                     self.server.app_context.frontend_profile.document if route == "/about" else None
                 ),
-                return_to=self._safe_current_return_path(),
+                return_to=route,
             )
             rendered = self._apply_retained_feedback(
                 rendered,
@@ -776,6 +802,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         *,
         title: str,
         content: str,
+        return_to: str,
         status: int = HTTPStatus.OK,
         extra_stylesheets: tuple[str, ...] = (),
         extra_scripts: tuple[str, ...] = (),
@@ -796,7 +823,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             title_key=title_key,
             content=content,
             frontend=frontend,
-            return_to=self._safe_current_return_path(),
+            return_to=return_to,
             empty_state_key=empty_state_key,
             extra_stylesheets=extra_stylesheets,
             extra_scripts=extra_scripts,
@@ -821,6 +848,17 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self._send_text(
             status,
             rendered,
+            content_type="text/html; charset=utf-8",
+        )
+
+    def _language_conflict_page(self, route: str) -> None:
+        self._rendered_language_source = None
+        self._send_text(
+            HTTPStatus.CONFLICT,
+            render_language_context_conflict_v1(
+                self.server.app_context.browser_state, self._frontend_state(), route,
+                language_saved=(getattr(self, "_language_profile_saved", False)
+                                or getattr(self, "_language_return", None) is not None)),
             content_type="text/html; charset=utf-8",
         )
 
@@ -1103,6 +1141,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if media_type == "application/x-www-form-urlencoded":
             parsed = self._urlencoded_form(body, content_type)
             flattened = {name: values[0] for name, values in parsed.items() if len(values) == 1}
+            if (path == FRONTEND_LANGUAGE_ACTION_ROUTE
+                    and is_safe_frontend_return_path_v1(flattened.get("return_to"))):
+                self._profile_action_return_to = flattened["return_to"]
             definition = resolve_frontend_form_v1(
                 path,
                 flattened,
@@ -1218,20 +1259,29 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             return
         position_match = _MATCH_POSITION_PATTERN.fullmatch(page)
         if position_match is not None:
-            active = self._active_match()
+            try:
+                active = self._active_match()
+            except KeyError:
+                self._managed_category_page("matches", status=status)
+                return
             self._match_page(
                 active,
-                position=int(position_match.group(1)),
+                position=active.selected_position,
                 status=status,
             )
             return
         report_match = _MATCH_REPORT_PATTERN.fullmatch(page)
         if report_match is not None:
-            active = self._active_match()
+            try:
+                active = self._active_match()
+            except KeyError:
+                self._language_conflict_page(page)
+                return
             report_id = report_match.group(1)
             report_status, report = get_unified_match_report_v1(active, report_id)
-            if report_status == "missing" or report is None:
-                raise KeyError("Match Report is unavailable.")
+            if report_status != "found" or report is None:
+                self._language_conflict_page(page)
+                return
             self._match_page(
                 active,
                 position=report.match_position or 1,
@@ -1259,6 +1309,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             return False
         if definition.form_key == "session.review_decision" and issues is None:
             issues = (recorded_review_feedback_v1(error, status=status),)
+        if isinstance(error, LanguageContextConflict):
+            message = ("validation.message.language_context_saved_conflict"
+                       if getattr(self, "_language_profile_saved", False)
+                       else "validation.message.language_context_conflict")
+            issues = (FrontendValidationIssueV1(
+                field_key=None, message_key=message),)
         if issues is None:
             if status in {
                 HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
@@ -1313,40 +1369,27 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             parsed.append(KnownPlayerPlatformIdV1(platform.strip(), player_id.strip()))
         return tuple(parsed)
 
-    def _validate_language_binding(self, values) -> None:
-        route = values.route
-        with self.server.app_context.lock:
-            context = self.server.app_context
-            if route == "/sessions/current":
-                active = context.managed_stateful.active_session
-                revision = None if active is None else active.state.revision
-            elif (route.startswith(("/matches/position/", "/matches/reports/"))
-                  or route == "/matches/current"):
-                active = context.managed_stateful.active_match
-                revision = None if active is None else active.workspace.revision
-            elif route == "/learning/current":
-                active = context.managed_stateful.active_learning
-                revision = None if active is None else active.corpus.store.document.catalog.revision
-            else:
-                active = None
-                revision = (context.analyze_state.revision if route == "/analyze" else
-                            context.review_state.revision if route == "/review" else None)
-            expected_handle = None if active is None else active.handle
-            if values.source_handle != expected_handle:
-                raise StaleFrontendWorkflowRevisionError
-            if values.source_revision is not None and values.source_revision != str(revision):
-                raise StaleFrontendWorkflowRevisionError
-
     def _profile_operation(self, path: str, body: bytes, content_type: str) -> None:
         values = self._text_form(body, content_type)
         language_values = None
-        if path == FRONTEND_LANGUAGE_ACTION_ROUTE and "_frontend_language_values" in values:
-            language_values = parse_language_page_values_v1(
-                values.pop("_frontend_language_values"), route=values.get("return_to", ""))
-            self._validate_language_binding(language_values)
+        language_page = None
         if path == FRONTEND_LANGUAGE_ACTION_ROUTE:
             fields = {"language", "profile_generation", "return_to"}
             return_to = values.get("return_to", "")
+            if not is_safe_frontend_return_path_v1(return_to):
+                raise ValueError("return_to must identify one safe rendered HTML path.")
+            self._profile_action_return_to = return_to
+            token = values.pop("_frontend_language_context", None)
+            if token is not None:
+                with self.server.app_context.lock:
+                    language_page = self.server.app_context.language_context.resolve(
+                        token, return_to)
+                validate_language_page_v1(self.server.app_context, language_page)
+            if "_frontend_language_values" in values:
+                if language_page is None:
+                    raise ValueError("Presentation values require their rendered page binding.")
+                language_values = parse_language_page_values_v1(
+                    values.pop("_frontend_language_values"), manifest=language_page.manifest)
         elif path == FRONTEND_PROFILE_RESET_ACTION_ROUTE:
             fields = {"confirm_reset", "profile_generation", "return_to"}
             return_to = values.get("return_to", "")
@@ -1400,13 +1443,20 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         generation = self._profile_generation_value(values)
 
         if path == FRONTEND_LANGUAGE_ACTION_ROUTE:
+            source = (capture_language_source_v1(self.server.app_context, return_to)
+                      if language_page is None else language_page.source)
+            validate_language_source_v1(self.server.app_context, source, check_files=True)
             set_frontend_language_v1(
                 self.server.app_context,
                 language=values["language"],
                 expected_generation=generation,
             )
+            self._request_frontend = None
+            self._language_profile_saved = True
+            validate_language_source_v1(self.server.app_context, source)
             with self.server.app_context.lock:
-                self.server.app_context.language_page_values = language_values
+                self.server.app_context.language_context.pending = (
+                    None if language_page is None else (language_page, language_values))
         elif path == FRONTEND_PROFILE_RESET_ACTION_ROUTE:
             if values["confirm_reset"] != "on":
                 raise ValueError("Profile reset requires explicit confirmation.")
@@ -1532,15 +1582,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             raise RuntimeError("Profile action route dispatch is incomplete.")
         with self.server.app_context.profile_lock:
             self.server.app_context.profile_redirect_return_to = return_to
-        if path == FRONTEND_LANGUAGE_ACTION_ROUTE and _MATCH_POSITION_PATTERN.fullmatch(return_to):
-            with self.server.app_context.lock:
-                active = self.server.app_context.managed_stateful.active_match
-            if active is not None and return_to == f"/matches/position/{active.selected_position}":
-                fragment = ("match-recovery" if active.recovery.selected is not None
-                            else "match-recording")
-                self._redirect(return_to + "#" + fragment)
-                return
-        self._redirect(return_to)
+        self._redirect(language_return_location_v1(self.server.app_context, return_to)
+                       if path == FRONTEND_LANGUAGE_ACTION_ROUTE else return_to)
 
     def _download(self, path: str) -> None:
         with self.server.app_context.lock:
@@ -1683,6 +1726,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 discovery = self.server.app_context.managed_stateful.discoveries.get(family)
         if discovery is None:
             discovery = self._refresh_category(family)
+        self._rendered_language_source = capture_language_source_v1(self.server.app_context, route)
         title = {
             "sessions": "Sessions",
             "matches": "Match capture",
@@ -1692,6 +1736,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             profile_state = self.server.app_context.frontend_profile
         self._content_page(
             route,
+            return_to=route,
             title=title,
             content=render_managed_category_landing_v1(
                 discovery.view,
@@ -1734,8 +1779,11 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         with self.server.app_context.lock:
             profile = self.server.app_context.frontend_profile.document
         locale = self._frontend_state().locale
+        self._rendered_language_source = capture_language_source_v1(
+            self.server.app_context, "/sessions/current")
         self._content_page(
             "/sessions",
+            return_to="/sessions/current",
             title=managed_name(locale, profile, "sessions", active.state.session_id),
             content=notice
             + render_task_first_session_v1(
@@ -1764,7 +1812,15 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
     ) -> None:
         self._match_page_return = position if report_id is None else None
         with active.capture.lock:
+            if active.selected_position != position:
+                with self.server.app_context.lock:
+                    self.server.app_context.form_feedback.clear("matches")
             select_unified_match_position_v1(active, position)
+        return_to = (f"/matches/position/{position}" if report_id is None
+                     else f"/matches/reports/{report_id}")
+        self._rendered_language_source = capture_language_source_v1(
+            self.server.app_context, return_to)
+        with active.capture.lock:
             view = project_task_first_match_v1(active.workspace, selected_position=position)
             state = build_task_first_match_page_state_v1(active, view, report_id=report_id)
             result = active.last_result
@@ -1826,6 +1882,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             )
         self._content_page(
             "/matches",
+            return_to=return_to,
             title=title,
             content=body,
             status=status,
@@ -1837,6 +1894,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         )
 
     def _match_creation_page(self, *, status: int = HTTPStatus.OK) -> None:
+        self._rendered_language_source = capture_language_source_v1(
+            self.server.app_context, "/matches/new")
         with self.server.app_context.lock:
             profile_state = self.server.app_context.frontend_profile
         frontend = self._frontend_state()
@@ -1847,6 +1906,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         )
         self._content_page(
             "/matches",
+            return_to="/matches/new",
             title="Create a managed Match",
             content=body,
             status=status,
@@ -1861,6 +1921,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         error_notice: str | None = None,
     ) -> None:
         active = self._active_learning()
+        self._rendered_language_source = capture_language_source_v1(
+            self.server.app_context, "/learning/current")
         state = build_unified_learning_state_v1(active)
         result = active.last_result
         notice = error_notice or (None if result is None else result.message)
@@ -1907,6 +1969,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             )
         self._content_page(
             "/learning",
+            return_to="/learning/current",
             title=managed_name(locale, profile, "corpora", state["corpus"]["corpus_id"]),
             content=body,
             status=status,
@@ -2039,6 +2102,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             if return_to == path:
                 self.server.app_context.profile_redirect_return_to = None
                 self._profile_return_without_refresh = True
+        with self.server.app_context.lock:
+            pending = self.server.app_context.language_context.pending
+            if pending is not None and pending[0].source.route == path:
+                self.server.app_context.language_context.pending = None
+                self._language_return = pending
+        if getattr(self, "_language_return", None) is not None:
+            validate_language_page_v1(
+                self.server.app_context, self._language_return[0], check_files=True)
 
     def _open_managed_item(self, family: str, values: dict[str, str]) -> None:
         self._exact_fields(values, {"handle", "generation"})
@@ -2658,6 +2729,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             raise RuntimeError("Stateful POST route dispatch is incomplete.")
 
     def do_GET(self) -> None:
+        self._request_frontend = None
+        self._rendered_language_source = None
+        self._language_return = None
+        self._language_profile_saved = False
         try:
             try:
                 parsed = urlsplit(self.path)
@@ -2702,6 +2777,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 self._error_page(HTTPStatus.NOT_FOUND, "Page not found", "Not found.")
                 return
             self._page(parsed.path)
+        except LanguageContextConflict:
+            self._language_conflict_page(parsed.path)
         except KeyError:
             self._error_page(HTTPStatus.NOT_FOUND, "Artifact unavailable", "Not found.")
         except LearningCorpusPreparedDownloadUnavailableError as error:
@@ -2727,6 +2804,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             self._send_common_error(HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def do_POST(self) -> None:
+        self._request_frontend = None
+        self._rendered_language_source = None
+        self._language_return = None
+        self._language_profile_saved = False
         try:
             try:
                 parsed = urlsplit(self.path)

@@ -2413,6 +2413,17 @@ typed trace diagnostics, derived partial-record warnings, linked accepted Trick
 history, retained-suffix single-Card previews, explicit rewind effects, and exact
 source/CAS Apply. Synthetic late-completion coverage does not reproduce the
 unavailable original maintainer trace. UAT findings remain open.
+Issue #223 implements direct native Deutsch/English selection, semantic error-page
+return routes, regenerated transport fields, and bounded exact-source/form draft
+restoration. Real returned-form tests recover from duplicate-Player creation
+errors; real #221/#222 and Learning artifact tests retain source-bound state without
+execution. The baseline normal Learning sequence did not reproduce inversion.
+Edge 152.0.4191.66 native-click checks covered both languages at desktop/narrow
+sizes with JavaScript enabled/disabled. Learning panel contrast and narrow German
+Match transfer/settings overflow remain separate visual limitations. See
+[Local frontend profile and localization](local_frontend_profile_and_localization.md)
+for preservation limits, conflict semantics, and sanitized temporary evidence.
+This is implementation evidence, not maintainer UAT acceptance.
 Both required jobs, `check` and `v1-supported-platform-matrix`, must pass on the
 exact merged commit. A future focused retest can open a recorded Game, review an
 earlier own decision after 30 Plays, recognize its comparison and source, then

@@ -194,9 +194,34 @@ documented in [Profile-driven stateful creation](profile_driven_stateful_creatio
 Issue #220 implements task-first active layouts, nested-disclosure error opening,
 and complete workflow translation through this same registry.
 
-Its optional packaged language enhancement preserves allowlisted unsubmitted
-controls and explicit disclosure state in a bounded, active-item/revision-bound,
-one-return presentation envelope. The language POST writes only the explicit
-preference; it accepts no Product facts. Native operations and validation remain
-usable without JavaScript. See [Task-first bilingual stateful
-workflows](task_first_bilingual_stateful_workflows.md).
+Issue #223 replaces the shell dropdown/Apply pair with native absolute-target
+Deutsch/English buttons. Known rejected creation pages now emit their semantic
+HTML origins rather than Home. A validated return origin is captured before
+optional presentation parsing, so a malformed language envelope does not erase
+the affected task or its unrelated Product feedback. Rejected language choices
+never become the active-language indicator.
+
+Its optional packaged enhancement transfers only registered visible controls.
+The 262,144-byte UTF-8 envelope has at most 256 exact form identities and 1,024
+disclosure states. Empty/false/repeated values remain distinct from omission;
+validation-required disclosures stay open. Files, passwords, hidden transport,
+secrets, and destructive confirmations are excluded. Client bound failures prevent
+navigation with localized feedback rather than dropping the draft.
+
+Restoration is bound to an opaque rendered page, exact immutable source/context,
+relevant generations, selected Game/Report or Review step, and stable repeated-form
+identity. It is checked before preference saving and again before restoration.
+Transport fields are regenerated, including fresh profile generations, without
+accepting stale Product revisions. Pre-save conflicts make no change; a source
+conflict after a valid preference save retains that language and drops the overlay.
+The messages distinguish these outcomes. No source is automatically reopened.
+The existing Report-transfer definition additionally retains its bounded opaque
+Report ID only for exact feedback targeting. Match position navigation clears
+the previous Game's rejected form feedback instead of applying it to the new Game.
+
+Native switching retains accepted state and already submitted safe rejection
+state without JavaScript. Unsent browser-only input in another form requires the
+enhancement and cannot be recovered by a JavaScript-disabled server. Neither mode
+accepts Product facts, persists drafts, or implicitly saves entered settings.
+See the [exact language/profile boundary and browser evidence](local_frontend_profile_and_localization.md#semantic-origin-and-exact-presentation-binding)
+and [Task-first bilingual stateful workflows](task_first_bilingual_stateful_workflows.md).

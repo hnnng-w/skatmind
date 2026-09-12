@@ -230,7 +230,7 @@ def test_http_validation_language_security_and_retained_source(localized_server,
     # The rejected source selection and feedback stay in this Session with native language POST.
     language = Forms(html).find("/actions/profile/language")
     status, headers, _ = browser.submit(language, language="de")
-    assert status == 303 and headers["location"] == "/sessions/current"
+    assert status == 303 and headers["location"] == "/sessions/current#session-result"
     german = browser.page()
     assert text("de", "recorded_review.title") in german
     assert text("de", "validation.recorded_review.invalid_fields") in german

@@ -264,7 +264,7 @@ def _field(
             0
             if control == "file"
             else 64
-            if name in {"decision_selection", "recovery_selection"}
+            if name in {"decision_selection", "recovery_selection", "report_id"}
             else 4
             if control == "card"
             else 8192
@@ -1044,7 +1044,7 @@ _FORMS: list[FrontendFormDefinitionV1] = [
     _definition(
         "match.transfer_report",
         "/matches/transfer-report",
-        ("match_snapshot_id",),
+        ("match_snapshot_id", "report_id"),
         page="/matches/current",
         active="matches",
         success="contextual",

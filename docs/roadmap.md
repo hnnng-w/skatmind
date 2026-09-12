@@ -1583,6 +1583,14 @@ Issue #222 implements [Match recording error recovery](match_recording_error_rec
 with evidence-supported diagnostics and warnings, linked Trick history, explicit
 one-Card correction or rewind previews, and source-bound atomic Apply. The original
 maintainer trace remains unverified; synthetic regressions cover late replay.
+Issue #223 adds direct native language selection and semantic rendered-task return,
+including creation errors, with exact bounded source/form preservation and explicit
+pre-save/post-save conflict handling. #221 Results, #222 preview lifetime, and
+Learning artifacts remain regression boundaries. The reported baseline Learning
+inversion was not reproduced in the normal opened-collection sequence. Synthetic
+Edge desktop/narrow checks exercised native clicks with JavaScript on/off; broader
+Learning contrast and Match transfer/settings overflow remain unresolved visual
+findings. See [Local frontend profile and localization](local_frontend_profile_and_localization.md).
 Exact merged-commit `check` and `v1-supported-platform-matrix` remain required,
 with future focused Session and Match affected-path retests. The September 11 repeated
 UAT failure and unresolved findings remain open; the technical ledger remains closed.
