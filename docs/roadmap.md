@@ -1588,9 +1588,14 @@ including creation errors, with exact bounded source/form preservation and expli
 pre-save/post-save conflict handling. #221 Results, #222 preview lifetime, and
 Learning artifacts remain regression boundaries. The reported baseline Learning
 inversion was not reproduced in the normal opened-collection sequence. Synthetic
-Edge desktop/narrow checks exercised native clicks with JavaScript on/off; broader
-Learning contrast and Match transfer/settings overflow remain unresolved visual
-findings. See [Local frontend profile and localization](local_frontend_profile_and_localization.md).
+Edge desktop/narrow checks exercised native clicks with JavaScript on/off and
+recorded separate Learning contrast and Match transfer/settings overflow findings.
+See [Local frontend profile and localization](local_frontend_profile_and_localization.md).
+Issue #224 subsequently reproduces and technically remediates that scoped visual
+boundary with app-owned light presentation, explicit 36-entry tiles and responsive
+expanded controls. Its [visual contract](unified_workflow_visual_contract.md) records
+before/after measurements, installed-Wheel browser evidence, native operations and
+the optional repeatable check. It adds no Product operation or UAT acceptance.
 Exact merged-commit `check` and `v1-supported-platform-matrix` remain required,
 with future focused Session and Match affected-path retests. The September 11 repeated
 UAT failure and unresolved findings remain open; the technical ledger remains closed.

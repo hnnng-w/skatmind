@@ -407,6 +407,7 @@ def _shell(
         "{{NAVIGATION}}": _navigation(state, route, frontend),
         "{{LANGUAGE_SELECTOR}}": _language_selector(frontend, return_to),
         "{{HEADING}}": escape(title),
+        "{{WORKFLOW}}": escape(route.removeprefix("/"), quote=True),
         "{{PROFILE_WARNING}}": warning,
         "{{CONTENT}}": content,
         "{{FOOTER}}": _translated(frontend, "footer.local_no_cloud"),

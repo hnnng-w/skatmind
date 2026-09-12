@@ -143,6 +143,14 @@ native correction/rewind previews beside normal Card entry. Source-bound Apply
 reuses authoritative Game construction and Workspace CAS persistence. See
 [Match recording error recovery](match_recording_error_recovery.md).
 
+Issue #224 gives unified Match/Learning presentation one app-owned stylesheet.
+Explicit tile title/status/marker/participant children replace the standalone
+two-column class collision, while all 36 links and twelve rounds remain unchanged.
+Expanded forms, transfer/settings, recovery and Reports use shrinkable scoped
+components; only the captioned candidate table has a labelled keyboard-scroll
+region. See [Unified workflow visual contract](unified_workflow_visual_contract.md)
+for measured contrast/reflow and repeatable installed-browser evidence.
+
 ## Explicit transfer and Learning
 
 Transfer displays friendly source-Match and target-collection labels and whether
@@ -174,6 +182,11 @@ remediation remain Advanced. Uploads always require file reselection when needed
 Prepared summaries and all ten exact authenticated downloads retain existing
 filenames, Routes, JSON, lineage, and invalidation behavior. Viewing or downloading
 does not rebuild artifacts.
+
+The #224 light surface/foreground pairs cover empty, selected, blocked, prepared,
+error and Advanced states. Standalone Corpus CSS no longer overrides the unified
+theme. This technically remediates the earlier #223 visual observations without
+changing Learning prerequisites, operations or the failed maintainer UAT result.
 
 ## Localization, validation, and language changes
 

@@ -44,7 +44,7 @@ def test_match_empty_render_has_named_36_positions_and_explicit_choices(locale):
     state = build_match_capture_web_state_v1(workspace, workspace_filename="managed-match.json")
     view = project_task_first_match_v1(workspace, selected_position=1)
     html = render_task_first_match_v1(state, view, managed_handle="b" * 64, locale=locale)
-    assert html.count('class="position-card') == 36
+    assert html.count('class="match-tile ') + html.count('class="match-tile"') == 36
     assert t(locale, "task.match.action.start_game") in html
     assert t(locale, "task.match.action.mark_passed_deal") in html
     assert '<script' not in html

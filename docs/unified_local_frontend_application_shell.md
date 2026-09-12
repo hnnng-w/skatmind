@@ -122,8 +122,12 @@ The exact route and navigation order is:
 | `/learning` | Learn across Matches | Managed Corpus lifecycle and workflow |
 | `/about` | About SkatMind | Complete shell page |
 
-`/assets/app.css` remains the shell asset. Existing Capture and Corpus CSS/JS are
-also served from authenticated namespaced Package routes. Authenticated private
+`/assets/app.css` is the single unified theme owner. Issue #224 removes standalone
+Capture/Corpus stylesheet links from unified HTML and scopes their needed workflow
+components within the app. Existing Capture and Corpus resource URLs remain served
+from authenticated namespaced Package routes. See the
+[unified workflow visual contract](unified_workflow_visual_contract.md).
+Authenticated private
 action and download routes for Analyze and Review are documented in
 [Guided analysis and Results](unified_local_frontend_guided_analysis_and_results.md).
 Unknown routes return `404`; unsupported methods on known routes return `405`.

@@ -62,7 +62,7 @@ def test_match_progression_reuses_exact_evidence_and_never_materializes_on_rende
     assert t(locale, "task.match.scope.bounded_observation_candidates") in html
     assert 'value="set_response_link"' in html
     assert 'value="truncate_plays"' in html
-    assert html.count('class="position-card') == 36
+    assert html.count('class="match-tile ') + html.count('class="match-tile"') == 36
     assert tuple(position.round_number for position in view.positions) == tuple(
         number for number in range(1, 13) for _ in range(3))
 

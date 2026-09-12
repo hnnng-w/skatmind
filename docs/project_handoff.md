@@ -2419,11 +2419,19 @@ restoration. Real returned-form tests recover from duplicate-Player creation
 errors; real #221/#222 and Learning artifact tests retain source-bound state without
 execution. The baseline normal Learning sequence did not reproduce inversion.
 Edge 152.0.4191.66 native-click checks covered both languages at desktop/narrow
-sizes with JavaScript enabled/disabled. Learning panel contrast and narrow German
-Match transfer/settings overflow remain separate visual limitations. See
+sizes with JavaScript enabled/disabled. Its Learning panel contrast and narrow German
+Match transfer/settings observations are preserved as historical visual evidence. See
 [Local frontend profile and localization](local_frontend_profile_and_localization.md)
 for preservation limits, conflict semantics, and sanitized temporary evidence.
 This is implementation evidence, not maintainer UAT acceptance.
+Issue #224 implements [Unified workflow visual contract](unified_workflow_visual_contract.md):
+one app-owned theme, explicit 36-entry tile structure, shrinkable expanded forms,
+light Learning states and a labelled keyboard-scroll Report table. Baseline Learning
+panel contrast was 1.14:1 and is now 15.93:1; the German 390-pixel Match page changed
+from 503 to 375 document pixels. A real installed-Wheel Edge run covers 280 page
+measurements, native recovery/continuation, explicit Learning preparation/downloads
+and source-safe language changes. The optional repeatable script is separate from
+the full check. Standalone styling and Product contracts remain unchanged.
 Both required jobs, `check` and `v1-supported-platform-matrix`, must pass on the
 exact merged commit. A future focused retest can open a recorded Game, review an
 earlier own decision after 30 Plays, recognize its comparison and source, then

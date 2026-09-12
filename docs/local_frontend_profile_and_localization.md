@@ -310,8 +310,9 @@ submits exactly one absolute target (`de` or `en`). Mutually exclusive
 `aria-pressed` values, an underline, contrasting surfaces, and visible keyboard
 focus identify the effective rendered locale. Neither button is disabled merely
 because it is active: a browser-resolved locale can still be saved explicitly.
-The selector uses scoped fixed colors so Capture/Corpus root variables and broad
-button rules cannot invert its active presentation.
+The selector uses scoped fixed colors. Issue #224 also removes standalone
+Capture/Corpus stylesheet links from unified HTML, eliminating those root and
+global-button overrides rather than relying on the selector's cascade protection.
 
 Analyze, Review, Results, and active Session, Match, and Learning workflow bodies
 are bilingual through Issue #220. Session, Match, and Learning landings and creation
@@ -422,12 +423,15 @@ the final directory includes `learning-*`, `learning-error-*`, `creation-error-*
 the viewport/script combinations. The temporary `language_browser.py` and
 `language_final_browser.py` harnesses use no added dependency.
 
-The selector and its focus/active states fit both widths. These inspections also
-exposed out-of-scope visual limitations: light Learning text on light workflow
+The selector and its focus/active states fit both widths. Those #223 inspections
+also exposed visual limitations outside that issue: light Learning text on light workflow
 panels, and German Match transfer/settings controls extending page width to about
 503 pixels at the narrow viewport. The selector and recovery preview remain within
 their usable column. This is bounded implementation evidence, **not** a passed
-whole-page visual audit or maintainer UAT. Those broader findings remain open.
+whole-page visual audit or maintainer UAT. Issue #224 subsequently reproduces and
+technically remediates these scoped contrast/overflow failures, including expanded
+secondary controls; see [Unified workflow visual contract](unified_workflow_visual_contract.md).
+The original observations remain history and unresolved UAT findings remain open.
 
 The implementation preserves loopback-only binding, bootstrap token and app
 cookie, exact Host and Origin validation, `Referrer-Policy: origin`, CSP,

@@ -184,14 +184,16 @@ def _reports(state, handle, locale):
             content += paragraph(locale, "result.no_recommendation")
         candidates = details.get("immediate_candidate_values", [])
         if candidates:
-            content += '<table><caption>' + translated(locale, "result.table.immediate") + '</caption><thead><tr>'
+            content += ('<div class="workflow-table-scroll" role="region" tabindex="0" aria-label="'
+                + translated(locale, "result.table.immediate") + '"><table><caption>'
+                + translated(locale, "result.table.immediate") + '</caption><thead><tr>')
             content += ''.join('<th scope="col">' + translated(locale, key) + '</th>'
                                for key in ("validation.field.card", "result.point_swing", "result.win_rate")) + '</tr></thead><tbody>'
             for candidate in candidates:
                 content += '<tr><th scope="row">' + cards_summary(locale, (candidate["card"],)) + '</th>'
                 content += ''.join('<td>' + (translated(locale, "status.unavailable") if candidate.get(key) is None
                     else escape(str(candidate[key]))) + '</td>' for key in ("expected_point_swing", "win_rate")) + '</tr>'
-            content += '</tbody></table>'
+            content += '</tbody></table></div>'
         for key, label_key in (("declarer_points", "guided.declarer_points"),
                                ("defender_points", "guided.defender_points")):
             if key in details:
@@ -228,19 +230,23 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
         for position in view.positions[(round_number - 1) * 3:round_number * 3]:
             selected = position.match_position == view.selected_position
             following = position.match_position == view.next_position
-            positions += (f'<a class="position-card{" selected" if selected else ""}" '
+            positions += (f'<a class="match-tile{" selected" if selected else ""}" '
                 f'href="/matches/position/{position.match_position}" data-status="{position.game_state}"'
                 f'{" aria-current=\"page\"" if selected else ""}>'
+                + '<strong class="match-tile-title">'
                 + translated(locale, "task.match.position", number=position.match_position)
-                + '<br>' + translated(locale, f"task.match.status.{position.game_state}"))
+                + '</strong><span class="match-tile-status">'
+                + translated(locale, f"task.match.status.{position.game_state}") + '</span>'
+                + '<span class="match-tile-markers">')
             if selected:
-                positions += ' — ' + translated(locale, "task.selected")
+                positions += '<span>' + translated(locale, "task.selected") + '</span>'
             if following:
-                positions += ' — ' + translated(locale, "task.next")
+                positions += '<span>' + translated(locale, "task.next") + '</span>'
+            positions += '</span><span class="match-tile-participants">'
             for seat in ("forehand", "middlehand", "rearhand"):
-                positions += '<small>' + translated(locale, f"creation.seat.{seat}") + ': ' + escape(
-                    _name(state, locale, getattr(position, f"{seat}_player_id"))) + '</small>'
-            positions += '<small>' + translated(locale, "task.match.plays", count=position.play_count) + '</small></a>'
+                positions += '<span><b>' + translated(locale, f"creation.seat.{seat}") + ':</b> ' + escape(
+                    _name(state, locale, getattr(position, f"{seat}_player_id"))) + '</span>'
+            positions += '</span><span>' + translated(locale, "task.match.plays", count=position.play_count) + '</span></a>'
         positions += '</div></section>'
     body += section(locale, "task.match.overview", positions)
     game = state["game"]

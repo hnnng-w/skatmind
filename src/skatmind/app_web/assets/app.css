@@ -79,12 +79,6 @@ details button {
   overflow-wrap: anywhere;
 }
 
-.round-slots {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.6rem;
-}
-
 #match-recording,
 #match-recovery,
 .match-history li {
@@ -137,17 +131,6 @@ details button {
 .match-history li:focus {
   outline: 0.2rem solid var(--focus);
   outline-offset: 0.2rem;
-}
-
-.position-card small {
-  display: block;
-  overflow-wrap: anywhere;
-}
-
-@media (max-width: 42rem) {
-  .round-slots {
-    grid-template-columns: 1fr;
-  }
 }
 
 * {
@@ -923,6 +906,204 @@ footer {
 
 footer p {
   margin: 0;
+}
+
+/* Unified Match/Learning own these components, including contextual errors,
+   creation, Reports and transfer content outside the task-first wrappers.
+   Standalone Capture/Corpus resources are not part of this cascade. */
+main:is([data-workflow="matches"], [data-workflow="learning"]) {
+  color: var(--ink);
+  background: var(--paper);
+  overflow-wrap: anywhere;
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) :where(
+  section, article, div, form, details, summary, label, p, ul, ol, dl, dt, dd
+) {
+  min-width: 0;
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) :where(form, .advanced-settings) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) :where(input, select, textarea, button) {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) :where(input, select, textarea) {
+  width: 100%;
+  color: var(--ink);
+  background: #fff;
+  border-color: #847d70;
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) :where(input[type="checkbox"], input[type="radio"]) {
+  flex: 0 0 1.25rem;
+  width: 1.25rem;
+  accent-color: var(--green);
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) input::file-selector-button {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 0.4rem;
+  padding: 0.5rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  color: var(--green-dark);
+  background: var(--surface);
+  border: 1px solid var(--green);
+  border-radius: 0.18rem;
+  font: inherit;
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) [aria-invalid="true"] {
+  border-color: #9f392b;
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) :where(.panel, .advanced-settings, .technical-details) {
+  margin-block: 1rem;
+  padding: clamp(0.65rem, 2vw, 1.25rem);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) :where(h2, h3, h4) {
+  margin-top: 0;
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) button {
+  color: var(--green-dark);
+  background: var(--surface);
+  border: 1px solid var(--green);
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) button.primary {
+  color: #fff;
+  background: var(--green);
+  border-color: var(--green-dark);
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) button:hover:enabled {
+  color: #fff;
+  background: var(--green-dark);
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) form:has(
+  [name="operation"]:is([value="clear_position"], [value="truncate_plays"], [value="remove_commentary"],
+    [value="remove_response_link"], [value="clear_player_statistics_snapshot"],
+    [value="remove_strategy_teacher_report"], [value="clear_strategy_teacher_reports"])
+) button {
+  color: #fff;
+  background: #7e2119;
+  border-color: #5f1711;
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) button:disabled {
+  color: var(--muted);
+  background: #eee9dd;
+  border-color: #847d70;
+  cursor: not-allowed;
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) .card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) .card-choice {
+  flex-wrap: wrap;
+  border-color: #847d70;
+}
+
+main:is([data-workflow="matches"], [data-workflow="learning"]) .card-choice:has(input:checked) {
+  border-color: var(--green);
+}
+
+main[data-workflow="matches"] .round-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 0.8rem;
+  margin-bottom: 1.25rem;
+}
+
+main[data-workflow="matches"] .match-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.85rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid #847d70;
+  border-radius: 0.25rem;
+  text-decoration: none;
+}
+
+main[data-workflow="matches"] .match-tile-title {
+  font-size: 1.2rem;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+main[data-workflow="matches"] .match-tile:is(:hover, [aria-current="page"]) {
+  background: #dcebe3;
+  border-color: var(--green);
+}
+
+main[data-workflow="matches"] .match-tile[aria-current="page"] {
+  box-shadow: inset 0 0 0 2px var(--green);
+}
+
+main[data-workflow="matches"] .match-tile-markers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+main[data-workflow="matches"] .match-tile-markers:empty {
+  display: none;
+}
+
+main[data-workflow="matches"] .match-tile-markers > span {
+  padding: 0.15rem 0.45rem;
+  color: var(--green-dark);
+  background: #fff;
+  border: 1px solid var(--green);
+  font-weight: 700;
+}
+
+main[data-workflow="matches"] .match-tile-participants {
+  display: grid;
+  gap: 0.35rem;
+}
+
+main[data-workflow="matches"] .match-diagnostic {
+  color: #712020;
+  background: #fff8dc;
+  border-color: #9f392b;
+}
+
+main[data-workflow="matches"] .workflow-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 0.3rem;
+}
+
+main[data-workflow="matches"] .workflow-table-scroll table {
+  min-width: 32em;
+  overflow-wrap: normal;
+}
+
+main[data-workflow="matches"] .workflow-table-scroll:focus-visible {
+  outline: 0.2rem solid var(--focus);
+  outline-offset: 0.2rem;
 }
 
 @media (min-width: 52rem) {

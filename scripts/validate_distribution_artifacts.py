@@ -970,6 +970,7 @@ import importlib.resources
 import importlib.util
 import json
 import os
+import re
 import sys
 import sysconfig
 import threading
@@ -1348,6 +1349,39 @@ try:
         headers=app_get_headers,
     )
     assert status == 200 and b"focus-visible" in content
+    assert content == importlib.resources.files("skatmind.app_web").joinpath(
+        "assets/app.css"
+    ).read_bytes()
+    from skatmind.app_web.learning_frontend import create_unified_learning_corpus_v1
+    from skatmind.app_web.match_frontend import create_unified_match_v1
+
+    visual_match = create_unified_match_v1(
+        app_context.managed_stateful.root("matches"), handle="a" * 64,
+        values={
+            "match_id": "visual-resource-match", "title": "Visual resource Match",
+            "game_platform": "In person", "source_kind": "manual_observation",
+            "source_title": "Synthetic resource verification",
+            "player_1_id": "visual-a", "player_1_label": "Alexandra",
+            "player_2_id": "visual-b", "player_2_label": "Boris",
+            "player_3_id": "visual-c", "player_3_label": "Clara",
+            "perspective_player_id": "visual-a",
+        },
+    )
+    app_context.managed_stateful.activate_match(visual_match)
+    visual_learning = create_unified_learning_corpus_v1(
+        app_context.managed_stateful.root("corpora"), handle="b" * 64,
+        corpus_id="visual-resource-collection",
+    )
+    app_context.managed_stateful.activate_learning(visual_learning)
+    for route in ("/matches/new", "/matches/current", "/learning/current"):
+        status, _, content = app_request("GET", route, headers=app_get_headers)
+        assert status == 200
+        assert re.findall(rb'<link rel="stylesheet" href="([^"]+)"', content) == [
+            b"/assets/app.css"
+        ]
+        if route == "/matches/current":
+            assert content.count(b'class="match-tile"') == 35
+            assert content.count(b'class="match-tile selected"') == 1
     status, _, _ = app_request("GET", "/api/v1/operations", headers=app_get_headers)
     assert status == 404
     language_body = urlencode(
