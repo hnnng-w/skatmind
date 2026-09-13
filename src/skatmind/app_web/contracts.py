@@ -27,6 +27,7 @@ APP_ROUTE_PATHS = (
     "/sessions",
     "/matches",
     "/learning",
+    "/settings",
     "/about",
 )
 APP_NAVIGATION_LABELS = (
@@ -36,6 +37,7 @@ APP_NAVIGATION_LABELS = (
     "Record one game",
     "Record a 36-game Match",
     "Learn across Matches",
+    "Settings",
     "About SkatMind",
 )
 APP_HOME_TASK_TITLES = (
@@ -53,6 +55,7 @@ APP_NAVIGATION_MESSAGE_KEYS = (
     "navigation.sessions",
     "navigation.matches",
     "navigation.learning",
+    "navigation.settings",
     "navigation.about",
 )
 APP_HOME_TASK_MESSAGE_KEY_PREFIXES = (
@@ -225,5 +228,7 @@ class BrowserSafeApplicationStateV1:
             f"{prefix}.title" for prefix in APP_HOME_TASK_MESSAGE_KEY_PREFIXES
         ):
             raise ValueError("Home tasks must use canonical message-key order.")
-        if tuple(item.route for item in home_tasks) != APP_ROUTE_PATHS[1:]:
+        if tuple(item.route for item in home_tasks) != tuple(
+            route for route in APP_ROUTE_PATHS[1:] if route != "/settings"
+        ):
             raise ValueError("Home tasks must target the six canonical task routes.")

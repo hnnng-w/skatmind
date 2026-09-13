@@ -2432,6 +2432,14 @@ from 503 to 375 document pixels. A real installed-Wheel Edge run covers 280 page
 measurements, native recovery/continuation, explicit Learning preparation/downloads
 and source-safe language changes. The optional repeatable script is separate from
 the full check. Standalone styling and Product contracts remain unchanged.
+Issue #225 implements [Settings and Player seat setup](settings_and_player_seat_setup.md):
+dedicated Settings, compact lossless Player editing, exact removal/account previews,
+one own identity with explicit seat choice, reviewed named rosters, corrected
+game-1/table-place Match translation, and unchecked limited profile enrichment.
+Real HTTP/persistence coverage checks every own seat and all roster/rotation
+permutations; installed Edge checks create Session/Match recordings with JavaScript
+enabled/disabled. Earlier About/preferred-perspective/default-saving choices are
+explicitly revised, while legacy data and #221–#224 behavior remain supported.
 Both required jobs, `check` and `v1-supported-platform-matrix`, must pass on the
 exact merged commit. A future focused retest can open a recorded Game, review an
 earlier own decision after 30 Plays, recognize its comparison and source, then

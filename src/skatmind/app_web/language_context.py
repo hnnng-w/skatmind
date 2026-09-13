@@ -99,7 +99,14 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
         feedback_family = ("sessions" if route.startswith("/sessions") else
             "matches" if route.startswith("/matches") else
             "learning" if route.startswith("/learning") else
-            "local_settings" if route == "/about" else route.removeprefix("/"))
+            "local_settings" if route == "/settings" else route.removeprefix("/"))
+        if route == "/settings":
+            references.append(context.settings_editor)
+        setup_family = {"/sessions": "sessions", "/matches/new": "matches"}.get(route)
+        if setup_family:
+            from .player_seat_setup import current_seat_setup_v1
+            references.append(current_seat_setup_v1(
+                context, setup_family, context.frontend_profile.document))
         # Reading the private binding avoids current()'s invalidation side effect.
         feedback = context.form_feedback._feedback.get(feedback_family)
         expected_identity = (session if route == "/sessions/current" else

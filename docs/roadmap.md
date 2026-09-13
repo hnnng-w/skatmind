@@ -1596,6 +1596,11 @@ boundary with app-owned light presentation, explicit 36-entry tiles and responsi
 expanded controls. Its [visual contract](unified_workflow_visual_contract.md) records
 before/after measurements, installed-Wheel browser evidence, native operations and
 the optional repeatable check. It adds no Product operation or UAT acceptance.
+Issue #225 implements the bounded [Settings-to-own-seat creation
+flow](settings_and_player_seat_setup.md), including lossless legacy metadata,
+fresh scoped confirmations, exact game-1 Match mapping and opt-in new-Player/
+platform enrichment. It adds one shell page and five private form routes, retaining
+seven Root workflows, all Product persistence, and the existing UAT gate state.
 Exact merged-commit `check` and `v1-supported-platform-matrix` remain required,
 with future focused Session and Match affected-path retests. The September 11 repeated
 UAT failure and unresolved findings remain open; the technical ledger remains closed.

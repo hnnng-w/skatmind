@@ -43,9 +43,6 @@ from .frontend_profile_operations import (
     FRONTEND_LANGUAGE_ACTION_ROUTE,
     FRONTEND_PROFILE_ACTION_ROUTES,
     FRONTEND_PROFILE_MANAGED_LABEL_ACTION_ROUTE,
-    FRONTEND_PROFILE_PLAYER_ADD_ACTION_ROUTE,
-    FRONTEND_PROFILE_PLAYER_REMOVE_ACTION_ROUTE,
-    FRONTEND_PROFILE_PLAYER_UPDATE_ACTION_ROUTE,
     FRONTEND_PROFILE_PREFERENCES_ACTION_ROUTE,
     FRONTEND_PROFILE_RECOMMENDED_RESET_ACTION_ROUTE,
     FRONTEND_PROFILE_RESET_ACTION_ROUTE,
@@ -144,6 +141,7 @@ from .match_frontend import (
 from .match_recovery import RECOVERY_ROUTES, MatchRecoveryConflict, recording_selections
 from .match_recovery_http import dispatch_match_recovery
 from .match_recovery_rendering import render_match_recovery
+from .player_seat_setup import current_seat_setup_v1, submit_seat_setup_v1
 from .profile_driven_creation import (
     PROFILE_DRIVEN_LEARNING_CREATE_FIELDS,
     PROFILE_DRIVEN_MATCH_CREATE_FIELDS,
@@ -151,18 +149,11 @@ from .profile_driven_creation import (
     prepare_profile_driven_learning_creation_v1,
     prepare_profile_driven_match_creation_v1,
     prepare_profile_driven_session_creation_v1,
-    resolve_friendly_game_platform_v1,
 )
 from .profile_player_contracts import (
-    KnownPlayerPlatformIdV1,
     ManagedItemDisplayLabelV1,
 )
 from .profile_player_operations import (
-    add_known_player_v1,
-    remove_known_player_v1,
-    replace_known_player_v1,
-    resolve_known_player_handle_v1,
-    set_frontend_creation_preferences_v1,
     set_managed_item_display_label_v1,
 )
 from .rendering import (
@@ -208,6 +199,7 @@ from .session_recorded_review_form import (
     parse_recorded_review_selection_v1,
     recorded_review_feedback_v1,
 )
+from .settings_forms import SettingsEditorV1, dispatch_settings_form_v1
 from .stateful_localization import managed_name
 from .stateful_rendering import render_managed_category_landing_v1
 from .task_first_learning_rendering import (
@@ -675,8 +667,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 review_state=self.server.app_context.review_state,
                 frontend=frontend,
                 profile=(
-                    self.server.app_context.frontend_profile.document if route == "/about" else None
+                    self.server.app_context.frontend_profile.document
+                    if route == "/settings" else None
                 ),
+                settings_editor=self.server.app_context.settings_editor,
                 return_to=route,
             )
             rendered = self._apply_retained_feedback(
@@ -684,7 +678,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 families=(
                     *(("analyze",) if route == "/analyze" else ()),
                     *(("review",) if route == "/review" else ()),
-                    *(("local_settings",) if route == "/about" else ()),
+                    *(("local_settings",) if route == "/settings" else ()),
                     "profile",
                 ),
                 active_identity=None,
@@ -1182,6 +1176,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         family = definition.active_context_requirement or "profile"
         active_identity = self._feedback_identity(definition)
         with self.server.app_context.lock:
+            if definition.form_key in {"profile.player_add", "profile.player_update"}:
+                safe = getattr(self, "_current_safe_values", FormValuesV1())
+                self.server.app_context.settings_editor = SettingsEditorV1(
+                    "edit", safe.singular("player_handle") or "")
             generation = self.server.app_context.form_feedback.next_generation()
             state = FrontendSubmittedFormStateV1(
                 contract_version=FRONTEND_VALIDATION_PRESERVATION_VERSION,
@@ -1351,26 +1349,16 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             raise ValueError("profile_generation must be a non-negative integer.")
         return int(raw_generation)
 
-    @staticmethod
-    def _profile_aliases(value: str) -> tuple[str, ...]:
-        return tuple(line.strip() for line in value.splitlines() if line.strip())
-
-    @staticmethod
-    def _profile_platform_ids(value: str) -> tuple[KnownPlayerPlatformIdV1, ...]:
-        parsed: list[KnownPlayerPlatformIdV1] = []
-        for line in value.splitlines():
-            if not line.strip():
-                continue
-            platform, separator, player_id = line.partition("=")
-            if not separator or not platform.strip() or not player_id.strip():
-                raise ValueError(
-                    "platform_player_ids must use one 'Platform = Player ID' pair per line."
-                )
-            parsed.append(KnownPlayerPlatformIdV1(platform.strip(), player_id.strip()))
-        return tuple(parsed)
-
     def _profile_operation(self, path: str, body: bytes, content_type: str) -> None:
         values = self._text_form(body, content_type)
+        if (path.startswith("/actions/profile/players/")
+                or path == FRONTEND_PROFILE_PREFERENCES_ACTION_ROUTE):
+            self._profile_action_return_to = "/settings"
+            generation = self._profile_generation_value(values)
+            dispatch_settings_form_v1(self.server.app_context, path, values,
+                generation=generation, entropy_source=secrets.token_bytes)
+            self._redirect("/settings")
+            return
         language_values = None
         language_page = None
         if path == FRONTEND_LANGUAGE_ACTION_ROUTE:
@@ -1392,37 +1380,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     values.pop("_frontend_language_values"), manifest=language_page.manifest)
         elif path == FRONTEND_PROFILE_RESET_ACTION_ROUTE:
             fields = {"confirm_reset", "profile_generation", "return_to"}
-            return_to = values.get("return_to", "")
-        elif path == FRONTEND_PROFILE_PLAYER_ADD_ACTION_ROUTE:
-            fields = {"display_name", "aliases", "platform_player_ids", "profile_generation"}
-            return_to = "/about"
-        elif path == FRONTEND_PROFILE_PLAYER_UPDATE_ACTION_ROUTE:
-            fields = {
-                "display_name",
-                "aliases",
-                "platform_player_ids",
-                "player_handle",
-                "profile_generation",
-            }
-            return_to = "/about"
-        elif path == FRONTEND_PROFILE_PLAYER_REMOVE_ACTION_ROUTE:
-            values.setdefault("confirm_referenced", "")
-            fields = {"confirm_referenced", "player_handle", "profile_generation"}
-            return_to = "/about"
-        elif path == FRONTEND_PROFILE_PREFERENCES_ACTION_ROUTE:
-            fields = {
-                "own_player_handle",
-                "preferred_perspective_player_handle",
-                "platform_choice",
-                "custom_platform",
-                "advanced_settings_expanded",
-                "profile_generation",
-            }
-            return_to = "/about"
+            self._profile_action_return_to = "/settings"
+            if values.get("return_to") != "/settings":
+                raise ValueError("Use the explicit profile reset on Settings.")
+            return_to = "/settings"
         elif path == FRONTEND_PROFILE_RECOMMENDED_RESET_ACTION_ROUTE:
             values.setdefault("confirm_recommended_reset", "")
             fields = {"confirm_recommended_reset", "profile_generation"}
-            return_to = "/about"
+            return_to = "/settings"
         elif path == FRONTEND_PROFILE_MANAGED_LABEL_ACTION_ROUTE:
             fields = {
                 "managed_family",
@@ -1462,78 +1427,6 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 raise ValueError("Profile reset requires explicit confirmation.")
             reset_frontend_profile_v1(
                 self.server.app_context,
-                expected_generation=generation,
-            )
-        elif path in {
-            FRONTEND_PROFILE_PLAYER_ADD_ACTION_ROUTE,
-            FRONTEND_PROFILE_PLAYER_UPDATE_ACTION_ROUTE,
-        }:
-            aliases = self._profile_aliases(values["aliases"])
-            platform_ids = self._profile_platform_ids(values["platform_player_ids"])
-            if path == FRONTEND_PROFILE_PLAYER_ADD_ACTION_ROUTE:
-                add_known_player_v1(
-                    self.server.app_context,
-                    display_name=values["display_name"].strip(),
-                    aliases=aliases,
-                    platform_player_ids=platform_ids,
-                    expected_generation=generation,
-                    entropy_source=secrets.token_bytes,
-                )
-            else:
-                replace_known_player_v1(
-                    self.server.app_context,
-                    player_handle=values["player_handle"],
-                    display_name=values["display_name"].strip(),
-                    aliases=aliases,
-                    platform_player_ids=platform_ids,
-                    expected_generation=generation,
-                )
-        elif path == FRONTEND_PROFILE_PLAYER_REMOVE_ACTION_ROUTE:
-            if values["confirm_referenced"] not in {"", "on"}:
-                raise ValueError("confirm_referenced must be an explicit checkbox value.")
-            remove_known_player_v1(
-                self.server.app_context,
-                player_handle=values["player_handle"],
-                confirm_referenced=values["confirm_referenced"] == "on",
-                expected_generation=generation,
-            )
-        elif path == FRONTEND_PROFILE_PREFERENCES_ACTION_ROUTE:
-            with self.server.app_context.lock:
-                profile_state = self.server.app_context.frontend_profile
-                if profile_state.generation != generation:
-                    raise StaleFrontendProfileGenerationError
-                if profile_state.load_status == "invalid":
-                    raise InvalidFrontendProfileResetRequiredError
-                profile = profile_state.document
-
-            def resolve_player(handle: str) -> str | None:
-                return (
-                    None
-                    if not handle
-                    else resolve_known_player_handle_v1(profile, handle).player_id
-                )
-
-            choice = values["platform_choice"]
-            custom_platform = values["custom_platform"]
-            if not choice:
-                if custom_platform.strip():
-                    raise ValueError(
-                        "custom_platform is allowed only when Custom platform is selected."
-                    )
-                platform = None
-            else:
-                platform = resolve_friendly_game_platform_v1(choice, custom_platform)
-            advanced = values["advanced_settings_expanded"]
-            if advanced not in {"false", "true"}:
-                raise ValueError("advanced_settings_expanded must be one visible choice.")
-            set_frontend_creation_preferences_v1(
-                self.server.app_context,
-                own_player_id=resolve_player(values["own_player_handle"]),
-                preferred_perspective_player_id=resolve_player(
-                    values["preferred_perspective_player_handle"]
-                ),
-                preferred_game_platform=platform,
-                advanced_settings_expanded=advanced == "true",
                 expected_generation=generation,
             )
         elif path == FRONTEND_PROFILE_RECOMMENDED_RESET_ACTION_ROUTE:
@@ -1743,6 +1636,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 profile=profile_state.document,
                 profile_generation=profile_state.generation,
                 locale=self._frontend_state().locale,
+                setup=(current_seat_setup_v1(
+                    self.server.app_context, family, profile_state.document)
+                       if family == "sessions" else None),
             ),
             status=status,
             empty_state_key=(
@@ -1902,6 +1798,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             profile=profile_state.document,
             profile_generation=profile_state.generation,
             locale=frontend.locale,
+            setup=current_seat_setup_v1(self.server.app_context, "matches", profile_state.document),
         )
         self._content_page(
             "/matches",
@@ -2148,6 +2045,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         values: dict[str, str],
         fields: tuple[str, ...],
     ):
+        if set(values) - set(fields):
+            from .player_seat_setup import SeatSetupError
+            raise SeatSetupError("outdated_form")
+        for name in fields:
+            if name != "profile_generation":
+                values.setdefault(name, "")
         self._exact_fields(values, set(fields))
         generation = self._form_integer(values, "profile_generation", minimum=0)
         del values["profile_generation"]
@@ -2199,6 +2102,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             values,
             PROFILE_DRIVEN_SESSION_CREATE_FIELDS,
         )
+        if not self._submit_seat_setup("sessions", profile, values, generation):
+            self._redirect("/sessions")
+            return
         discovery = self._refresh_category("sessions")
         prepared = prepare_profile_driven_session_creation_v1(
             values,
@@ -2233,6 +2139,15 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self._activate_session(active)
         self._refresh_category("sessions")
         self._redirect("/sessions/current")
+
+    def _submit_seat_setup(self, family, profile, values, generation):
+        try:
+            return submit_seat_setup_v1(self.server.app_context, family, profile, values,
+                                        generation=generation)
+        except ValueError:
+            self._current_safe_values = capture_safe_submitted_values_v1(
+                self._current_form_definition, values)
+            raise
 
     def _import_session(self, body: bytes, content_type: str) -> None:
         upload = parse_managed_item_json_upload_v1(
@@ -2340,6 +2255,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             text_values,
             PROFILE_DRIVEN_MATCH_CREATE_FIELDS,
         )
+        if not self._submit_seat_setup("matches", profile, text_values, generation):
+            self._redirect("/matches/new")
+            return
         discovery = self._refresh_category("matches")
         prepared = prepare_profile_driven_match_creation_v1(
             text_values,

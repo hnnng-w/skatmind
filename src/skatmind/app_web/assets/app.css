@@ -864,6 +864,74 @@ thead {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Settings and seat setup reuse the app-owned light component boundary. */
+main[data-workflow="settings"], .friendly-create {
+  color: var(--ink);
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+
+main[data-workflow="sessions"] { overflow-wrap: anywhere; }
+
+:is(main[data-workflow="settings"], .managed-landing, .friendly-create) :where(
+  section, article, div, form, fieldset, label, details, summary, p, dl, dt, dd
+) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+:is(main[data-workflow="settings"], .managed-landing, .friendly-create) form {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+:is(main[data-workflow="settings"], .managed-landing, .friendly-create) :where(input, select, button) {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+:is(main[data-workflow="settings"], .managed-landing, .friendly-create) :where(input, select) {
+  width: 100%;
+  color: var(--ink);
+  background: #fff;
+  border-color: #847d70;
+}
+
+:is(main[data-workflow="settings"], .managed-landing, .friendly-create) input:is([type="checkbox"], [type="radio"]) {
+  width: 1.25rem;
+  flex: 0 0 1.25rem;
+}
+
+.local-settings .known-player-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.local-settings .known-player-card { padding: 0.65rem; }
+.local-settings .known-player-card > p { margin-block: 0 0.5rem; }
+.local-settings .player-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.local-settings .player-actions form { margin: 0; }
+.local-settings .player-editor { margin-top: 0.8rem; }
+.local-settings .own-player { font-size: 0.9em; }
+.seat-setup { display: grid; gap: 0.65rem; }
+.seat-setup .seat-entry { margin: 0; }
+.seat-setup .roster-summary { margin: 0; }
+.seat-setup .roster-summary dd { margin: 0 0 0.4rem; }
+
+/* Native select state also controls the compact no-JavaScript presentation. */
+.seat-entry:has(select[name$="_mode"] option[value="saved"]:checked) .new-player-entry,
+.seat-entry:has(select[name$="_mode"] option[value="new"]:checked) .saved-player-entry,
+.seat-setup:has(select[name="perspective_mode"] option[value="own"]:checked) .manual-perspective,
+.seat-setup:has(select[name="perspective_mode"] option[value="manual"]:checked) .own-seat-choice,
+.player-editor form:has(select[name="account_action"] option[value="keep"]:checked) .account-edit-fields {
+  display: none;
+}
+
+.seat-entry:has([aria-invalid="true"]) :is(.saved-player-entry, .new-player-entry) {
+  display: block;
+}
+
 .remove-player-form {
   margin-top: 1rem;
   padding-top: 1rem;

@@ -78,21 +78,24 @@ def test_malformed_presentation_envelopes_fail_strictly(raw):
 def test_repeated_forms_use_stable_identity_and_regenerate_profile_generation(localized_server):
     browser = Browser(localized_server)
     known_players(browser)
-    page = browser.page("/about")
+    page = browser.page("/settings")
+    page = follow(browser, browser.submit(
+        Forms(page).find("/actions/profile/players/edit", index=1)))
     action = "/actions/profile/players/update"
     originals = [form["values"] for form in Forms(page).forms if form["action"] == action]
-    raw = envelope(page, action, {"display_name": ["Unsent name"], "aliases": [""]}, index=1)
+    assert len(originals) == 1
+    raw = envelope(page, action, {"display_name": ["Unsent name"]})
     page = follow(browser, enhanced_switch(browser, page, raw))
     returned = [form["values"] for form in Forms(page).forms if form["action"] == action]
-    assert returned[0]["display_name"] == originals[0]["display_name"]
-    assert returned[1]["display_name"] == "Unsent name"
-    assert returned[2]["display_name"] == originals[2]["display_name"]
+    assert len(returned) == 1
+    assert returned[0]["display_name"] == "Unsent name"
+    assert returned[0]["player_handle"] == originals[0]["player_handle"]
     profile = localized_server.app_context.frontend_profile
-    assert returned[1]["profile_generation"] == str(profile.generation)
+    assert returned[0]["profile_generation"] == str(profile.generation)
     assert "Unsent name" not in str(profile.document.known_players)
     assert localized_server.app_context.language_context.pending is None
-    form = [form for form in Forms(page).forms if form["action"] == action][1]
-    follow(browser, browser.submit(form, aliases="", platform_player_ids=""))
+    form = [form for form in Forms(page).forms if form["action"] == action][0]
+    follow(browser, browser.submit(form))
     assert "Unsent name" in str(
         localized_server.app_context.frontend_profile.document.known_players)
 
@@ -134,7 +137,7 @@ def test_disclosures_required_by_validation_cannot_be_closed_and_select_can_be_c
     pytest.param({"game_name": ["x" * 8193]}, id="oversized-field"),
     {"game_name": ["first", "second"]},
     {"game_name": True}, {"game_name": [None]}, {"capture_mode": ["foreign"]},
-    {"player_1_handle": ["../foreign"]}, {"player_1_handle": ["0" * 64]},
+    {"forehand_handle": ["../foreign"]}, {"forehand_handle": ["0" * 64]},
     {"profile_generation": ["1"]}, {"return_to": ["//external.invalid"]},
 ))
 def test_envelope_values_reject_before_profile_save(localized_server, values):

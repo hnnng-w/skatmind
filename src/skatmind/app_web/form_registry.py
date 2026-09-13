@@ -19,6 +19,7 @@ from .frontend_profile_operations import (
     FRONTEND_PROFILE_PLAYER_UPDATE_ACTION_ROUTE,
     FRONTEND_PROFILE_PREFERENCES_ACTION_ROUTE,
     FRONTEND_PROFILE_RECOMMENDED_RESET_ACTION_ROUTE,
+    FRONTEND_SETTINGS_PLAYER_ACTION_ROUTES,
 )
 from .guided_contracts import GUIDED_ACTION_ROUTE_PATHS
 from .json_transfer import FRONTEND_JSON_MAX_FILE_BYTES
@@ -55,6 +56,9 @@ _CARD_FIELDS = {
     "skat",
 }
 _CHECKBOX_FIELDS = {
+    "advanced_settings_expanded",
+    "save_players",
+    "save_platform",
     "compare_policies",
     "comparison_only",
     "decision_snapshots",
@@ -99,6 +103,9 @@ _FILE_FIELDS = {
 }
 _BOOLEAN_CHOICES = ("false", "true")
 _SELECT_CHOICES = {
+    "perspective_mode": ("own", "manual"),
+    "own_seat": ("", "forehand", "middlehand", "rearhand"),
+    **{f"{seat}_mode": ("saved", "new") for seat in ("forehand", "middlehand", "rearhand")},
     "analysis_mode": ("live_decision", "post_game_review"),
     "capture_mode": ("live", "retrospective"),
     "card_evidence_mode": ("unknown", "known_empty", "exact"),
@@ -109,10 +116,14 @@ _SELECT_CHOICES = {
     "source_kind": ("youtube_video", "other_video", "manual_observation"),
     "platform_choice": FRIENDLY_GAME_PLATFORM_VALUES,
     "perspective_seat": ("", "forehand", "middlehand", "rearhand"),
-    "save_players": _BOOLEAN_CHOICES,
-    "save_preferences": _BOOLEAN_CHOICES,
+    "account_action": ("keep", "edit"),
 }
 _LABEL_KEYS = {
+    "own_seat": "validation.field.own_seat",
+    **{f"{seat}_{suffix}": f"validation.field.{seat}_{label}"
+       for seat in ("forehand", "middlehand", "rearhand")
+       for suffix, label in (("handle", "known_player"), ("name", "new_player"),
+                             ("platform_id", "platform_player_id"))},
     "capture_mode": "validation.field.capture_mode",
     "card": "validation.field.card",
     "cards": "validation.field.cards",
@@ -263,6 +274,11 @@ def _field(
         reflection_length=(
             0
             if control == "file"
+            else 255
+            if name == "account_id"
+            else 120
+            if name == "account_platform" or name in {
+                "forehand_name", "middlehand_name", "rearhand_name"}
             else 64
             if name in {"decision_selection", "recovery_selection", "report_id"}
             else 4
@@ -354,7 +370,8 @@ _REVIEW_OPTIONS = (
     "immediate_sample_count",
     "immediate_base_random_seed",
 )
-_SESSION_CREATE_FIELDS = PROFILE_DRIVEN_SESSION_CREATE_FIELDS
+_SESSION_CREATE_FIELDS = tuple(name for name in PROFILE_DRIVEN_SESSION_CREATE_FIELDS
+    if name not in {"profile_generation", "setup_context", "setup_action", "own_player_handle"})
 _SESSION_COMMAND_FIELDS = {
     "set_game_metadata": ("target_revision", "game_id", "played_at"),
     "record_dealt_card": ("target_revision", "destination", "player_id", "card"),
@@ -410,7 +427,8 @@ _SESSION_COMMAND_FIELDS = {
     ),
     "promote_to_retrospective": ("target_revision",),
 }
-_MATCH_CREATE_FIELDS = PROFILE_DRIVEN_MATCH_CREATE_FIELDS
+_MATCH_CREATE_FIELDS = tuple(name for name in PROFILE_DRIVEN_MATCH_CREATE_FIELDS
+    if name not in {"profile_generation", "setup_context", "setup_action", "own_player_handle"})
 _MATCH_METADATA_FIELDS = (
     "title",
     "game_platform",
@@ -747,74 +765,70 @@ _FORMS: list[FrontendFormDefinitionV1] = [
         "profile.reset",
         "/actions/profile/reset",
         ("confirm_reset",),
-        page="/about",
+        page="/settings",
         active="profile",
         success="contextual",
     ),
     _definition(
         "profile.player_add",
         FRONTEND_PROFILE_PLAYER_ADD_ACTION_ROUTE,
-        ("display_name", "aliases", "platform_player_ids", "profile_generation"),
-        page="/about",
+        ("display_name", "account_platform", "account_id"),
+        page="/settings",
         active="local_settings",
-        success="/about",
-        control_overrides={"aliases": "textarea", "platform_player_ids": "textarea"},
+        success="/settings",
     ),
     _definition(
         "profile.player_update",
         FRONTEND_PROFILE_PLAYER_UPDATE_ACTION_ROUTE,
         (
             "display_name",
-            "aliases",
-            "platform_player_ids",
+            "account_action",
+            "account_platform",
+            "account_id",
             "player_handle",
             "profile_generation",
         ),
-        page="/about",
+        page="/settings",
         active="local_settings",
-        success="/about",
-        control_overrides={"aliases": "textarea", "platform_player_ids": "textarea"},
+        success="/settings",
     ),
     _definition(
         "profile.player_remove",
         FRONTEND_PROFILE_PLAYER_REMOVE_ACTION_ROUTE,
-        ("confirm_referenced", "player_handle", "profile_generation"),
-        page="/about",
+        ("confirm_replace", "player_handle"),
+        page="/settings",
         active="local_settings",
-        success="/about",
+        success="/settings",
     ),
     _definition(
         "profile.preferences",
         FRONTEND_PROFILE_PREFERENCES_ACTION_ROUTE,
         (
             "own_player_handle",
-            "preferred_perspective_player_handle",
             "platform_choice",
             "custom_platform",
             "advanced_settings_expanded",
             "profile_generation",
         ),
-        page="/about",
+        page="/settings",
         active="local_settings",
-        success="/about",
+        success="/settings",
         control_overrides={
             "own_player_handle": "select",
-            "preferred_perspective_player_handle": "select",
             "platform_choice": "select",
-            "advanced_settings_expanded": "radio",
+            "advanced_settings_expanded": "checkbox",
         },
         choice_overrides={
             "platform_choice": ("", *FRIENDLY_GAME_PLATFORM_VALUES),
-            "advanced_settings_expanded": _BOOLEAN_CHOICES,
         },
     ),
     _definition(
         "profile.recommended_reset",
         FRONTEND_PROFILE_RECOMMENDED_RESET_ACTION_ROUTE,
         ("confirm_recommended_reset", "profile_generation"),
-        page="/about",
+        page="/settings",
         active="local_settings",
-        success="/about",
+        success="/settings",
     ),
     _definition(
         "profile.managed_label",
@@ -828,7 +842,7 @@ _FORMS: list[FrontendFormDefinitionV1] = [
             "profile_generation",
             "return_to",
         ),
-        page="/about",
+        page="/settings",
         active="local_settings",
         success="contextual",
         control_overrides={"managed_family": "select"},
@@ -843,18 +857,13 @@ _FORMS: list[FrontendFormDefinitionV1] = [
         success="/sessions/current",
         control_overrides={
             "capture_mode": "radio",
-            "player_1_handle": "select",
-            "player_2_handle": "select",
-            "player_3_handle": "select",
+            **{f"{seat}_handle": "select" for seat in ("forehand", "middlehand", "rearhand")},
             "perspective_seat": "select",
-            "save_players": "select",
-            "save_preferences": "select",
+            "save_players": "checkbox",
         },
         choice_overrides={
             "capture_mode": ("live", "retrospective"),
             "perspective_seat": ("", "forehand", "middlehand", "rearhand"),
-            "save_players": _BOOLEAN_CHOICES,
-            "save_preferences": _BOOLEAN_CHOICES,
         },
     ),
     _definition(
@@ -1008,20 +1017,16 @@ _FORMS: list[FrontendFormDefinitionV1] = [
         success="/matches/position/1",
         control_overrides={
             "platform_choice": "select",
-            "player_1_handle": "select",
-            "player_2_handle": "select",
-            "player_3_handle": "select",
+            **{f"{seat}_handle": "select" for seat in ("forehand", "middlehand", "rearhand")},
             "perspective_seat": "select",
             "source_kind": "select",
-            "save_players": "select",
-            "save_preferences": "select",
+            "save_players": "checkbox",
+            "save_platform": "checkbox",
         },
         choice_overrides={
             "platform_choice": FRIENDLY_GAME_PLATFORM_VALUES,
             "perspective_seat": ("", "forehand", "middlehand", "rearhand"),
             "source_kind": ("", "youtube_video", "other_video", "manual_observation"),
-            "save_players": _BOOLEAN_CHOICES,
-            "save_preferences": _BOOLEAN_CHOICES,
         },
     ),
     _definition(
@@ -1067,6 +1072,17 @@ _FORMS: list[FrontendFormDefinitionV1] = [
         value_free=True,
     ),
 ]
+
+for route in FRONTEND_SETTINGS_PLAYER_ACTION_ROUTES:
+    action = route.rsplit("/", 1)[1]
+    fields = ("player_handle",)
+    if action == "accounts-preview":
+        fields += ("account_platform", "account_id")
+    elif action == "accounts-replace":
+        fields += ("confirm_replace",)
+    _FORMS.append(_definition(
+        f"profile.player_{action.replace('-', '_')}", route, fields,
+        page="/settings", active="local_settings", success="/settings"))
 
 for action, fields in (
     ("select", ("recovery_selection",)),

@@ -25,15 +25,16 @@ def test_session_form_maps_names_mode_seats_perspective_and_profile_label() -> N
         {
             "game_name": "Thursday game",
             "capture_mode": "live",
-            "player_1_handle": build_known_player_handle_v1(known.player_id),
-            "player_1_name": "",
-            "player_2_handle": "",
-            "player_2_name": "Peter",
-            "player_3_handle": "",
-            "player_3_name": "Mira",
+            "perspective_mode": "manual",
+            "forehand_mode": "saved", "middlehand_mode": "new", "rearhand_mode": "new",
+            "forehand_handle": build_known_player_handle_v1(known.player_id),
+            "forehand_name": "",
+            "middlehand_handle": "",
+            "middlehand_name": "Peter",
+            "rearhand_handle": "",
+            "rearhand_name": "Mira",
             "perspective_seat": "forehand",
             "save_players": "on",
-            "save_preferences": "on",
         },
         profile=profile,
         expected_profile_generation=7,
@@ -70,15 +71,16 @@ def test_session_one_off_players_are_not_saved_and_retrospective_can_have_no_per
         {
             "game_name": "Review game",
             "capture_mode": "retrospective",
-            "player_1_handle": "",
-            "player_1_name": "A",
-            "player_2_handle": "",
-            "player_2_name": "B",
-            "player_3_handle": "",
-            "player_3_name": "C",
+            "perspective_mode": "manual",
+            "forehand_mode": "new", "middlehand_mode": "new", "rearhand_mode": "new",
+            "forehand_handle": "",
+            "forehand_name": "A",
+            "middlehand_handle": "",
+            "middlehand_name": "B",
+            "rearhand_handle": "",
+            "rearhand_name": "C",
             "perspective_seat": "",
             "save_players": "",
-            "save_preferences": "",
         },
         profile=None,
         expected_profile_generation=0,
@@ -101,15 +103,16 @@ def test_session_validation_precedes_entropy_and_rejects_duplicate_seats() -> No
     values = {
         "game_name": "Game",
         "capture_mode": "live",
-        "player_1_handle": "",
-        "player_1_name": "Peter",
-        "player_2_handle": "",
-        "player_2_name": "peter",
-        "player_3_handle": "",
-        "player_3_name": "Anna",
+        "perspective_mode": "manual",
+        "forehand_mode": "new", "middlehand_mode": "new", "rearhand_mode": "new",
+        "forehand_handle": "",
+        "forehand_name": "Peter",
+        "middlehand_handle": "",
+        "middlehand_name": "peter",
+        "rearhand_handle": "",
+        "rearhand_name": "Anna",
         "perspective_seat": "",
         "save_players": "on",
-        "save_preferences": "",
     }
     with pytest.raises(ValueError, match="duplicate new Player"):
         prepare_profile_driven_session_creation_v1(
@@ -120,7 +123,7 @@ def test_session_validation_precedes_entropy_and_rejects_duplicate_seats() -> No
             entropy_source=entropy,
         )
     assert calls == 0
-    values["player_2_name"] = "Mira"
+    values["middlehand_name"] = "Mira"
     with pytest.raises(ValueError, match="During-play"):
         prepare_profile_driven_session_creation_v1(
             values,
@@ -139,20 +142,21 @@ def test_session_rejects_mixed_saved_and_new_duplicate_names_before_entropy() ->
     def entropy(_size: int) -> bytes:
         raise AssertionError("Duplicate Player names must be rejected before entropy.")
 
-    with pytest.raises(ValueError, match="saved/new duplicates"):
+    with pytest.raises(ValueError, match="Duplicate saved Player name"):
         prepare_profile_driven_session_creation_v1(
             {
                 "game_name": "Game",
                 "capture_mode": "retrospective",
-                "player_1_handle": build_known_player_handle_v1(known.player_id),
-                "player_1_name": "",
-                "player_2_handle": "",
-                "player_2_name": "anna",
-                "player_3_handle": "",
-                "player_3_name": "Mira",
+                "perspective_mode": "manual",
+                "forehand_mode": "saved", "middlehand_mode": "new", "rearhand_mode": "new",
+                "forehand_handle": build_known_player_handle_v1(known.player_id),
+                "forehand_name": "",
+                "middlehand_handle": "",
+                "middlehand_name": "anna",
+                "rearhand_handle": "",
+                "rearhand_name": "Mira",
                 "perspective_seat": "",
                 "save_players": "false",
-                "save_preferences": "false",
             },
             profile=profile,
             expected_profile_generation=0,
@@ -161,7 +165,7 @@ def test_session_rejects_mixed_saved_and_new_duplicate_names_before_entropy() ->
         )
 
 
-def test_retrospective_saved_empty_perspective_clears_the_preference() -> None:
+def test_retrospective_empty_perspective_preserves_the_legacy_preference() -> None:
     known = KnownPlayerV1("frontend-player-" + "a" * 64, "Anna", (), ())
     profile = build_local_frontend_profile_v1(
         known_players=(known,),
@@ -171,15 +175,16 @@ def test_retrospective_saved_empty_perspective_clears_the_preference() -> None:
         {
             "game_name": "Review game",
             "capture_mode": "retrospective",
-            "player_1_handle": build_known_player_handle_v1(known.player_id),
-            "player_1_name": "",
-            "player_2_handle": "",
-            "player_2_name": "Peter",
-            "player_3_handle": "",
-            "player_3_name": "Mira",
+            "perspective_mode": "manual",
+            "forehand_mode": "saved", "middlehand_mode": "new", "rearhand_mode": "new",
+            "forehand_handle": build_known_player_handle_v1(known.player_id),
+            "forehand_name": "",
+            "middlehand_handle": "",
+            "middlehand_name": "Peter",
+            "rearhand_handle": "",
+            "rearhand_name": "Mira",
             "perspective_seat": "",
             "save_players": "true",
-            "save_preferences": "true",
         },
         profile=profile,
         expected_profile_generation=0,
@@ -188,4 +193,4 @@ def test_retrospective_saved_empty_perspective_clears_the_preference() -> None:
     )
     assert prepared.local_player_id is None
     assert prepared.profile_document is not None
-    assert prepared.profile_document.preferred_perspective_player_id is None
+    assert prepared.profile_document.preferred_perspective_player_id == known.player_id

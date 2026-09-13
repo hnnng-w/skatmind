@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from html import escape
 
-from .frontend_identifier_generation import build_known_player_handle_v1
 from .frontend_profile_contracts import LocalFrontendProfileV1
 from .frontend_profile_operations import FRONTEND_PROFILE_MANAGED_LABEL_ACTION_ROUTE
 from .managed_item_contracts import ManagedCategoryViewV1
 from .profile_driven_creation import FRIENDLY_GAME_PLATFORMS
+from .seat_setup_rendering import render_seat_setup_v1, render_setup_actions_v1
 from .translation_catalog import translate_frontend_message_v1
 
 
@@ -14,93 +14,13 @@ def _t(locale: str, key: str, **values: object) -> str:
     return escape(translate_frontend_message_v1(locale, key, **values))
 
 
-def _default_player_ids(profile: LocalFrontendProfileV1 | None) -> tuple[str, ...]:
-    if profile is None:
-        return ()
-    return tuple(
-        dict.fromkeys(
-            player_id
-            for player_id in (
-                profile.own_player_id,
-                profile.preferred_perspective_player_id,
-            )
-            if player_id is not None
-        )
-    )
-
-
-def _player_fields(
-    profile: LocalFrontendProfileV1 | None,
-    *,
-    index: int,
-    seat_key: str,
-    locale: str,
-) -> str:
-    default_ids = _default_player_ids(profile)
-    default_player_id = default_ids[index - 1] if index <= len(default_ids) else None
-    options = [f'<option value="">{_t(locale, "creation.common.no_saved_player")}</option>']
-    if profile is not None:
-        options.extend(
-            f'<option value="{build_known_player_handle_v1(player.player_id)}"'
-            f"{' selected' if player.player_id == default_player_id else ''}>"
-            f"{escape(player.display_name)}</option>"
-            for player in profile.known_players
-        )
-    return (
-        f"<fieldset><legend>{_t(locale, f'creation.seat.{seat_key}')}</legend>"
-        f"<p>{_t(locale, 'creation.common.player_choice_help')}</p>"
-        f"<label>{_t(locale, 'creation.common.known_player')}"
-        f'<select name="player_{index}_handle">{"".join(options)}</select></label>'
-        f"<label>{_t(locale, 'creation.common.new_player_name')}"
-        f'<input name="player_{index}_name" maxlength="120"></label></fieldset>'
-    )
-
-
-def _players(
-    profile: LocalFrontendProfileV1 | None,
-    locale: str,
-) -> str:
-    return "".join(
-        _player_fields(profile, index=index, seat_key=seat, locale=locale)
-        for index, seat in enumerate(("forehand", "middlehand", "rearhand"), start=1)
-    )
-
-
-def _perspective_options(
-    profile: LocalFrontendProfileV1 | None,
-    locale: str,
-    *,
-    optional: bool,
-) -> str:
-    preferred = None if profile is None else profile.preferred_perspective_player_id
-    default_ids = _default_player_ids(profile)
-    preferred_index = (
-        None if preferred is None or preferred not in default_ids else default_ids.index(preferred)
-    )
-    options = (
-        f'<option value="">{_t(locale, "creation.common.no_perspective")}</option>'
-        if optional
-        else f'<option value="">{_t(locale, "creation.common.choose_perspective")}</option>'
-    )
-    return options + "".join(
-        f'<option value="{seat}"'
-        f"{' selected' if preferred_index == index - 1 else ''}>"
-        f"{_t(locale, f'creation.seat.{seat}')}</option>"
-        for index, seat in enumerate(("forehand", "middlehand", "rearhand"), start=1)
-    )
-
-
-def _save_controls(locale: str) -> str:
+def _save_controls(locale: str, *, match: bool = False) -> str:
     return (
         f"<p>{_t(locale, 'creation.common.local_save_help')}</p>"
-        f"<label>{_t(locale, 'creation.common.save_players')}"
-        '<select name="save_players"><option value="true" selected>'
-        f'{_t(locale, "common.answer.yes")}</option><option value="false">'
-        f"{_t(locale, 'common.answer.no')}</option></select></label>"
-        f"<label>{_t(locale, 'creation.common.save_preferences')}"
-        '<select name="save_preferences"><option value="false" selected>'
-        f'{_t(locale, "common.answer.no")}</option><option value="true">'
-        f"{_t(locale, 'common.answer.yes')}</option></select></label>"
+        '<label><input type="checkbox" name="save_players" value="on"> '
+        f"{_t(locale, 'creation.common.save_players')}</label>"
+        + ('<label><input type="checkbox" name="save_platform" value="on"> '
+           f'{_t(locale, "creation.setup.save_platform")}</label>' if match else '')
     )
 
 
@@ -108,13 +28,23 @@ def _profile_generation(generation: int) -> str:
     return f'<input type="hidden" name="profile_generation" value="{generation}">'
 
 
+def _setup_values(html, setup):
+    if setup is None:
+        return html
+    from .form_parsing import FormValuesV1, FormValueV1
+    from .validation_rendering import _replace_safe_values
+    return _replace_safe_values(html, FormValuesV1(tuple(
+        FormValueV1(name, (value,)) for name, value in setup.values)))
+
+
 def render_profile_driven_session_creation_v1(
     *,
     profile: LocalFrontendProfileV1 | None,
     profile_generation: int,
     locale: str,
+    setup=None,
 ) -> str:
-    return (
+    html = (
         '<section class="panel friendly-create" aria-labelledby="session-create-heading">'
         f'<h2 id="session-create-heading">{_t(locale, "creation.session.heading")}</h2>'
         '<form method="post" action="/sessions/create" class="form-grid">'
@@ -128,14 +58,12 @@ def render_profile_driven_session_creation_v1(
         f'<label><input type="radio" name="capture_mode" value="retrospective"> '
         f"{_t(locale, 'creation.session.after')}</label>"
         f"<p>{_t(locale, 'creation.session.after_help')}</p></fieldset>"
-        + _players(profile, locale)
-        + f"<label>{_t(locale, 'creation.session.perspective')}"
-        f'<select name="perspective_seat">{_perspective_options(profile, locale, optional=True)}'
-        "</select></label>"
+        + render_seat_setup_v1(profile, locale, family="sessions", setup=setup)
         + _save_controls(locale)
-        + f'<button type="submit">{_t(locale, "creation.session.action")}</button>'
-        "</form></section>"
+        + render_setup_actions_v1(locale, family="sessions", setup=setup)
+        + "</form></section>"
     )
+    return _setup_values(html, setup)
 
 
 def _platform_options(
@@ -148,8 +76,8 @@ def _platform_options(
     ) + (("custom", None, "custom"),)
     known_values = {product_value for _choice, product_value in FRIENDLY_GAME_PLATFORMS}
     selected_choice = next(
-        (value for value, machine, _key in values if machine == preferred),
-        "custom" if preferred is not None and preferred not in known_values else None,
+        (value for value, machine, _key in values if machine == preferred and machine is not None),
+        "custom" if preferred is not None and preferred not in known_values else "unknown",
     )
     return "".join(
         f'<option value="{value}"'
@@ -164,6 +92,7 @@ def render_profile_driven_match_creation_v1(
     profile: LocalFrontendProfileV1 | None,
     profile_generation: int,
     locale: str,
+    setup=None,
 ) -> str:
     advanced_open = (
         " open"
@@ -179,18 +108,13 @@ def render_profile_driven_match_creation_v1(
     )
     platform_ids = "".join(
         f"<label>{_t(locale, 'creation.advanced.player_platform_id', seat=seat_label)}"
-        f'<input name="player_{index}_platform_id" maxlength="255"></label>'
-        for index, seat_label in enumerate(
-            (
-                _t(locale, f"creation.seat.{seat}")
-                for seat in ("forehand", "middlehand", "rearhand")
-            ),
-            start=1,
-        )
+        f'<input name="{seat}_platform_id" maxlength="255"></label>'
+        for seat, seat_label in (
+            (seat, _t(locale, f"creation.seat.{seat}"))
+            for seat in ("forehand", "middlehand", "rearhand"))
     )
     escaped_custom_platform = escape(custom_platform, quote=True)
-    perspective_options = _perspective_options(profile, locale, optional=False)
-    return (
+    html = (
         '<section class="panel friendly-create" aria-labelledby="match-create-heading">'
         f'<h2 id="match-create-heading">{_t(locale, "creation.match.heading")}</h2>'
         '<form method="post" action="/matches/api/v1/create" class="form-grid">'
@@ -206,13 +130,10 @@ def render_profile_driven_match_creation_v1(
         f'value="{escaped_custom_platform}"></label>'
         f"<p><strong>{_t(locale, 'creation.match.format')}</strong>: "
         f"{_t(locale, 'creation.match.format_value')}</p>"
-        + _players(profile, locale)
-        + f"<label>{_t(locale, 'creation.match.perspective')}"
-        f'<select name="perspective_seat" required>{perspective_options}'
-        "</select></label>"
-        f"<label>{_t(locale, 'creation.match.source_url')} "
+        + render_seat_setup_v1(profile, locale, family="matches", setup=setup)
+        + f"<label>{_t(locale, 'creation.match.source_url')} "
         '<input type="url" name="source_url" maxlength="2048"></label>'
-        + _save_controls(locale)
+        + _save_controls(locale, match=True)
         + f'<details class="advanced-settings"{advanced_open}><summary>'
         f"{_t(locale, 'creation.advanced.heading')}</summary>"
         f"<p>{_t(locale, 'creation.advanced.help')}</p>"
@@ -246,9 +167,10 @@ def render_profile_driven_match_creation_v1(
         f"<small>{_t(locale, 'creation.advanced.timecode_help')}</small>"
         "</div>"
         "</details>"
-        f'<button type="submit">{_t(locale, "creation.match.action")}</button>'
-        "</form></section>"
+        + render_setup_actions_v1(locale, family="matches", setup=setup)
+        + "</form></section>"
     )
+    return _setup_values(html, setup)
 
 
 def render_profile_driven_learning_creation_v1(
@@ -416,6 +338,7 @@ def render_friendly_managed_category_landing_v1(
     profile: LocalFrontendProfileV1 | None,
     profile_generation: int,
     locale: str,
+    setup=None,
 ) -> str:
     if type(view) is not ManagedCategoryViewV1:
         raise ValueError("view must be an exact managed category view.")
@@ -424,6 +347,7 @@ def render_friendly_managed_category_landing_v1(
             profile=profile,
             profile_generation=profile_generation,
             locale=locale,
+            setup=setup,
         )
         if view.family == "sessions"
         else (

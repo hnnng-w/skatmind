@@ -103,7 +103,7 @@ def test_match_creation_is_bilingual_friendly_and_keeps_technical_fields_advance
         assert 'name="match_id"' not in html
         assert 'name="perspective_player_id"' not in html
         assert 'name="player_1_id"' not in html
-        assert html.count("<fieldset>") >= 3
+        assert html.count('<fieldset class="seat-entry"') == 3
         assert '<select name="perspective_seat"' in html
         assert html.index(
             "Advanced Match details" if html is english else "Erweiterte Match-Angaben"

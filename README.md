@@ -709,9 +709,15 @@ Results are available. Managed Session entry and execution, Match Capture,
 Learning workflows, and explicit Match-to-Corpus transfer are also available
 without normal-user paths or ports. Normal creation uses names and saved Players,
 generates internal Product identities, presents friendly Match platform/date/
-source fields, and keeps Session and Match JSON import secondary. Local Players,
-defaults, and managed display names are edited from About and the stateful
-landing pages. See [Guided analysis and Results](docs/unified_local_frontend_guided_analysis_and_results.md),
+source fields, and keeps Session and Match JSON import secondary. Open **Settings**
+to add/edit Players, identify **Your player**, and choose local creation defaults.
+New recordings ask for an explicit own seat, with no starting seat inferred from
+identity. Review the named roster before creation; Match seats mean game 1 and
+are translated to the existing table places. Saving new Players is unchecked by
+default. Legacy aliases/account sets and existing recordings remain intact.
+Managed display labels are edited on the stateful landing pages. See
+[Settings and Player seat setup](docs/settings_and_player_seat_setup.md),
+[Guided analysis and Results](docs/unified_local_frontend_guided_analysis_and_results.md),
 the [managed stateful workflows](docs/unified_local_frontend_stateful_workflows.md),
 the [profile-driven creation layer](docs/profile_driven_stateful_creation.md),
 and the [application shell](docs/unified_local_frontend_application_shell.md).
@@ -721,7 +727,7 @@ Plays or all 30 Plays, without re-entering the Game or requiring complete
 Historical export. Source-labelled Results and exact downloads remain process-local;
 missing decision snapshots are explained rather than reconstructed. See
 [Review recorded Session decisions](docs/session_recorded_decision_review.md).
-The shared shell, grouped Home, Product-concept and empty-state guidance, About,
+The shared shell, grouped Home, Product-concept and empty-state guidance, Settings, About,
 authorization, and common errors now support German and English. Browser
 language is used only when no explicit
 language is saved in the private managed-root profile. Select **Deutsch** or

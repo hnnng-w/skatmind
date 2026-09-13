@@ -40,7 +40,7 @@ def build_browser_safe_application_state_v1() -> BrowserSafeApplicationStateV1:
             availability_message_key=f"{prefix}.availability",
         )
         for route, prefix in zip(
-            APP_ROUTE_PATHS[1:],
+            tuple(route for route in APP_ROUTE_PATHS[1:] if route != "/settings"),
             APP_HOME_TASK_MESSAGE_KEY_PREFIXES,
             strict=True,
         )

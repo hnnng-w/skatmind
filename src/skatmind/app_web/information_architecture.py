@@ -94,6 +94,6 @@ def validate_frontend_information_architecture_v1(
     if tuple(group_key for group_key, _members in group_membership) != group_keys:
         raise ValueError("Every Home group must have exact ordered membership.")
     if len(mapped_routes) != len(set(mapped_routes)) or set(mapped_routes) != set(
-        APP_ROUTE_PATHS[1:]
+        route for route in APP_ROUTE_PATHS[1:] if route != "/settings"
     ):
         raise ValueError("Home task Routes must cover the six machine task Routes exactly.")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from html import escape
 
 from .frontend_identifier_generation import build_known_player_handle_v1
@@ -12,6 +13,7 @@ from .frontend_profile_operations import (
     FRONTEND_PROFILE_RECOMMENDED_RESET_ACTION_ROUTE,
 )
 from .profile_driven_creation import FRIENDLY_GAME_PLATFORMS
+from .settings_forms import SettingsEditorV1
 from .translation_catalog import translate_frontend_message_v1
 
 
@@ -82,7 +84,6 @@ def _preferences(
     locale: str,
 ) -> str:
     own_player_id = None if profile is None else profile.own_player_id
-    perspective_id = None if profile is None else profile.preferred_perspective_player_id
     advanced = (
         False if profile is None else profile.interface_preferences.advanced_settings_expanded
     )
@@ -97,29 +98,25 @@ def _preferences(
         f'<select name="own_player_handle">'
         f"{_player_options(profile, selected_id=own_player_id, locale=locale)}"
         "</select></label>"
-        f"<label>{_t(locale, 'settings.preferences.perspective')}"
-        '<select name="preferred_perspective_player_handle">'
-        f"{_player_options(profile, selected_id=perspective_id, locale=locale)}"
-        "</select></label>"
         + _platform_fields(profile, locale=locale)
-        + f"<fieldset><legend>{_t(locale, 'settings.preferences.advanced')}</legend>"
-        f'<label><input type="radio" name="advanced_settings_expanded" value="false"'
-        f"{' checked' if not advanced else ''}> "
-        f"{_t(locale, 'common.answer.no')}</label>"
-        f'<label><input type="radio" name="advanced_settings_expanded" value="true"'
+        + f'<label><input type="checkbox" name="advanced_settings_expanded" value="on"'
         f"{' checked' if advanced else ''}> "
-        f"{_t(locale, 'common.answer.yes')}</label></fieldset>"
+        f"{_t(locale, 'settings.preferences.advanced')}</label>"
+        f"<p>{_t(locale, 'settings.preferences.advanced_help')}</p>"
         f'<button type="submit">{_t(locale, "settings.preferences.save")}</button>'
         "</form></section>"
     )
 
 
-def _player_data(player) -> tuple[str, str]:
-    aliases = "\n".join(player.aliases)
-    platform_ids = "\n".join(
-        f"{value.platform} = {value.player_id}" for value in player.platform_player_ids
+def _action(action, label, *, handle, generation, locale, selection=None):
+    return (
+        f'<form method="post" action="/actions/profile/players/{action}">'
+        + _generation(generation)
+        + f'<input type="hidden" name="player_handle" value="{handle}">'
+        + (f'<input type="hidden" name="editor_selection" value="{selection}">'
+           if selection is not None else '')
+        + f'<button type="submit">{_t(locale, label)}</button></form>'
     )
-    return aliases, platform_ids
 
 
 def _player_card(
@@ -128,63 +125,111 @@ def _player_card(
     profile: LocalFrontendProfileV1,
     generation: int,
     locale: str,
+    editor: SettingsEditorV1 | None,
 ) -> str:
     handle = build_known_player_handle_v1(player.player_id)
-    aliases, platform_ids = _player_data(player)
-    referenced = player.player_id in {
-        profile.own_player_id,
-        profile.preferred_perspective_player_id,
-    }
-    confirmation = (
-        f'<label><input type="checkbox" name="confirm_referenced" value="on" required> '
-        f"{_t(locale, 'settings.players.confirm_referenced')}</label>"
-        if referenced
-        else ""
-    )
+    own = (f' <span class="own-player">{_t(locale, "settings.preferences.own_player")}</span>'
+           if player.player_id == profile.own_player_id else "")
+    expanded = editor is not None and editor.player_handle == handle
     return (
         '<article class="known-player-card">'
-        f"<h4>{escape(player.display_name)}</h4>"
-        "<details><summary>"
-        f"{_t(locale, 'settings.players.edit')}</summary>"
-        f'<form method="post" action="{FRONTEND_PROFILE_PLAYER_UPDATE_ACTION_ROUTE}">'
-        + _generation(generation)
-        + f'<input type="hidden" name="player_handle" value="{handle}">'
-        + _player_editor_fields(
-            display_name=player.display_name,
-            aliases=aliases,
-            platform_ids=platform_ids,
-            locale=locale,
-        )
-        + f'<button type="submit">{_t(locale, "settings.players.save")}</button>'
-        "</form></details>"
-        f'<form class="remove-player-form" method="post" '
-        f'action="{FRONTEND_PROFILE_PLAYER_REMOVE_ACTION_ROUTE}">'
-        + _generation(generation)
-        + f'<input type="hidden" name="player_handle" value="{handle}">'
-        + confirmation
-        + f'<button type="submit">{_t(locale, "settings.players.remove")}</button>'
-        "</form></article>"
+        f"<p><strong>{escape(player.display_name)}</strong>{own}</p>"
+        '<div class="player-actions">'
+        + _action("edit", "settings.players.edit", handle=handle,
+                  generation=generation, locale=locale)
+        + _action("remove-preview", "settings.players.remove", handle=handle,
+                  generation=generation, locale=locale)
+        + '</div>'
+        + (_editor(profile, player, editor, generation=generation, locale=locale)
+           if expanded else "")
+        + '</article>'
     )
 
 
-def _player_editor_fields(
-    *,
-    display_name: str,
-    aliases: str,
-    platform_ids: str,
-    locale: str,
-) -> str:
+def _account_fields(locale, account=None):
+    platform = "" if account is None else account.platform
+    account_id = "" if account is None else account.player_id
     return (
-        f"<label>{_t(locale, 'settings.players.display_name')}"
+        f'<label>{_t(locale, "settings.players.account_platform")}'
+        f'<input name="account_platform" maxlength="120" value="{escape(platform, quote=True)}">'
+        '</label>'
+        f'<label>{_t(locale, "settings.players.account_id")}'
+        f'<input name="account_id" maxlength="255" value="{escape(account_id, quote=True)}">'
+        '</label>'
+        f'<p>{_t(locale, "settings.players.account_help")}</p>'
+    )
+
+
+def _editor(profile, player, editor, *, generation, locale):
+    handle = "" if player is None else build_known_player_handle_v1(player.player_id)
+    transport = (_generation(generation)
+                 + f'<input type="hidden" name="player_handle" value="{handle}">')
+    cancel = _action("cancel", "settings.players.cancel", handle=handle,
+                     generation=generation, locale=locale, selection=editor.confirmation)
+    if editor.kind in {"remove", "accounts"}:
+        effects = []
+        if editor.kind == "remove":
+            for reference, key in ((profile.own_player_id, "own"),
+                    (profile.preferred_perspective_player_id, "preferred")):
+                if reference == player.player_id:
+                    effects.append(f'<li>{_t(locale, f"settings.players.removal_{key}")}</li>')
+            detail = '<ul>' + ''.join(effects) + '</ul>' if effects else ''
+            action = FRONTEND_PROFILE_PLAYER_REMOVE_ACTION_ROUTE
+        else:
+            old = '; '.join(f'{a.platform}: {a.player_id}' for a in player.platform_player_ids)
+            new = '; '.join(f'{a.platform}: {a.player_id}' for a in editor.accounts)
+            detail = (f'<p>{_t(locale, "settings.players.accounts_before")}: {escape(old)}</p>'
+                      f'<p>{_t(locale, "settings.players.accounts_after")}: '
+                      f'{escape(new) if new else _t(locale, "settings.players.none")}</p>')
+            action = '/actions/profile/players/accounts-replace'
+        current = editor.generation == generation and time.monotonic() - editor.created_at < 1800
+        confirmation = (
+            f'<form method="post" action="{action}">{transport}'
+            f'<input type="hidden" name="confirmation_selection" value="{editor.confirmation}">'
+            f'<label><input type="checkbox" name="confirm_replace" value="on" required> '
+            f'{_t(locale, "settings.players.confirm_change")}</label>'
+            f'<button type="submit">{_t(locale, "settings.players.confirm_action")}</button></form>'
+            if current else f'<p>{_t(locale, "settings.players.preview_expired")}</p>'
+        )
+        heading = _t(locale, f"settings.players.preview_{editor.kind}", name=player.display_name)
+        return (
+            '<section class="player-editor" tabindex="-1">'
+            f'<p><strong>{heading}</strong></p>'
+            f'{detail}<p>{_t(locale, "settings.players.recordings_unchanged")}</p>'
+            f'{confirmation}{cancel}</section>'
+        )
+    name = '' if player is None else player.display_name
+    action = (FRONTEND_PROFILE_PLAYER_ADD_ACTION_ROUTE if player is None
+              else FRONTEND_PROFILE_PLAYER_UPDATE_ACTION_ROUTE)
+    account_controls = _account_fields(locale) if player is None else (
+        '<input type="hidden" name="account_action" value="keep">'
+        '<p>' + _t(locale, "settings.players.legacy_accounts",
+                   count=len(player.platform_player_ids)) + '</p>'
+        if len(player.platform_player_ids) > 1 else
+        f'<label>{_t(locale, "settings.players.account_action")}<select name="account_action">'
+        f'<option value="keep">{_t(locale, "settings.players.account_keep")}</option>'
+        f'<option value="edit">{_t(locale, "settings.players.account_edit")}</option>'
+        '</select></label>'
+        '<div class="account-edit-fields">'
+        + _account_fields(locale, next(iter(player.platform_player_ids), None)) + '</div>'
+    )
+    replacement = ''
+    if player is not None and len(player.platform_player_ids) > 1:
+        replacement = (
+            f'<details><summary>{_t(locale, "settings.players.replace_accounts")}</summary>'
+            '<form method="post" action="/actions/profile/players/accounts-preview">'
+            + transport + _account_fields(locale)
+            + f'<button type="submit">{_t(locale, "settings.players.preview_action")}</button>'
+            '</form></details>'
+        )
+    return (
+        '<div class="player-editor">'
+        f'<form method="post" action="{action}">{transport if player else _generation(generation)}'
+        f'<label>{_t(locale, "settings.players.display_name")}'
         f'<input name="display_name" maxlength="120" required '
-        f'value="{escape(display_name, quote=True)}"></label>'
-        f"<label>{_t(locale, 'settings.players.aliases')}"
-        f'<textarea name="aliases" rows="3">{escape(aliases)}</textarea></label>'
-        f"<p>{_t(locale, 'settings.players.aliases_help')}</p>"
-        f"<label>{_t(locale, 'settings.players.platform_ids')}"
-        f'<textarea name="platform_player_ids" rows="3">'
-        f"{escape(platform_ids)}</textarea></label>"
-        f"<p>{_t(locale, 'settings.players.platform_ids_help')}</p>"
+        f'value="{escape(name, quote=True)}"></label>'
+        f'{account_controls}<button type="submit">{_t(locale, "settings.players.save")}</button>'
+        f'</form>{replacement}{cancel}</div>'
     )
 
 
@@ -193,6 +238,7 @@ def _players(
     *,
     generation: int,
     locale: str,
+    editor: SettingsEditorV1 | None,
 ) -> str:
     cards = (
         ""
@@ -203,6 +249,7 @@ def _players(
                 profile=profile,
                 generation=generation,
                 locale=locale,
+                editor=editor,
             )
             for player in profile.known_players
         )
@@ -213,18 +260,10 @@ def _players(
         f'<h3 id="known-players-heading">{_t(locale, "settings.players.heading")}</h3>'
         f"<p>{_t(locale, 'settings.players.help')}</p>"
         f'<div class="known-player-grid">{cards or empty_players}</div>'
-        '<details class="add-player"><summary>'
-        f"{_t(locale, 'settings.players.add')}</summary>"
-        f'<form method="post" action="{FRONTEND_PROFILE_PLAYER_ADD_ACTION_ROUTE}">'
-        + _generation(generation)
-        + _player_editor_fields(
-            display_name="",
-            aliases="",
-            platform_ids="",
-            locale=locale,
-        )
-        + f'<button type="submit">{_t(locale, "settings.players.add_action")}</button>'
-        "</form></details></section>"
+        + _action("edit", "settings.players.add", handle="", generation=generation, locale=locale)
+        + (_editor(profile, None, editor, generation=generation, locale=locale)
+           if editor is not None and editor.kind == "edit" and not editor.player_handle else "")
+        + '</section>'
     )
 
 
@@ -250,6 +289,7 @@ def render_local_settings_v1(
     profile_generation: int,
     profile_valid: bool,
     locale: str,
+    editor: SettingsEditorV1 | None = None,
 ) -> str:
     if type(profile_generation) is not int or profile_generation < 0:
         raise ValueError("profile_generation must be a non-negative integer.")
@@ -259,16 +299,19 @@ def render_local_settings_v1(
         return f"<p>{_t(locale, 'settings.invalid_reset_only')}</p>"
     return (
         '<div class="local-settings">'
+        + _players(
+            profile,
+            generation=profile_generation,
+            locale=locale,
+            editor=editor,
+        )
         + _preferences(
             profile,
             generation=profile_generation,
             locale=locale,
         )
-        + _players(
-            profile,
-            generation=profile_generation,
-            locale=locale,
-        )
+        + '<p><a href="/sessions">' + _t(locale, "creation.session.heading") + '</a> · '
+        + '<a href="/matches/new">' + _t(locale, "creation.match.heading") + '</a></p>'
         + _recommended_reset(generation=profile_generation, locale=locale)
         + "</div>"
     )

@@ -20,6 +20,11 @@ persistence formats, or standalone technical interfaces.
 
 ## Local settings and Players
 
+Issue #225 revises the ordinary UI described by the historical #219 slice below.
+The current authoritative flow is [Settings and Player seat
+setup](settings_and_player_seat_setup.md): dedicated Settings, compact lossless
+editing, one own-Player preference, explicit seats and unchecked enrichment.
+
 Issue #219 activates the reserved version-1 fields in the existing private
 `frontend-profile.json` document. `LOCAL_FRONTEND_PROFILE_VERSION` remains `1`,
 and the historical canonical empty-profile bytes and fingerprint remain
@@ -32,7 +37,7 @@ unchanged. The profile may now retain:
 * private display names for managed Sessions, Matches, and Learning collections;
 * an optional date-only Match display label.
 
-The About page provides authenticated bilingual operations to add, edit, and
+The Settings page provides authenticated bilingual operations to add, edit, and
 remove known Players, edit creation defaults, reset recommended defaults, and
 reset the complete profile. Stateful landing pages allow display labels to be
 edited for both created and imported managed Products. Labels never rename the
@@ -55,7 +60,7 @@ Duplicate Player display names require explicit disambiguation. Profile writes
 remain canonical, revisioned, fingerprinted, same-directory atomic replacements
 with optimistic compare-and-swap behavior. A profile file changed outside the
 running process requires restarting SkatMind before another profile-only write.
-An invalid profile must be explicitly reset from About before profile-driven
+An invalid profile must be explicitly reset from Settings before profile-driven
 creation or local-setting mutation; opening existing Products remains separate.
 
 ## Generated identities
@@ -91,9 +96,12 @@ generation applies only to normal creation.
 
 The Session form asks for a Game name, during-play or retrospective capture,
 three named Players, and an optional perspective seat where permitted. A Player
-seat may select one saved Player or enter one new display name. Saving new
-Players and the selected perspective is explicit. Capture mode is not a saved
-profile preference.
+seat uses either saved-Player or new-name mode. Own identity never implies a seat;
+the own seat begins empty and must be explicitly selected. A setup-only POST
+projects the named roster before final creation. Saving new Players defaults off;
+Session creation saves no separate perspective preference. The compatible hidden
+preferred perspective is retained but does not fill ordinary forms. Capture mode
+is not a saved profile preference.
 
 The Match form presents the fixed `EuroSkat 36-game standard` format as a
 friendly non-editable fact. It asks for a Match title, an optional date-only
@@ -105,6 +113,10 @@ Advanced settings. A date-only value is private display metadata and does not
 invent `played_at`; only an explicit Advanced RFC 3339 value populates that
 Product field. Saved platform account IDs are not copied invisibly into a new
 Match; only values explicitly submitted for that Match enter Product metadata.
+Issue #225 gives these fields seat-named game-1 semantics. Complete Forehand,
+Middlehand and Rearhand bundles map respectively to places 2, 3 and 1. Rotation
+and standalone table-place creation are unchanged. Match has a separate unchecked
+save-platform checkbox, with no seat or perspective saving effect.
 
 The Learning form asks only for a collection name and generates the internal
 Corpus ID. It does not import Matches, select a Current Snapshot, prepare
@@ -141,9 +153,9 @@ preparation, automatic Learning import, or Match-to-Corpus transfer.
 
 ## Validation and packaging
 
-With the additive Issue-#221 recorded-decision review action, the unified frontend
-has exactly 45 POST routes and 78 registered form
-definitions. Issue #220 extends the strict parity-checked German and English catalogs.
+After Issues #221–#225, the unified frontend has exactly 54 POST routes and 87
+registered form definitions. The historical #219/#221 counts are superseded only
+for this current private browser surface. German/English catalogs retain strict parity.
 Focused tests cover profile compatibility and persistence, generated domains and
 collision handling, known-Player operations, friendly creation translation,
 safe validation retention, bilingual rendering, one-call Product/profile

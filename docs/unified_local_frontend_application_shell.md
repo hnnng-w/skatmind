@@ -120,6 +120,7 @@ The exact route and navigation order is:
 | `/sessions` | Record one game | Managed listing, lifecycle, entry, and execution |
 | `/matches` | Record a 36-game Match | Managed listing and existing Capture workflow |
 | `/learning` | Learn across Matches | Managed Corpus lifecycle and workflow |
+| `/settings` | Settings | Compact Players, own identity, defaults and explicit resets |
 | `/about` | About SkatMind | Complete shell page |
 
 `/assets/app.css` is the single unified theme owner. Issue #224 removes standalone
@@ -158,6 +159,11 @@ boundary, local-only/no-cloud operation, managed-storage behavior, advanced CLI
 and Public Python API availability, and local documentation names. The escaped
 storage root appears only inside one closed explicit disclosure. The page makes
 no external documentation request.
+
+Issue #225 moves operational profile forms to the dedicated bilingual Settings
+page and leaves a Settings link on About. Only `/settings` is added to the exact
+safe HTML return allowlist. The shell now has eight pages and still exactly seven
+Engine Root workflows. See [Settings and Player seat setup](settings_and_player_seat_setup.md).
 
 ## Security
 

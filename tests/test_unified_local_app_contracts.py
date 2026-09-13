@@ -60,6 +60,7 @@ def test_routes_navigation_home_tasks_and_categories_are_exact_and_ordered() -> 
         "/sessions",
         "/matches",
         "/learning",
+        "/settings",
         "/about",
     )
     assert APP_NAVIGATION_LABELS == (
@@ -69,6 +70,7 @@ def test_routes_navigation_home_tasks_and_categories_are_exact_and_ordered() -> 
         "Record one game",
         "Record a 36-game Match",
         "Learn across Matches",
+        "Settings",
         "About SkatMind",
     )
     assert APP_HOME_TASK_TITLES == (

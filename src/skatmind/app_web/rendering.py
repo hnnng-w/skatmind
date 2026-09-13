@@ -34,6 +34,7 @@ _PAGE_TITLE_KEYS = {
     "/matches": "page.matches.title",
     "/learning": "page.learning.title",
     "/about": "page.about.title",
+    "/settings": "navigation.settings",
 }
 _CONCEPT_KEYS_BY_ROUTE = {
     "/analyze": "analyze",
@@ -288,16 +289,24 @@ def _placeholder(
     )
 
 
-def _profile_about_section(
+def _profile_settings_section(
     frontend: BrowserSafeFrontendProfileStateV1,
     profile: LocalFrontendProfileV1 | None,
+    editor=None,
 ) -> str:
     language = _translated(frontend, f"common.language.{frontend.locale}")
     source = _translated(frontend, f"profile.source.{frontend.resolution_source}")
     status = _translated(frontend, f"profile.status.{frontend.profile_status}")
     return (
-        '<section aria-labelledby="profile-heading">'
-        f'<h2 id="profile-heading">{_translated(frontend, "about.profile.heading")}</h2>'
+        render_local_settings_v1(
+            profile=profile,
+            profile_generation=frontend.profile_generation,
+            profile_valid=frontend.profile_status != "invalid",
+            locale=frontend.locale,
+            editor=editor,
+        )
+        + '<details class="secondary-action"><summary>'
+        f'{_translated(frontend, "about.profile.heading")}</summary>'
         f"<p>{_translated(frontend, 'about.profile.private')}</p>"
         f"<p>{_translated(frontend, 'about.profile.no_cloud')}</p>"
         '<dl class="about-list">'
@@ -308,22 +317,17 @@ def _profile_about_section(
         f"<dt>{_translated(frontend, 'about.profile.status')}</dt>"
         f"<dd>{status}</dd></dl>"
         f"<p>{_translated(frontend, 'about.profile.future')}</p>"
-        + render_local_settings_v1(
-            profile=profile,
-            profile_generation=frontend.profile_generation,
-            profile_valid=frontend.profile_status != "invalid",
-            locale=frontend.locale,
-        )
+        + '</details>'
         + f'<form class="reset-form" method="post" '
         f'action="{FRONTEND_PROFILE_RESET_ACTION_ROUTE}">'
         f'<input type="hidden" name="profile_generation" '
         f'value="{frontend.profile_generation}">'
-        '<input type="hidden" name="return_to" value="/about">'
+        '<input type="hidden" name="return_to" value="/settings">'
         f"<p>{_translated(frontend, 'profile.reset.description')}</p>"
         f'<label><input type="checkbox" name="confirm_reset" value="on" required> '
         f"{_translated(frontend, 'profile.reset.confirm')}</label>"
         f'<button type="submit">{_translated(frontend, "profile.reset.submit")}</button>'
-        "</form></section>"
+        "</form>"
     )
 
 
@@ -367,7 +371,7 @@ def _about(
         f"{_translated(frontend, 'about.local.storage_show')}</summary>"
         f"<code>{escape(str(storage_root), quote=True)}</code></details>"
         "</section>"
-        f"{_profile_about_section(frontend, profile)}"
+        f'<p><a href="/settings">{_translated(frontend, "navigation.settings")}</a></p>'
         '<section aria-labelledby="interfaces-heading">'
         f'<h2 id="interfaces-heading">{_translated(frontend, "about.advanced.heading")}</h2>'
         f"<p>{_translated(frontend, 'about.advanced.description')}</p>"
@@ -393,7 +397,8 @@ def _shell(
 ) -> str:
     warning = (
         '<aside class="profile-warning" role="alert">'
-        f"{_translated(frontend, 'profile.invalid_warning')}</aside>"
+        f"{_translated(frontend, 'profile.invalid_warning')} "
+        f'<a href="/settings">{_translated(frontend, "navigation.settings")}</a></aside>'
         if frontend.warning
         else ""
     )
@@ -436,6 +441,7 @@ def render_app_page_v1(
     review_state: ProcessLocalFrontendWorkflowStateV1 | None = None,
     frontend: BrowserSafeFrontendProfileStateV1 | None = None,
     profile: LocalFrontendProfileV1 | None = None,
+    settings_editor=None,
     return_to: str | None = None,
 ) -> str:
     if type(state) is not BrowserSafeApplicationStateV1:
@@ -444,8 +450,8 @@ def render_app_page_v1(
         raise ValueError("route must be a canonical application route.")
     if route != "/about" and storage_root is not None:
         raise ValueError("Private storage Path is allowed only on About.")
-    if route != "/about" and profile is not None:
-        raise ValueError("Private profile data is allowed only on About.")
+    if route not in {"/about", "/settings"} and profile is not None:
+        raise ValueError("Private profile data is allowed only on Settings.")
     if analyze_state is not None and type(analyze_state) is not ProcessLocalFrontendWorkflowStateV1:
         raise ValueError("analyze_state must be exact process-local workflow state.")
     if review_state is not None and type(review_state) is not ProcessLocalFrontendWorkflowStateV1:
@@ -465,6 +471,9 @@ def render_app_page_v1(
         if not isinstance(storage_root, Path):
             raise ValueError("About rendering requires one private storage Path.")
         title, content = _about(state, storage_root, frontend_state, profile)
+    elif route == "/settings":
+        title = _text(frontend_state, "navigation.settings")
+        content = _profile_settings_section(frontend_state, profile, settings_editor)
     else:
         title, content = _placeholder(route, frontend_state)
     if route in _WORKFLOW_ROUTES:

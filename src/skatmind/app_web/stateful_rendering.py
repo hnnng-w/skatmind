@@ -39,12 +39,14 @@ def render_managed_category_landing_v1(
     profile: LocalFrontendProfileV1 | None = None,
     profile_generation: int = 0,
     locale: str = "en",
+    setup=None,
 ) -> str:
     return render_friendly_managed_category_landing_v1(
         view,
         profile=profile,
         profile_generation=profile_generation,
         locale=locale,
+        setup=setup,
     )
 
 

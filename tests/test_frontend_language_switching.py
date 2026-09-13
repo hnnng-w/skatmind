@@ -75,6 +75,9 @@ def _post(
     route: str,
     values: dict[str, str],
 ) -> tuple[int, dict[str, str], bytes]:
+    if route in {"/sessions/create", "/matches/api/v1/create"}:
+        from frontend_creation_forms import submit_reviewed_creation
+        return submit_reviewed_creation(_request, server, headers, route, values)
     return _request(
         server,
         "POST",
@@ -90,48 +93,33 @@ def _profile_generation(server: SkatMindAppWebServerV1) -> str:
 
 
 def _session_creation_values(server: SkatMindAppWebServerV1) -> dict[str, str]:
+    from frontend_creation_forms import new_name_roster
     return {
+        **new_name_roster(),
         "game_name": "Locale game",
         "capture_mode": "retrospective",
-        "player_1_handle": "",
-        "player_1_name": "Alice",
-        "player_2_handle": "",
-        "player_2_name": "Bob",
-        "player_3_handle": "",
-        "player_3_name": "Carol",
         "perspective_seat": "",
-        "save_players": "false",
-        "save_preferences": "false",
         "profile_generation": _profile_generation(server),
     }
 
 
 def _match_creation_values(server: SkatMindAppWebServerV1) -> dict[str, str]:
+    from frontend_creation_forms import new_name_roster
     return {
+        **new_name_roster(),
         "match_title": "Locale match",
         "played_date": "",
         "platform_choice": "euroskat",
         "custom_platform": "",
-        "player_1_handle": "",
-        "player_1_name": "Alice",
-        "player_2_handle": "",
-        "player_2_name": "Bob",
-        "player_3_handle": "",
-        "player_3_name": "Carol",
         "perspective_seat": "forehand",
         "source_url": "",
         "external_match_id": "",
-        "player_1_platform_id": "",
-        "player_2_platform_id": "",
-        "player_3_platform_id": "",
         "source_kind": "",
         "source_title": "",
         "source_channel_name": "",
         "played_at": "",
         "match_timecode_start": "",
         "match_timecode_end": "",
-        "save_players": "false",
-        "save_preferences": "false",
         "profile_generation": _profile_generation(server),
     }
 
@@ -210,11 +198,13 @@ def test_browser_german_does_not_write_and_localizes_shell_home_about_and_errors
     status, _headers, about = _request(server, "GET", "/about", headers=german)
     assert status == 200
     about_html = about.decode()
-    assert "Lokale Einstellungen und Spieler" in about_html
-    assert "Browsersprache" in about_html
-    assert "Nicht gespeichert" in about_html
-    assert "Gespeicherte Spieler und Erfassungsvorgaben" in about_html
-    assert 'action="/actions/profile/reset"' in about_html
+    assert 'href="/settings"' in about_html
+    settings_html = _request(server, "GET", "/settings", headers=german)[2].decode()
+    assert "Browsersprache" in settings_html
+    assert "Nicht gespeichert" in settings_html
+    assert "Gespeicherte Spieler und Erfassungsvorgaben" in settings_html
+    assert 'action="/actions/profile/reset"' in settings_html
+    assert 'action="/actions/profile/reset"' not in about_html
     assert ", and <code>" not in about_html
 
     status, _headers, missing = _request(server, "GET", "/missing", headers=german)
@@ -580,10 +570,10 @@ def test_invalid_profile_warns_in_english_and_requires_authenticated_reset(
             {
                 "confirm_reset": "on",
                 "profile_generation": "0",
-                "return_to": "/about",
+                "return_to": "/settings",
             },
         )
-        assert status == 303 and headers["location"] == "/about"
+        assert status == 303 and headers["location"] == "/settings"
         loaded = load_frontend_profile_file_v1(home.root)
         assert loaded.status == "available"
         assert loaded.document is not None and loaded.document.language is None

@@ -409,6 +409,9 @@ def _post_form(
     mutation_headers: dict[str, str],
     values: dict[str, str],
 ) -> tuple[int, dict[str, str], bytes]:
+    if target in {"/sessions/create", "/matches/api/v1/create"}:
+        from frontend_creation_forms import submit_reviewed_creation
+        return submit_reviewed_creation(_request, server, mutation_headers, target, values)
     body = urlencode(values).encode("ascii")
     return _request(
         server,
@@ -433,18 +436,12 @@ def _session_creation_values(
     game_name: str,
     capture_mode: str = "retrospective",
 ) -> dict[str, str]:
+    from frontend_creation_forms import new_name_roster
     return {
+        **new_name_roster(),
         "game_name": game_name,
         "capture_mode": capture_mode,
-        "player_1_handle": "",
-        "player_1_name": "Alice",
-        "player_2_handle": "",
-        "player_2_name": "Bob",
-        "player_3_handle": "",
-        "player_3_name": "Carol",
         "perspective_seat": "",
-        "save_players": "false",
-        "save_preferences": "false",
         "profile_generation": _profile_generation(server),
     }
 
@@ -465,31 +462,22 @@ def _match_creation_values(
     *,
     match_title: str,
 ) -> dict[str, str]:
+    from frontend_creation_forms import new_name_roster
     return {
+        **new_name_roster(),
         "match_title": match_title,
         "played_date": "",
         "platform_choice": "euroskat",
         "custom_platform": "",
-        "player_1_handle": "",
-        "player_1_name": "Alice",
-        "player_2_handle": "",
-        "player_2_name": "Bob",
-        "player_3_handle": "",
-        "player_3_name": "Carol",
         "perspective_seat": "forehand",
         "source_url": "",
         "external_match_id": "",
-        "player_1_platform_id": "",
-        "player_2_platform_id": "",
-        "player_3_platform_id": "",
         "source_kind": "",
         "source_title": "",
         "source_channel_name": "",
         "played_at": "",
         "match_timecode_start": "",
         "match_timecode_end": "",
-        "save_players": "false",
-        "save_preferences": "false",
         "profile_generation": _profile_generation(server),
     }
 

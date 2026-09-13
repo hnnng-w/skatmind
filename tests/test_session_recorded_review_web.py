@@ -101,10 +101,12 @@ def record_live_game(browser, *, play_count=6):
     form = Forms(browser.page("/sessions")).find("/sessions/create")
     status, _, content = browser.submit(
         form, game_name="Synthetic recorded Game", capture_mode="live",
-        player_1_name="Alexandra Long-Synthetic-Player-Name", player_2_name="Boris",
-        player_3_name="Clara", perspective_seat="forehand",
-        save_players="false", save_preferences="false",
+        forehand_name="Alexandra Long-Synthetic-Player-Name", middlehand_name="Boris",
+        rearhand_name="Clara", perspective_seat="forehand", setup_action="update",
     )
+    assert status == 303, content.decode()
+    status, _, content = browser.submit(
+        Forms(browser.page("/sessions")).find("/sessions/create"), setup_action="create")
     assert status == 303, content.decode()
     browser.command("set_game_metadata")
     for card in data["players"][0]["initial_hand"]:

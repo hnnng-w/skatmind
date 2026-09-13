@@ -6,6 +6,13 @@ Recording, recovery, analysis, transfer, selection, preparation and persistence
 retain their existing operations. This is scoped implementation evidence, not
 whole-frontend accessibility certification or maintainer UAT acceptance.
 
+Issue #225 extends the app-owned light/shrinkable boundary to Settings and the
+seat-setup/managed landing forms. Native saved/new mode choices suppress unused
+entry controls without JavaScript, and only the selected Player editor expands.
+Its separate installed-browser evidence covers desktop/narrow de/en, 320-pixel
+reflow, 200% text, real creation, collision feedback and removal. The original #224
+evidence below remains historical. See [Settings and Player seat setup](settings_and_player_seat_setup.md).
+
 ## Asset and component ownership
 
 `app_web/assets/app.css` is the single theme owner. All unified Match and Learning

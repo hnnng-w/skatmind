@@ -47,9 +47,11 @@ def start_match(browser, locale="en", name="Alexandra Long-Synthetic-Player-Name
                                               language=locale))
     page = follow(browser, browser.submit(Forms(page).find("/matches/api/v1/create"),
         match_title="Synthetic recovery Match",
-        player_1_name=name,
-        player_2_name="Boris", player_3_name="Clara", perspective_seat="forehand",
-        platform_choice="in_person", save_players="false", save_preferences="false"))
+        forehand_name=name,
+        middlehand_name="Boris", rearhand_name="Clara", perspective_seat="forehand",
+        platform_choice="in_person", setup_action="update"))
+    page = follow(browser, browser.submit(Forms(page).find("/matches/api/v1/create"),
+        setup_action="create"))
     page = follow(browser, browser.submit(operation_form(page, "start_game")))
     # Resolve the named Declarer choice from returned HTML, not internal IDs.
     options = re.search(r'<select name="declarer_player_id"[^>]*>(.*?)</select>', page, re.S)[1]

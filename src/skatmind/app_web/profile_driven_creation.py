@@ -17,6 +17,7 @@ from .frontend_identifier_generation import (
 )
 from .frontend_profile_codec import build_local_frontend_profile_v1
 from .frontend_profile_contracts import LocalFrontendProfileV1
+from .player_seat_setup import SEAT_SETUP_FIELDS, require_own_binding_v1
 from .profile_player_contracts import (
     MAX_KNOWN_PLAYERS,
     MAX_MANAGED_ITEM_DISPLAY_LABELS,
@@ -39,15 +40,10 @@ FRIENDLY_GAME_PLATFORM_VALUES = tuple(
 PROFILE_DRIVEN_SESSION_CREATE_FIELDS = (
     "game_name",
     "capture_mode",
-    "player_1_handle",
-    "player_1_name",
-    "player_2_handle",
-    "player_2_name",
-    "player_3_handle",
-    "player_3_name",
-    "perspective_seat",
+    *SEAT_SETUP_FIELDS,
     "save_players",
-    "save_preferences",
+    "setup_action",
+    "setup_context",
     "profile_generation",
 )
 PROFILE_DRIVEN_MATCH_CREATE_FIELDS = (
@@ -55,18 +51,12 @@ PROFILE_DRIVEN_MATCH_CREATE_FIELDS = (
     "played_date",
     "platform_choice",
     "custom_platform",
-    "player_1_handle",
-    "player_1_name",
-    "player_2_handle",
-    "player_2_name",
-    "player_3_handle",
-    "player_3_name",
-    "perspective_seat",
+    *SEAT_SETUP_FIELDS,
     "source_url",
     "external_match_id",
-    "player_1_platform_id",
-    "player_2_platform_id",
-    "player_3_platform_id",
+    "forehand_platform_id",
+    "middlehand_platform_id",
+    "rearhand_platform_id",
     "source_kind",
     "source_title",
     "source_channel_name",
@@ -74,7 +64,9 @@ PROFILE_DRIVEN_MATCH_CREATE_FIELDS = (
     "match_timecode_start",
     "match_timecode_end",
     "save_players",
-    "save_preferences",
+    "save_platform",
+    "setup_action",
+    "setup_context",
     "profile_generation",
 )
 PROFILE_DRIVEN_LEARNING_CREATE_FIELDS = (
@@ -175,11 +167,15 @@ def _select_players(
 ) -> tuple[_SelectedPlayerV1, ...]:
     selected: list[_SelectedPlayerV1] = []
     known_ids: list[str] = []
-    for index in range(1, 4):
-        handle = _trimmed(values, f"player_{index}_handle")
-        display_name = _trimmed(values, f"player_{index}_name")
+    require_own_binding_v1(values, profile)
+    for seat in _SEATS:
+        handle = _trimmed(values, f"{seat}_handle")
+        display_name = _trimmed(values, f"{seat}_name")
+        if values.get(f"{seat}_mode") != ("saved" if handle else "new"):
+            raise ProfileDrivenCreationFieldError(
+                f"{seat}_mode", "Choose one supported Player entry mode.")
         if bool(handle) == bool(display_name):
-            field_key = f"player_{index}_{'name' if handle else 'handle'}"
+            field_key = f"{seat}_{'name' if handle else 'handle'}"
             raise ProfileDrivenCreationFieldError(
                 field_key,
                 "Each seat requires either one known Player or one new name.",
@@ -189,11 +185,11 @@ def _select_players(
                 player = resolve_known_player_handle_v1(profile, handle)
             except ValueError as exc:
                 raise ProfileDrivenCreationFieldError(
-                    f"player_{index}_handle",
+                    f"{seat}_handle",
                     str(exc),
                 ) from exc
             selected.append(
-                _SelectedPlayerV1(player, player.display_name, f"player_{index}_handle")
+                _SelectedPlayerV1(player, player.display_name, f"{seat}_handle")
             )
             known_ids.append(player.player_id)
         else:
@@ -201,10 +197,17 @@ def _select_players(
                 normalize_player_display_name_v1(display_name)
             except ValueError as exc:
                 raise ProfileDrivenCreationFieldError(
-                    f"player_{index}_name",
+                    f"{seat}_name",
                     str(exc),
                 ) from exc
-            selected.append(_SelectedPlayerV1(None, display_name, f"player_{index}_name"))
+            if profile is not None and any(
+                normalize_player_display_name_v1(player.display_name)
+                == normalize_player_display_name_v1(display_name)
+                for player in profile.known_players
+            ):
+                raise ProfileDrivenCreationFieldError(
+                    f"{seat}_name", "Duplicate saved Player name; select the existing Player.")
+            selected.append(_SelectedPlayerV1(None, display_name, f"{seat}_name"))
     if len(known_ids) != len(set(known_ids)):
         repeated = next(
             player
@@ -338,6 +341,7 @@ def prepare_profile_driven_session_creation_v1(
     expected_profile_generation: int,
     existing_session_ids: tuple[str, ...],
     entropy_source: Callable[[int], bytes],
+    validation_only: bool = False,
 ) -> PreparedProfileDrivenSessionCreationV1:
     generation = _require_generation(expected_profile_generation)
     game_name = _trimmed(values, "game_name")
@@ -361,18 +365,10 @@ def prepare_profile_driven_session_creation_v1(
             "During-play recording requires one perspective seat.",
         )
     save_players = _checkbox(values, "save_players")
-    save_preferences = _checkbox(values, "save_preferences")
     perspective_index = None if not perspective_seat else _SEATS.index(perspective_seat)
-    if (
-        save_preferences
-        and perspective_index is not None
-        and selected[perspective_index].known_player is None
-        and not save_players
-    ):
-        raise ProfileDrivenCreationFieldError(
-            "save_preferences",
-            "Saving a new preferred perspective also requires saving Players.",
-        )
+
+    if validation_only:
+        return None
 
     new_players, player_ids, _platform_ids = _materialize_players(
         selected,
@@ -404,7 +400,7 @@ def prepare_profile_driven_session_creation_v1(
         new_players=new_players,
         save_players=save_players,
         preferred_perspective_player_id=local_player_id,
-        save_perspective=save_preferences,
+        save_perspective=False,
         preferred_game_platform=None,
         save_platform=False,
         label=ManagedItemDisplayLabelV1(
@@ -535,6 +531,7 @@ def prepare_profile_driven_match_creation_v1(
     expected_profile_generation: int,
     existing_match_ids: tuple[str, ...],
     entropy_source: Callable[[int], bytes],
+    validation_only: bool = False,
 ) -> PreparedProfileDrivenMatchCreationV1:
     generation = _require_generation(expected_profile_generation)
     title = _trimmed(values, "match_title")
@@ -562,14 +559,15 @@ def prepare_profile_driven_match_creation_v1(
             "match_timecode_start" if timecode_start else "match_timecode_end",
             "Video timecodes require one media source.",
         )
-    platform_ids = tuple(_trimmed(values, f"player_{index}_platform_id") for index in range(1, 4))
+    platform_ids = tuple(_trimmed(values, f"{seat}_platform_id") for seat in _SEATS)
     save_players = _checkbox(values, "save_players")
-    save_preferences = _checkbox(values, "save_preferences")
-    if selected[perspective_index].known_player is None and save_preferences and not save_players:
-        raise ProfileDrivenCreationFieldError(
-            "save_preferences",
-            "Saving a new preferred perspective also requires saving Players.",
-        )
+    save_platform = _checkbox(values, "save_platform")
+    for seat, account_id in zip(_SEATS, platform_ids, strict=True):
+        if account_id:
+            try:
+                KnownPlayerPlatformIdV1(platform, account_id)
+            except ValueError as error:
+                raise ProfileDrivenCreationFieldError(f"{seat}_platform_id", str(error)) from error
 
     base_values = {
         "match_id": "pending-match",
@@ -594,6 +592,11 @@ def prepare_profile_driven_match_creation_v1(
         },
         "perspective_player_id": f"pending-player-{perspective_index + 1}",
     }
+    # Validate exact Product metadata before consuming any identity entropy.
+    from skatmind.capture_web.operations import _creation_definition
+    _creation_definition(base_values)
+    if validation_only:
+        return None
     new_players, player_ids, product_platform_ids = _materialize_players(
         selected,
         profile=profile,
@@ -615,14 +618,25 @@ def prepare_profile_driven_match_creation_v1(
         },
         "perspective_player_id": player_ids[perspective_index],
     }
+    # Game 1 seats -> unchanged initializer's table places, as complete bundles.
+    bundles = tuple((player_id, player.display_name, account_id or "")
+        for player_id, player, account_id in zip(
+            player_ids, selected, product_platform_ids, strict=True))
+    for index, bundle in enumerate((bundles[2], bundles[0], bundles[1]), start=1):
+        for suffix, value in zip(("id", "label", "platform_id"), bundle, strict=True):
+            product_values[f"player_{index}_{suffix}"] = value
+    from skatmind.match_workspace_rotation import build_match_workspace_seat_assignment_v1
+    assignment = build_match_workspace_seat_assignment_v1(_creation_definition(product_values), 1)
+    if tuple(getattr(assignment, f"{seat}_player_id") for seat in _SEATS) != player_ids:
+        raise RuntimeError("First-Game roster translation disagrees with authoritative rotation.")
     profile_document = _profile_with_creation(
         profile,
         new_players=new_players,
         save_players=save_players,
         preferred_perspective_player_id=player_ids[perspective_index],
-        save_perspective=save_preferences,
+        save_perspective=False,
         preferred_game_platform=platform,
-        save_platform=save_preferences,
+        save_platform=save_platform,
         label=ManagedItemDisplayLabelV1(
             "matches",
             match_id,

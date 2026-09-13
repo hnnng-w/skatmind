@@ -453,6 +453,13 @@ It must not be presented as an AI or opponent profile.
 
 ## Known-Player directory and perspective
 
+**Issue-#225 revision:** the current ordinary editor lives at `/settings`, with
+one display name and zero/one complete optional account pair. Existing aliases
+and multi-account values remain valid stored data; name-only updates preserve them,
+and multi-account replacement requires a separate preview and fresh confirmation.
+Only the selected editor expands. About remains informational. These decisions
+supersede the earlier normal alias/account-list and About operational UI choices.
+
 The profile may retain a private local directory of known Players. Each entry
 conceptually retains one system-generated stable opaque internal Player ID, one
 user-facing display name, optional aliases, optional platform-specific IDs, and
@@ -479,10 +486,22 @@ Rearhand - Anna
 ```
 
 The normal frontend must not ask for `Local Player ID` or `Perspective Player
-ID`. A profile default may preselect a perspective but must not lock it. Every
-active selection must remain visible and changeable before saving or execution.
+ID`. Own identity may preselect Own perspective mode, but never a seat. The own
+seat begins empty; Match seats explicitly mean game 1. A setup-only submission
+shows the roster before creation and preserves occupied-seat conflicts. Manual
+other-perspective and Retrospective no-local setup remain supported. The compatible
+legacy preferred-perspective field is preserved but is absent from ordinary UI
+and does not populate new seat rows. See [Settings and Player seat
+setup](settings_and_player_seat_setup.md).
 
 ## Saved frontend preferences
+
+Issue #225 revises ordinary saving: new Players default to an unchecked explicit
+checkbox; Session creation saves no perspective preference; Match may save only
+the named platform through its separate unchecked checkbox. Advanced creation
+details retain the same expansion preference through one explained checkbox.
+The older conceptual preferred-perspective field below remains compatible data,
+with its existing reset/removal semantics, rather than another normal selector.
 
 The profile may retain only explicit user-selected frontend preferences. At a
 minimum, it must conceptually support selected language, whether Advanced

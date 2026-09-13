@@ -89,6 +89,9 @@ def _post(
     route: str,
     values: dict[str, str],
 ) -> tuple[int, dict[str, str], bytes]:
+    if route in {"/sessions/create", "/matches/api/v1/create"}:
+        from frontend_creation_forms import submit_reviewed_creation
+        return submit_reviewed_creation(_request, server, headers, route, values)
     return _request(
         server,
         "POST",
@@ -115,96 +118,86 @@ def _add_player(
         FRONTEND_PROFILE_PLAYER_ADD_ACTION_ROUTE,
         {
             "display_name": name,
-            "aliases": "Anni\nA. Example",
-            "platform_player_ids": "EuroSkat = anna-42",
+            "account_platform": "EuroSkat",
+            "account_id": "anna-42",
             "profile_generation": _generation(server),
         },
     )
-    assert status == 303 and response_headers["location"] == "/about" and body == b""
+    assert status == 303 and response_headers["location"] == "/settings" and body == b""
 
 
 def _session_values(server: SkatMindAppWebServerV1) -> dict[str, str]:
+    from frontend_creation_forms import new_name_roster
     return {
+        **new_name_roster(),
         "game_name": "One-call game",
         "capture_mode": "retrospective",
-        "player_1_handle": "",
-        "player_1_name": "Alice",
-        "player_2_handle": "",
-        "player_2_name": "Bob",
-        "player_3_handle": "",
-        "player_3_name": "Carol",
         "perspective_seat": "",
-        "save_players": "false",
-        "save_preferences": "false",
         "profile_generation": _generation(server),
     }
 
 
 def _match_values(server: SkatMindAppWebServerV1) -> dict[str, str]:
+    from frontend_creation_forms import new_name_roster
     return {
+        **new_name_roster(),
         "match_title": "One-call match",
         "played_date": "",
         "platform_choice": "euroskat",
         "custom_platform": "",
-        "player_1_handle": "",
-        "player_1_name": "Alice",
-        "player_2_handle": "",
-        "player_2_name": "Bob",
-        "player_3_handle": "",
-        "player_3_name": "Carol",
         "perspective_seat": "forehand",
         "source_url": "",
         "external_match_id": "",
-        "player_1_platform_id": "",
-        "player_2_platform_id": "",
-        "player_3_platform_id": "",
         "source_kind": "",
         "source_title": "",
         "source_channel_name": "",
         "played_at": "",
         "match_timecode_start": "",
         "match_timecode_end": "",
-        "save_players": "false",
-        "save_preferences": "false",
         "profile_generation": _generation(server),
     }
 
 
-def test_about_renders_bilingual_local_settings_without_internal_player_ids(
+def test_settings_renders_bilingual_local_settings_without_internal_player_ids(
     settings_server: SkatMindAppWebServerV1,
 ) -> None:
     server = settings_server
     get_headers, post_headers = _bootstrap(server)
-    status, _headers, body = _request(server, "GET", "/about", headers=get_headers)
+    status, _headers, body = _request(server, "GET", "/settings", headers=get_headers)
     html = body.decode()
     assert status == 200
     assert "Local settings and players" in html
-    assert "Saved Players" in html
+    assert "Players" in html
     assert "Creation defaults" in html
-    assert FRONTEND_PROFILE_PLAYER_ADD_ACTION_ROUTE in html
+    assert "/actions/profile/players/edit" in html
+    assert FRONTEND_PROFILE_PLAYER_ADD_ACTION_ROUTE not in html
 
     _add_player(server, post_headers)
     with server.app_context.lock:
         profile = server.app_context.frontend_profile.document
     assert profile is not None
     player = profile.known_players[0]
-    status, _headers, body = _request(server, "GET", "/about", headers=get_headers)
+    _post(server, post_headers, "/actions/profile/players/edit", {
+        "player_handle": build_known_player_handle_v1(player.player_id),
+        "profile_generation": _generation(server)})
+    status, _headers, body = _request(server, "GET", "/settings", headers=get_headers)
     html = body.decode()
     assert status == 200
-    assert "Anna" in html and "Anni" in html and "anna-42" in html
+    assert "Anna" in html and "anna-42" in html
+    assert 'name="aliases"' not in html
     assert player.player_id not in html
     assert build_known_player_handle_v1(player.player_id) in html
 
     status, _headers, body = _request(
         server,
         "GET",
-        "/about",
+        "/settings",
         headers={**get_headers, "Accept-Language": "de"},
     )
     assert status == 200
     german = body.decode()
     assert "Lokale Einstellungen und Spieler" in german
-    assert "Gespeicherte Spieler" in german
+    assert "Spieler" in german
     assert "Erfassungsvorgaben" in german
 
 
@@ -225,33 +218,33 @@ def test_player_edit_preferences_and_referenced_removal_use_profile_cas(
         FRONTEND_PROFILE_PLAYER_UPDATE_ACTION_ROUTE,
         {
             "display_name": "Anna Berlin",
-            "aliases": "Anna",
-            "platform_player_ids": "EuroSkat = anna-43",
+            "account_action": "edit",
+            "account_platform": "EuroSkat",
+            "account_id": "anna-43",
             "player_handle": handle,
             "profile_generation": _generation(server),
         },
     )
-    assert status == 303 and headers["location"] == "/about"
+    assert status == 303 and headers["location"] == "/settings"
     status, headers, _body = _post(
         server,
         post_headers,
         FRONTEND_PROFILE_PREFERENCES_ACTION_ROUTE,
         {
             "own_player_handle": handle,
-            "preferred_perspective_player_handle": handle,
             "platform_choice": "custom",
             "custom_platform": "Local club",
-            "advanced_settings_expanded": "true",
+            "advanced_settings_expanded": "on",
             "profile_generation": _generation(server),
         },
     )
-    assert status == 303 and headers["location"] == "/about"
+    assert status == 303 and headers["location"] == "/settings"
     with server.app_context.lock:
         profile = server.app_context.frontend_profile.document
     assert profile is not None
     assert profile.known_players[0].display_name == "Anna Berlin"
     assert profile.own_player_id == profile.known_players[0].player_id
-    assert profile.preferred_perspective_player_id == profile.own_player_id
+    assert profile.preferred_perspective_player_id is None
     assert profile.preferred_game_platform == "Local club"
     assert profile.interface_preferences.advanced_settings_expanded is True
 
@@ -261,8 +254,8 @@ def test_player_edit_preferences_and_referenced_removal_use_profile_cas(
     assert '<option value="custom" selected>' in html
     assert 'name="custom_platform" maxlength="120" value="Local club"' in html
     assert '<details class="advanced-settings" open>' in html
-    assert f'<option value="{handle}" selected>' in html
-    assert '<option value="forehand" selected>' in html
+    assert f'<option value="{handle}" selected>' not in html
+    assert '<option value="forehand" selected>' not in html
 
     status, _headers, body = _post(
         server,
@@ -276,17 +269,22 @@ def test_player_edit_preferences_and_referenced_removal_use_profile_cas(
     assert status == 400 and b"Check the submitted form" in body
     with server.app_context.lock:
         assert len(server.app_context.frontend_profile.document.known_players) == 1
+    assert _post(server, post_headers, "/actions/profile/players/remove-preview", {
+        "player_handle": handle, "profile_generation": _generation(server)})[0] == 303
+    from test_session_recorded_review_web import Forms
+    page = _request(server, "GET", "/settings", headers=get_headers)[2].decode()
+    confirmation = Forms(page).find(FRONTEND_PROFILE_PLAYER_REMOVE_ACTION_ROUTE)["values"]
+    confirmation.pop("_frontend_form_instance", None)
     status, headers, _body = _post(
         server,
         post_headers,
         FRONTEND_PROFILE_PLAYER_REMOVE_ACTION_ROUTE,
         {
-            "player_handle": handle,
-            "confirm_referenced": "on",
-            "profile_generation": _generation(server),
+            **confirmation,
+            "confirm_replace": "on",
         },
     )
-    assert status == 303 and headers["location"] == "/about"
+    assert status == 303 and headers["location"] == "/settings"
     with server.app_context.lock:
         profile = server.app_context.frontend_profile.document
     assert profile is not None
@@ -358,10 +356,9 @@ def test_managed_label_and_recommended_reset_preserve_local_identity_data(
         FRONTEND_PROFILE_PREFERENCES_ACTION_ROUTE,
         {
             "own_player_handle": handle,
-            "preferred_perspective_player_handle": handle,
             "platform_choice": "euroskat",
             "custom_platform": "",
-            "advanced_settings_expanded": "true",
+            "advanced_settings_expanded": "on",
             "profile_generation": _generation(server),
         },
     )
@@ -375,7 +372,7 @@ def test_managed_label_and_recommended_reset_preserve_local_identity_data(
             "profile_generation": _generation(server),
         },
     )
-    assert status == 303 and headers["location"] == "/about"
+    assert status == 303 and headers["location"] == "/settings"
     with server.app_context.lock:
         profile = server.app_context.frontend_profile.document
     assert profile is not None
@@ -581,8 +578,8 @@ def test_profile_file_conflict_requires_restart_instead_of_page_reload(
         FRONTEND_PROFILE_PLAYER_ADD_ACTION_ROUTE,
         {
             "display_name": "Anna",
-            "aliases": "",
-            "platform_player_ids": "",
+            "account_platform": "",
+            "account_id": "",
             "profile_generation": "0",
         },
     )
@@ -657,12 +654,12 @@ def test_language_switch_preserves_local_settings_validation_without_new_entropy
         FRONTEND_PROFILE_PLAYER_ADD_ACTION_ROUTE,
         {
             "display_name": "Anna",
-            "aliases": "Retained alias",
-            "platform_player_ids": "",
+            "account_platform": "Retained platform",
+            "account_id": "retained-account",
             "profile_generation": _generation(server),
         },
     )
-    assert status == 400 and b"Retained alias" in body
+    assert status == 400 and b"Retained platform" in body
     status, headers, _body = _post(
         server,
         post_headers,
@@ -670,15 +667,15 @@ def test_language_switch_preserves_local_settings_validation_without_new_entropy
         {
             "language": "de",
             "profile_generation": _generation(server),
-            "return_to": "/about",
+            "return_to": "/settings",
         },
     )
-    assert status == 303 and headers["location"] == "/about"
-    status, _headers, body = _request(server, "GET", "/about", headers=get_headers)
+    assert status == 303 and headers["location"] == "/settings"
+    status, _headers, body = _request(server, "GET", "/settings", headers=get_headers)
     html = body.decode()
     assert status == 200
     assert '<html lang="de">' in html
-    assert "Retained alias" in html
+    assert "Retained platform" in html
     assert "Prüfen Sie das ausgefüllte Formular" in html
 
 
@@ -700,9 +697,9 @@ def test_language_switch_preserves_match_creation_and_field_local_feedback(
             "played_date": "2026-09-03",
             "platform_choice": "custom",
             "custom_platform": "Local table",
-            "player_1_name": "Anna",
-            "player_2_name": "Peter",
-            "player_3_name": "Mira",
+            "forehand_name": "Anna",
+            "middlehand_name": "Peter",
+            "rearhand_name": "Mira",
             "perspective_seat": "middlehand",
             "source_url": "https://youtube.com/watch?v=retained",
             "external_match_id": "external-retained",

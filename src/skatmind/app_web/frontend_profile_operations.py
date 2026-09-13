@@ -23,6 +23,10 @@ FRONTEND_PROFILE_PLAYER_REMOVE_ACTION_ROUTE = "/actions/profile/players/remove"
 FRONTEND_PROFILE_PREFERENCES_ACTION_ROUTE = "/actions/profile/preferences"
 FRONTEND_PROFILE_RECOMMENDED_RESET_ACTION_ROUTE = "/actions/profile/recommended-defaults/reset"
 FRONTEND_PROFILE_MANAGED_LABEL_ACTION_ROUTE = "/actions/profile/managed-label"
+FRONTEND_SETTINGS_PLAYER_ACTION_ROUTES = tuple(
+    f"/actions/profile/players/{action}"
+    for action in ("edit", "remove-preview", "accounts-preview", "accounts-replace", "cancel")
+)
 FRONTEND_PROFILE_ACTION_ROUTES = (
     FRONTEND_LANGUAGE_ACTION_ROUTE,
     FRONTEND_PROFILE_RESET_ACTION_ROUTE,
@@ -32,6 +36,7 @@ FRONTEND_PROFILE_ACTION_ROUTES = (
     FRONTEND_PROFILE_PREFERENCES_ACTION_ROUTE,
     FRONTEND_PROFILE_RECOMMENDED_RESET_ACTION_ROUTE,
     FRONTEND_PROFILE_MANAGED_LABEL_ACTION_ROUTE,
+    *FRONTEND_SETTINGS_PLAYER_ACTION_ROUTES,
 )
 
 _SAFE_STATIC_HTML_ROUTES = {
@@ -46,6 +51,7 @@ _SAFE_STATIC_HTML_ROUTES = {
     "/learning",
     "/learning/current",
     "/about",
+    "/settings",
 }
 _SAFE_MATCH_POSITION = re.compile(r"/matches/position/(?:[1-9]|[12][0-9]|3[0-6])\Z")
 _SAFE_MATCH_REPORT = re.compile(r"/matches/reports/[0-9a-f]{64}\Z")

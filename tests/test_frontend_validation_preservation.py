@@ -57,8 +57,8 @@ def _state(
 
 def test_validation_contract_and_registry_coverage_are_exact() -> None:
     assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-    assert len(UNIFIED_FRONTEND_POST_ROUTES) == 49
-    assert len(FRONTEND_FORM_REGISTRY) == 82
+    assert len(UNIFIED_FRONTEND_POST_ROUTES) == 54
+    assert len(FRONTEND_FORM_REGISTRY) == 87
     assert {form.action_route for form in FRONTEND_FORM_REGISTRY} == set(
         UNIFIED_FRONTEND_POST_ROUTES
     )
@@ -170,7 +170,7 @@ def test_safe_capture_is_allowlisted_bounded_and_clears_omitted_groups() -> None
     assert rejected.singular("bid_value") is None
 
 
-def test_maximum_valid_platform_identifier_text_is_retained() -> None:
+def test_maximum_single_account_values_retained_without_legacy_list_reflection() -> None:
     definition = resolve_frontend_form_v1("/actions/profile/players/add")
     platform_ids = "\n".join(
         f"{'p' * 120} = {index:02d}-{'x' * 252}" for index in range(16)
@@ -182,10 +182,21 @@ def test_maximum_valid_platform_identifier_text_is_retained() -> None:
             "display_name": ["Anna"],
             "aliases": [""],
             "platform_player_ids": [platform_ids],
+            "account_platform": ["p" * 120],
+            "account_id": ["x" * 255],
             "profile_generation": ["0"],
         },
     )
-    assert captured.singular("platform_player_ids") == platform_ids
+    assert captured.singular("platform_player_ids") is None
+    assert captured.singular("aliases") is None
+    assert captured.singular("account_platform") == "p" * 120
+    assert captured.singular("account_id") == "x" * 255
+    # The full old tuple remains valid data, independently of the simplified UI.
+    from skatmind.app_web.profile_player_contracts import KnownPlayerPlatformIdV1, KnownPlayerV1
+    accounts = tuple(KnownPlayerPlatformIdV1(*line.split(" = "))
+                     for line in platform_ids.splitlines())
+    legacy = KnownPlayerV1("frontend-player-" + "a" * 64, "Anna", (), accounts)
+    assert legacy.platform_player_ids == accounts and len(accounts) == 16
 
 
 def test_file_and_destructive_values_are_never_retained() -> None:

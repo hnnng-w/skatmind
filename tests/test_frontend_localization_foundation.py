@@ -121,7 +121,7 @@ def test_catalog_resources_are_strict_ordered_and_have_exact_parity() -> None:
     assert tuple(catalogs) == ("de", "en")
     assert tuple(catalogs["de"]) == tuple(catalogs["en"])
     assert tuple(catalogs["en"]) == tuple(sorted(catalogs["en"]))
-    assert len(catalogs["en"]) == 1219
+    assert len(catalogs["en"]) == 1262
     for locale in SUPPORTED_FRONTEND_LOCALES:
         raw = files("skatmind.app_web").joinpath(f"locales/{locale}.json").read_bytes()
         assert not raw.startswith(b"\xef\xbb\xbf")

@@ -11,6 +11,11 @@ interface-preference, and managed-label fields without changing profile version
 creation](profile_driven_stateful_creation.md). This is private unified-browser behavior. It is not a Public API export, an
 eighth Root workflow, a public Schema, or a Product persistence format.
 
+Issue #225 subsequently moves operational controls to **Settings**, keeps About
+informational, and revises normal Player/own-seat/default behavior. Legacy profile
+fields and bytes remain compatible. See [Settings and Player seat
+setup](settings_and_player_seat_setup.md) for the lossless adapter and confirmation policy.
+
 The implemented contract versions are exactly:
 
 ```text
@@ -239,7 +244,8 @@ It receives no path, fingerprint, digest, raw header, token, cookie, port, or
 environment value. Trusted server-side settings and creation rendering may
 receive a valid profile's names, defaults, opaque handles, and display labels;
 the small common-shell projection above remains unchanged. Internal Player IDs
-and platform IDs are not rendered as normal visible values. Profile loading
+are not rendered as normal visible values. Issue #225 displays external account
+metadata only in the selected account editor or explicit replacement preview. Profile loading
 occurs once during app context creation; there is no watcher, polling loop,
 background worker, or page-load disk read.
 
@@ -253,6 +259,11 @@ POST /actions/profile/reset
 POST /actions/profile/players/add
 POST /actions/profile/players/update
 POST /actions/profile/players/remove
+POST /actions/profile/players/edit
+POST /actions/profile/players/remove-preview
+POST /actions/profile/players/accounts-preview
+POST /actions/profile/players/accounts-replace
+POST /actions/profile/players/cancel
 POST /actions/profile/preferences
 POST /actions/profile/recommended-defaults/reset
 POST /actions/profile/managed-label
@@ -268,7 +279,7 @@ managed family, handle, and discovery generation. All routes require the app
 cookie, exact Host, exact Origin, canonical form encoding, current generation,
 and their registered safe return behavior.
 
-Allowed return paths cover the seven shell routes plus safe current Session,
+Allowed return paths cover the eight shell pages (including `/settings`) plus safe current Session,
 Match, Match-position, Match-report, and Learning pages. Validation rejects
 external and protocol-relative URLs, query strings, fragments, assets,
 downloads, state/API routes, POST actions, bootstrap-token URLs, invalid dynamic
@@ -337,10 +348,10 @@ valid creation forms while the shell read the mutation request URL and fell back
 to Home. Page renderers now supply their semantic HTML origin explicitly:
 `/sessions`, `/matches/new`, `/learning`, `/sessions/current`, the selected
 `/matches/position/N` or exact `/matches/reports/ID`, `/learning/current`, `/analyze`,
-`/review`, and `/about`. Registered form origins determine contextual rejection
+`/review`, `/settings`, and `/about`. Registered form origins determine contextual rejection
 rendering. Navigation categories, Referer, action URLs, and client location are not
 universal return targets. A safe origin is retained before optional-envelope
-parsing. The HTML-route allowlist is unchanged. Only server-selected existing
+parsing. Issue #225 adds only `/settings` to the exact HTML-route allowlist. Only server-selected existing
 `session-result`, `match-recording`, and `match-recovery` anchors are appended
 separately; client fragments remain rejected.
 

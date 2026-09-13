@@ -19,18 +19,20 @@ def _values(**overrides: str) -> dict[str, str]:
         "played_date": "2026-09-03",
         "platform_choice": "euroskat",
         "custom_platform": "",
-        "player_1_handle": "",
-        "player_1_name": "Anna",
-        "player_2_handle": "",
-        "player_2_name": "Peter",
-        "player_3_handle": "",
-        "player_3_name": "Mira",
+        "perspective_mode": "manual",
+        "forehand_mode": "new", "middlehand_mode": "new", "rearhand_mode": "new",
+        "forehand_handle": "",
+        "forehand_name": "Anna",
+        "middlehand_handle": "",
+        "middlehand_name": "Peter",
+        "rearhand_handle": "",
+        "rearhand_name": "Mira",
         "perspective_seat": "middlehand",
         "source_url": "",
         "external_match_id": "",
-        "player_1_platform_id": "",
-        "player_2_platform_id": "",
-        "player_3_platform_id": "",
+        "forehand_platform_id": "",
+        "middlehand_platform_id": "",
+        "rearhand_platform_id": "",
         "source_kind": "",
         "source_title": "",
         "source_channel_name": "",
@@ -38,7 +40,7 @@ def _values(**overrides: str) -> dict[str, str]:
         "match_timecode_start": "",
         "match_timecode_end": "",
         "save_players": "on",
-        "save_preferences": "on",
+        "save_platform": "on",
     }
     values.update(overrides)
     return values
@@ -65,7 +67,8 @@ def test_match_form_maps_friendly_values_without_inventing_an_instant() -> None:
     assert values["source_kind"] == "manual_observation"
     assert values["source_url"] == ""
     assert values["source_title"] == "Thursday Match"
-    assert values["perspective_player_id"] == values["player_2_id"]
+    assert values["perspective_player_id"] == values["player_3_id"]
+    assert [values[f"player_{i}_label"] for i in (1, 2, 3)] == ["Mira", "Anna", "Peter"]
     label = prepared.profile_document.managed_item_display_labels[-1]
     assert label.display_name == "Thursday Match"
     assert label.played_date == "2026-09-03"
@@ -154,7 +157,7 @@ def test_match_custom_platform_and_advanced_source_values_remain_product_values(
             source_channel_name="Club archive",
             match_timecode_start="01:02",
             match_timecode_end="02:03",
-            player_1_platform_id="anna-1",
+            forehand_platform_id="anna-1",
         ),
         profile=None,
         expected_profile_generation=0,
@@ -165,7 +168,7 @@ def test_match_custom_platform_and_advanced_source_values_remain_product_values(
     assert values["game_platform"] == "Local club"
     assert values["source_title"] == "Camera 2"
     assert values["source_channel_name"] == "Club archive"
-    assert values["player_1_platform_id"] == "anna-1"
+    assert values["player_2_platform_id"] == "anna-1"
 
 
 def test_match_builtin_platform_ignores_stale_custom_platform_text() -> None:
@@ -189,12 +192,12 @@ def test_match_does_not_invisibly_copy_saved_platform_player_ids() -> None:
     profile = build_local_frontend_profile_v1(known_players=(known,))
     prepared = prepare_profile_driven_match_creation_v1(
         _values(
-            player_1_handle=build_known_player_handle_v1(known.player_id),
-            player_1_name="",
+            forehand_handle=build_known_player_handle_v1(known.player_id),
+            forehand_name="", forehand_mode="saved",
         ),
         profile=profile,
         expected_profile_generation=0,
         existing_match_ids=(),
         entropy_source=_entropy_source(),
     )
-    assert prepared.product_values["player_1_platform_id"] == ""
+    assert prepared.product_values["player_2_platform_id"] == ""

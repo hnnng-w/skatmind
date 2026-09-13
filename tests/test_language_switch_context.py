@@ -28,12 +28,15 @@ def switch(browser, page, locale):
 
 def known_players(browser):
     for name in ("Alexandra-Maria Synthetic", "Boris", "Clara"):
-        page = browser.page("/about")
+        page = browser.page("/settings")
+        add = next(form for form in Forms(page).forms
+            if form["action"] == "/actions/profile/players/edit"
+            and not form["values"]["player_handle"])
+        page = follow(browser, browser.submit(add))
         form = Forms(page).find("/actions/profile/players/add")
-        # Textareas are empty on this supported setup path.
-        follow(browser, browser.submit(form, display_name=name, aliases="", platform_player_ids=""))
+        follow(browser, browser.submit(form, display_name=name))
     page = browser.page("/sessions")
-    choices = re.search(r'<select name="player_1_handle"[^>]*>(.*?)</select>', page, re.S)[1]
+    choices = re.search(r'<select name="forehand_handle"[^>]*>(.*?)</select>', page, re.S)[1]
     return re.findall(r'<option value="([0-9a-f]{64})"', choices)
 
 
@@ -45,8 +48,8 @@ def test_returned_session_creation_error_language_and_single_creation(localized_
     form = Forms(page).find("/sessions/create")
     status, _, body = browser.submit(
         form, game_name="Retained synthetic game", perspective_seat="forehand",
-        player_1_handle=handles[0], player_2_handle=handles[0], player_3_handle=handles[2],
-        save_players="true", save_preferences="true")
+        forehand_handle=handles[0], middlehand_handle=handles[0], rearhand_handle=handles[2],
+        setup_action="update", save_players="on")
     assert status == 400
     page = body.decode()
     assert text("de", "validation.summary.heading") in page
@@ -54,7 +57,7 @@ def test_returned_session_creation_error_language_and_single_creation(localized_
     assert language["values"]["return_to"] == "/sessions"
     page = switch(browser, page, "en")
     assert text("en", "validation.summary.heading") in page
-    assert Forms(page).find("/sessions/create")["values"]["player_2_handle"] == handles[0]
+    assert Forms(page).find("/sessions/create")["values"]["middlehand_handle"] == handles[0]
     assert localized_server.app_context.managed_stateful.active_session is None
     assert localized_server.app_context.frontend_profile.document.known_players == before
     page = switch(browser, page, "de")
@@ -62,7 +65,10 @@ def test_returned_session_creation_error_language_and_single_creation(localized_
     assert form["values"]["game_name"] == "Retained synthetic game"
     assert form["values"]["profile_generation"] == str(
         localized_server.app_context.frontend_profile.generation)
-    page = follow(browser, browser.submit(form, player_2_handle=handles[1]))
+    page = follow(browser, browser.submit(
+        form, middlehand_handle=handles[1], setup_action="update"))
+    page = follow(browser, browser.submit(
+        Forms(page).find("/sessions/create"), setup_action="create"))
     active = localized_server.app_context.managed_stateful.active_session
     assert active is not None and active.state.revision == 0
     assert len(tuple(active.category_root.glob("*.json"))) == 1

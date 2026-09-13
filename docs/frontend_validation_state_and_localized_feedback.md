@@ -32,9 +32,17 @@ feedback generation.
 These immutable values are private implementation contracts. They are not Public
 API exports and are not persisted.
 
+Issue #225 adds exact Settings editor/preview/confirmation routes and changes the
+two private creation forms to seat-named fields and setup-only/final submitters.
+Operational profile origins are `/settings`. New native save-Players, save-platform
+and Advanced-expansion checkboxes preserve unchecked omission as false. Confirmation
+controls and editor/setup transport selections are excluded from the language
+envelope. Collision feedback retains independent seat input without swapping Players.
+See [Settings and Player seat setup](settings_and_player_seat_setup.md).
+
 ## Canonical Form Registry
 
-`FRONTEND_FORM_REGISTRY` covers all 49 unified frontend POST routes through 82
+`FRONTEND_FORM_REGISTRY` covers all 54 unified frontend POST routes through 87
 exact definitions. Shared routes are split by their existing discriminator:
 
 ```text

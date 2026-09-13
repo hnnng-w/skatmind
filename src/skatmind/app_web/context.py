@@ -11,6 +11,8 @@ from .frontend_profile_state import (
     build_frontend_profile_state_v1,
 )
 from .language_context import LanguageContextV1
+from .player_seat_setup import SeatSetupV1
+from .settings_forms import SettingsEditorV1
 from .state import build_browser_safe_application_state_v1
 from .workflow_state import ProcessLocalFrontendWorkflowStateV1
 
@@ -43,6 +45,10 @@ class AppWebContextV1:
     profile_redirect_return_to: str | None = field(default=None, repr=False)
     stateful_creation_notices: dict[str, str] = field(default_factory=dict, repr=False)
     language_context: LanguageContextV1 = field(default_factory=LanguageContextV1, repr=False)
+    settings_editor: SettingsEditorV1 | None = field(default=None, repr=False)
+    settings_serial: int = 0
+    creation_setups: dict[str, SeatSetupV1] = field(default_factory=dict, repr=False)
+    setup_serial: int = 0
 
     def __post_init__(self) -> None:
         from .stateful_context import ManagedStatefulContextV1

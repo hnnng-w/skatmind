@@ -109,6 +109,7 @@ Machine Route order remains independent and unchanged:
 /sessions
 /matches
 /learning
+/settings
 /about
 ```
 
@@ -122,10 +123,13 @@ The concise visible navigation labels are:
 | `/sessions` | Record one game | Ein Spiel erfassen |
 | `/matches` | Record a 36-game Match | 36er-Match erfassen |
 | `/learning` | Learn across Matches | Über Matches lernen |
+| `/settings` | Settings | Einstellungen |
 | `/about` | About SkatMind | Über SkatMind |
 
-No action, download, Public API, cookie, form-field, workflow, persistence, or
-document identity changes.
+Issue #225 adds Settings to navigation while retaining the six Home tasks and
+their existing grouping. Its private form changes are documented in
+[Settings and Player seat setup](settings_and_player_seat_setup.md). Public APIs,
+cookies, Engine workflows, persistence and Product identities remain unchanged.
 
 ## Home groups
 
