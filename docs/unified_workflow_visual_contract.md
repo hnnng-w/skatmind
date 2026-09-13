@@ -15,6 +15,13 @@ evidence below remains historical. See [Settings and Player seat setup](settings
 
 ## Asset and component ownership
 
+Issue #226 extends the same app-owned boundary to normal Session/Match compact
+native Card sets and single-Play radios. Its focused installed-Wheel checks cover
+de/en desktop/narrow/320-pixel selection, 200% text, native focus, explicit saves,
+and continuation. A discovered enlarged-text Session grid overflow was corrected
+with a shrinkable recording track. Original #224/#225 evidence remains historical;
+current measurements and resource hashes are in [Compact Card entry](compact_card_entry.md).
+
 `app_web/assets/app.css` is the single theme owner. All unified Match and Learning
 HTML loads only `/assets/app.css`. The shell's `main[data-workflow]` attribute
 scopes these workflow components, including creation, contextual errors, status

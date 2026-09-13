@@ -2440,6 +2440,14 @@ Real HTTP/persistence coverage checks every own seat and all roster/rotation
 permutations; installed Edge checks create Session/Match recordings with JavaScript
 enabled/disabled. Earlier About/preferred-perspective/default-saving choices are
 explicitly revised, while legacy data and #221–#224 behavior remain supported.
+Issue #226 implements [Compact Card entry](compact_card_entry.md): shared native
+set/single-Play controls, canonical candidate-first Session append with N ordinary
+revisions and one save, unchanged Match evidence replacement, truthful availability,
+exact-source binding, and recording focus. Real HTTP tests reach ten-Card saves,
+partial reopen, grouped Skat/discards, 30 Plays and reopened #221 review, plus Match
+evidence/recovery. Installed-Wheel Edge evidence checks de/en, JavaScript on/off,
+320-pixel/200%-text reflow, zero selection POSTs and one ten-Card save POST. It is a
+bounded implementation slice and does not close unrelated UAT findings.
 Both required jobs, `check` and `v1-supported-platform-matrix`, must pass on the
 exact merged commit. A future focused retest can open a recorded Game, review an
 earlier own decision after 30 Plays, recognize its comparison and source, then

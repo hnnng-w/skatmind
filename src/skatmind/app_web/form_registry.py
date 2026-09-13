@@ -10,6 +10,7 @@ from skatmind.capture_web.contracts import (
 from skatmind.corpus_web.contracts import LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES
 from skatmind.session_commands import SESSION_COMMAND_KINDS
 
+from .card_entry_http import CARD_ENTRY_ROUTES, MATCH_CARD_OPERATIONS
 from .form_parsing import FormValuesV1, FormValueV1
 from .frontend_profile_operations import (
     FRONTEND_PROFILE_ACTION_ROUTES,
@@ -280,7 +281,7 @@ def _field(
             if name == "account_platform" or name in {
                 "forehand_name", "middlehand_name", "rearhand_name"}
             else 64
-            if name in {"decision_selection", "recovery_selection", "report_id"}
+            if name in {"decision_selection", "recovery_selection", "report_id", "card_selection"}
             else 4
             if control == "card"
             else 8192
@@ -1084,6 +1085,25 @@ for route in FRONTEND_SETTINGS_PLAYER_ACTION_ROUTES:
         f"profile.player_{action.replace('-', '_')}", route, fields,
         page="/settings", active="local_settings", success="/settings"))
 
+for action in ("cards", "play"):
+    _FORMS.append(_definition(
+        f"session.{action}", f"/sessions/{action}", ("card_selection", "cards"),
+        page="/sessions/current", active="sessions", success="/sessions/current#session-recording",
+        body_limit=8192,
+        cardinality_overrides={"cards": "single" if action == "play" else "repeated"},
+    ))
+for operation in MATCH_CARD_OPERATIONS:
+    _FORMS.append(_definition(
+        f"match.cards.{operation}", "/matches/cards",
+        ("card_selection", "cards") if operation == "append_plays" else
+        ("card_selection", "card_evidence_mode", "cards"),
+        page="/matches/current", active="matches", success="contextual", body_limit=8192,
+        discriminator=("operation", operation),
+        cardinality_overrides={"cards": "single" if operation == "append_plays" else "repeated"},
+        choice_overrides={"card_evidence_mode": ("unknown", "known_empty", "exact")
+                          if operation == "set_discarded_cards" else ("unknown", "exact")},
+    ))
+
 for action, fields in (
     ("select", ("recovery_selection",)),
     ("preview", ("recovery_selection", "card")),
@@ -1327,6 +1347,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
         (
             *GUIDED_ACTION_ROUTE_PATHS,
             *FRONTEND_PROFILE_ACTION_ROUTES,
+            *CARD_ENTRY_ROUTES,
             "/sessions/create",
             "/sessions/import",
             "/sessions/open",
@@ -1445,19 +1466,18 @@ def capture_safe_submitted_values_v1(
             continue
         if not retained or len(retained) > 64:
             continue
-        if any(len(value) > field.reflection_length for value in retained):
+        if any(len(value) > field.reflection_length for value in retained) and not (
+                field.control_type == "card" and definition.action_route in CARD_ENTRY_ROUTES):
             continue
         if field.allowed_values and any(value not in field.allowed_values for value in retained):
             continue
-        if field.control_type == "card" and any(
-            value
-            and (
-                len(value) not in {2, 3}
-                or value[0] not in "CSHD"
-                or value[1:] not in {"A", "10", "K", "Q", "J", "9", "8", "7"}
-            )
-            for value in retained
-        ):
-            continue
+        if field.control_type == "card":
+            # Preserve useful valid members of a rejected compact set, never invalid codes.
+            safe_cards = tuple(value for value in retained if not value or (
+                len(value) in {2, 3} and value[0] in "CSHD"
+                and value[1:] in {"A", "10", "K", "Q", "J", "9", "8", "7"}))
+            if safe_cards != retained and definition.action_route not in CARD_ENTRY_ROUTES:
+                continue
+            retained = safe_cards or ("",)
         entries.append(FormValueV1(field=field.field_key, values=retained))
     return FormValuesV1(tuple(entries))

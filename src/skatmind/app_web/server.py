@@ -22,6 +22,12 @@ from skatmind.errors import SkatMindError, SkatMindInvariantError, SkatMindWorkf
 from skatmind.match_workspace_persistence_codec import resume_match_workspace_document_v1
 from skatmind.match_workspace_progress import build_match_workspace_progress_v1
 
+from .card_entry_http import (
+    CARD_ENTRY_ROUTES,
+    MATCH_CARD_OPERATIONS,
+    dispatch_card_entry,
+    match_card_binding,
+)
 from .context import AppWebContextV1
 from .contracts import APP_ROUTE_PATHS
 from .cross_area_transfer import (
@@ -312,6 +318,7 @@ _STATEFUL_POST_ROUTES = {
     "/sessions/open",
     "/sessions/reload",
     "/sessions/command",
+    *CARD_ENTRY_ROUTES,
     "/sessions/undo",
     "/sessions/analyze",
     "/sessions/review",
@@ -1051,7 +1058,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                         "matches",
                         active_identity=self.server.app_context.managed_stateful.active_match,
                     )
-                if retained is None or retained.form_key != "match.operation.append_plays":
+                if retained is None or retained.form_key not in {
+                        "match.operation.append_plays", "match.cards.append_plays"}:
                     self.server.app_context.form_feedback.clear(
                         definition.active_context_requirement or "profile"
                     )
@@ -1541,11 +1549,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         return current
 
     def _activate_session(self, active) -> None:
-        with self.server.app_context.lock:
-            previous = self.server.app_context.managed_stateful.activate_session(active)
-        if previous is not None:
-            with previous.lock:
-                previous.clear_execution()
+        with self.server.app_context.managed_stateful.session_lifecycle_lock:
+            with self.server.app_context.lock:
+                previous = self.server.app_context.managed_stateful.activate_session(active)
+            if previous is not None:
+                with previous.lock:
+                    previous.clear_execution()
 
     def _activate_match(self, active) -> None:
         with self.server.app_context.managed_stateful.match_lifecycle_lock:
@@ -1719,6 +1728,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         with active.capture.lock:
             view = project_task_first_match_v1(active.workspace, selected_position=position)
             state = build_task_first_match_page_state_v1(active, view, report_id=report_id)
+            card_bindings = {operation: match_card_binding(active, operation)
+                             for operation in MATCH_CARD_OPERATIONS}
             result = active.last_result
             transfer_notice = active.transfer_notice
             active.transfer_notice = None
@@ -1769,6 +1780,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             transfer=transfer,
             locale=locale,
             recovery=recovery,
+            card_bindings=card_bindings,
         )
         if notice is not None:
             key = ("task.operation.conflict" if notice_kind in {"warning", "error"}
@@ -2593,6 +2605,11 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         body: bytes,
         content_type: str,
     ) -> None:
+        if path in CARD_ENTRY_ROUTES:
+            self._redirect(dispatch_card_entry(
+                self.server.app_context, path,
+                self._flat_form(body, content_type, repeated_cards=True)))
+            return
         if path == "/sessions/import":
             self._import_session(body, content_type)
             return

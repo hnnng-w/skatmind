@@ -144,6 +144,8 @@ def _open_field_details(block: str, field: str) -> str:
 
 
 def _insert_field_messages(block: str, field: str, messages: str) -> str:
+    if field == "cards" and 'class="compact-cards"' in block:
+        return block.replace('</fieldset>', '</fieldset>' + messages, 1)
     field_pattern = re.escape(field)
     control = re.search(
         rf'<input\b(?=[^>]*\bname="{field_pattern}")[^>]*>'
@@ -245,6 +247,21 @@ def _replace_safe_values(block: str, values_state: FormValuesV1) -> str:
             return match.group(1) + options + match.group(3)
 
         block = select_pattern.sub(replace_select, block)
+    if 'class="compact-cards"' in block and values_state.contains("cards"):
+        cards = values_state.all("cards")
+        available = re.findall(
+            r'<input\b[^>]*name="cards"[^>]*value="([CSHD](?:A|10|K|Q|J|9|8|7))"', block)
+        selected = ', '.join(card for card in available if card in cards)
+        block = re.sub(r'(<span class="compact-selected">).*?(</span>)',
+                       lambda match: match[1] + escape(selected) + match[2], block, flags=re.S)
+        rejected = tuple(dict.fromkeys(card for card in cards if card not in available
+            and re.fullmatch(r"[CSHD](?:A|10|K|Q|J|9|8|7)", card)))
+        if rejected:
+            locale = re.search(r'data-card-locale="(de|en)"', block)[1]
+            message = escape(translate_frontend_message_v1(
+                locale, "compact.rejected", cards=', '.join(rejected)))
+            block = block.replace('<p class="compact-rejected"></p>',
+                                  '<p class="compact-rejected">' + message + '</p>')
     return block
 
 
@@ -390,6 +407,8 @@ def apply_validation_feedback_to_html_v1(
         if definition.form_key == "match.transfer_report"
         else ("recovery_selection",)
         if definition.form_key.startswith("match.recovery.")
+        else ("card_selection",)
+        if definition.action_route in {"/sessions/cards", "/sessions/play", "/matches/cards"}
         else ()
     )
     form_identity = tuple(
@@ -398,8 +417,27 @@ def apply_validation_feedback_to_html_v1(
         if (value := state.safe_visible_values.singular(field)) is not None
     )
     form_instance = None if form_identity else state.form_instance
-    bounds = _find_form_bounds(html, definition, form_instance, form_identity)
+    card_entry = definition.action_route in {"/sessions/cards", "/sessions/play", "/matches/cards"}
+    # A missing/malformed source token cannot qualify an attempted selection for
+    # today's actor merely because its old form happened to have the same ordinal.
+    bounds = (None if card_entry and not form_identity else
+              _find_form_bounds(html, definition, form_instance, form_identity))
     if bounds is None:
+        if definition.action_route in {"/sessions/cards", "/sessions/play", "/matches/cards"}:
+            session = definition.active_context_requirement == "sessions"
+            anchor = "session-recording" if session else "match-recording"
+            summary = _render_summary(
+                state, translated, field_definitions, rendered_fields, locale=locale,
+                fallback_anchor=anchor, last_valid_result_retained=last_valid_result_retained)
+            cards = tuple(card for card in state.safe_visible_values.all("cards")
+                          if re.fullmatch(r"[CSHD](?:A|10|K|Q|J|9|8|7)", card))
+            if cards:
+                summary += '<p class="compact-rejected">' + escape(
+                    translate_frontend_message_v1(locale, "compact.stale_input",
+                                                 cards=', '.join(cards))) + '</p>'
+            target = 'session-card-feedback' if session else 'match-recovery-feedback'
+            return html.replace(f'<div id="{target}"></div>',
+                                f'<div id="{target}">' + summary + '</div>', 1)
         if definition.form_key.startswith("match.recovery."):
             summary = _render_summary(
                 state, translated, field_definitions, rendered_fields, locale=locale,

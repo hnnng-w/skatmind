@@ -635,6 +635,7 @@ def test_corpus_web_layering_and_execution_boundaries() -> None:
 def test_app_web_layering_and_startup_execution_boundaries() -> None:
     app_root = SOURCE_ROOT / "app_web"
     public_api_adapters = {
+        "card_entry_http.py",
         "execution.py",
         "historical_form.py",
         "json_transfer.py",
@@ -643,6 +644,7 @@ def test_app_web_layering_and_startup_execution_boundaries() -> None:
         "position_form.py",
         "profile_driven_creation.py",
         "result_presentation.py",
+        "session_card_entry.py",
         "session_form_translation.py",
         "session_frontend.py",
         "session_recorded_review.py",

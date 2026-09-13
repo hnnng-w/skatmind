@@ -118,7 +118,17 @@ The read-only operation checks source-file freshness and exact active identity,
 generation/content, and attempt ordering before publication. See
 [Review recorded Session decisions](session_recorded_decision_review.md).
 
+Issue #226 adds exact-source private `/sessions/cards` and `/sessions/play` forms.
+Normal hand/Skat/discard sets append existing Commands in canonical deck order;
+N Cards remain N revisions with intermediate Checkpoint collection and one atomic
+save. Normal Play uses a read-only exact-legal or bounded-observation projection
+and returns to `#session-recording`. See [Compact Card entry](compact_card_entry.md).
+
 ## Match Capture
+
+The private `/matches/cards` adapter uses the same compact component for normal
+evidence sets and one Play, preserving existing evidence replacement, no-op,
+Report invalidation, and chronological advanced-operation semantics.
 
 `/matches` lists managed Workspaces, offers a bilingual no-JSON Match creation
 flow and strict secondary Workspace import, with task-first bilingual presentation

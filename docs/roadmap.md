@@ -1601,6 +1601,12 @@ flow](settings_and_player_seat_setup.md), including lossless legacy metadata,
 fresh scoped confirmations, exact game-1 Match mapping and opt-in new-Player/
 platform enrichment. It adds one shell page and five private form routes, retaining
 seven Root workflows, all Product persistence, and the existing UAT gate state.
+Issue #226 adds [Compact Card entry](compact_card_entry.md): known-card sets saved
+once, explicit one-Card Plays with truthful palettes, exact-source forms, and
+retained recording focus. Session candidates preserve N ordinary revisions and
+Checkpoint/Undo semantics; Match retains evidence replacement and ordered advanced
+Play APIs. Real HTTP and installed-Wheel browser checks cover this bounded path.
+Remaining knowledge, declaration/scoring, and navigation findings stay open.
 Exact merged-commit `check` and `v1-supported-platform-matrix` remain required,
 with future focused Session and Match affected-path retests. The September 11 repeated
 UAT failure and unresolved findings remain open; the technical ledger remains closed.

@@ -42,7 +42,7 @@ See [Settings and Player seat setup](settings_and_player_seat_setup.md).
 
 ## Canonical Form Registry
 
-`FRONTEND_FORM_REGISTRY` covers all 54 unified frontend POST routes through 87
+`FRONTEND_FORM_REGISTRY` covers all 57 unified frontend POST routes through 93
 exact definitions. Shared routes are split by their existing discriminator:
 
 ```text
@@ -87,6 +87,15 @@ instance and contains no Product identity. Multipart forms are not instrumented.
 The standalone Capture and Corpus renderers are not modified.
 
 ## Accepted And Submitted State
+
+Issue #226 registers three private Card routes and six exact definitions. Their
+opaque `card_selection` binds complete source content and the current task;
+Session batch sets and single Plays have distinct cardinalities. Valid members
+of rejected compact sets are retained without silently accepting duplicates.
+Unavailable attempted Cards remain plain rejected input, and missing/stale bindings
+cannot restore selections into a new actor's form through a matching ordinal.
+Structured diagnostics, contextual `400`/`409`, recording anchors, and exact #223
+language restoration are documented in [Compact Card entry](compact_card_entry.md).
 
 Rejected submitted state is separate from authoritative Product and accepted
 workflow state. Validation occurs before Product creation or mutation wherever

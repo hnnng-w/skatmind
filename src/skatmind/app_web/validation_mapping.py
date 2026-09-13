@@ -5,11 +5,13 @@ import re
 from skatmind.errors import SkatMindWorkflowError
 from skatmind.observed_trace_diagnostics import ObservedTraceError
 
+from .card_entry_http import CardEntryConflict
 from .form_parsing import FormFieldErrorV1
 from .form_registry import FrontendFormDefinitionV1
 from .frontend_profile_operations import FrontendProfilePersistenceConflictError
 from .match_recovery import MatchRecoveryConflict
 from .player_seat_setup import SeatSetupError
+from .session_card_entry import CardEntryError
 from .validation_contracts import FrontendValidationIssueV1
 
 
@@ -89,6 +91,11 @@ def map_frontend_exception_v1(
     *,
     status: int,
 ) -> tuple[FrontendValidationIssueV1, ...]:
+    if isinstance(error, CardEntryError):
+        return (_issue(_known_field(definition, error.field_key),
+                       f"validation.card_entry.{error.reason}"),)
+    if isinstance(error, CardEntryConflict):
+        return (_issue(None, f"validation.card_entry.{error.reason}"),)
     if isinstance(error, ObservedTraceError) and definition.active_context_requirement == "matches":
         return (_issue(None, "validation.message.match_recording_conflict"),)
     if isinstance(error, MatchRecoveryConflict):

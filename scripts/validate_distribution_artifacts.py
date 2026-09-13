@@ -1181,8 +1181,8 @@ assert FRONTEND_TRANSLATION_CATALOG_VERSION == 1
 assert LOCAL_FRONTEND_PROFILE_VERSION == 1
 assert FRONTEND_INFORMATION_ARCHITECTURE_VERSION == 1
 assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-assert len(UNIFIED_FRONTEND_POST_ROUTES) == 54
-assert len(FRONTEND_FORM_REGISTRY) == 87
+assert len(UNIFIED_FRONTEND_POST_ROUTES) == 57
+assert len(FRONTEND_FORM_REGISTRY) == 93
 validate_frontend_form_registry_v1()
 frontend_catalogs = load_frontend_translation_catalogs_v1()
 assert tuple(frontend_catalogs) == ("de", "en")

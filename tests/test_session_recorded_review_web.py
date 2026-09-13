@@ -40,7 +40,14 @@ class Forms(HTMLParser):
             values = self.current["values"]
             if tag == "input" and "name" in attrs and attrs.get("type") != "file":
                 if attrs.get("type") not in {"checkbox", "radio"} or "checked" in attrs:
-                    values[attrs["name"]] = attrs.get("value", "")
+                    name = attrs["name"]
+                    value = attrs.get("value", "on" if attrs.get("type") in {
+                        "checkbox", "radio"} else "")
+                    if attrs.get("type") == "checkbox" and name in values:
+                        prior = values[name]
+                        values[name] = [*(prior if isinstance(prior, list) else [prior]), value]
+                    else:
+                        values[name] = value
             elif tag == "select":
                 self.select = attrs["name"]
             elif tag == "option" and self.select is not None:
@@ -73,7 +80,7 @@ class Browser:
             supplied.update({"Origin": self.server.origin,
                              "Content-Type": "application/x-www-form-urlencoded"})
         supplied.update(headers or {})
-        body = None if values is None else urlencode(values).encode("ascii")
+        body = None if values is None else urlencode(values, doseq=True).encode("ascii")
         connection.request(method, route, body=body, headers=supplied)
         response = connection.getresponse()
         result = (response.status, dict((k.lower(), v) for k, v in response.getheaders()),
@@ -90,10 +97,17 @@ class Browser:
         return self.request("POST", form["action"], {**form["values"], **overrides})
 
     def command(self, kind, **values):
-        form = Forms(self.page()).find("/sessions/command", kind=kind)
+        forms = Forms(self.page())
+        route = ("/sessions/play" if kind == "record_play" else "/sessions/cards"
+                 if kind in {"record_dealt_card", "record_discard"} else None)
+        compact = next((form for form in forms.forms if form["action"] == route), None)
+        form = compact or forms.find("/sessions/command", kind=kind)
+        if compact is not None:
+            values["cards"] = values.pop("card")
         status, headers, content = self.submit(form, **values)
         assert status == 303, (status, content.decode())
-        assert headers["location"] == "/sessions/current"
+        assert headers["location"] == "/sessions/current" + (
+            "#session-recording" if compact is not None else "")
 
 
 def record_live_game(browser, *, play_count=6):
@@ -109,8 +123,9 @@ def record_live_game(browser, *, play_count=6):
         Forms(browser.page("/sessions")).find("/sessions/create"), setup_action="create")
     assert status == 303, content.decode()
     browser.command("set_game_metadata")
-    for card in data["players"][0]["initial_hand"]:
-        browser.command("record_dealt_card", card=card)
+    response = browser.submit(Forms(browser.page()).find("/sessions/cards"),
+                              cards=data["players"][0]["initial_hand"])
+    assert response[0] == 303, response[2].decode()
     browser.command("set_declarer")
     browser.command("set_declaration", game_type="grand", hand_game="true", bid_value="24")
     plays = [play for trick in data["tricks"] for play in trick["plays"]]

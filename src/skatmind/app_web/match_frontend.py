@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import secrets
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -74,6 +75,7 @@ class UnifiedMatchContextV1:
     last_result: MatchCaptureWebResultV1 | None = field(default=None, repr=False)
     transfer_notice: str | None = field(default=None, repr=False)
     recovery: MatchRecoveryState = field(default_factory=MatchRecoveryState, repr=False)
+    card_entry_key: bytes = field(default_factory=lambda: secrets.token_bytes(32), repr=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.category_root, Path) or not isinstance(self.path, Path):
@@ -213,6 +215,7 @@ def reload_unified_match_v1(
             selected_position=context.selected_position,
         )
         context.recovery.clear()
+        context.card_entry_key = secrets.token_bytes(32)
         context.transfer_notice = None
     context.last_result = result
     return result

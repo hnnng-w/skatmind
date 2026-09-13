@@ -151,6 +151,14 @@ components; only the captioned candidate table has a labelled keyboard-scroll
 region. See [Unified workflow visual contract](unified_workflow_visual_contract.md)
 for measured contrast/reflow and repeatable installed-browser evidence.
 
+Issue #226 updates normal Session/Match Card entry with shared compact native
+set/single-Play selectors. Session batches append N ordinary Commands through an
+immutable candidate and one save; Match retains replacement evidence operations.
+Exact-source forms and truthful palettes return to recording controls. The current
+registry has 57 POST routes and 93 definitions. See
+[Compact Card entry](compact_card_entry.md) for ordering, Checkpoint parity,
+rejected-input/language behavior, and installed-browser evidence.
+
 ## Explicit transfer and Learning
 
 Transfer displays friendly source-Match and target-collection labels and whether

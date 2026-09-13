@@ -2042,6 +2042,12 @@ The September 11 repeated UAT remains failed. Issue #221 is documented in
 Issue #222 adds [Match recording error recovery](docs/match_recording_error_recovery.md):
 evidence-based conflict locations, linked Trick history, one-Card retained-suffix
 replacement previews, and explicit rewind with source-bound atomic Apply.
+Normal Session/Match Card entry uses compact native selection: select known Cards
+together and save once, then explicitly record one played Card. Session sets append
+ordinary Commands (N Cards, N revisions, one save); Match evidence replaces its
+existing set. Partial Session hands can be completed after reopening. Play choices
+omit played Cards and distinguish exact legality from bounded observations. See
+[Compact Card entry](docs/compact_card_entry.md).
 Exact merged-commit `check` and `v1-supported-platform-matrix` remain required;
 a future focused retest covers the affected Session and Match paths without claiming full
 UAT remediation.

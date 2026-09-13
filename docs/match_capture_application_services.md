@@ -235,6 +235,13 @@ single-Card recovery adapter, retaining the suffix and all annotations. Explicit
 rewind reuses canonical truncation. It adds no Capture operation enum value or
 partial-validity restriction. See [Match recording error recovery](match_recording_error_recovery.md).
 
+Issue #226's unified-browser compact evidence selectors reuse these set updates
+and their complete-candidate/no-op behavior. Initial-hand evidence permits its
+owner's already played Cards and valid original-Skat/discard overlap. Normal Play
+uses one radio selection from the existing Position View; advanced multi-Play
+operations remain chronological. See [Compact Card entry](compact_card_entry.md).
+No Application operation changes.
+
 ## Commentary and response links
 
 Commentary remains caller-authored free text without taxonomy, sentiment,

@@ -4,12 +4,13 @@ from __future__ import annotations
 from html import escape
 
 from skatmind.deck import get_full_deck
-from skatmind.rules import get_legal_cards
 from skatmind.session_commands import SESSION_COMMAND_KINDS
-from skatmind.session_incremental_validation import _has_exact_playable_hand
 
+from .card_entry_http import session_card_binding
+from .compact_card_rendering import compact_card_selector
 from .result_presentation import build_result_presentation_v1
 from .result_rendering import render_result_presentation_v1
+from .session_card_entry import project_session_card_task
 from .session_frontend import GuidedSessionContextV1
 from .session_recorded_review_rendering import (
     render_recorded_review_source_v1,
@@ -84,19 +85,7 @@ def session_command_fields(locale: str, view: TaskFirstSessionV1, kind: str, *, 
         cards = facts.remaining_hand_for(facts.declarer_player_id) if normal else None
         return card_select(locale, cards=cards)
     if kind == "record_play":
-        cards = None
-        if normal:
-            player = hidden("player_id", view.entry_player_id) + paragraph(
-                locale, "task.session.play_for",
-                player=player_name(locale, facts.players, view.entry_player_id))
-            hand = (facts.remaining_hand_for(view.entry_player_id)
-                    if _has_exact_playable_hand(facts, view.entry_player_id)
-                    else facts.public_hand_for(view.entry_player_id))
-            if hand is not None:
-                cards = tuple(get_legal_cards(list(hand),
-                    [] if facts.incomplete_trick is None else [card for _, card in facts.incomplete_trick.plays],
-                    facts.declaration.game_type))
-        return player + card_select(locale, cards=cards) + paragraph(locale, "task.session.card_help")
+        return player + card_select(locale) + paragraph(locale, "task.session.card_help")
     if kind == "set_public_hand":
         return player + input_field(locale, "cards", "task.field.cards") + paragraph(
             locale, "task.session.public_help")
@@ -133,6 +122,28 @@ def session_command_fields(locale: str, view: TaskFirstSessionV1, kind: str, *, 
 
 
 def _command(context, locale, view, kind, *, normal=False, correction=False):
+    if normal and kind in {"record_dealt_card", "record_discard", "record_play"}:
+        task = project_session_card_task(context.state, view=view)
+        facts = view.facts
+        play = kind == "record_play"
+        fields = hidden("managed_handle", context.handle) + hidden(
+            "card_selection", session_card_binding(context, task))
+        player = dict(_players(locale, facts)).get(task.player_id, text(locale, "task.skat"))
+        fields += paragraph(locale, "task.session.play_for" if play else "compact.for",
+                            player=player)
+        if play:
+            fields += paragraph(locale, "recovery.trick", number=len(facts.completed_tricks) + 1)
+            fields += paragraph(locale, "result.current_trick") + cards_summary(locale,
+                () if facts.incomplete_trick is None else tuple(card for _, card in facts.incomplete_trick.plays))
+            fields += paragraph(locale, "task.match.scope." + task.scope)
+        else:
+            fields += paragraph(locale, "compact.append") + paragraph(locale, "compact.accepted")
+            fields += '<p>' + cards_summary(locale, task.accepted_cards) + '</p>'
+        fields += compact_card_selector(locale, mode="play" if play else "set",
+            cards=task.selectable_cards, capacity=task.capacity,
+            game_type=None if facts.declaration is None else facts.declaration.game_type)
+        return form(locale, "/sessions/play" if play else "/sessions/cards", fields,
+                    "compact.record" if play else "compact.save", primary=True)
     fields = hidden("managed_handle", context.handle) + hidden("expected_revision", context.state.revision)
     fields += hidden("kind", kind)
     if correction:
@@ -207,9 +218,9 @@ def render_task_first_session_v1(
         primary = view.workflow.primary_action
         normal = section(locale, "task.session.state", current)
         normal += section(locale, "task.session.next", paragraph(locale, view.workflow.next_task_key))
-        normal += section(locale, "task.session.primary", _command(
+        normal += '<div id="session-recording" tabindex="-1"><div id="session-card-feedback"></div>' + section(locale, "task.session.primary", _command(
             context, locale, view, primary, normal=True) if primary else paragraph(
-                locale, "task.session.next.complete"))
+                locale, "task.session.next.complete")) + '</div>'
         normal += render_recorded_session_decisions_v1(context, locale=locale)
         entered = '<ul>' + ''.join('<li>' + escape(label) + '</li>' for _, label in _players(locale, facts)) + '</ul>'
         for player in facts.players:

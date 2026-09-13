@@ -238,6 +238,7 @@ def language_return_location_v1(context: AppWebContextV1, route: str) -> str:
         with session.lock:
             if session.recorded_review_source is not None:
                 return route + "#session-result"
+            return route + "#session-recording"
     if route.startswith("/matches/position/") and match is not None:
         with match.capture.lock:
             selected = match.recovery.selected

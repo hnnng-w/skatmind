@@ -352,7 +352,7 @@ to Home. Page renderers now supply their semantic HTML origin explicitly:
 rendering. Navigation categories, Referer, action URLs, and client location are not
 universal return targets. A safe origin is retained before optional-envelope
 parsing. Issue #225 adds only `/settings` to the exact HTML-route allowlist. Only server-selected existing
-`session-result`, `match-recording`, and `match-recovery` anchors are appended
+`session-result`, `session-recording`, `match-recording`, and `match-recovery` anchors are appended
 separately; client fragments remain rejected.
 
 `language_context.py` retains at most 32 opaque rendered-page bindings, which expire
@@ -411,6 +411,14 @@ prepare, renew, consume, or confirm an Apply selection. Normal edit, reopen,
 expiry, and source-change invalidation remain authoritative.
 
 ### Focused browser evidence
+
+Issue #226's compact Card controls use the same exact manifest/checked/repeated
+preservation. Native language switching retains server-held rejected selection;
+the optional enhancement also carries multiple unsent Cards without a Product
+mutation. Card source tokens are regenerated from current state, not copied from
+the envelope. An unbound attempted selection stays plain rejected input rather
+than the next actor's selected Card. Its separate installed-Wheel JavaScript-on/off
+measurements and POST counts are in [Compact Card entry](compact_card_entry.md).
 
 On September 12, synthetic headless Microsoft Edge **152.0.4191.66**, driven with
 the standard-library DevTools Protocol harness, exercised Learning English → German

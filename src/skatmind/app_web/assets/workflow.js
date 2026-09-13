@@ -1,5 +1,19 @@
 "use strict";
 
+// Presentation-only count; native controls and the explicit submit work without this.
+function updateCardSelection(fieldset) {
+  const cards = Array.from(fieldset.querySelectorAll('input[name="cards"]:checked'),
+    input => input.value);
+  const summary = fieldset.querySelector(".compact-selection");
+  summary.querySelector(".compact-count").textContent =
+    summary.dataset.countTemplate.replace("{count}", String(cards.length));
+  summary.querySelector(".compact-selected").textContent = cards.join(", ");
+}
+for (const fieldset of document.querySelectorAll(".compact-cards")) {
+  updateCardSelection(fieldset);
+  fieldset.addEventListener("change", () => updateCardSelection(fieldset));
+}
+
 // Preserve presentation only during the explicit native language POST.
 // Product operations, legality, and validation remain server-owned.
 document.addEventListener("submit", (event) => {

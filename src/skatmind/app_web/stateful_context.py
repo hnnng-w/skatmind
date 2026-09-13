@@ -29,6 +29,7 @@ class ManagedStatefulContextV1:
         repr=False,
     )
     active_session: GuidedSessionContextV1 | None = field(default=None, repr=False)
+    session_lifecycle_lock: RLock = field(default_factory=RLock, repr=False)
     active_match: UnifiedMatchContextV1 | None = field(default=None, repr=False)
     match_lifecycle_lock: RLock = field(default_factory=RLock, repr=False)
     active_learning: UnifiedLearningContextV1 | None = field(default=None, repr=False)

@@ -84,7 +84,7 @@ def test_real_record_warning_or_late_replay_recover_complete_reopen(localized_se
         assert active.recovery.diagnostic.play_index == 2
         assert active.recovery.diagnostic.witness_index == 5
         assert 'id="match-play-30"' not in page
-        assert f'<option value="{cards[-1]}" selected' in page
+        assert re.search(r'<input[^>]*value="' + cards[-1] + r'"[^>]*checked', page)
         assert active.path.read_bytes() == original and active.workspace is accepted
     page = follow(browser, browser.submit(entry_action(page, 2)))
     assert text(locale, "recovery.preview_title") in page

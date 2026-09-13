@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from html import escape
 
+from .compact_card_rendering import compact_card_selector
 from .form_registry import get_frontend_form_by_key_v1
 from .stateful_localization import text, translated
 from .task_first_rendering import (
     card_palette,
-    card_select,
     cards_summary,
     disclosure,
     form,
@@ -95,19 +95,38 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
                 confirm_key="task.match.remove_note_help" if operation == "remove_commentary" else None)
 
 
-def _evidence(state, handle, locale):
+def _card_form(state, handle, locale, operation, binding, *, cards=(), mode="exact", play=False):
+    fields = hidden("managed_handle", handle) + hidden("operation", operation)
+    fields += hidden("card_selection", binding)
+    if not play:
+        modes = ("unknown", "known_empty", "exact") if operation == "set_discarded_cards" else ("unknown", "exact")
+        fields += select_field(locale, "card_evidence_mode", "task.field.card_evidence_mode",
+            tuple((value, text(locale, f"task.value.{value}")) for value in modes), mode)
+        fields += paragraph(locale, "compact.replace")
+    game = state["game"]
+    fields += compact_card_selector(locale, mode="play" if play else "set",
+        cards=cards if play else None, selected=() if play else cards,
+        game_type=None if not game or game["declaration"] is None else game["declaration"]["game_type"],
+        capacity=1 if play else 10 if operation == "set_perspective_hand" else 2)
+    return form(locale, "/matches/cards", fields, "compact.record" if play else "compact.save",
+                primary=play)
+
+
+def _evidence(state, handle, locale, bindings, *, hand=False):
     game = state["game"]
     if game is None:
         return ""
     content = paragraph(locale, "task.match.evidence_help")
     for operation, name in (("set_perspective_hand", "perspective_initial_hand"),
-                            ("set_original_skat", "original_skat"),
-                            ("set_discarded_cards", "discarded_cards")):
+                             ("set_original_skat", "original_skat"),
+                             ("set_discarded_cards", "discarded_cards")):
+        if (operation == "set_perspective_hand") != hand:
+            continue
         cards = game[name]
         mode = "unknown" if cards is None else "known_empty" if not cards else "exact"
         content += section(locale, f"task.match.action.{operation}", cards_summary(locale, cards)
-            + operation_form(state, handle, locale, operation,
-                             values={"cards": cards, "card_evidence_mode": mode}), level=3)
+            + _card_form(state, handle, locale, operation, bindings.get(operation, ""),
+                         cards=cards, mode=mode), level=3)
     return content
 
 
@@ -215,7 +234,8 @@ def _reports(state, handle, locale):
     return content
 
 
-def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en", transfer="", recovery=None):
+def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en", transfer="", recovery=None, card_bindings=None):
+    card_bindings = card_bindings or {}
     handle = managed_handle
     progress = state["progress"]
     body = section(locale, "task.match.progress", paragraph(locale, "task.match.progress_value",
@@ -261,9 +281,13 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     elif view.workflow.primary_action == "append_plays":
         task += paragraph(locale, "task.match.scope." + view.selected.card_selection_scope)
         task += paragraph(locale, "task.session.play_for", player=_named_seat(state, locale, view.selected.next_player_id))
-        task += form(locale, "/matches/api/v1/operation", _hidden(state, handle, "append_plays")
-                     + card_select(locale, "cards", cards=view.selected.selectable_cards),
-                     "task.match.action.append_plays", primary=True)
+        task += paragraph(locale, "recovery.trick", number=view.selected.completed_trick_count + 1)
+        task += paragraph(locale, "result.current_trick") + cards_summary(locale, view.selected.current_trick_cards)
+        task += _card_form(state, handle, locale, "append_plays", card_bindings.get("append_plays", ""),
+                           cards=view.selected.selectable_cards, play=True)
+    if game is not None:
+        task += disclosure(locale, "compact.optional_hand", _evidence(
+            state, handle, locale, card_bindings, hand=True))
     if game is not None:
         task += '<ul>' + ''.join('<li>' + translated(locale, f"task.match.action.{step}") + ' — '
             + translated(locale, "task.recorded") + '</li>' for step in view.workflow.completed_steps) + '</ul>'
@@ -271,7 +295,7 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
             + cards_summary(locale, (play["card"],)) + '</li>' for play in game["plays"]) + '</ol>')
     body += '<div id="match-recording" tabindex="-1">' + section(locale, "task.match.record_or_pass", task) + '</div>'
     body += transfer
-    body += disclosure(locale, "task.match.evidence", '<div id="match-evidence">' + _evidence(state, handle, locale) + '</div>')
+    body += disclosure(locale, "task.match.evidence", '<div id="match-evidence">' + _evidence(state, handle, locale, card_bindings) + '</div>')
     body += disclosure(locale, "task.match.annotations", _annotations(state, handle, locale))
     metadata = {**state["match"], **state["source"],
         "match_timecode_start": state["source"]["match_timecode"]["start"],
