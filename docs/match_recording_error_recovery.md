@@ -131,6 +131,15 @@ unchanged, and rejected paths preserve accepted Reports. Existing imported Corpu
 Snapshots and sources, Sessions, profiles, and other Matches are not mutated.
 There is no automatic analysis, materialization, transfer, or Snapshot selection.
 
+Issue #227 enhances this same accepted history with
+[Recorded Trick progress](recorded_trick_progress.md). Completed rows retain
+their own cumulative Player totals, with separate known-party totals; incomplete
+rows receive no winner/point credit. Summary and diagnostics share the accepted
+warning. Preview effects remain separate until a real applied Save; no-op,
+cancel, rejection and failure preserve the accepted prefix. Existing
+`match-play-{decision_index}` targets, selection fields and confirmations remain.
+The shared renderer receives recovery action markup separately and adds no route.
+
 ## Private HTTP forms and focus
 
 The four added URL-encoded POST routes have exact fields after the common

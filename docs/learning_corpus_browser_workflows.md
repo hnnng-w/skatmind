@@ -477,6 +477,25 @@ is emitted. Missing, `null`, duplicate, forged, malformed, credential-bearing,
 path/query/fragment-bearing, wrong-port, and Host-mismatched Origins remain
 rejected; Referer is not an authorization fallback.
 
+The Issue #227 validation follow-up bounds the standalone server's rejected-POST
+response lifecycle. Host/Cookie/Origin rejection still precedes Product body
+parsing and dispatch. It sends the existing HTTP `403` / `Forbidden` response
+with all security headers and `Connection: close`, then flushes and half-closes
+the response direction before discarding incoming bytes. Cleanup ignores body
+framing, reads at most **65,536 bytes** in chunks of at most **8,192 bytes**, and
+uses one **250-ms absolute drain deadline**, never renewed by incoming data.
+Each rejection response socket write also has a 250-ms timeout. EOF, a socket
+error, either bound, or a missing body ends cleanup; no second response is
+attempted after a partial write. Discarded bytes cannot initialize, mutate,
+upload to, or read from the Corpus, nor become another HTTP request. The normal
+16-MiB authorized-request limit and framing validation remain unchanged.
+
+`tests/test_local_learning_corpus_web.py` retains ordinary non-empty unauthorized
+client POSTs and adds synchronized split/late-body and pipelined-input coverage,
+missing/ambiguous-body closure, exact byte/deadline limits, partial-write failure,
+unchanged stored bytes, subsequent authorized initialization, and joined request
+threads. Test client connections close in `finally`, including failure paths.
+
 Every response includes `no-store`, `nosniff`, `Referrer-Policy: origin`, frame
 denial, a restrictive Permissions Policy, and this Content Security Policy. The
 former `no-referrer` policy caused non-CORS browser POSTs to serialize Origin as

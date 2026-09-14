@@ -22,6 +22,17 @@ and continuation. A discovered enlarged-text Session grid overflow was corrected
 with a shrinkable recording track. Original #224/#225 evidence remains historical;
 current measurements and resource hashes are in [Compact Card entry](compact_card_entry.md).
 
+Issue #227 adds shared read-only Session/Match summary/history components to the
+same app-owned stylesheet. Desktop uses recording and summary side by side;
+narrow/enlarged text reflows the summary after the controls. Labelled numeric
+definition lists preserve units without compressed Player columns. All correction
+targets remain expanded. Installed-Wheel Edge inspection covers 176 measurements,
+both languages and script modes, ten Tricks, Null, errors and warnings. A measured
+Session analysis-form intrinsic overflow at 320 pixels/200% text was fixed with
+the existing shrinkable form-track pattern. See
+[Recorded Trick progress](recorded_trick_progress.md) for actual totals, hashes,
+screenshots and focus evidence. Historical #224–#226 evidence remains unchanged.
+
 `app_web/assets/app.css` is the single theme owner. All unified Match and Learning
 HTML loads only `/assets/app.css`. The shell's `main[data-workflow]` attribute
 scopes these workflow components, including creation, contextual errors, status

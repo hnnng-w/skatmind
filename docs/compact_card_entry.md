@@ -108,6 +108,13 @@ selection. Successful PRG clears selection, derives the next actor, and focuses
 recording. Unavailable attempted Cards are shown as rejected input, never inserted
 as enabled options. #222 recovery and #221 later review stay reachable.
 
+Issue #227 adds [Recorded Trick progress](recorded_trick_progress.md) beside these
+controls, reusing accepted replay/recovery facts and the compact Card naming and
+symbol convention. History follows recording; the existing focus/fragment, form
+identities, submission/save counts and Checkpoint behavior remain intact. Running
+totals ignore pending/rejected Cards. Its 24 additional catalog keys bring the
+current total to 1,318 without changing the 57-route/93-definition registry.
+
 ## Exact private HTTP contract
 
 The three new URL-encoded routes have an **8,192-byte** body bound:

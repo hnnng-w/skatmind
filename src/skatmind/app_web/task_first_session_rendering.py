@@ -8,6 +8,12 @@ from skatmind.session_commands import SESSION_COMMAND_KINDS
 
 from .card_entry_http import session_card_binding
 from .compact_card_rendering import compact_card_selector
+from .recorded_trick_progress import project_session_trick_progress
+from .recorded_trick_rendering import (
+    render_current_trick,
+    render_recorded_history,
+    render_recorded_summary,
+)
 from .result_presentation import build_result_presentation_v1
 from .result_rendering import render_result_presentation_v1
 from .session_card_entry import project_session_card_task
@@ -121,7 +127,7 @@ def session_command_fields(locale: str, view: TaskFirstSessionV1, kind: str, *, 
     return paragraph(locale, "task.session.event_help") + ''.join(fields)
 
 
-def _command(context, locale, view, kind, *, normal=False, correction=False):
+def _command(context, locale, view, kind, *, normal=False, correction=False, progress=None):
     if normal and kind in {"record_dealt_card", "record_discard", "record_play"}:
         task = project_session_card_task(context.state, view=view)
         facts = view.facts
@@ -133,8 +139,7 @@ def _command(context, locale, view, kind, *, normal=False, correction=False):
                             player=player)
         if play:
             fields += paragraph(locale, "recovery.trick", number=len(facts.completed_tricks) + 1)
-            fields += paragraph(locale, "result.current_trick") + cards_summary(locale,
-                () if facts.incomplete_trick is None else tuple(card for _, card in facts.incomplete_trick.plays))
+            fields += render_current_trick(progress, locale)
             fields += paragraph(locale, "task.match.scope." + task.scope)
         else:
             fields += paragraph(locale, "compact.append") + paragraph(locale, "compact.accepted")
@@ -207,6 +212,7 @@ def render_task_first_session_v1(
     with context.lock:
         view = project_task_first_session_v1(context.state)
         facts = view.facts
+        progress = project_session_trick_progress(facts)
         mode = "during" if facts.capture_mode == "live" else "after"
         current = paragraph(locale, f"creation.session.{mode}")
         current += paragraph(locale, f"task.session.phase.{facts.phase}")
@@ -218,10 +224,13 @@ def render_task_first_session_v1(
         primary = view.workflow.primary_action
         normal = section(locale, "task.session.state", current)
         normal += section(locale, "task.session.next", paragraph(locale, view.workflow.next_task_key))
-        normal += '<div id="session-recording" tabindex="-1"><div id="session-card-feedback"></div>' + section(locale, "task.session.primary", _command(
-            context, locale, view, primary, normal=True) if primary else paragraph(
-                locale, "task.session.next.complete")) + '</div>'
+        controls = (_command(context, locale, view, primary, normal=True, progress=progress)
+                    if primary else paragraph(locale, "task.session.next.complete"))
+        normal += '<div id="session-recording" tabindex="-1"><div id="session-card-feedback"></div>' + section(
+            locale, "task.session.primary", '<div class="recording-progress-layout"><div>'
+            + controls + '</div>' + render_recorded_summary(progress, locale) + '</div>') + '</div>'
         normal += render_recorded_session_decisions_v1(context, locale=locale)
+        normal += render_recorded_history(progress, locale)
         entered = '<ul>' + ''.join('<li>' + escape(label) + '</li>' for _, label in _players(locale, facts)) + '</ul>'
         for player in facts.players:
             hand = facts.remaining_hand_for(player.player_id)
@@ -243,14 +252,6 @@ def render_task_first_session_v1(
         entered += paragraph(locale, "task.discards") + cards_summary(locale, discards)
         entered += paragraph(locale, "task.session.play_progress", plays=facts.played_card_count,
                              tricks=len(facts.completed_tricks))
-        entered += paragraph(locale, "result.current_trick") + cards_summary(locale,
-            () if facts.incomplete_trick is None else tuple(card for _, card in facts.incomplete_trick.plays))
-        for trick in facts.completed_tricks:
-            entered += '<p>' + translated(locale, "guided.trick_number", number=trick.trick_number)
-            entered += ': ' + escape(player_name(locale, facts.players, trick.winner_player_id))
-            entered += ' — ' + str(trick.trick_points) + '</p>'
-        entered += '<ol>' + ''.join('<li>' + escape(player_name(locale, facts.players, player_id))
-            + ': ' + cards_summary(locale, (card,)) + '</li>' for player_id, card in facts.plays) + '</ol>'
         if facts.continuation_event is not None:
             entered += paragraph(locale, "task.session.event_recorded")
         if facts.game_end_reason is not None:

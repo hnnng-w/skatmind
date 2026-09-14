@@ -1726,6 +1726,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self._rendered_language_source = capture_language_source_v1(
             self.server.app_context, return_to)
         with active.capture.lock:
+            # A concurrent navigation may have moved selection since language capture.
+            # Keep the page, recovery actions and Card bindings on the same Game.
+            select_unified_match_position_v1(active, position)
             view = project_task_first_match_v1(active.workspace, selected_position=position)
             state = build_task_first_match_page_state_v1(active, view, report_id=report_id)
             card_bindings = {operation: match_card_binding(active, operation)
@@ -1734,7 +1737,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             transfer_notice = active.transfer_notice
             active.transfer_notice = None
             recovery = render_match_recovery(active, self._frontend_state().locale,
-                                              recording_selections(active))
+                                              recording_selections(active),
+                                              progress=state["recorded_progress"])
         notice = (
             operation_notice
             or transfer_notice

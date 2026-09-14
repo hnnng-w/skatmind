@@ -159,6 +159,14 @@ registry has 57 POST routes and 93 definitions. See
 [Compact Card entry](compact_card_entry.md) for ordering, Checkpoint parity,
 rejected-input/language behavior, and installed-browser evidence.
 
+Issue #227 adds [Recorded Trick progress](recorded_trick_progress.md): a compact
+three-Player captured-point/won-Trick summary beside recording and immutable
+cumulative prefixes in the accepted history. Session consumes its existing replay;
+Match enhances #222 history with the same rule-derived winners and exact correction
+anchors. Null omits point metrics; incomplete and shortened records receive no
+unplayed credit. Accepted warnings remain visible. This is partial C6 remediation.
+No route, Product operation, persistent counter or analysis is added.
+
 ## Explicit transfer and Learning
 
 Transfer displays friendly source-Match and target-collection labels and whether

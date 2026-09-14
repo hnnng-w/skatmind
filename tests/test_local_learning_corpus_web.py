@@ -3,8 +3,11 @@ from __future__ import annotations
 import http.client
 import json
 import socket
+import threading
 from dataclasses import replace
+from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import urlencode
 
 import pytest
@@ -18,7 +21,10 @@ from skatmind.corpus_web.downloads import (
     LEARNING_CORPUS_ALL_PREPARED_DOWNLOAD_KINDS,
     build_learning_corpus_prepared_download_v1,
 )
-from skatmind.corpus_web.security import LEARNING_CORPUS_WEB_COOKIE_NAME
+from skatmind.corpus_web.security import (
+    LEARNING_CORPUS_WEB_COOKIE_NAME,
+    learning_corpus_web_security_headers_v1,
+)
 from skatmind.corpus_web.server import (
     serve_learning_corpus_web_in_thread_v1,
     start_learning_corpus_web_server_v1,
@@ -43,12 +49,12 @@ def _request(
 ) -> tuple[int, dict[str, str], bytes]:
     connection = http.client.HTTPConnection("127.0.0.1", server.port, timeout=20)
     request_headers = {"Host": f"127.0.0.1:{server.port}", **(headers or {})}
-    connection.request(method, path, body=body, headers=request_headers)
-    response = connection.getresponse()
-    content = response.read()
-    result = response.status, dict(response.getheaders()), content
-    connection.close()
-    return result
+    try:
+        connection.request(method, path, body=body, headers=request_headers)
+        with connection.getresponse() as response:
+            return response.status, dict(response.getheaders()), response.read()
+    finally:
+        connection.close()
 
 
 def _raw_request(
@@ -60,15 +66,15 @@ def _raw_request(
     body: bytes = b"",
 ) -> tuple[int, dict[str, str], bytes]:
     connection = http.client.HTTPConnection("127.0.0.1", server.port, timeout=20)
-    connection.putrequest(method, path, skip_host=True)
-    for name, value in headers:
-        connection.putheader(name, value)
-    connection.endheaders(body)
-    response = connection.getresponse()
-    content = response.read()
-    result = response.status, dict(response.getheaders()), content
-    connection.close()
-    return result
+    try:
+        connection.putrequest(method, path, skip_host=True)
+        for name, value in headers:
+            connection.putheader(name, value)
+        connection.endheaders(body)
+        with connection.getresponse() as response:
+            return response.status, dict(response.getheaders()), response.read()
+    finally:
+        connection.close()
 
 
 def _bootstrap(server) -> str:
@@ -164,6 +170,14 @@ def running_server(tmp_path: Path):
         port=0,
         token="corpus-test-token",
     )
+    request_threads = []
+    original_finish_request = server.finish_request
+
+    def finish_request(request, address):
+        request_threads.append(threading.current_thread())
+        original_finish_request(request, address)
+
+    server.finish_request = finish_request
     thread = serve_learning_corpus_web_in_thread_v1(server)
     try:
         yield server
@@ -171,6 +185,10 @@ def running_server(tmp_path: Path):
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
+        for request_thread in request_threads:
+            request_thread.join(timeout=5)
+        assert not thread.is_alive()
+        assert not any(item.is_alive() for item in request_threads)
 
 
 def test_loopback_bootstrap_host_cookie_origin_headers_assets_and_methods(
@@ -248,16 +266,12 @@ def test_loopback_bootstrap_host_cookie_origin_headers_assets_and_methods(
         == 403
     )
 
-    connection = http.client.HTTPConnection("127.0.0.1", server.port, timeout=20)
-    connection.putrequest("GET", "/", skip_host=True)
-    connection.putheader("Host", f"127.0.0.1:{server.port}")
-    connection.putheader("Host", "localhost")
-    connection.putheader("Cookie", cookie)
-    connection.endheaders()
-    response = connection.getresponse()
-    assert response.status == 403
-    response.read()
-    connection.close()
+    assert _raw_request(
+        server,
+        "GET",
+        "/",
+        (("Host", f"127.0.0.1:{server.port}"), ("Host", "localhost"), ("Cookie", cookie)),
+    )[0] == 403
     assert (
         _request(
             server,
@@ -271,6 +285,253 @@ def test_loopback_bootstrap_host_cookie_origin_headers_assets_and_methods(
         )[0]
         == 403
     )
+    assert server.corpus_context.store is None
+    assert not server.corpus_context.corpus_root.exists()
+
+
+@pytest.mark.parametrize(
+    "rejection",
+    [
+        "host", "cookie", "foreign_origin", "malformed_origin", "null_origin",
+        "missing_origin", "duplicate_origin",
+    ],
+)
+def test_rejected_split_post_delivers_403_before_discard_and_never_dispatches(
+    running_server,
+    monkeypatch: pytest.MonkeyPatch,
+    rejection: str,
+) -> None:
+    server = running_server
+    context = server.corpus_context
+    cookie = _bootstrap(server)
+    handler_class = server_module.LearningCorpusWebRequestHandlerV1
+    discarding = threading.Event()
+    first_chunk = threading.Event()
+    closed = threading.Event()
+    discarded = bytearray()
+    product_calls = []
+    statuses = []
+    client_port = None
+    original_setup = handler_class.setup
+    original_headers = handler_class._headers
+    original_shutdown = server.shutdown_request
+
+    def setup(handler):
+        original_setup(handler)
+        original_read1 = handler.rfile.read1
+
+        def read1(size):
+            discarding.set()
+            data = original_read1(size)
+            discarded.extend(data)
+            if data:
+                first_chunk.set()
+            return data
+
+        handler.rfile.read1 = read1
+
+    def headers(handler, status, *args, **kwargs):
+        statuses.append(status)
+        original_headers(handler, status, *args, **kwargs)
+
+    def shutdown(request):
+        is_target = request.getpeername()[1] == client_port
+        original_shutdown(request)
+        if is_target:
+            closed.set()
+
+    def forbidden_product_work(*_args, **_kwargs):
+        product_calls.append("unexpected Product work")
+        raise AssertionError("Unauthorized bytes reached Product work")
+
+    host = f"127.0.0.1:{server.port}"
+    body = urlencode({"operation": "initialize_corpus", "corpus_id": "blocked"}).encode()
+    headers_to_send = [
+        ("Host", "evil.example" if rejection == "host" else host),
+        ("Cookie", "wrong" if rejection == "cookie" else cookie),
+        ("Content-Length", str(len(body))),
+        ("Content-Type", "application/x-www-form-urlencoded"),
+    ]
+    origins = {
+        "foreign_origin": "http://evil.example",
+        "malformed_origin": server.origin + "////",
+        "null_origin": "null",
+    }
+    if rejection != "missing_origin":
+        headers_to_send.append(("Origin", origins.get(rejection, server.origin)))
+    if rejection == "duplicate_origin":
+        headers_to_send.append(("Origin", server.origin))
+    wire_headers = (
+        "POST /api/v1/operations HTTP/1.1\r\n"
+        + "".join(f"{name}: {value}\r\n" for name, value in headers_to_send)
+        + "\r\n"
+    ).encode()
+    # Even a valid pipelined mutation must be discarded, never parsed as a new request.
+    pipeline = (
+        f"POST /api/v1/operations HTTP/1.1\r\nHost: {host}\r\nCookie: {cookie}\r\n"
+        f"Origin: {server.origin}\r\nContent-Type: application/x-www-form-urlencoded\r\n"
+        f"Content-Length: {len(body)}\r\n\r\n"
+    ).encode() + body
+    with monkeypatch.context() as patch:
+        patch.setattr(handler_class, "setup", setup)
+        patch.setattr(handler_class, "_headers", headers)
+        patch.setattr(server, "shutdown_request", shutdown)
+        for name in ("_read_body", "_parse_form", "_dispatch_form", "_dispatch_upload", "_state"):
+            patch.setattr(handler_class, name, forbidden_product_work)
+        patch.setattr(uploads_module.tempfile, "mkstemp", forbidden_product_work)
+        with socket.create_connection(("127.0.0.1", server.port), timeout=3) as connection:
+            client_port = connection.getsockname()[1]
+            connection.sendall(wire_headers)
+            with http.client.HTTPResponse(connection) as response:
+                response.begin()
+                assert response.status == 403
+                assert response.read() == b"Forbidden"
+                response_headers = dict(response.getheaders())
+                for name, value in learning_corpus_web_security_headers_v1():
+                    assert response_headers[name] == value
+                assert "Access-Control-Allow-Origin" not in response_headers
+            assert discarding.wait(2), "Handler closed without staged input cleanup"
+            assert not closed.is_set()
+            connection.sendall(body[:10])
+            assert first_chunk.wait(2), "First late chunk was not discarded"
+            connection.sendall(body[10:] + pipeline)
+            connection.shutdown(socket.SHUT_WR)
+            assert closed.wait(2), "Rejected connection cleanup did not finish"
+            assert connection.recv(1) == b""
+        assert discarded == body + pipeline
+        assert statuses == [403]
+        assert product_calls == []
+        assert context.store is None and context.generation == 0
+        assert not context.corpus_root.exists()
+
+    # The same live server still accepts an ordinary authorized non-empty form.
+    assert _post_form(
+        server, cookie,
+        {"operation": "initialize_corpus", "corpus_id": "authorized-after-rejection"},
+    )[0] == 200
+    assert context.store is not None
+    store, generation = context.store, context.generation
+    before = {
+        path.relative_to(context.corpus_root): path.read_bytes()
+        for path in context.corpus_root.rglob("*") if path.is_file()
+    }
+    assert _raw_request(
+        server, "POST", "/api/v1/operations", tuple(headers_to_send), body=body,
+    )[0] == 403
+    assert context.store is store and context.generation == generation
+    assert {
+        path.relative_to(context.corpus_root): path.read_bytes()
+        for path in context.corpus_root.rglob("*") if path.is_file()
+    } == before
+
+
+@pytest.mark.parametrize("framing", ["missing", "duplicate", "oversized", "transfer", "short"])
+def test_rejected_post_cleanup_finishes_with_missing_or_ambiguous_body(
+    running_server,
+    monkeypatch: pytest.MonkeyPatch,
+    framing: str,
+) -> None:
+    server = running_server
+    cookie = _bootstrap(server)
+    closed = threading.Event()
+    client_port = None
+    original_shutdown = server.shutdown_request
+
+    def shutdown(request):
+        is_target = request.getpeername()[1] == client_port
+        original_shutdown(request)
+        if is_target:
+            closed.set()
+
+    monkeypatch.setattr(server, "shutdown_request", shutdown)
+    framing_headers = {
+        "missing": "",
+        "duplicate": "Content-Length: 5\r\nContent-Length: 9\r\n",
+        "oversized": f"Content-Length: {LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES + 1}\r\n",
+        "transfer": "Transfer-Encoding: chunked\r\nContent-Length: 5\r\n",
+        "short": "Content-Length: 5\r\n",
+    }[framing]
+    request = (
+        f"POST /api/v1/operations HTTP/1.1\r\nHost: 127.0.0.1:{server.port}\r\n"
+        f"Cookie: {cookie}\r\nOrigin: null\r\n{framing_headers}\r\n"
+    ).encode()
+    with socket.create_connection(("127.0.0.1", server.port), timeout=3) as connection:
+        client_port = connection.getsockname()[1]
+        # Keep the sending direction open without supplying the promised body.
+        connection.sendall(request)
+        with http.client.HTTPResponse(connection) as response:
+            response.begin()
+            assert response.status == 403
+            assert response.read() == b"Forbidden"
+            assert response.getheader("Connection") == "close"
+        assert closed.wait(2), "Cleanup waited for untrusted framing or a missing body"
+        assert connection.recv(1) == b""
+    assert server.corpus_context.store is None
+    assert not server.corpus_context.corpus_root.exists()
+
+
+@pytest.mark.parametrize("bound", ["bytes", "deadline"])
+def test_rejection_cleanup_has_byte_cap_and_nonrenewable_deadline(
+    monkeypatch: pytest.MonkeyPatch,
+    bound: str,
+) -> None:
+    handler = object.__new__(server_module.LearningCorpusWebRequestHandlerV1)
+    handler.request_version = "HTTP/1.1"
+    handler.requestline = "POST /api/v1/operations HTTP/1.1"
+    handler.command = "POST"
+    handler.wfile = BytesIO()
+    timeouts, shutdowns, reads = [], [], []
+    handler.connection = SimpleNamespace(settimeout=timeouts.append, shutdown=shutdowns.append)
+    elapsed = 0.0
+
+    def read1(size):
+        nonlocal elapsed
+        reads.append(size)
+        if bound == "deadline":
+            elapsed += 0.125
+            return b"x"
+        return b"x" * size
+
+    handler.rfile = SimpleNamespace(read1=read1)
+    monkeypatch.setattr(server_module, "monotonic", lambda: elapsed)
+    handler._reject_mutation()
+    assert handler.close_connection is True
+    assert shutdowns == [socket.SHUT_WR]
+    assert handler.wfile.getvalue().startswith(b"HTTP/1.0 403 Forbidden\r\n")
+    assert handler.wfile.getvalue().endswith(b"\r\n\r\nForbidden")
+    if bound == "bytes":
+        assert sum(reads) == 64 * 1024
+        assert max(reads) <= 8192
+    else:
+        assert len(reads) == 2
+        assert timeouts == [0.25, 0.25, 0.125]
+
+
+@pytest.mark.parametrize("failed_write", [1, 2])
+def test_rejection_does_not_send_again_after_partial_response_failure(failed_write: int) -> None:
+    handler = object.__new__(server_module.LearningCorpusWebRequestHandlerV1)
+    handler.request_version = "HTTP/1.1"
+    handler.requestline = "POST /api/v1/operations HTTP/1.1"
+    handler.command = "POST"
+    writes, reads, shutdowns = [], [], []
+
+    class BrokenWriter(BytesIO):
+        def write(self, content):
+            writes.append(content)
+            if len(writes) == failed_write:
+                super().write(content[:2])
+                raise BrokenPipeError("Synthetic partial response failure")
+            return super().write(content)
+
+    handler.wfile = BrokenWriter()
+    handler.connection = SimpleNamespace(
+        settimeout=lambda _timeout: None, shutdown=shutdowns.append,
+    )
+    handler.rfile = SimpleNamespace(read1=reads.append)
+    handler._reject_mutation()
+    assert len(writes) == failed_write
+    assert reads == shutdowns == []
+    assert handler.close_connection is True
 
 
 def test_browser_referrer_policy_matches_mutation_origin_contract(running_server) -> None:
@@ -365,30 +626,17 @@ def test_request_limit_required_length_and_validation_errors(running_server) -> 
     server = running_server
     cookie = _bootstrap(server)
 
-    connection = http.client.HTTPConnection("127.0.0.1", server.port, timeout=20)
-    connection.putrequest("POST", "/api/v1/operations", skip_host=True)
-    connection.putheader("Host", f"127.0.0.1:{server.port}")
-    connection.putheader("Cookie", cookie)
-    connection.putheader("Origin", server.origin)
-    connection.putheader("Content-Type", "application/x-www-form-urlencoded")
-    connection.putheader("Content-Length", str(LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES + 1))
-    connection.endheaders()
-    response = connection.getresponse()
-    assert response.status == 413
-    response.read()
-    connection.close()
-
-    connection = http.client.HTTPConnection("127.0.0.1", server.port, timeout=20)
-    connection.putrequest("POST", "/api/v1/operations", skip_host=True)
-    connection.putheader("Host", f"127.0.0.1:{server.port}")
-    connection.putheader("Cookie", cookie)
-    connection.putheader("Origin", server.origin)
-    connection.putheader("Content-Type", "application/x-www-form-urlencoded")
-    connection.endheaders()
-    response = connection.getresponse()
-    assert response.status == 400
-    response.read()
-    connection.close()
+    base = (
+        ("Host", f"127.0.0.1:{server.port}"),
+        ("Cookie", cookie),
+        ("Origin", server.origin),
+        ("Content-Type", "application/x-www-form-urlencoded"),
+    )
+    assert _raw_request(
+        server, "POST", "/api/v1/operations",
+        (*base, ("Content-Length", str(LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES + 1))),
+    )[0] == 413
+    assert _raw_request(server, "POST", "/api/v1/operations", base)[0] == 400
 
     status, _headers, content = _post_form(
         server,
@@ -402,19 +650,18 @@ def test_request_limit_required_length_and_validation_errors(running_server) -> 
         {"operation": "initialize_corpus", "corpus_id": "must-not-apply"}
     ).encode()
     connection = http.client.HTTPConnection("127.0.0.1", server.port, timeout=20)
-    connection.putrequest("POST", "/api/v1/operations", skip_host=True)
-    connection.putheader("Host", f"127.0.0.1:{server.port}")
-    connection.putheader("Cookie", cookie)
-    connection.putheader("Origin", server.origin)
-    connection.putheader("Content-Type", "application/x-www-form-urlencoded")
-    connection.putheader("Content-Length", str(len(short_body) + 5))
-    connection.endheaders(short_body)
-    assert connection.sock is not None
-    connection.sock.shutdown(socket.SHUT_WR)
-    response = connection.getresponse()
-    assert response.status == 400
-    response.read()
-    connection.close()
+    try:
+        connection.putrequest("POST", "/api/v1/operations", skip_host=True)
+        for name, value in (*base, ("Content-Length", str(len(short_body) + 5))):
+            connection.putheader(name, value)
+        connection.endheaders(short_body)
+        assert connection.sock is not None
+        connection.sock.shutdown(socket.SHUT_WR)
+        with connection.getresponse() as response:
+            assert response.status == 400
+            response.read()
+    finally:
+        connection.close()
     assert server.corpus_context.store is None
 
 

@@ -5,6 +5,11 @@ from html import escape
 
 from .compact_card_rendering import compact_card_selector
 from .form_registry import get_frontend_form_by_key_v1
+from .recorded_trick_rendering import (
+    render_current_trick,
+    render_recorded_history,
+    render_recorded_summary,
+)
 from .stateful_localization import text, translated
 from .task_first_rendering import (
     card_palette,
@@ -271,6 +276,8 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     body += section(locale, "task.match.overview", positions)
     game = state["game"]
     task = '<div id="match-recovery-feedback"></div>' + ("" if recovery is None else recovery[0]) + paragraph(locale, view.workflow.next_task_key)
+    recorded = state.get("recorded_progress")
+    task += '<div class="recording-progress-layout"><div>'
     if view.workflow.primary_action == "start_game":
         task += form(locale, "/matches/api/v1/operation", _hidden(state, handle, "start_game"),
                      "task.match.action.start_game", primary=True)
@@ -282,17 +289,19 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
         task += paragraph(locale, "task.match.scope." + view.selected.card_selection_scope)
         task += paragraph(locale, "task.session.play_for", player=_named_seat(state, locale, view.selected.next_player_id))
         task += paragraph(locale, "recovery.trick", number=view.selected.completed_trick_count + 1)
-        task += paragraph(locale, "result.current_trick") + cards_summary(locale, view.selected.current_trick_cards)
+        if recorded is not None:
+            task += render_current_trick(recorded, locale)
         task += _card_form(state, handle, locale, "append_plays", card_bindings.get("append_plays", ""),
                            cards=view.selected.selectable_cards, play=True)
+    task += '</div>' + ("" if recorded is None else render_recorded_summary(recorded, locale)) + '</div>'
     if game is not None:
         task += disclosure(locale, "compact.optional_hand", _evidence(
             state, handle, locale, card_bindings, hand=True))
     if game is not None:
         task += '<ul>' + ''.join('<li>' + translated(locale, f"task.match.action.{step}") + ' — '
             + translated(locale, "task.recorded") + '</li>' for step in view.workflow.completed_steps) + '</ul>'
-        task += (recovery[1] if recovery is not None else '<ol>' + ''.join('<li>' + escape(_name(state, locale, play["player_id"])) + ': '
-            + cards_summary(locale, (play["card"],)) + '</li>' for play in game["plays"]) + '</ol>')
+        task += (recovery[1] if recovery is not None else "" if recorded is None
+                 else render_recorded_history(recorded, locale))
     body += '<div id="match-recording" tabindex="-1">' + section(locale, "task.match.record_or_pass", task) + '</div>'
     body += transfer
     body += disclosure(locale, "task.match.evidence", '<div id="match-evidence">' + _evidence(state, handle, locale, card_bindings) + '</div>')

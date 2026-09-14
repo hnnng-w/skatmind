@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from html import escape
 
-from skatmind.observed_trace_diagnostics import find_observed_trace_warning
-
+from .recorded_trick_progress import project_match_trick_progress
+from .recorded_trick_rendering import render_recorded_history
 from .stateful_localization import card_name, text, translated
 from .task_first_rendering import card_select, disclosure, form, hidden, paragraph
 
@@ -84,7 +84,7 @@ def _removed_annotations(context, locale, game, candidate):
     return content + '</ul>'
 
 
-def render_match_recovery(context, locale, selections):
+def render_match_recovery(context, locale, selections, *, progress=None):
     state = context.recovery
     game = context.workspace.slots[context.selected_position - 1].observed_game
     if game is None:
@@ -98,8 +98,9 @@ def render_match_recovery(context, locale, selections):
             card_name(locale, card) for card in state.proposed_cards))
         feedback += render_match_diagnostic(context, locale, diagnostic,
                                             proposed_index=state.proposed_index)
-    warning = None if game.declaration is None else find_observed_trace_warning(
-        game.plays, game.declaration.game_type)
+    if progress is None:
+        progress = project_match_trick_progress(context.workspace, context.selected_position)
+    warning = progress.warning
     if warning is not None:
         feedback += paragraph(locale, "recovery.warning")
         feedback += render_match_diagnostic(context, locale, warning)
@@ -169,23 +170,14 @@ def render_match_recovery(context, locale, selections):
         last = next(item for item in selections if item.play_index == len(game.plays)
                     and item.action == "rewind")
         history += _action(context, locale, last, "recovery.undo_last")
-        history += '<section class="match-history"><h3>' + translated(
-            locale, "recovery.history") + '</h3>'
-        for start in range(0, len(game.plays), 3):
-            history += '<section><h4>' + translated(locale, "recovery.trick", number=start // 3 + 1)
-            history += '</h4><ol>'
-            for play in game.plays[start:start + 3]:
-                history += f'<li id="match-play-{play.decision_index}" tabindex="-1"><p>'
-                history += escape(_location(locale, play.decision_index)) + ' — '
-                history += escape(_name(context, locale, play.player_id)) + ': '
-                history += escape(card_name(locale, play.card)) + f' ({play.card})</p>'
-                history += '<div class="match-recovery-actions">'
-                for action, key in (("replace", "recovery.correct"), ("rewind", "recovery.rewind")):
-                    item = next(item for item in selections
-                                if item.play_index == play.decision_index
-                                and item.action == action)
-                    history += _action(context, locale, item, key)
-                history += '</div></li>'
-            history += '</ol></section>'
-        history += '</section>'
+        actions = {}
+        for play in game.plays:
+            markup = '<div class="match-recovery-actions">'
+            for action, key in (("replace", "recovery.correct"), ("rewind", "recovery.rewind")):
+                item = next(item for item in selections
+                            if item.play_index == play.decision_index and item.action == action)
+                markup += _action(context, locale, item, key)
+            actions[play.decision_index] = markup + '</div>'
+        history += '<div class="match-history">' + render_recorded_history(
+            progress, locale, actions=actions, anchor_prefix="match-play") + '</div>'
     return feedback, history

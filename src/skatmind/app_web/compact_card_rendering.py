@@ -12,6 +12,13 @@ from .stateful_localization import card_name, translated
 _SYMBOLS = {"C": "♣", "S": "♠", "H": "♥", "D": "♦"}
 
 
+def compact_recorded_card(locale, card):
+    """Read-only Card label with the same symbols, exact code and full accessible name."""
+    return ('<span class="recorded-card" role="img" aria-label="'
+            + escape(f"{card_name(locale, card)} ({card})", quote=True) + '">'
+            + f'<span aria-hidden="true">{_SYMBOLS[card[0]]} {card[1:]} ({card})</span></span>')
+
+
 def card_display_groups(cards, game_type=None):
     """Display order is independent of canonical set input and chronological Plays."""
     remaining = [card for card in get_full_deck() if card in cards]

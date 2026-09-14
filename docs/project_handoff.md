@@ -2448,6 +2448,25 @@ partial reopen, grouped Skat/discards, 30 Plays and reopened #221 review, plus M
 evidence/recovery. Installed-Wheel Edge evidence checks de/en, JavaScript on/off,
 320-pixel/200%-text reflow, zero selection POSTs and one ten-Card save POST. It is a
 bounded implementation slice and does not close unrelated UAT findings.
+Issue #227 adds [Recorded Trick progress](recorded_trick_progress.md): immutable
+accepted public-Play prefixes, individual captured points/won Tricks and separate
+known-party totals. Session uses its retained replay; Match enhances #222's exact
+anchored history. Null, incomplete/shortened ends, unresolved warnings and actual
+correction/rewind outcomes retain their scope. Real HTTP tests and 176 installed-
+Wheel Edge measurements cover recording, totals, correction, language and reflow.
+It partially remediates C6 without a new route, persisted counter, analysis, final
+scoring or whole-frontend acceptance. Catalogs now contain 1,318 matching keys.
+The #227 [validation follow-up](recorded_trick_progress.md#validation-blocker-follow-up)
+preserves both unsuccessful full attempts (each 8,480 passed, 1 skipped, 1 failed).
+It bounds standalone Corpus rejected-POST delivery/cleanup and makes the real
+public-provenance additive test clock-deterministic, with 18 new regressions.
+The affected eight-module run passed 175 tests and three fresh-process target
+runs passed 9 tests each. Original socket packet-level causation and the original
+provenance differing field are not retrospectively established. Final local
+complete-check output and exit status are recorded in the accompanying report;
+the successful final-tree check is mandatory. Existing installed-browser evidence
+remains bound to its September 13 feature build. #227 remains open until that
+local gate and both exact-merged-commit CI jobs pass.
 Both required jobs, `check` and `v1-supported-platform-matrix`, must pass on the
 exact merged commit. A future focused retest can open a recorded Game, review an
 earlier own decision after 30 Plays, recognize its comparison and source, then

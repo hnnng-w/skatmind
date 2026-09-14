@@ -750,7 +750,8 @@ details[open] > summary {
   overflow-wrap: anywhere;
 }
 
-#session-recording .form-grid {
+#session-app .form-grid {
+  min-width: 0;
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -758,6 +759,65 @@ details[open] > summary {
   min-width: 0;
   max-width: 100%;
 }
+
+/* Accepted Trick progress has no form, counter, or collapsed diagnostic targets. */
+.recording-progress-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+@media (min-width: 65rem) {
+  .recording-progress-layout {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
+.recorded-summary,
+.recorded-history,
+.recorded-current,
+.recording-progress-layout > div {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.recorded-summary,
+.recorded-history {
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.recorded-history { margin-block: 1rem; }
+.recorded-summary h3 { margin-top: 0; }
+.recorded-summary p { margin-block: 0.4em; }
+.recorded-trick + .recorded-trick { border-top: 2px solid var(--line); }
+.recorded-trick > ol { list-style: none; padding: 0; }
+.recorded-trick li { padding-block: 0.4rem; }
+.recorded-trick li > p { margin-block: 0.25em; }
+.recorded-current ol { padding-inline-start: 1.5em; }
+.recorded-current p { margin-block: 0.25em; }
+
+.trick-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15em), 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.trick-total { min-width: 0; border-top: 1px solid var(--line); }
+.trick-player { margin-block: 0.3em; font-weight: bold; }
+.trick-player span { font-weight: normal; }
+.trick-total dl { display: block; margin: 0; }
+.trick-total dl > div { display: flex; flex-wrap: wrap; gap: 0.25em 1em; }
+.trick-total dt { flex: 1 1 8em; }
+.trick-total dd { margin: 0; font-variant-numeric: tabular-nums; }
+.trick-parties { display: flex; flex-wrap: wrap; gap: 0.25em 1.5em; }
+.trick-parties p { margin-block: 0.4em; }
+.trick-prefix-heading { font-weight: bold; margin-bottom: 0.3em; }
+.trick-warning { border-inline-start: 0.25rem solid var(--gold); padding-inline-start: 0.6em; }
+.recorded-card { display: inline-block; font-family: Arial, Helvetica, sans-serif; }
 
 .error-summary,
 .field-error {

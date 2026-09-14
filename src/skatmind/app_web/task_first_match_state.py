@@ -12,6 +12,8 @@ from skatmind.match_player_statistics_preparation import (
     build_match_player_statistics_preparation_v1,
 )
 
+from .recorded_trick_progress import project_match_trick_progress
+
 
 def build_task_first_match_page_state_v1(context, view, *, report_id=None):
     """Project entered facts and retained Reports; never materialize or execute on GET."""
@@ -28,6 +30,7 @@ def build_task_first_match_page_state_v1(context, view, *, report_id=None):
                       .historical_list_materialization.status == "available")
     return {
         "selected_position": view.selected_position,
+        "recorded_progress": project_match_trick_progress(workspace, view.selected_position),
         "workspace_revision": workspace.revision,
         "match": {"match_id": definition.match_id, "title": definition.title,
                   "game_platform": definition.game_platform,

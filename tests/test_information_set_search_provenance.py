@@ -1,10 +1,12 @@
 import json
 from collections import Counter
+from itertools import count
 from pathlib import Path
 
 import pytest
 
 import skatmind.application.position_workflow as position_module
+import skatmind.information_set_search_executor as executor_module
 import skatmind.recommendation_workflow as recommendation_module
 from skatmind.api.v1 import ExecutionOptionsV1, execute_document
 from skatmind.application import (
@@ -294,7 +296,9 @@ def test_flat_provenance_and_public_serialization_do_not_rerun_any_stage(
     assert counts == expected
 
 
-def test_public_opt_in_provenance_is_additive_and_omission_is_unchanged() -> None:
+def test_public_opt_in_provenance_is_additive_and_omission_is_unchanged(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     cases = (
         (_position(post_game=False), {}),
         (
@@ -316,6 +320,8 @@ def test_public_opt_in_provenance_is_additive_and_omission_is_unchanged() -> Non
         ),
     )
     for source, workflow_options in cases:
+        # Separate real executions must receive identical external clock inputs.
+        monkeypatch.setattr(executor_module, "_monotonic", count(0.0, 0.125).__next__)
         default = execute_document(
             source,
             options=ExecutionOptionsV1(
@@ -323,6 +329,7 @@ def test_public_opt_in_provenance_is_additive_and_omission_is_unchanged() -> Non
                 workflow_options=workflow_options,
             ),
         )
+        monkeypatch.setattr(executor_module, "_monotonic", count(0.0, 0.125).__next__)
         opted_in = execute_document(
             source,
             options=ExecutionOptionsV1(
@@ -349,6 +356,37 @@ def test_public_opt_in_provenance_is_additive_and_omission_is_unchanged() -> Non
             "root_information_set",
             "own_remaining_hand",
         }.isdisjoint(_all_keys(opted_in.field_provenance.to_dict()))
+
+
+@pytest.mark.parametrize(
+    ("timeout_ms", "status", "elapsed_ms"),
+    [(None, "complete", 125), (125, "timeout", 250)],
+)
+def test_public_elapsed_reporting_and_exact_deadline_use_advancing_clock(
+    monkeypatch: pytest.MonkeyPatch,
+    timeout_ms: int | None,
+    status: str,
+    elapsed_ms: int,
+) -> None:
+    source = _position(post_game=False)
+    source["information_set_search_settings"]["wall_clock_timeout_ms"] = timeout_ms
+    monkeypatch.setattr(executor_module, "_monotonic", count(0.0, 0.125).__next__)
+    execution = execute_document(
+        source,
+        options=ExecutionOptionsV1(validate_output=False, include_provenance=True),
+    )
+    result = execution.result.to_dict()["document"]["information_set_search_result"]
+    assert result["status"] == status
+    assert result["consumed_budget"]["wall_clock_elapsed_ms"] == elapsed_ms
+    if status == "timeout":
+        assert result["stop_reason"] == "wall_clock_timeout"
+        assert result["consumed_budget"]["state_nodes_evaluated"] == 0
+        assert result["recommended_card"] is None
+        assert result["candidate_results"] == []
+    else:
+        assert result["consumed_budget"]["state_nodes_evaluated"] > 0
+        assert result["recommended_card"] is not None
+    assert execution.field_provenance.result.coverage_summary["provenance_complete"] is True
 
 
 def test_multi_step_and_policy_comparison_use_retained_safe_search_provenance() -> None:

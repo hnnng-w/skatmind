@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 import re
+import socket
 import threading
 from collections.abc import Mapping
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
 from pathlib import Path
+from time import monotonic
 from urllib.parse import parse_qs, urlsplit
 
 from skatmind.errors import SkatMindError, SkatMindInvariantError
@@ -57,6 +59,8 @@ _ASSETS = {
 }
 _POST_ROUTE = "/api/v1/operations"
 _STATE_ROUTE = "/api/v1/state"
+_REJECT_DRAIN_MAX_BYTES = 64 * 1024
+_REJECT_DRAIN_TIMEOUT_SECONDS = 0.25
 _DOWNLOAD_ROUTES = {
     "/downloads/player-catalog.json": "player_catalog",
     "/downloads/human-evidence.json": "human_evidence",
@@ -298,7 +302,7 @@ class LearningCorpusWebRequestHandlerV1(BaseHTTPRequestHandler):
 
     def _authorize_mutation(self) -> bool:
         if not self._host_is_valid() or not self._cookie_is_valid():
-            self._send_text(HTTPStatus.FORBIDDEN, "Forbidden")
+            self._reject_mutation()
             return False
         if len(self.headers.get_all("Origin", [])) != 1 or not (
             validate_learning_corpus_web_origin_v1(
@@ -307,9 +311,37 @@ class LearningCorpusWebRequestHandlerV1(BaseHTTPRequestHandler):
                 self.headers.get("Host"),
             )
         ):
-            self._send_text(HTTPStatus.FORBIDDEN, "Forbidden")
+            self._reject_mutation()
             return False
         return True
+
+    def _reject_mutation(self) -> None:
+        """Deliver the rejection before bounded, opaque input cleanup (RFC 9112 9.6)."""
+        self.close_connection = True
+        try:
+            self.connection.settimeout(_REJECT_DRAIN_TIMEOUT_SECONDS)
+            self._send_text(
+                HTTPStatus.FORBIDDEN,
+                "Forbidden",
+                extra_headers=(("Connection", "close"),),
+            )
+            self.wfile.flush()
+            self.connection.shutdown(socket.SHUT_WR)
+            deadline = monotonic() + _REJECT_DRAIN_TIMEOUT_SECONDS
+            remaining = _REJECT_DRAIN_MAX_BYTES
+            while remaining:
+                timeout = deadline - monotonic()
+                if timeout <= 0:
+                    break
+                self.connection.settimeout(timeout)
+                # Ignore framing entirely: these bytes can never become another request.
+                chunk = self.rfile.read1(min(8192, remaining))
+                if not chunk:
+                    break
+                remaining -= len(chunk)
+        except OSError:
+            # The peer may have left or exceeded the cleanup deadline. Never send twice.
+            pass
 
     def _state(self) -> dict[str, object]:
         return build_learning_corpus_web_state_v1(self.server.corpus_context)

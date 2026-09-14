@@ -1607,6 +1607,12 @@ retained recording focus. Session candidates preserve N ordinary revisions and
 Checkpoint/Undo semantics; Match retains evidence replacement and ordered advanced
 Play APIs. Real HTTP and installed-Wheel browser checks cover this bounded path.
 Remaining knowledge, declaration/scoring, and navigation findings stay open.
+Issue #227 adds [Recorded Trick progress](recorded_trick_progress.md): Session and
+selected-Match accepted history with immutable cumulative captured-point and
+won-Trick prefixes, distinct Player/party totals, Null and incomplete/shortened
+scope, and retained correction anchors. Real HTTP and installed-Wheel browser
+checks cover partial C6 remediation. It adds no route, persisted scoreboard or
+final scoring and does not resolve the remaining frontend/UAT findings.
 Exact merged-commit `check` and `v1-supported-platform-matrix` remain required,
 with future focused Session and Match affected-path retests. The September 11 repeated
 UAT failure and unresolved findings remain open; the technical ledger remains closed.
