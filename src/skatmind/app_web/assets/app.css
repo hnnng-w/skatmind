@@ -55,6 +55,65 @@ details button {
   padding: 0;
 }
 
+#recorded-review-chooser,
+#recorded-review-chooser :where(section, article, form),
+#match-review,
+#match-review :where(form, label, select, .advanced-settings) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.recording-choice {
+  padding-block: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.recording-choice h3,
+.recording-choice p {
+  margin-block: 0.3rem;
+}
+
+#match-review .form-grid,
+#recorded-review-chooser form,
+main[data-workflow="review"] #workflow-form,
+.match-review-selector {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.match-review-selector button {
+  justify-self: start;
+}
+
+main[data-workflow="review"] button,
+#recorded-review-chooser button {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+#match-review:focus-visible,
+#recorded-review-chooser:focus-visible {
+  outline: 0.2rem solid var(--focus);
+  outline-offset: 0.2rem;
+}
+
+main:has(#match-review) > h1 {
+  max-width: none;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+footer a {
+  color: #f9f4e8;
+}
+
+footer a:focus-visible {
+  outline-color: #ffd477;
+}
+
 .recorded-decisions li {
   border-top: 1px solid var(--line);
   padding-block: 0.6rem;
@@ -190,6 +249,8 @@ label:has(select[name="source_kind"] option:is([value="youtube_video"], [value="
   color: white;
   background: var(--green-dark);
   transform: translateY(-150%);
+  max-width: calc(100% - 1rem);
+  overflow-wrap: anywhere;
 }
 
 .skip-link:focus {
@@ -309,6 +370,7 @@ main {
 h1,
 h2 {
   line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 h1 {
@@ -427,6 +489,7 @@ h1 {
 
 .home-group {
   margin-top: clamp(2rem, 5vw, 3.5rem);
+  overflow-wrap: anywhere;
 }
 
 .home-group > p {
@@ -470,6 +533,8 @@ h1 {
 
 .button-link {
   display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   padding: 0.55rem 0.8rem;
   color: white;
   background: var(--green);

@@ -2,6 +2,12 @@
 
 ## Status
 
+Issue #229 revises the private navigation and introduction design below. The
+current source chooser, same-context reuse, Match review presentation and browser
+evidence are documented in [Home and recorded-game review navigation](home_and_recorded_review_navigation.md).
+The former scope-guide, generic related-panel and large Product-card choices are
+historical #217 evidence, explicitly superseded rather than retroactively denied.
+
 Issue #217 implements the Home and Product-concept slice frozen by the
 [bilingual profile-driven frontend UX contract](bilingual_profile_driven_frontend_ux_contract.md).
 This is private unified-browser presentation. It adds no Public API export, Root
@@ -50,7 +56,6 @@ The exact group keys and order are:
 record_games
 analyze_and_review
 learn_across_matches
-product_information
 ```
 
 The exact task keys and Home presentation order are:
@@ -58,10 +63,9 @@ The exact task keys and Home presentation order are:
 ```text
 record_match
 record_session
-analyze_decision
 review_game
+analyze_decision
 learning_insights
-about
 ```
 
 The exact mapping is:
@@ -69,10 +73,9 @@ The exact mapping is:
 ```text
 record_match       -> /matches
 record_session     -> /sessions
+review_game        -> /review/recorded
 analyze_decision   -> /analyze
-review_game        -> /review
 learning_insights  -> /learning
-about              -> /about
 ```
 
 The exact group membership is:
@@ -83,14 +86,12 @@ record_games:
     record_session
 
 analyze_and_review:
-    analyze_decision
     review_game
+    analyze_decision
 
 learn_across_matches:
     learning_insights
 
-product_information:
-    about
 ```
 
 Contract validation rejects a boolean or changed version and every duplicate,
@@ -100,7 +101,8 @@ area, or empty-state key. These values remain private under
 
 ## Routes and navigation
 
-Machine Route order remains independent and unchanged:
+Served static Route order remains independent of visible navigation. The chooser
+is appended; manual `/review` and `/about` stay supported:
 
 ```text
 /
@@ -111,6 +113,7 @@ Machine Route order remains independent and unchanged:
 /learning
 /settings
 /about
+/review/recorded
 ```
 
 The concise visible navigation labels are:
@@ -119,15 +122,16 @@ The concise visible navigation labels are:
 | --- | --- | --- |
 | `/` | Home | Startseite |
 | `/analyze` | Analyze one decision | Eine Entscheidung analysieren |
-| `/review` | Review one completed game | Ein abgeschlossenes Spiel auswerten |
-| `/sessions` | Record one game | Ein Spiel erfassen |
+| `/review/recorded` | Review recorded games | Erfasste Spiele auswerten |
+| `/sessions` | Record an individual game | Einzelspiel erfassen |
 | `/matches` | Record a 36-game Match | 36er-Match erfassen |
 | `/learning` | Learn across Matches | Über Matches lernen |
 | `/settings` | Settings | Einstellungen |
-| `/about` | About SkatMind | Über SkatMind |
+| `/about` (footer) | About SkatMind | Über SkatMind |
 
-Issue #225 adds Settings to navigation while retaining the six Home tasks and
-their existing grouping. Its private form changes are documented in
+Issue #225 added Settings while retaining the then-six Home tasks. Issue #229
+now has five tasks and keeps About in the footer; normal navigation order is
+Home, Match, Session, recorded review, Analyze, Learning, Settings. The #225 forms are documented in
 [Settings and Player seat setup](settings_and_player_seat_setup.md). Public APIs,
 cookies, Engine workflows, persistence and Product identities remain unchanged.
 
@@ -140,31 +144,26 @@ The exact bilingual headings are:
 | `record_games` | Record games | Spiele erfassen |
 | `analyze_and_review` | Analyze and review | Analysieren und auswerten |
 | `learn_across_matches` | Learn across Matches | Über mehrere Matches lernen |
-| `product_information` | Product information | Produktinformationen |
 
 The exact bilingual task titles are:
 
 | Key | English | German |
 | --- | --- | --- |
-| `record_match` | Record a complete 36-game Match | Ein vollständiges 36er-Match erfassen |
-| `record_session` | Record or continue one individual game | Ein einzelnes Spiel erfassen oder fortsetzen |
+| `record_match` | Record a 36-game Match | 36er-Match erfassen |
+| `record_session` | Record an individual game | Einzelspiel erfassen |
 | `analyze_decision` | Analyze one decision | Eine Entscheidung analysieren |
-| `review_game` | Review one completed individual game | Ein abgeschlossenes einzelnes Spiel auswerten |
+| `review_game` | Review recorded games | Erfasste Spiele auswerten |
 | `learning_insights` | Explore patterns across recorded Matches | Muster über erfasste Matches hinweg untersuchen |
-| `about` | About SkatMind | Über SkatMind |
 
-The introductory copy is followed by the scope guide and then the four semantic
-group sections. Each group has an H2; each task card has an H3. Match Capture is
-the first normal recording task, Session is second, and About remains last.
+Home leads directly with the three semantic group sections. The four primary
+cards have an H3, one purpose sentence, and one GET action. Learning has only one
+compact secondary description/action. Per-task unit/timing/detail blocks and
+repeated introductory copy are removed. Recording explains later continuation
+and evidence-limited review. No JavaScript is needed.
 
-Each compact card initially shows only its title, one purpose sentence, explicit
-unit, timing, and one clear GET link. A native closed `details` disclosure retains
-when to use the area, required information, storage, and expected Result. The
-cards require no JavaScript and no repeated availability line.
+## Historical scope guide (superseded by #229)
 
-## Scope guide
-
-The Home scope guide begins with:
+The former Home scope guide began with:
 
 ```text
 Which area do I need?
@@ -195,7 +194,7 @@ Analyze explains that one Decision may use current visible information or a
 reconstructed retrospective Decision. It does not promise guaranteed real-time
 speed and changes no Position input, setting, execution, or Result.
 
-Review explicitly covers one completed individual Skat game. It may present
+Manual `/review` explicitly covers one completed individual Skat game. It may present
 recorded Decisions, alternatives, Result, Overbid, Settlement, and selected
 optional evidence. A complete 36-position list belongs under Match Capture.
 
@@ -244,9 +243,9 @@ explicitly, select the saved Match version, and explicitly build insights. The
 existing zero counts remain secondary diagnostics. No empty state creates,
 opens, imports, selects, analyzes, or prepares anything.
 
-## Related areas
+## Historical related areas (superseded by #229)
 
-Only safe existing-route GET links are added:
+Issue #217 originally added these generic existing-route GET links:
 
 ```text
 Analyze -> Review
@@ -256,8 +255,10 @@ Match -> Session and Learning
 Learning -> Match
 ```
 
-They contain no query string and perform no mutation, selection, import,
-preparation, or Product execution.
+Issue #229 removes these generic panels. Targeted correction, transfer,
+prerequisite and source/return links remain at their actual controls. The normal
+Review task now opens existing recordings; its explicit manual link preserves the
+independent wizard's state. No source is copied into manual input.
 
 ## Localization and rendering
 

@@ -6,6 +6,7 @@ from importlib.resources import files
 from pathlib import Path
 
 from .contracts import APP_ROUTE_PATHS, BrowserSafeApplicationStateV1
+from .entry_rendering import render_entry_introduction_v1
 from .frontend_profile_contracts import LocalFrontendProfileV1
 from .frontend_profile_operations import (
     FRONTEND_LANGUAGE_ACTION_ROUTE,
@@ -16,7 +17,6 @@ from .guided_rendering import render_analyze_workflow_v1, render_review_workflow
 from .information_architecture import (
     FRONTEND_EMPTY_STATE_KEYS,
     HOME_GROUP_TASK_MEMBERSHIP,
-    HOME_RELATED_TASK_MEMBERSHIP,
     HOME_TASK_ROUTE_MAPPINGS,
     validate_frontend_information_architecture_v1,
 )
@@ -30,6 +30,7 @@ _PAGE_TITLE_KEYS = {
     "/": "page.home.title",
     "/analyze": "page.analyze.title",
     "/review": "page.review.title",
+    "/review/recorded": "navigation.review",
     "/sessions": "page.sessions.title",
     "/matches": "page.matches.title",
     "/learning": "page.learning.title",
@@ -130,31 +131,6 @@ def _home(
     if set(state_tasks) != set(task_routes.values()):
         raise ValueError("Browser-safe Home tasks must cover each IA task Route.")
 
-    scope_items = []
-    for scope_key, task_key in (
-        ("decision", "analyze_decision"),
-        ("session", "record_session"),
-        ("review", "review_game"),
-        ("match", "record_match"),
-        ("learning", "learning_insights"),
-    ):
-        route = task_routes[task_key]
-        scope_items.append(
-            f"<dt>{_translated(frontend, f'home.scope_guide.{scope_key}.unit')}</dt>"
-            f'<dd><a href="{escape(route, quote=True)}">'
-            f"{_translated(frontend, f'home.scope_guide.{scope_key}.action')}</a> "
-            f"{_translated(frontend, f'home.scope_guide.{scope_key}.description')}</dd>"
-        )
-    scope_guide = (
-        '<section class="scope-guide" aria-labelledby="scope-guide-heading">'
-        f'<h2 id="scope-guide-heading">'
-        f"{_translated(frontend, 'home.scope_guide.heading')}</h2>"
-        f"<p>{_translated(frontend, 'home.scope_guide.introduction')}</p>"
-        f'<dl class="scope-guide-list">{"".join(scope_items)}</dl>'
-        f'<p class="scope-distinction">'
-        f"{_translated(frontend, 'home.scope_guide.distinction')}</p></section>"
-    )
-
     groups = []
     for group_key, task_keys in HOME_GROUP_TASK_MEMBERSHIP:
         cards = []
@@ -162,28 +138,19 @@ def _home(
             route = task_routes[task_key]
             task = state_tasks[route]
             if not task.available:
-                raise ValueError("Issue-#217 Home tasks must remain available.")
+                raise ValueError("Home tasks must remain available.")
             prefix = f"home.task.{task_key}"
+            if task_key == "learning_insights":
+                cards.append(
+                    f'<p>{_translated(frontend, f"{prefix}.summary")}</p>'
+                    f'<p class="task-action"><a href="{route}">'
+                    f'{_translated(frontend, f"{prefix}.action")}</a></p>'
+                )
+                continue
             cards.append(
                 '<article class="task-card">'
                 f"<h3>{_translated(frontend, f'{prefix}.title')}</h3>"
                 f'<p class="task-summary">{_translated(frontend, f"{prefix}.summary")}</p>'
-                '<dl class="task-scope">'
-                f"<dt>{_translated(frontend, 'home.details.unit')}</dt>"
-                f"<dd>{_translated(frontend, f'{prefix}.unit')}</dd>"
-                f"<dt>{_translated(frontend, 'home.details.timing')}</dt>"
-                f"<dd>{_translated(frontend, f'{prefix}.timing')}</dd></dl>"
-                '<details class="task-disclosure"><summary>'
-                f"{_translated(frontend, 'home.details.more')}</summary>"
-                '<dl class="task-details">'
-                f"<dt>{_translated(frontend, 'home.details.when')}</dt>"
-                f"<dd>{_translated(frontend, f'{prefix}.when')}</dd>"
-                f"<dt>{_translated(frontend, 'home.details.required')}</dt>"
-                f"<dd>{_translated(frontend, f'{prefix}.required')}</dd>"
-                f"<dt>{_translated(frontend, 'home.details.storage')}</dt>"
-                f"<dd>{_translated(frontend, f'{prefix}.storage')}</dd>"
-                f"<dt>{_translated(frontend, 'home.details.result')}</dt>"
-                f"<dd>{_translated(frontend, f'{prefix}.result')}</dd></dl></details>"
                 f'<p class="task-action"><a class="button-link" '
                 f'href="{escape(route, quote=True)}">'
                 f"{_translated(frontend, f'{prefix}.action')}</a></p></article>"
@@ -193,68 +160,18 @@ def _home(
             f'<section class="home-group" aria-labelledby="{heading_id}">'
             f'<h2 id="{heading_id}">'
             f"{_translated(frontend, f'home.group.{group_key}.title')}</h2>"
-            f"<p>{_translated(frontend, f'home.group.{group_key}.description')}</p>"
-            f'<div class="task-grid">{"".join(cards)}</div></section>'
+            f'<div class="{"task-grid" if len(task_keys) > 1 else "secondary-task"}">'
+            f'{"".join(cards)}</div></section>'
         )
-    content = (
-        f'<p class="lede">{_translated(frontend, "home.introduction")}</p>'
-        f'<p class="supporting">{_translated(frontend, "home.supporting")}</p>'
-        f"{scope_guide}{''.join(groups)}"
-    )
+    content = ''.join(groups)
     return _text(frontend, "page.home.title"), content
-
-
-def _related_areas(
-    route: str,
-    frontend: BrowserSafeFrontendProfileStateV1,
-) -> str:
-    task_routes = dict(HOME_TASK_ROUTE_MAPPINGS)
-    source_task = next(
-        task_key for task_key, task_route in HOME_TASK_ROUTE_MAPPINGS if task_route == route
-    )
-    related = dict(HOME_RELATED_TASK_MEMBERSHIP).get(source_task, ())
-    if not related:
-        return ""
-    links = "".join(
-        f'<li><a href="{escape(task_routes[task_key], quote=True)}">'
-        f"{_translated(frontend, f'related.{task_key}')}</a></li>"
-        for task_key in related
-    )
-    return (
-        '<section class="related-areas" aria-labelledby="related-areas-heading">'
-        f'<h2 id="related-areas-heading">{_translated(frontend, "related.heading")}</h2>'
-        f"<ul>{links}</ul></section>"
-    )
 
 
 def _workflow_concept(
     route: str,
     frontend: BrowserSafeFrontendProfileStateV1,
 ) -> str:
-    concept_key = _CONCEPT_KEYS_BY_ROUTE[route]
-    steps = ""
-    if route == "/learning":
-        steps = (
-            f"<h3>{_translated(frontend, 'concept.learning.steps.heading')}</h3>"
-            '<ol class="learning-steps">'
-            + "".join(
-                f"<li>{_translated(frontend, f'concept.learning.steps.{step}')}</li>"
-                for step in ("record", "add", "select", "build", "review")
-            )
-            + "</ol>"
-            f"<p>{_translated(frontend, 'concept.learning.automatic')}</p>"
-        )
-    return (
-        f'<section class="concept-guide" aria-labelledby="concept-{concept_key}-heading">'
-        f'<p class="eyebrow">{_translated(frontend, f"concept.{concept_key}.scope")}</p>'
-        f'<h2 id="concept-{concept_key}-heading">'
-        f"{_translated(frontend, f'concept.{concept_key}.heading')}</h2>"
-        f'<p class="concept-timing">'
-        f"{_translated(frontend, f'concept.{concept_key}.timing')}</p>"
-        f"<p>{_translated(frontend, f'concept.{concept_key}.description')}</p>"
-        f"<p>{_translated(frontend, f'concept.{concept_key}.detail')}</p>"
-        f"{steps}</section>{_related_areas(route, frontend)}"
-    )
+    return render_entry_introduction_v1(route, frontend.locale)
 
 
 def _empty_state(
@@ -409,13 +326,15 @@ def _shell(
         "{{SKIP_LINK}}": _translated(frontend, "shell.skip_link"),
         "{{BRAND_LABEL}}": _translated(frontend, "shell.brand_label"),
         "{{NAVIGATION_LABEL}}": _translated(frontend, "navigation.label"),
-        "{{NAVIGATION}}": _navigation(state, route, frontend),
+        "{{NAVIGATION}}": _navigation(state, "/review/recorded" if return_to.startswith(
+            ("/matches/review/", "/matches/reports/")) else route, frontend),
         "{{LANGUAGE_SELECTOR}}": _language_selector(frontend, return_to),
         "{{HEADING}}": escape(title),
         "{{WORKFLOW}}": escape(route.removeprefix("/"), quote=True),
         "{{PROFILE_WARNING}}": warning,
         "{{CONTENT}}": content,
         "{{FOOTER}}": _translated(frontend, "footer.local_no_cloud"),
+        "{{ABOUT_LINK}}": _translated(frontend, "navigation.about"),
         "{{EXTRA_STYLES}}": "".join(
             f'<link rel="stylesheet" href="{escape(path, quote=True)}">'
             for path in extra_stylesheets
@@ -531,16 +450,7 @@ def render_app_content_page_v1(
         localized_content = _workflow_concept(route, frontend_state)
         if empty_state_key is not None:
             localized_content += _empty_state(empty_state_key, frontend_state)
-    active_task_first = task_first
-    if active_task_first:
-        localized_content = (
-            '<details class="secondary-action"><summary>'
-            + _translated(frontend_state, "home.details.more") + '</summary>'
-            + localized_content + '</details>'
-        )
-    rendered_content = ("" if active_task_first else localized_content) + content
-    if active_task_first:
-        rendered_content += localized_content
+    rendered_content = ("" if task_first else localized_content) + content
     return _shell(
         state,
         route,

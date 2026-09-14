@@ -38,37 +38,27 @@ def test_information_architecture_contract_values_are_exact_and_private() -> Non
         "record_games",
         "analyze_and_review",
         "learn_across_matches",
-        "product_information",
     )
     assert HOME_TASK_KEYS == (
         "record_match",
         "record_session",
-        "analyze_decision",
         "review_game",
+        "analyze_decision",
         "learning_insights",
-        "about",
     )
     assert HOME_TASK_ROUTE_MAPPINGS == (
         ("record_match", "/matches"),
         ("record_session", "/sessions"),
+        ("review_game", "/review/recorded"),
         ("analyze_decision", "/analyze"),
-        ("review_game", "/review"),
         ("learning_insights", "/learning"),
-        ("about", "/about"),
     )
     assert HOME_GROUP_TASK_MEMBERSHIP == (
         ("record_games", ("record_match", "record_session")),
-        ("analyze_and_review", ("analyze_decision", "review_game")),
+        ("analyze_and_review", ("review_game", "analyze_decision")),
         ("learn_across_matches", ("learning_insights",)),
-        ("product_information", ("about",)),
     )
-    assert HOME_RELATED_TASK_MEMBERSHIP == (
-        ("analyze_decision", ("review_game",)),
-        ("review_game", ("analyze_decision", "record_match")),
-        ("record_session", ("record_match",)),
-        ("record_match", ("record_session", "learning_insights")),
-        ("learning_insights", ("record_match",)),
-    )
+    assert HOME_RELATED_TASK_MEMBERSHIP == ()
     assert FRONTEND_EMPTY_STATE_KEYS == (
         "sessions",
         "matches",
@@ -123,15 +113,12 @@ def test_information_architecture_rejects_drift(
                 "Record games",
                 "Analyze and review",
                 "Learn across Matches",
-                "Product information",
             ),
             (
-                "Record a complete 36-game Match",
-                "Record or continue one individual game",
+                "Record a 36-game Match",
+                "Record an individual game",
+                "Review recorded games",
                 "Analyze one decision",
-                "Review one completed individual game",
-                "Explore patterns across recorded Matches",
-                "About SkatMind",
             ),
             "Which area do I need?",
         ),
@@ -141,21 +128,18 @@ def test_information_architecture_rejects_drift(
                 "Spiele erfassen",
                 "Analysieren und auswerten",
                 "Über mehrere Matches lernen",
-                "Produktinformationen",
             ),
             (
-                "Ein vollständiges 36er-Match erfassen",
-                "Ein einzelnes Spiel erfassen oder fortsetzen",
+                "36er-Match erfassen",
+                "Einzelspiel erfassen",
+                "Erfasste Spiele auswerten",
                 "Eine Entscheidung analysieren",
-                "Ein abgeschlossenes einzelnes Spiel auswerten",
-                "Muster über erfasste Matches hinweg untersuchen",
-                "Über SkatMind",
             ),
             "Welchen Bereich brauche ich?",
         ),
     ),
 )
-def test_home_groups_match_first_scope_guide_and_compact_cards(
+def test_home_groups_match_first_recorded_review_and_compact_learning(
     locale: str,
     group_headings: tuple[str, ...],
     task_titles: tuple[str, ...],
@@ -168,28 +152,15 @@ def test_home_groups_match_first_scope_guide_and_compact_cards(
     groups_html = main[main.index('<section class="home-group"') :]
 
     assert f'<html lang="{locale}">' in html
-    assert html.count('<section class="home-group"') == 4
-    assert html.count('<article class="task-card">') == 6
-    assert html.count('<details class="task-disclosure">') == 6
-    assert '<details class="task-disclosure" open' not in html
-    assert html.count('class="task-scope"') == 6
-    assert html.count('class="task-action"') == 6
-    assert guide_heading in html
-    scope_guide = main.split('<section class="scope-guide"', 1)[1].split(
-        "</section>",
-        1,
-    )[0]
-    for forbidden in (
-        "JSON",
-        "Search",
-        "Dataset",
-        "Snapshot",
-        "seed",
-        "sample",
-        "Policy",
-        "Provenance",
-    ):
-        assert forbidden not in scope_guide
+    assert html.count('<section class="home-group"') == 3
+    assert html.count('<article class="task-card">') == 4
+    assert 'class="task-disclosure"' not in html
+    assert 'class="task-scope"' not in html
+    assert html.count('class="task-action"') == 5
+    assert guide_heading not in html and 'class="scope-guide"' not in html
+    assert 'href="/about"' not in main
+    assert '<a href="/about">' in html.split('<footer>')[1]
+    assert 'href="/review/recorded"' in main and 'href="/review"' not in main
     assert [groups_html.index(value) for value in group_headings] == sorted(
         groups_html.index(value) for value in group_headings
     )
@@ -204,46 +175,24 @@ def test_home_groups_match_first_scope_guide_and_compact_cards(
     assert asdict(state) == retained_state
 
 
-def test_product_concepts_and_related_routes_are_localized_without_mutation() -> None:
+def test_short_introductions_replace_generic_related_panels_without_losing_controls() -> None:
     state = build_browser_safe_application_state_v1()
-    expected = {
-        "/analyze": ('href="/review"',),
-        "/review": ('href="/analyze"', 'href="/matches"'),
-        "/sessions": ('href="/matches"',),
-        "/matches": ('href="/sessions"', 'href="/learning"'),
-        "/learning": ('href="/matches"',),
-    }
-    for route, links in expected.items():
+    for route in ("/analyze", "/review", "/sessions", "/matches", "/learning"):
         html = render_app_content_page_v1(
             state,
             route,
             title="Retained workflow title",
-            content="<p>Untranslated workflow form</p>",
+            content='<h2>Current task</h2><a href="/matches/current">Resolve prerequisite</a>',
             frontend=_frontend("en"),
         )
-        related = html.split('<section class="related-areas"', 1)[1].split(
-            "</section>",
-            1,
-        )[0]
-        assert tuple(link for link in links if link in related) == links
-        assert related.count("href=") == len(links)
-        assert "?" not in related
-        assert "Untranslated workflow form" in html
+        assert 'class="related-areas"' not in html and 'class="concept-guide"' not in html
+        assert html.count('<h1>') == 1 and html.count('class="entry-introduction"') == 1
+        assert '<a href="/matches/current">Resolve prerequisite</a>' in html
 
     analyze = render_app_page_v1(state, "/analyze", frontend=_frontend("en"))
-    assert "Current or retrospective" in analyze
-    assert "one choice of Card" in analyze
+    assert "current or retrospective Card choice" in analyze
     review = render_app_page_v1(state, "/review", frontend=_frontend("en"))
-    for value in (
-        "one completed individual Skat game",
-        "recorded Decisions",
-        "alternatives",
-        "Result",
-        "Overbid",
-        "Settlement",
-        "complete 36-position list",
-    ):
-        assert value in review
+    assert "has not already been recorded" in review
 
     german = render_app_content_page_v1(
         state,
@@ -253,8 +202,8 @@ def test_product_concepts_and_related_routes_are_localized_without_mutation() ->
         frontend=_frontend("de"),
         empty_state_key="sessions",
     )
-    assert "Ein fortsetzbares einzelnes Spiel" in german
-    assert "nicht automatisch in ein Match eingefügt" in german
+    assert "setzen Sie dieselbe Aufzeichnung" in german
+    assert "keinem Match hinzugefügt" in german
     assert "Noch keine erfassten einzelnen Spiele" in german
     assert german.index("Noch keine erfassten einzelnen Spiele") < german.index(
         "<p>Retained user text</p>"

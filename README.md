@@ -727,6 +727,11 @@ Plays or all 30 Plays, without re-entering the Game or requiring complete
 Historical export. Source-labelled Results and exact downloads remain process-local;
 missing decision snapshots are explained rather than reconstructed. See
 [Review recorded Session decisions](docs/session_recorded_decision_review.md).
+Home's **Review recorded games** now opens a chooser for existing individual
+Games and Matches. It reuses a fresh active recording and its temporary Results;
+Match review leads with the selected Game's existing analysis and Report actions.
+**Enter an unrecorded Game manually** continues the separate `/review` draft.
+See [Home and recorded-game review navigation](docs/home_and_recorded_review_navigation.md).
 The shared shell, grouped Home, Product-concept and empty-state guidance, Settings, About,
 authorization, and common errors now support German and English. Browser
 language is used only when no explicit

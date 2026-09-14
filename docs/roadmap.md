@@ -1620,6 +1620,12 @@ save/correction operations and accepted summaries. Real returned-form tests and
 installed-Wheel Edge evidence cover both languages/script modes and narrow/enlarged
 text, preserving #221–#227 lifecycle. It adds no scoring, inference, public contract
 or persistence change and does not complete unrelated frontend/UAT work.
+Issue #229 adds [Home and recorded-game review navigation](home_and_recorded_review_navigation.md):
+compact recording/review tasks, a strict existing-source chooser, same-context
+reuse, and focused selected-Game Match analysis/Reports through existing execution.
+Manual input remains separate and retained. Native installed-Wheel evidence covers
+both languages, script modes, source-bound Results, errors and narrow/enlarged text.
+It adds no Engine workflow, public/persisted version or complete UAT acceptance.
 Exact merged-commit `check` and `v1-supported-platform-matrix` remain required,
 with future focused Session and Match affected-path retests. The September 11 repeated
 UAT failure and unresolved findings remain open; the technical ledger remains closed.

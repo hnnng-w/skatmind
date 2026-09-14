@@ -12,6 +12,7 @@ from skatmind.app_web.contracts import (
     APP_HOME_TASK_TITLES,
     APP_NAVIGATION_LABELS,
     APP_NAVIGATION_MESSAGE_KEYS,
+    APP_NAVIGATION_ROUTE_PATHS,
     APP_ROUTE_PATHS,
     LOCAL_FRONTEND_LAUNCH_CONTRACT_VERSION,
     MANAGED_LOCAL_DATA_CATEGORIES,
@@ -62,24 +63,26 @@ def test_routes_navigation_home_tasks_and_categories_are_exact_and_ordered() -> 
         "/learning",
         "/settings",
         "/about",
+        "/review/recorded",
     )
     assert APP_NAVIGATION_LABELS == (
         "Home",
-        "Analyze one decision",
-        "Review one completed game",
-        "Record one game",
         "Record a 36-game Match",
+        "Record an individual game",
+        "Review recorded games",
+        "Analyze one decision",
         "Learn across Matches",
         "Settings",
-        "About SkatMind",
     )
     assert APP_HOME_TASK_TITLES == (
+        "Record a 36-game Match",
+        "Record an individual game",
+        "Review recorded games",
         "Analyze one decision",
-        "Review one completed individual game",
-        "Record or continue one individual game",
-        "Record a complete 36-game Match",
         "Explore patterns across recorded Matches",
-        "About SkatMind",
+    )
+    assert APP_NAVIGATION_ROUTE_PATHS == (
+        "/", "/matches", "/sessions", "/review/recorded", "/analyze", "/learning", "/settings",
     )
     assert MANAGED_LOCAL_DATA_CATEGORIES == ("sessions", "matches", "corpora")
     validate_unified_local_frontend_contract_v1()
@@ -212,13 +215,12 @@ def test_managed_contracts_are_immutable_ordered_and_path_private(tmp_path: Path
 def test_browser_state_is_immutable_canonical_and_contains_no_private_values() -> None:
     state = build_browser_safe_application_state_v1()
     assert type(state) is BrowserSafeApplicationStateV1
-    assert tuple(item.route for item in state.navigation) == APP_ROUTE_PATHS
+    assert tuple(item.route for item in state.navigation) == APP_NAVIGATION_ROUTE_PATHS
     assert tuple(item.message_key for item in state.navigation) == APP_NAVIGATION_MESSAGE_KEYS
     assert tuple(task.title_message_key for task in state.home_tasks) == tuple(
         f"{prefix}.title" for prefix in APP_HOME_TASK_MESSAGE_KEY_PREFIXES
     )
     assert tuple(task.available for task in state.home_tasks) == (
-        True,
         True,
         True,
         True,

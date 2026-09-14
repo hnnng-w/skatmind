@@ -2485,6 +2485,17 @@ tradeoffs and hashes. Both exact-merged-commit jobs remain required for #228;
 this bounded slice does not resolve #208 or the remaining metadata, knowledge,
 timezone and Home/Learning findings.
 
+Issue #229 implements [Home and recorded-game review navigation](home_and_recorded_review_navigation.md):
+five concise Home tasks, normal recorded-source selection, strict fresh-context
+reuse, existing #221 Session review and open selected-Game Match analysis/Reports.
+Legacy manual Review drafts/Results and explicit source-switch invalidation remain.
+The private registry is 58 POST routes/98 definitions; catalogs have 1,414 keys.
+Real returned-form tests and 272 installed-Wheel Edge measurements cover both
+languages/script modes, source-labelled Results/downloads, errors, and 320-pixel/
+200%-text reflow. Historical orientation panels and Home Product-card choices are
+explicitly superseded. Both exact-merged-commit jobs remain closure gates; #208,
+unresolved UAT findings, B-09/B-07, and paused UAT-02–12 remain unchanged.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

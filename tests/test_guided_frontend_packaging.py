@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 _GUIDED_MODULES = (
     "card_form",
     "execution",
+    "entry_rendering",
     "form_parsing",
     "form_registry",
     "form_state",
@@ -20,7 +21,12 @@ _GUIDED_MODULES = (
     "historical_form_parsing",
     "information_architecture",
     "json_transfer",
+    "match_review_context",
+    "match_report_rendering",
+    "match_review_rendering",
     "position_form",
+    "recorded_review_opening",
+    "recorded_review_rendering",
     "result_presentation",
     "result_rendering",
     "workflow_operations",
@@ -62,8 +68,8 @@ def test_existing_local_app_resources_contain_guided_no_javascript_styles() -> N
     combined = css_bytes + template.read_bytes()
     for required in (
         b".home-group",
-        b".scope-guide",
-        b".task-disclosure",
+        b"#recorded-review-chooser",
+        b".match-review-selector",
         b".workflow-form",
         b".card-grid",
         b".error-summary",

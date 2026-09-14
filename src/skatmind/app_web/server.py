@@ -148,6 +148,8 @@ from .match_frontend import (
 from .match_recovery import RECOVERY_ROUTES, MatchRecoveryConflict, recording_selections
 from .match_recovery_http import dispatch_match_recovery
 from .match_recovery_rendering import render_match_recovery
+from .match_review_context import match_review_binding_v1, require_match_review_binding_v1
+from .match_review_rendering import render_match_review_v1
 from .player_seat_setup import current_seat_setup_v1, submit_seat_setup_v1
 from .profile_driven_creation import (
     PROFILE_DRIVEN_LEARNING_CREATE_FIELDS,
@@ -163,6 +165,14 @@ from .profile_player_contracts import (
 from .profile_player_operations import (
     set_managed_item_display_label_v1,
 )
+from .recorded_review_opening import (
+    OPEN_RECORDING_ROUTE,
+    RECORDED_REVIEW_ROUTE,
+    RecordingOpenConflict,
+    open_recording_for_review_v1,
+    require_recording_fresh_v1,
+)
+from .recorded_review_rendering import render_recorded_review_chooser_v1
 from .rendering import (
     render_app_content_page_v1,
     render_app_error_page_v1,
@@ -282,6 +292,7 @@ _BODY_METHODS = {"POST", "PUT", "PATCH"}
 _MUTATION_METHODS = _BODY_METHODS | {"DELETE"}
 _PERCENT_ESCAPE = re.compile(r"%(?![0-9A-Fa-f]{2})")
 _MATCH_POSITION_PATTERN = re.compile(r"^/matches/position/([1-9]|[12][0-9]|3[0-6])$")
+_MATCH_REVIEW_PATTERN = re.compile(r"^/matches/review/([1-9]|[12][0-9]|3[0-6])$")
 _MATCH_REPORT_PATTERN = re.compile(r"^/matches/reports/([0-9a-f]{64})$")
 _MATCH_REPORT_JSON_PATTERN = re.compile(r"^/matches/api/v1/reports/([0-9a-f]{64})\.json$")
 _MATCH_REPORT_SOURCE_PATTERN = re.compile(
@@ -314,6 +325,7 @@ _SESSION_DOWNLOAD_ROUTES = {
     "/sessions/downloads/result.json",
 }
 _STATEFUL_POST_ROUTES = {
+    OPEN_RECORDING_ROUTE,
     "/sessions/create",
     "/sessions/import",
     "/sessions/open",
@@ -386,6 +398,7 @@ def _is_stateful_get_route(path: str) -> bool:
         or path in _MATCH_EXPORT_ROUTES
         or path in _LEARNING_DOWNLOAD_ROUTES
         or _MATCH_POSITION_PATTERN.fullmatch(path) is not None
+        or _MATCH_REVIEW_PATTERN.fullmatch(path) is not None
         or _MATCH_REPORT_PATTERN.fullmatch(path) is not None
         or _MATCH_REPORT_JSON_PATTERN.fullmatch(path) is not None
         or _MATCH_REPORT_SOURCE_PATTERN.fullmatch(path) is not None
@@ -591,7 +604,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             return "/sessions/current"
         match_position = getattr(self, "_match_page_return", None)
         if match_position is not None:
-            return f"/matches/position/{match_position}"
+            view = "review" if getattr(self, "_match_review_return", False) else "position"
+            return f"/matches/{view}/{match_position}"
         return path if is_safe_frontend_return_path_v1(path) else "/"
 
     def _authorize_get(self, path: str, query: str) -> bool:
@@ -627,6 +641,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 ),
             )
             return False
+        if self._cookie_is_valid() and _MATCH_REVIEW_PATTERN.fullmatch(path) and query:
+            # Native GET selector: one canonical integer, immediately normalized
+            # to the fragment/query-free presentation route. No Product operation.
+            selection = re.fullmatch(r"position=([1-9]|[12][0-9]|3[0-6])", query)
+            if selection is not None:
+                self._redirect(f"/matches/review/{selection.group(1)}")
+                return False
         if query or not self._cookie_is_valid():
             self._send_authorization_failure()
             return False
@@ -1158,6 +1179,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 flattened,
                 media_type=registered_media_type,
             )
+            if path == "/matches/api/v1/analysis" and "review_binding" in parsed:
+                self._match_review_return = True
             safe_values = capture_safe_submitted_values_v1(definition, parsed)
             if definition.form_key == "match.transfer_report":
                 report_ids = parsed.get("report_id", [])
@@ -1225,6 +1248,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         status: int,
     ) -> None:
         page = definition.originating_page
+        if page == RECORDED_REVIEW_ROUTE:
+            self._recorded_review_page(status=status)
+            return
         if definition.active_context_requirement in {"profile", "local_settings"}:
             page = getattr(self, "_profile_action_return_to", page)
         if page == "/sessions":
@@ -1265,12 +1291,17 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 self._match_page(
                     active,
                     position=active.selected_position,
+                    review=getattr(self, "_match_review_return", False),
                     status=status,
                 )
             except KeyError:
-                self._managed_category_page("matches", status=status)
+                if getattr(self, "_match_review_return", False):
+                    self._recorded_review_page(status=status)
+                else:
+                    self._managed_category_page("matches", status=status)
             return
-        position_match = _MATCH_POSITION_PATTERN.fullmatch(page)
+        position_match = (_MATCH_POSITION_PATTERN.fullmatch(page)
+                          or _MATCH_REVIEW_PATTERN.fullmatch(page))
         if position_match is not None:
             try:
                 active = self._active_match()
@@ -1280,6 +1311,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             self._match_page(
                 active,
                 position=active.selected_position,
+                review=_MATCH_REVIEW_PATTERN.fullmatch(page) is not None,
                 status=status,
             )
             return
@@ -1322,6 +1354,16 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             return False
         if definition.form_key == "session.review_decision" and issues is None:
             issues = (recorded_review_feedback_v1(error, status=status),)
+        if definition.form_key == "recordings.open" and issues is None:
+            key = ("file" if isinstance(error, RecordingOpenConflict) and error.reason == "file"
+                   else "stale" if status == HTTPStatus.CONFLICT else "invalid")
+            issues = (FrontendValidationIssueV1(
+                field_key=None, message_key=f"validation.recordings.{key}"),)
+        if (isinstance(error, RecordingOpenConflict)
+                and definition.form_key.startswith("match.analysis.")):
+            issues = (FrontendValidationIssueV1(field_key=None,
+                message_key="validation.recordings.match_file" if error.reason == "file"
+                else "validation.message.stale"),)
         if isinstance(error, LanguageContextConflict):
             message = ("validation.message.language_context_saved_conflict"
                        if getattr(self, "_language_profile_saved", False)
@@ -1674,6 +1716,33 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             untranslated_workflow_body=False,
         )
 
+    def _recorded_review_page(self, *, status=HTTPStatus.OK):
+        context = self.server.app_context
+        discoveries = {}
+        for family in ("sessions", "matches"):
+            with context.lock:
+                retained = context.managed_stateful.discoveries.get(family)
+            discoveries[family] = (retained if retained is not None and (
+                getattr(self, "_profile_return_without_refresh", False) or status >= 400)
+                else self._refresh_category(family))
+        self._rendered_language_source = capture_language_source_v1(context, RECORDED_REVIEW_ROUTE)
+        with context.lock:
+            profile = context.frontend_profile.document
+            session = context.managed_stateful.active_session
+            match = context.managed_stateful.active_match
+        sources = []
+        if session is not None:
+            sources.append(("sessions", session.handle, None))
+        if match is not None:
+            with match.capture.lock:
+                sources.append(("matches", match.handle, match.selected_position))
+        locale = self._frontend_state().locale
+        self._content_page(RECORDED_REVIEW_ROUTE, return_to=RECORDED_REVIEW_ROUTE,
+            title=translate_frontend_message_v1(locale, "navigation.review"),
+            content=render_recorded_review_chooser_v1(discoveries, profile=profile,
+                locale=locale, active_sources=tuple(sources)), status=status,
+            feedback_family="recordings", untranslated_workflow_body=False)
+
     def _session_page(self, *, status: int = HTTPStatus.OK) -> None:
         self._session_page_return = True
         active = self._active_session()
@@ -1711,7 +1780,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             untranslated_workflow_body=False,
         )
 
-    def _match_page(
+    def _match_page(self, active, **options):
+        with self.server.app_context.managed_stateful.match_lifecycle_lock:
+            with self.server.app_context.lock:
+                if self.server.app_context.managed_stateful.active_match is not active:
+                    raise LanguageContextConflict
+            self._render_match_page(active, **options)
+
+    def _render_match_page(
         self,
         active,
         *,
@@ -1721,14 +1797,29 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         error_notice: str | None = None,
         operation_notice: str | None = None,
         operation_notice_kind: str = "info",
+        review: bool = False,
     ) -> None:
+        review = review or report_id is not None
+        self._match_review_return = review
         self._match_page_return = position if report_id is None else None
         with active.capture.lock:
             if active.selected_position != position:
                 with self.server.app_context.lock:
                     self.server.app_context.form_feedback.clear("matches")
             select_unified_match_position_v1(active, position)
-        return_to = (f"/matches/position/{position}" if report_id is None
+            if active.capture.report_store.list():
+                try:
+                    require_recording_fresh_v1(active, "matches")
+                except RecordingOpenConflict:
+                    active.capture.report_store.clear()
+                    report_id = None
+                    status = HTTPStatus.CONFLICT
+                    self._retain_form_feedback(
+                        get_frontend_form_by_key_v1("match.analysis.analyze_decision"),
+                        issues=(FrontendValidationIssueV1(field_key=None,
+                            message_key="validation.recordings.match_file"),), status=status)
+        return_to = (f"/matches/{'review' if review else 'position'}/{position}"
+                     if report_id is None
                      else f"/matches/reports/{report_id}")
         self._rendered_language_source = capture_language_source_v1(
             self.server.app_context, return_to)
@@ -1738,6 +1829,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             select_unified_match_position_v1(active, position)
             view = project_task_first_match_v1(active.workspace, selected_position=position)
             state = build_task_first_match_page_state_v1(active, view, report_id=report_id)
+            if review:
+                state["review_binding"] = match_review_binding_v1(active)
             card_bindings = {operation: match_card_binding(active, operation)
                              for operation in MATCH_CARD_OPERATIONS}
             state["declaration_bindings"] = {marker: declaration_binding(active, marker)
@@ -1745,7 +1838,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             result = active.last_result
             transfer_notice = active.transfer_notice
             active.transfer_notice = None
-            recovery = render_match_recovery(active, self._frontend_state().locale,
+            recovery = None if review else render_match_recovery(
+                active, self._frontend_state().locale,
                                               recording_selections(active),
                                               progress=state["recorded_progress"])
         notice = (
@@ -1787,14 +1881,16 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 locale, profile, "corpora", learning_state["corpus"]["corpus_id"]),
             locale=locale,
         )
-        body = self._take_creation_notice("matches") + render_task_first_match_v1(
+        body = self._take_creation_notice("matches") + (render_match_review_v1(
+            state, view, managed_handle=active.handle, locale=locale,
+            transfer=transfer) if review else render_task_first_match_v1(
             state, view,
             managed_handle=active.handle,
             transfer=transfer,
             locale=locale,
             recovery=recovery,
             card_bindings=card_bindings,
-        )
+        ))
         if notice is not None:
             key = ("task.operation.conflict" if notice_kind in {"warning", "error"}
                    else "task.operation.saved")
@@ -1960,6 +2056,22 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         return False
 
     def _stateful_get(self, path: str) -> bool:
+        if path == RECORDED_REVIEW_ROUTE:
+            self._recorded_review_page()
+            return True
+        review = _MATCH_REVIEW_PATTERN.fullmatch(path)
+        if review is not None:
+            try:
+                active = self._active_match()
+            except KeyError:
+                self._retain_form_feedback(get_frontend_form_by_key_v1("recordings.open"),
+                    issues=(FrontendValidationIssueV1(field_key=None,
+                        message_key="validation.recordings.no_active"),),
+                    status=HTTPStatus.CONFLICT)
+                self._recorded_review_page(status=HTTPStatus.CONFLICT)
+                return True
+            self._match_page(active, position=int(review.group(1)), review=True)
+            return True
         if path == "/sessions":
             self._managed_category_page("sessions")
             return True
@@ -1988,13 +2100,24 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             return True
         report_page = _MATCH_REPORT_PATTERN.fullmatch(path)
         if report_page is not None:
-            active = self._active_match()
+            try:
+                active = self._active_match()
+            except KeyError:
+                self._recorded_review_page(status=HTTPStatus.NOT_FOUND)
+                return True
             report_id = report_page.group(1)
             report_status, report = get_unified_match_report_v1(active, report_id)
-            if report_status == "missing" or report is None:
-                raise KeyError("Match Report is unavailable.")
-            if report_status == "stale":
-                raise RuntimeError("Match Report revision is stale.")
+            if report_status != "found" or report is None:
+                missing_status = (HTTPStatus.CONFLICT if report_status == "stale"
+                                  else HTTPStatus.NOT_FOUND)
+                self._retain_form_feedback(
+                    get_frontend_form_by_key_v1("match.analysis.analyze_decision"),
+                    issues=(FrontendValidationIssueV1(field_key=None,
+                        message_key="validation.recordings.report_missing"),),
+                    status=missing_status)
+                self._match_page(active, position=active.selected_position, review=True,
+                                 status=missing_status)
+                return True
             self._match_page(
                 active,
                 position=report.match_position or 1,
@@ -2346,7 +2469,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         path: str,
         values: dict[str, str | list[str]],
     ) -> None:
-        active = self._bound_active("matches", values)
+        try:
+            active = self._bound_active("matches", values)
+        except KeyError as error:
+            raise RecordingOpenConflict() from error
         if path.endswith("/reload"):
             if set(values) - {"match_position"}:
                 raise ValueError("Reload accepts only match_position.")
@@ -2354,7 +2480,23 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             select_unified_match_position_v1(active, position)
             result = reload_unified_match_v1(active)
         elif path.endswith("/analysis"):
-            result = execute_unified_match_analysis_v1(active, values)
+            if "review_binding" in values:
+                self._match_review_return = True
+                with self.server.app_context.managed_stateful.match_lifecycle_lock:
+                    with active.capture.lock:
+                        with self.server.app_context.lock:
+                            if self.server.app_context.managed_stateful.active_match is not active:
+                                raise RecordingOpenConflict()
+                        require_match_review_binding_v1(active, values)
+                    result = execute_unified_match_analysis_v1(active, values)
+                    with active.capture.lock:
+                        try:
+                            require_recording_fresh_v1(active, "matches")
+                        except RecordingOpenConflict:
+                            active.capture.report_store.clear()
+                            raise
+            else:
+                result = execute_unified_match_analysis_v1(active, values)
         else:
             result = apply_unified_match_operation_v1(active, values)
         selected = result.state.get("selected_position", active.selected_position)
@@ -2381,6 +2523,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self._match_page(
             active,
             position=position,
+            review=getattr(self, "_match_review_return", False),
             status=result.http_status,
         )
 
@@ -2648,7 +2791,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             )
             return
         values = self._text_form(body, content_type)
-        if path in RECOVERY_ROUTES:
+        if path == OPEN_RECORDING_ROUTE:
+            self._redirect(open_recording_for_review_v1(self.server.app_context, values))
+        elif path in RECOVERY_ROUTES:
             try:
                 active = self._bound_active("matches", values)
             except KeyError as error:
@@ -2742,6 +2887,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 status=HTTPStatus.CONFLICT,
             )
             self._session_page(status=HTTPStatus.CONFLICT)
+        except RecordingOpenConflict:
+            active = self._active_match()
+            self._retain_form_feedback(
+                get_frontend_form_by_key_v1("match.analysis.analyze_decision"),
+                issues=(FrontendValidationIssueV1(field_key=None,
+                    message_key="validation.recordings.match_file"),), status=HTTPStatus.CONFLICT)
+            self._match_page(active, position=active.selected_position,
+                             review=True, status=HTTPStatus.CONFLICT)
         except RuntimeError as error:
             if "stale" in str(error).lower():
                 self._error_page(

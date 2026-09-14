@@ -643,6 +643,7 @@ def test_app_web_layering_and_startup_execution_boundaries() -> None:
         "managed_item_discovery.py",
         "position_form.py",
         "profile_driven_creation.py",
+        "recorded_review_opening.py",  # Strict public Session file verification.
         "result_presentation.py",
         "session_card_entry.py",
         "session_form_translation.py",

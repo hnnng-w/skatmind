@@ -6,6 +6,7 @@ from html import escape
 from .compact_card_rendering import compact_card_selector
 from .compact_declaration_rendering import accepted_declaration_summary, compact_declaration_fields
 from .form_registry import get_frontend_form_by_key_v1
+from .match_report_rendering import render_match_reports_v1
 from .recorded_trick_rendering import (
     render_current_trick,
     render_recorded_history,
@@ -77,7 +78,10 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
     definition = get_frontend_form_by_key_v1(
         f"match.{'analysis' if analysis else 'operation'}.{operation}")
     fields = _hidden(state, handle, operation) + extra
+    if analysis and state.get("review_binding"):
+        fields += hidden("review_binding", state["review_binding"])
     technical = ""
+    advanced = ""
     for field in definition.safe_fields:
         name = field.field_key
         key = f"task.field.{name}"
@@ -90,6 +94,10 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
                 prepared = {item["decision_index"] for item in state["decision_preparation"]["decisions"]
                             if item["state"] == "prepared"}
                 options = tuple(option for option in options if option[0] in prepared)
+                options = tuple((row["decision_index"], text(locale, "recordings.match.decision",
+                    trick=(row["decision_index"] - 1) // 3 + 1,
+                    player=_named_seat(state, locale, row["acting_player_id"]), card=row["actual_card"]))
+                    for row in state["decision_preparation"]["decisions"] if row["state"] == "prepared")
             control = select_field(locale, name, key, options, value)
         elif field.control_type == "checkbox":
             control = (f'<label><input type="checkbox" name="{name}"'
@@ -101,8 +109,12 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
             control = input_field(locale, name, key, value)
         if name in {"game_id", "snapshot_id", "external_match_id", "source_player_id"} or name.endswith("_platform_id"):
             technical += control
+        elif analysis and operation == "analyze_decision" and name != "decision_index":
+            advanced += control
         else:
             fields += control
+    if advanced:
+        fields += disclosure(locale, "recordings.match.advanced", paragraph(locale, "task.analysis_help") + advanced)
     if technical:
         fields += disclosure(locale, "task.technical", technical, technical=True)
     return form(locale, f"/matches/api/v1/{'analysis' if analysis else 'operation'}", fields,
@@ -194,59 +206,10 @@ def _statistics(state, handle, locale):
     return content
 
 
-def _reports(state, handle, locale):
-    content = paragraph(locale, "task.match.reports_help")
-    for report in state["reports"]:
-        content += f'<p><a href="/matches/reports/{report["report_id"]}">' + translated(
-            locale, f"task.report.{report['report_kind']}") + '</a></p>'
-    report = state["selected_report"]
-    if report is not None:
-        content += paragraph(locale, f"task.report.{report['report_kind']}")
-        details = report["details"]
-        status = details.get("status")
-        if status in {"complete", "partial", "timeout", "unavailable", "not_assessable", "final"}:
-            content += paragraph(locale, f"result.value.{status}")
-        if status == "unavailable":
-            content += paragraph(locale, "task.match.historical_blocked" if report["report_kind"] == "historical_analysis"
-                                 else "task.match.decision_blocked")
-        if details.get("actual_card") is not None:
-            content += paragraph(locale, "result.actual_card") + cards_summary(locale, (details["actual_card"],))
-        recommendation = details.get("recommendation")
-        if isinstance(recommendation, dict) and recommendation.get("card") is not None:
-            content += paragraph(locale, "task.recommendation") + cards_summary(locale, (recommendation["card"],))
-        elif report["report_kind"] == "decision_analysis":
-            content += paragraph(locale, "result.no_recommendation")
-        candidates = details.get("immediate_candidate_values", [])
-        if candidates:
-            content += ('<div class="workflow-table-scroll" role="region" tabindex="0" aria-label="'
-                + translated(locale, "result.table.immediate") + '"><table><caption>'
-                + translated(locale, "result.table.immediate") + '</caption><thead><tr>')
-            content += ''.join('<th scope="col">' + translated(locale, key) + '</th>'
-                               for key in ("validation.field.card", "result.point_swing", "result.win_rate")) + '</tr></thead><tbody>'
-            for candidate in candidates:
-                content += '<tr><th scope="row">' + cards_summary(locale, (candidate["card"],)) + '</th>'
-                content += ''.join('<td>' + (translated(locale, "status.unavailable") if candidate.get(key) is None
-                    else escape(str(candidate[key]))) + '</td>' for key in ("expected_point_swing", "win_rate")) + '</tr>'
-            content += '</tbody></table></div>'
-        for key, label_key in (("declarer_points", "guided.declarer_points"),
-                               ("defender_points", "guided.defender_points")):
-            if key in details:
-                content += '<p>' + translated(locale, label_key) + ': ' + (
-                    translated(locale, "task.unknown") if details[key] is None else escape(str(details[key]))) + '</p>'
-        if isinstance(details.get("settlement"), dict):
-            score = details["settlement"].get("settlement_score")
-            content += '<p>' + translated(locale, "result.settlement") + ': ' + (
-                translated(locale, "task.unknown") if score is None else escape(str(score))) + '</p>'
-        content += technical_details(locale, report)
-        if state["download_availability"]["report_result"]:
-            content += f'<p><a href="/matches/api/v1/reports/{report["report_id"]}.json" download>' + translated(
-                locale, "task.result_download") + '</a></p>'
-    content += operation_form(state, handle, locale, "prepare_materialization", analysis=True)
-    for kind, available in state["download_availability"].items():
-        if kind != "report_result" and available:
-            content += f'<p><a href="/matches/api/v1/exports/{kind.replace("_", "-")}.json" download>' + translated(
-                locale, f"task.download.{kind}") + '</a></p>'
-    return content
+def _reports(state, handle, locale, *, secondary=True, results=True):
+    return render_match_reports_v1(state, locale, results=results, materialization_form=(
+        operation_form(state, handle, locale, "prepare_materialization", analysis=True)
+        if secondary else ""))
 
 
 def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en", transfer="", recovery=None, card_bindings=None):
@@ -317,6 +280,7 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
         task += (recovery[1] if recovery is not None else "" if recorded is None
                  else render_recorded_history(recorded, locale))
     body += '<div id="match-recording" tabindex="-1">' + section(locale, "task.match.record_or_pass", task) + '</div>'
+    body += '<p><a class="button-link" href="/matches/review/' + str(view.selected_position) + '">' + translated(locale, "recordings.match.open") + '</a></p>'
     body += transfer
     body += disclosure(locale, "task.match.evidence", '<div id="match-evidence">' + _evidence(state, handle, locale, card_bindings) + '</div>')
     body += disclosure(locale, "task.match.annotations", _annotations(state, handle, locale))
@@ -329,22 +293,8 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     body += disclosure(locale, "task.match.metadata", paragraph(locale, "task.match.metadata_help")
         + operation_form(state, handle, locale, "update_match_metadata", values=metadata))
     body += disclosure(locale, "task.match.statistics", _statistics(state, handle, locale))
-    analysis = paragraph(locale, "task.analysis_help")
-    if game is not None:
-        decision_ready = state["decision_preparation"]["prepared_decision_count"] > 0
-        evidence = view.selected.evidence_summary
-        historical_ready = (evidence is not None and evidence.complete_initial_deal_reconstructable
-                            and state["match"]["played_at"] is not None)
-        if not decision_ready:
-            analysis += paragraph(locale, "task.match.decision_blocked")
-        if not historical_ready:
-            analysis += paragraph(locale, "task.match.historical_blocked")
-        analysis += operation_form(state, handle, locale, "analyze_decision", analysis=True, disabled=not decision_ready, values={
-            "immediate_sample_count": 100, "immediate_random_seed": 0, "search_random_seed": 0,
-            "search_budget_profile": "historical_review_v1", "recommendation_method": "immediate_expected_value", "use_profile_presets": True})
-        analysis += operation_form(state, handle, locale, "analyze_historical_game", analysis=True, disabled=not historical_ready, values={
-            "immediate_sample_count": 100, "immediate_random_seed": 0, "search_random_seed": 0,
-            "search_budget_profile": "historical_review_v1", "immediate_review": True, "use_profile_presets": True})
+    from .match_review_rendering import render_match_analysis_v1
+    analysis = render_match_analysis_v1(state, view, handle, locale)
     body += disclosure(locale, "task.match.analysis", analysis + _reports(state, handle, locale))
     corrections = paragraph(locale, "task.match.correction_help")
     if view.selected.slot_kind == "empty":

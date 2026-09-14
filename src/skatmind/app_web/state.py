@@ -6,8 +6,9 @@ from skatmind import __version__
 
 from .contracts import (
     APP_HOME_TASK_MESSAGE_KEY_PREFIXES,
+    APP_HOME_TASK_ROUTES,
     APP_NAVIGATION_MESSAGE_KEYS,
-    APP_ROUTE_PATHS,
+    APP_NAVIGATION_ROUTE_PATHS,
     BrowserSafeApplicationStateV1,
     HomeTaskV1,
     NavigationItemV1,
@@ -22,7 +23,7 @@ def build_browser_safe_application_state_v1() -> BrowserSafeApplicationStateV1:
     navigation = tuple(
         NavigationItemV1(route=route, message_key=message_key)
         for route, message_key in zip(
-            APP_ROUTE_PATHS,
+            APP_NAVIGATION_ROUTE_PATHS,
             APP_NAVIGATION_MESSAGE_KEYS,
             strict=True,
         )
@@ -40,7 +41,7 @@ def build_browser_safe_application_state_v1() -> BrowserSafeApplicationStateV1:
             availability_message_key=f"{prefix}.availability",
         )
         for route, prefix in zip(
-            tuple(route for route in APP_ROUTE_PATHS[1:] if route != "/settings"),
+            APP_HOME_TASK_ROUTES,
             APP_HOME_TASK_MESSAGE_KEY_PREFIXES,
             strict=True,
         )

@@ -15,6 +15,16 @@ evidence below remains historical. See [Settings and Player seat setup](settings
 
 ## Asset and component ownership
 
+Issue #229 extends the app-owned boundary to the compact Home, recording chooser,
+and focused Match review/Report view. Historical #224 concept disclosures are
+superseded by short shared introductions; active correction/transfer controls
+remain. A visible footer About link uses explicit light text and focus on the dark
+surface. Shrinkable chooser/manual-entry tracks and wrapping Home actions address
+observed narrow/enlarged-text overflow. Matched baseline/final headings, geometry,
+272 installed-Wheel measurements and native Result paths are documented in
+[Home and recorded-game review navigation](home_and_recorded_review_navigation.md).
+Earlier evidence below remains historical, not a claim about current Home structure.
+
 Issue #226 extends the same app-owned boundary to normal Session/Match compact
 native Card sets and single-Play radios. Its focused installed-Wheel checks cover
 de/en desktop/narrow/320-pixel selection, 200% text, native focus, explicit saves,

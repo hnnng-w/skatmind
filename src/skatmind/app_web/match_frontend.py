@@ -347,11 +347,14 @@ def build_unified_match_report_download_v1(
     *,
     strategy_source: bool,
 ) -> tuple[str, bytes]:
+    from .recorded_review_opening import RecordingOpenConflict, require_recording_fresh_v1
     with context.capture.lock:
-        status, report = get_current_match_analysis_report_v1(
-            context.capture,
-            report_id,
-        )
+        try:
+            require_recording_fresh_v1(context, "matches")
+        except RecordingOpenConflict:
+            context.capture.report_store.clear()
+            raise
+        status, report = get_unified_match_report_v1(context, report_id)
         if status == "missing" or report is None:
             raise KeyError("Match report is unavailable.")
         if status == "stale":

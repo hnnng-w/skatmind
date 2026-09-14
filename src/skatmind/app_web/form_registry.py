@@ -41,6 +41,7 @@ from .profile_driven_creation import (
     PROFILE_DRIVEN_MATCH_CREATE_FIELDS,
     PROFILE_DRIVEN_SESSION_CREATE_FIELDS,
 )
+from .recorded_review_opening import OPEN_RECORDING_ROUTE, RECORDED_REVIEW_ROUTE
 
 _DEFAULT_BODY_LIMIT = FRONTEND_JSON_MAX_FILE_BYTES + 4_096
 _MANAGED_IMPORT_BODY_LIMIT = MANAGED_ITEM_MAX_IMPORT_BYTES + 4_096
@@ -1369,6 +1370,10 @@ for operation, fields, media, file_reselection in (
         )
     )
 
+_FORMS.append(_definition(
+    "recordings.open", OPEN_RECORDING_ROUTE, page=RECORDED_REVIEW_ROUTE,
+    active="recordings", success="contextual", value_free=True,
+))
 FRONTEND_FORM_REGISTRY = tuple(_FORMS)
 UNIFIED_FRONTEND_POST_ROUTES = tuple(
     dict.fromkeys(
@@ -1376,6 +1381,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             *GUIDED_ACTION_ROUTE_PATHS,
             *FRONTEND_PROFILE_ACTION_ROUTES,
             *CARD_ENTRY_ROUTES,
+            OPEN_RECORDING_ROUTE,
             "/sessions/create",
             "/sessions/import",
             "/sessions/open",

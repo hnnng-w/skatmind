@@ -53,6 +53,14 @@ no_implicit_analysis_selection_preparation_or_conversion
 
 ## Managed discovery
 
+Issue #229 adds [recorded-review navigation](home_and_recorded_review_navigation.md).
+`/review/recorded` projects only existing Session/Match discovery and labels;
+`/review/open-recording` strict-loads inactive sources or reuses the exact fresh
+active object. It rechecks discovery and active identity under existing lifecycle
+gates before publication. Same-source view changes preserve Results and recovery;
+legacy open routes retain their explicit new-context behavior. Contextual conflicts
+offer existing explicit Reload. No discovery-time analysis or source conversion runs.
+
 The managed families remain exactly `sessions`, `matches`, and `corpora`.
 Discovery inspects only direct category children, rejects links and junctions,
 does not recurse, and examines at most `2,048` candidates per explicit refresh.
@@ -125,6 +133,14 @@ save. Normal Play uses a read-only exact-legal or bounded-observation projection
 and returns to `#session-recording`. See [Compact Card entry](compact_card_entry.md).
 
 ## Match Capture
+
+`/matches/review/1..36` now exposes the selected Game's existing preparation,
+explicit analysis and retained Reports openly. `/matches/reports/ID` uses this
+focused presentation and its actual Game; recording/correction stays at the same
+`/matches/position/N`. A bounded native GET selector normalizes one `position`
+query to a canonical review path. Source/Game changes keep normal invalidation;
+same-Game view changes preserve a valid correction preview. The unified registry
+now has 58 POST routes/98 definitions; standalone analysis transport is unchanged.
 
 The private `/matches/cards` adapter uses the same compact component for normal
 evidence sets and one Play, preserving existing evidence replacement, no-op,

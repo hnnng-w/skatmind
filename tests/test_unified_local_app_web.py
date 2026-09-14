@@ -13,7 +13,11 @@ import pytest
 from test_match_decision_review_preparation import _workspace_with_partial_game
 
 from skatmind.app_web.context import AppWebContextV1
-from skatmind.app_web.contracts import APP_NAVIGATION_LABELS, APP_ROUTE_PATHS
+from skatmind.app_web.contracts import (
+    APP_NAVIGATION_LABELS,
+    APP_NAVIGATION_ROUTE_PATHS,
+    APP_ROUTE_PATHS,
+)
 from skatmind.app_web.cross_area_transfer import (
     transfer_active_match_workspace_to_corpus_v1,
 )
@@ -252,7 +256,7 @@ def test_all_authenticated_routes_render_shared_navigation_and_one_h1(
 ) -> None:
     server = running_app_server
     cookie, _mutation_headers = _bootstrap(server)
-    for route, current_label in zip(APP_ROUTE_PATHS, APP_NAVIGATION_LABELS, strict=True):
+    for route in APP_ROUTE_PATHS:
         status, headers, body = _request(server, "GET", route, headers={"Cookie": cookie})
         assert status == 200
         assert headers["content-type"] == "text/html; charset=utf-8"
@@ -260,8 +264,9 @@ def test_all_authenticated_routes_render_shared_navigation_and_one_h1(
         assert html.count("<h1>") == 1
         assert '<a class="skip-link" href="#main-content">Skip to main content</a>' in html
         assert "<header" in html and "<nav" in html and "<main" in html and "<footer" in html
-        assert f">{escape(current_label)}</a>" in html
-        assert html.count('aria-current="page"') == 1
+        assert html.count('aria-current="page"') == int(route in APP_NAVIGATION_ROUTE_PATHS)
+        if route in APP_NAVIGATION_ROUTE_PATHS:
+            assert f'href="{route}" aria-current="page"' in html
         positions = [html.index(f">{escape(label)}</a>") for label in APP_NAVIGATION_LABELS]
         assert positions == sorted(positions)
         assert '<script src="/matches/assets/capture.js" defer></script>' in html
@@ -279,24 +284,23 @@ def test_home_has_exact_tasks_local_no_cloud_copy_and_honest_status(
     html = body.decode("utf-8")
     main = html[html.index("<main") : html.index("</main>")]
     groups_html = main[main.index('<section class="home-group"') :]
-    assert "SkatMind runs locally on this computer" in html
-    assert "stores no data in the cloud" in html
-    assert html.count('<article class="task-card">') == 6
-    assert html.count('<section class="home-group"') == 4
-    assert html.count('<details class="task-disclosure">') == 6
-    assert '<details class="task-disclosure" open' not in html
-    assert "Which area do I need?" in html
-    assert groups_html.index("Record a complete 36-game Match") < groups_html.index(
-        "Record or continue one individual game"
+    assert "Local Skat analysis. No cloud service." in html
+    assert html.count('<article class="task-card">') == 4
+    assert html.count('<section class="home-group"') == 3
+    assert html.count('class="task-action"') == 5
+    assert '<details class="task-disclosure"' not in html
+    assert "Which area do I need?" not in html
+    assert groups_html.index("Record a 36-game Match") < groups_html.index(
+        "Record an individual game"
     )
-    assert groups_html.index("Record or continue one individual game") < groups_html.index(
+    assert groups_html.index("Record an individual game") < groups_html.index(
         "Analyze one decision"
     )
     assert "Available now." not in html
     assert "not yet available" not in html
     assert "Issue #" not in html
     for heading in ("When to use it", "What you need", "Stored", "Result"):
-        assert html.count(f"<dt>{heading}</dt>") == 6
+        assert f"<dt>{heading}</dt>" not in html
     for forbidden in (
         'type="file"',
         "seed",
@@ -398,7 +402,7 @@ def test_home_rendering_executes_no_product_work(
         "/",
         headers={"Cookie": cookie},
     )
-    assert status == 200 and b"Which area do I need?" in body
+    assert status == 200 and b"Review recorded games" in body
     assert server.app_context.managed_stateful.discoveries == before_discoveries
     assert server.app_context.managed_stateful.generations == before_generations
 
@@ -1040,7 +1044,7 @@ def test_about_identity_runtime_local_boundaries_and_closed_storage_disclosure(
     assert html.count(storage_root) == 1
     assert '<details class="storage-disclosure">' in html
     assert '<details class="storage-disclosure" open' not in html
-    for route in APP_ROUTE_PATHS[:-1]:
+    for route in (route for route in APP_ROUTE_PATHS if route != "/about"):
         _status, _headers, other_body = _request(
             server,
             "GET",

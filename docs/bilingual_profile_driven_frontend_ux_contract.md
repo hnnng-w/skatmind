@@ -523,31 +523,31 @@ There must be no hidden personalization or adaptive or learned configuration.
 
 ## Home information architecture
 
-Machine Routes must remain English and unchanged. Visible Home presentation
-must use these exact groups and order.
+Issue #229 explicitly supersedes the original #215/#217 scope guide, metadata
+blocks, generic related panels and large Product-information card. Machine values
+remain English; existing routes stay supported, with additive private chooser and
+selected-Game review routes. See [Home and recorded-game review navigation](home_and_recorded_review_navigation.md).
+Current groups and primary task order are:
 
 ### English
 
 ```text
 Record games
 
-    Record a complete 36-game Match
+    Record a 36-game Match
 
-    Record or continue one individual game
+    Record an individual game
 
 Analyze and review
 
-    Analyze one decision
+    Review recorded games
 
-    Review one completed individual game
+    Analyze one decision
 
 Learn across Matches
 
     Explore patterns across recorded Matches
 
-Product information
-
-    About SkatMind
 ```
 
 ### German
@@ -555,33 +555,33 @@ Product information
 ```text
 Spiele erfassen
 
-    Ein vollständiges 36er-Match erfassen
+    36er-Match erfassen
 
-    Ein einzelnes Spiel erfassen oder fortsetzen
+    Einzelspiel erfassen
 
 Analysieren und auswerten
 
-    Eine Entscheidung analysieren
+    Erfasste Spiele auswerten
 
-    Ein abgeschlossenes einzelnes Spiel auswerten
+    Eine Entscheidung analysieren
 
 Über mehrere Matches lernen
 
     Muster über erfasste Matches hinweg untersuchen
 
-Produktinformationen
-
-    Über SkatMind
 ```
 
 Match Capture must be the first normal recording task, single-game Session the
-second, Learning after recording and analysis, and About last. View ordering
+second, Learning compact and secondary, and About accessible in the footer. View ordering
 must remain separate from machine Route ordering. No Issue number may appear in
 the frontend.
 
-Every Home task must state the unit being handled, when to use the task, what
-information is needed, what is stored, what Result is expected, and whether the
-task is current/live, retrospective, or both.
+Every primary Home task has one useful description and action. Recording explains
+resumption and evidence-limited review. Normal Review chooses existing Sessions
+or Matches without re-entry; `/review` remains the explicit manual input path for
+an unrecorded completed Game. Settings remains directly accessible. Shared entry
+introductions have one title and an optional short explanation, while actual
+information-control and prerequisite guidance stays in place.
 
 The exact conceptual units are:
 
@@ -590,7 +590,7 @@ Analyze:
     one decision
 
 Review:
-    one completed individual game
+    existing recorded Games, or explicitly separate manual completed-game input
 
 Session:
     one resumable individual game

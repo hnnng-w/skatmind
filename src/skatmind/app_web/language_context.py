@@ -92,11 +92,16 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
             references.append(context.analyze_state)
         elif route == "/review":
             references.append(context.review_state)
+        elif route == "/review/recorded":
+            references.extend((managed.discoveries.get("sessions"),
+                               managed.discoveries.get("matches"), session, match))
+            values.extend((managed.generations["sessions"], managed.generations["matches"]))
         family = {"/sessions": "sessions", "/matches": "matches", "/learning": "corpora"}.get(route)
         if family is not None:
             references.append(managed.discoveries.get(family))
             values.append(managed.generations[family])
-        feedback_family = ("sessions" if route.startswith("/sessions") else
+        feedback_family = ("recordings" if route == "/review/recorded" else
+            "sessions" if route.startswith("/sessions") else
             "matches" if route.startswith("/matches") else
             "learning" if route.startswith("/learning") else
             "local_settings" if route == "/settings" else route.removeprefix("/"))
@@ -111,7 +116,7 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
         feedback = context.form_feedback._feedback.get(feedback_family)
         expected_identity = (session if route == "/sessions/current" else
             match if route == "/matches/current" or route.startswith(
-                ("/matches/position/", "/matches/reports/")) else
+                ("/matches/position/", "/matches/review/", "/matches/reports/")) else
             learning if route == "/learning/current" else None)
         if feedback is not None and feedback[0] is not expected_identity:
             feedback = None
@@ -124,11 +129,15 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
                                session.recorded_review_source, session.execution_attempt,
                                session.last_operation))
             values.append(session.generation)
-    if route == "/matches/current" or route.startswith(("/matches/position/", "/matches/reports/")):
+    if route == "/review/recorded" and match is not None:
+        with match.capture.lock:
+            values.append(match.selected_position)
+    if route == "/matches/current" or route.startswith(
+            ("/matches/position/", "/matches/review/", "/matches/reports/")):
         if match is None:
             raise LanguageContextConflict
         with match.capture.lock:
-            if (route.startswith("/matches/position/")
+            if (route.startswith(("/matches/position/", "/matches/review/"))
                     and int(route.rsplit("/", 1)[1]) != match.selected_position):
                 raise LanguageContextConflict
             selected = match.recovery.selected
@@ -150,7 +159,8 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
         # Transfer forms also depend on the exact selected target collection.
         references.append(learning)
     if route == "/learning/current" or (
-            learning is not None and route.startswith(("/matches/position/", "/matches/reports/"))):
+            learning is not None and route.startswith(
+                ("/matches/position/", "/matches/review/", "/matches/reports/"))):
         if learning is None:
             raise LanguageContextConflict
         with learning.corpus.lock:
@@ -208,7 +218,7 @@ def _require_files(context: AppWebContextV1, route: str) -> None:
                 loaded = session_files.load_session_file(session.path).value.document
                 if loaded.content_fingerprint != session.document.content_fingerprint:
                     raise LanguageContextConflict
-        if (route.startswith(("/matches/position/", "/matches/reports/"))
+        if (route.startswith(("/matches/position/", "/matches/review/", "/matches/reports/"))
                 or route == "/matches/current"):
             if match is None:
                 raise LanguageContextConflict
@@ -244,5 +254,9 @@ def language_return_location_v1(context: AppWebContextV1, route: str) -> str:
             selected = match.recovery.selected
             return route + ("#match-recovery" if selected is not None
                             and time.monotonic() - selected.created_at < 1800
-                            else "#match-recording")
+                             else "#match-recording")
+    if route.startswith(("/matches/review/", "/matches/reports/")):
+        return route + "#match-review"
+    if route == "/review/recorded":
+        return route + "#recorded-review-chooser"
     return route

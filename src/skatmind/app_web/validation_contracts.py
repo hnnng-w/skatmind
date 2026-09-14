@@ -11,6 +11,7 @@ FRONTEND_VALIDATION_STATUSES = ("invalid", "conflict")
 FRONTEND_VALIDATION_ACTIVE_FAMILIES = (
     "analyze",
     "review",
+    "recordings",
     "profile",
     "local_settings",
     "sessions",

@@ -42,7 +42,7 @@ See [Settings and Player seat setup](settings_and_player_seat_setup.md).
 
 ## Canonical Form Registry
 
-`FRONTEND_FORM_REGISTRY` covers all 57 unified frontend POST routes through 97
+`FRONTEND_FORM_REGISTRY` covers all 58 unified frontend POST routes through 98
 exact definitions. Shared routes are split by their existing discriminator:
 
 ```text
@@ -87,6 +87,15 @@ instance and contains no Product identity. Multipart forms are not instrumented.
 The standalone Capture and Corpus renderers are not modified.
 
 ## Accepted And Submitted State
+
+Issue #229 adds value-free `recordings.open` selection with a separate bounded
+feedback family, contextual chooser `400`/`409`, and existing explicit Reload.
+Match analysis from its focused review view includes private exact-source
+`review_binding`, removed before existing Capture parsing. Safe options stay on
+that selected review task on failure. Landing/chooser rendering does not discard
+feedback bound to an active source; real source/Game changes retain invalidation.
+Language return retains exact discoveries, Game and Report context. See
+[Home and recorded-game review navigation](home_and_recorded_review_navigation.md).
 
 Issue #228 adds four exact compact-declaration marker definitions on the existing
 Session Command and Match operation routes. Their native checkbox types, localized

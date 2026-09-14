@@ -21,8 +21,12 @@ The implemented browser areas are:
     strict Position JSON import
 
 /review
-    guided normal-completion Historical entry
+    explicit manual guided normal-completion Historical entry
     strict Historical and retrospective Position JSON import
+
+/review/recorded
+    normal Review navigation: select an existing Session or Match
+    explicit opening reaches its existing source-specific review actions
 
 /sessions
 /matches
@@ -67,6 +71,13 @@ These identities are independent from Package, Public API, Root workflow,
 Schema, Session, Match, Corpus, Search, and persistence versions.
 
 ## Process-local state
+
+Issue #229's [recorded-review navigation](home_and_recorded_review_navigation.md)
+preserves the independent manual draft, step, import and Result when visiting Home,
+the chooser or a recording. Its secondary manual link returns to `/review` without
+reset. The chooser does not import or convert recordings into the wizard. Shared
+concept/related panels are replaced by short introductions; the actual guided
+steps, information choices, actions, Result types and downloads remain supported.
 
 Analyze and Review have independent immutable revisioned state under the existing
 application-context lock. Each area retains at most one draft or imported

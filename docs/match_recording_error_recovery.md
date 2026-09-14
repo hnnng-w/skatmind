@@ -97,6 +97,14 @@ previously rejected Card.
 
 ## Exact source, persistence, and lifecycle
 
+Issue #229's [recorded-review navigation](home_and_recorded_review_navigation.md)
+preserves this exact selection, preview, token and creation time through Home,
+chooser reuse and same-Game review/recording views. It does not renew expiry or
+prepare a replacement preview on navigation. Actual source or position changes,
+Reload and accepted edits keep the invalidation below. The compact review selector
+uses the same position-selection function; it never picks a different Game merely
+to find a reviewable decision.
+
 `app_web/match_recovery.py` owns a bounded process-local selection store and one
 preview on each exact `UnifiedMatchContextV1`. At most sixty entry actions cover
 the thirty accepted Plays. Random opaque selections bind the exact immutable

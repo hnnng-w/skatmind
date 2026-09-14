@@ -352,6 +352,9 @@ def test_real_match_report_noop_retention_and_success_invalidation(localized_ser
     reports = active.capture.report_store.list()
     assert len(reports) == 1
     before = active.path.read_bytes()
+    # Reports now lead with review; follow the emitted same-Game recording link.
+    recording = re.search(r'href="(/matches/position/1)#match-recording"', page)[1]
+    page = browser.page(recording)
     page = follow(browser, browser.submit(operation_form(page, "set_perspective_hand"),
                                           card_evidence_mode="exact", cards=list(reversed(hand))))
     assert active.capture.report_store.list() == reports and active.path.read_bytes() == before

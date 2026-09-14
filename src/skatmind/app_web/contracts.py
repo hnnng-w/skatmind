@@ -29,42 +29,43 @@ APP_ROUTE_PATHS = (
     "/learning",
     "/settings",
     "/about",
+    "/review/recorded",
 )
+APP_NAVIGATION_ROUTE_PATHS = (
+    "/", "/matches", "/sessions", "/review/recorded", "/analyze", "/learning", "/settings",
+)
+APP_HOME_TASK_ROUTES = ("/matches", "/sessions", "/review/recorded", "/analyze", "/learning")
 APP_NAVIGATION_LABELS = (
     "Home",
-    "Analyze one decision",
-    "Review one completed game",
-    "Record one game",
     "Record a 36-game Match",
+    "Record an individual game",
+    "Review recorded games",
+    "Analyze one decision",
     "Learn across Matches",
     "Settings",
-    "About SkatMind",
 )
 APP_HOME_TASK_TITLES = (
+    "Record a 36-game Match",
+    "Record an individual game",
+    "Review recorded games",
     "Analyze one decision",
-    "Review one completed individual game",
-    "Record or continue one individual game",
-    "Record a complete 36-game Match",
     "Explore patterns across recorded Matches",
-    "About SkatMind",
 )
 APP_NAVIGATION_MESSAGE_KEYS = (
     "navigation.home",
-    "navigation.analyze",
-    "navigation.review",
-    "navigation.sessions",
     "navigation.matches",
+    "navigation.sessions",
+    "navigation.review",
+    "navigation.analyze",
     "navigation.learning",
     "navigation.settings",
-    "navigation.about",
 )
 APP_HOME_TASK_MESSAGE_KEY_PREFIXES = (
-    "home.tasks.analyze",
-    "home.tasks.review",
-    "home.tasks.sessions",
     "home.tasks.matches",
+    "home.tasks.sessions",
+    "home.tasks.review",
+    "home.tasks.analyze",
     "home.tasks.learning",
-    "home.tasks.about",
 )
 MANAGED_LOCAL_DATA_CATEGORIES = (
     "sessions",
@@ -220,7 +221,7 @@ class BrowserSafeApplicationStateV1:
             raise ValueError("navigation must contain exact navigation items.")
         if any(type(item) is not HomeTaskV1 for item in home_tasks):
             raise ValueError("home_tasks must contain exact Home tasks.")
-        if tuple(item.route for item in navigation) != APP_ROUTE_PATHS:
+        if tuple(item.route for item in navigation) != APP_NAVIGATION_ROUTE_PATHS:
             raise ValueError("Navigation routes must use canonical order.")
         if tuple(item.message_key for item in navigation) != APP_NAVIGATION_MESSAGE_KEYS:
             raise ValueError("Navigation message keys must use canonical order.")
@@ -228,7 +229,5 @@ class BrowserSafeApplicationStateV1:
             f"{prefix}.title" for prefix in APP_HOME_TASK_MESSAGE_KEY_PREFIXES
         ):
             raise ValueError("Home tasks must use canonical message-key order.")
-        if tuple(item.route for item in home_tasks) != tuple(
-            route for route in APP_ROUTE_PATHS[1:] if route != "/settings"
-        ):
-            raise ValueError("Home tasks must target the six canonical task routes.")
+        if tuple(item.route for item in home_tasks) != APP_HOME_TASK_ROUTES:
+            raise ValueError("Home tasks must target the five canonical task routes.")

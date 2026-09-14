@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Final
 
-from .contracts import APP_ROUTE_PATHS
+from .contracts import APP_HOME_TASK_ROUTES
 
 FRONTEND_INFORMATION_ARCHITECTURE_VERSION = 1
 
@@ -10,37 +10,27 @@ HOME_GROUP_KEYS: Final[tuple[str, ...]] = (
     "record_games",
     "analyze_and_review",
     "learn_across_matches",
-    "product_information",
 )
 HOME_TASK_KEYS: Final[tuple[str, ...]] = (
     "record_match",
     "record_session",
-    "analyze_decision",
     "review_game",
+    "analyze_decision",
     "learning_insights",
-    "about",
 )
 HOME_TASK_ROUTE_MAPPINGS: Final[tuple[tuple[str, str], ...]] = (
     ("record_match", "/matches"),
     ("record_session", "/sessions"),
+    ("review_game", "/review/recorded"),
     ("analyze_decision", "/analyze"),
-    ("review_game", "/review"),
     ("learning_insights", "/learning"),
-    ("about", "/about"),
 )
 HOME_GROUP_TASK_MEMBERSHIP: Final[tuple[tuple[str, tuple[str, ...]], ...]] = (
     ("record_games", ("record_match", "record_session")),
-    ("analyze_and_review", ("analyze_decision", "review_game")),
+    ("analyze_and_review", ("review_game", "analyze_decision")),
     ("learn_across_matches", ("learning_insights",)),
-    ("product_information", ("about",)),
 )
-HOME_RELATED_TASK_MEMBERSHIP: Final[tuple[tuple[str, tuple[str, ...]], ...]] = (
-    ("analyze_decision", ("review_game",)),
-    ("review_game", ("analyze_decision", "record_match")),
-    ("record_session", ("record_match",)),
-    ("record_match", ("record_session", "learning_insights")),
-    ("learning_insights", ("record_match",)),
-)
+HOME_RELATED_TASK_MEMBERSHIP: Final[tuple[tuple[str, tuple[str, ...]], ...]] = ()
 FRONTEND_EMPTY_STATE_KEYS: Final[tuple[str, ...]] = (
     "sessions",
     "matches",
@@ -68,7 +58,7 @@ def validate_frontend_information_architecture_v1(
     ),
     empty_state_keys: tuple[str, ...] = FRONTEND_EMPTY_STATE_KEYS,
 ) -> None:
-    """Rejects drift in the private Issue-#217 presentation contract."""
+    """Rejects drift in the private Home contract revised by Issue #229."""
 
     if type(version) is not int or version != FRONTEND_INFORMATION_ARCHITECTURE_VERSION:
         raise ValueError("version must equal the frontend information architecture version.")
@@ -93,7 +83,5 @@ def validate_frontend_information_architecture_v1(
         raise ValueError("Every Home task must be mapped and grouped exactly once.")
     if tuple(group_key for group_key, _members in group_membership) != group_keys:
         raise ValueError("Every Home group must have exact ordered membership.")
-    if len(mapped_routes) != len(set(mapped_routes)) or set(mapped_routes) != set(
-        route for route in APP_ROUTE_PATHS[1:] if route != "/settings"
-    ):
-        raise ValueError("Home task Routes must cover the six machine task Routes exactly.")
+    if mapped_routes != APP_HOME_TASK_ROUTES:
+        raise ValueError("Home task Routes must cover the five ordered task Routes exactly.")

@@ -48,7 +48,10 @@ class ProcessLocalFrontendFeedbackStateV1:
             return None
         retained_identity, state = retained
         if retained_identity is not active_identity:
-            self._feedback.pop(family, None)
+            # A landing/chooser render is not an active-source change. Lifecycle
+            # activation explicitly clears old-source feedback instead.
+            if active_identity is not None:
+                self._feedback.pop(family, None)
             return None
         return state
 

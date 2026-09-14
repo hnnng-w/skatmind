@@ -10,7 +10,8 @@ This implementation addresses that bounded Session path. Issue #208 and unresolv
 findings remain open; UAT-02 through UAT-12 remain paused; B-09/B-07 remain open,
 B-06 remains closed, and Package `1.0.0` preparation is not ready.
 
-1. Open a recorded individual Game from **Record one game** (`/sessions`).
+1. From Home, choose **Review recorded games** (`/review/recorded`) and explicitly
+   open an individual recording. `/sessions` also remains its recording entry.
 2. Follow **Review recorded decisions** near its summary. The visible list follows
    the primary recording action, including after all 30 Plays and after Game End.
 3. Recognize an own decision by Player name, one-based Trick, Card position within
@@ -25,6 +26,13 @@ Normal Card recording remains primary during play. No manual Review draft or
 re-entry of the Game is required.
 
 ## Coverage and deterministic variant selection
+
+Issue #229 adds chooser opening directly to `/sessions/current#recorded-decisions`.
+An unchanged already active source reuses the exact context, Result/source label,
+selection key and download bytes; inactive opening uses the existing strict loader.
+Legacy explicit reopen/Reload still discards derived execution. This distinction
+supersedes neither the #221 exporter nor its evidence cutoff. See
+[Home and recorded-game review navigation](home_and_recorded_review_navigation.md).
 
 `session_recorded_review.py` starts from
 `GuidedSessionContextV1.document.decision_checkpoints` and the loaded accepted

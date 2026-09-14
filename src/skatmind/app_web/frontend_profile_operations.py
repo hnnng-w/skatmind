@@ -43,6 +43,7 @@ _SAFE_STATIC_HTML_ROUTES = {
     "/",
     "/analyze",
     "/review",
+    "/review/recorded",
     "/sessions",
     "/sessions/current",
     "/matches",
@@ -53,7 +54,7 @@ _SAFE_STATIC_HTML_ROUTES = {
     "/about",
     "/settings",
 }
-_SAFE_MATCH_POSITION = re.compile(r"/matches/position/(?:[1-9]|[12][0-9]|3[0-6])\Z")
+_SAFE_MATCH_POSITION = re.compile(r"/matches/(?:position|review)/(?:[1-9]|[12][0-9]|3[0-6])\Z")
 _SAFE_MATCH_REPORT = re.compile(r"/matches/reports/[0-9a-f]{64}\Z")
 
 

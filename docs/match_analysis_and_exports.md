@@ -33,6 +33,16 @@ quality, signaling, communication, or causal claim.
 
 ## Contract identity
 
+Issue #229 adds only a private unified navigation/presentation layer. Home's
+recorded-source chooser opens the active selected Game at `/matches/review/N`;
+its prepared-decision action still posts to `/matches/api/v1/analysis` and calls
+`execute_unified_match_analysis_v1`. Report pages openly present their actual Game
+and retained Result, with the existing downloads and same-Game recording link.
+The unified adapter checks file freshness without retry or silent reload. No
+Historical materialization runs on GET. Standalone transports, methods, budgets,
+strict evidence and report contracts below remain unchanged. See
+[Home and recorded-game review navigation](home_and_recorded_review_navigation.md).
+
 The private version-1 contracts cover:
 
 ```text

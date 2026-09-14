@@ -247,6 +247,23 @@ def _managed_label_form(
     )
 
 
+def managed_item_label_v1(item, *, profile, locale: str) -> str:
+    """Reuse the managed name projection, returning escaped presentation only."""
+    labels = () if profile is None else profile.managed_item_display_labels
+    label = next((value for value in labels
+                  if value.family == item.family and value.product_id == item.semantic_product_id),
+                 None)
+    if label is not None:
+        return escape(label.display_name)
+    if item.family == "sessions" and item.display_label is not None:
+        return _t(locale, "creation.managed.fallback_session",
+                  players=item.display_label.removeprefix("Session: "))
+    if item.family == "corpora" and item.display_label is not None:
+        return _t(locale, "creation.managed.fallback_learning")
+    return (escape(item.display_label) if item.display_label
+            else _t(locale, "creation.managed.invalid"))
+
+
 def _managed_item_card(
     item,
     *,
@@ -262,18 +279,7 @@ def _managed_item_card(
         ),
         None,
     )
-    if profile_label is not None:
-        label = escape(profile_label.display_name)
-    elif item.family == "sessions" and item.display_label is not None:
-        players = item.display_label.removeprefix("Session: ")
-        label = _t(locale, "creation.managed.fallback_session", players=players)
-    elif item.family == "corpora" and item.display_label is not None:
-        label = _t(locale, "creation.managed.fallback_learning")
-    else:
-        label = escape(item.display_label) if item.display_label else _t(
-            locale,
-            "creation.managed.invalid",
-        )
+    label = managed_item_label_v1(item, profile=profile, locale=locale)
     route_family = "learning" if item.family == "corpora" else item.family
     action = ""
     if item.status == "available":

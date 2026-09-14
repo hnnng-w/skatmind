@@ -343,6 +343,18 @@ and validation feedback across language changes without rerunning Product work.
 
 ### Semantic origin and exact presentation binding
 
+Issue #229 adds exact chooser `/review/recorded` and selected-Game
+`/matches/review/N` semantic origins, while `/matches/reports/ID` retains its exact
+Report identity in the focused review view. Chooser language changes retain both
+discovery objects/generations; Home does no new discovery. Known focus targets add
+`recorded-review-chooser` and `match-review`. These are not arbitrary redirects.
+The native Game selector's narrowly accepted integer query is normalized before
+rendering and is never a language return path. Submitted review errors preserve
+safe options and the originating task. See
+[Home and recorded-game review navigation](home_and_recorded_review_navigation.md)
+for current 1,414-key catalogs and installed-Wheel evidence. Earlier #223 evidence
+and its JavaScript-dependent unsent-input boundary remain unchanged.
+
 Issue #223 fixes a reproduced return-path defect: rejected creation POSTs rendered
 valid creation forms while the shell read the mutation request URL and fell back
 to Home. Page renderers now supply their semantic HTML origin explicitly:

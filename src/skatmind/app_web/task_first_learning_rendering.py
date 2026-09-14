@@ -144,6 +144,7 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
             ("known_player_seed", 0, "number"), ("unseen_player_seed", 0, "number"),
             ("train_weight", 70, "number"), ("validation_weight", 15, "number"), ("test_weight", 15, "number")))
     build = paragraph(locale, "task.learning.build_help")
+    build += paragraph(locale, "concept.learning.automatic")
     if view.primary_action:
         build += form(locale, "/learning/api/v1/operations", _hidden(handle, "prepare_learning_artifacts")
             + disclosure(locale, "task.learning.settings", paragraph(locale, "task.learning.settings_help")

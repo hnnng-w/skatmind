@@ -36,6 +36,15 @@ contract `1`, seven Root workflows, one Console Script, Settlement Matrix versio
 
 ## Projection and renderer boundaries
 
+Issue #229 adds focused chooser/opening, shared entry-introduction, Match review
+and retained-Report renderers. It supersedes the generic concept/related panels
+and closed-only Match analysis discovery described in the original #220 evidence.
+Ordinary recording stays primary; `/matches/review/N` and existing Report URLs
+openly expose the selected Game's existing review actions and Results. Actual
+correction, transfer and Learning prerequisite links remain. See
+[Home and recorded-game review navigation](home_and_recorded_review_navigation.md)
+for exact routes, lifecycle, manual compatibility and installed-browser evidence.
+
 Private modules under `src/skatmind/app_web/` separate:
 
 * `task_first_contracts.py`: frozen presentation values with immutable tuples;

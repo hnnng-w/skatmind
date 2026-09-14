@@ -1181,8 +1181,8 @@ assert FRONTEND_TRANSLATION_CATALOG_VERSION == 1
 assert LOCAL_FRONTEND_PROFILE_VERSION == 1
 assert FRONTEND_INFORMATION_ARCHITECTURE_VERSION == 1
 assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-assert len(UNIFIED_FRONTEND_POST_ROUTES) == 57
-assert len(FRONTEND_FORM_REGISTRY) == 97
+assert len(UNIFIED_FRONTEND_POST_ROUTES) == 58
+assert len(FRONTEND_FORM_REGISTRY) == 98
 validate_frontend_form_registry_v1()
 frontend_catalogs = load_frontend_translation_catalogs_v1()
 assert tuple(frontend_catalogs) == ("de", "en")
@@ -1241,12 +1241,14 @@ try:
     assert status == 200 and b'<html lang="de">' in content
     assert "Startseite".encode("utf-8") in content
     assert "Spiele erfassen".encode("utf-8") in content
-    assert "Welchen Bereich brauche ich?".encode("utf-8") in content
+    assert "Welchen Bereich brauche ich?".encode("utf-8") not in content
+    assert b'href="/review/recorded"' in content and b'<footer>' in content
     assert not (app_home.root / "frontend-profile.json").exists()
     for app_route in (
         "/",
         "/analyze",
         "/review",
+        "/review/recorded",
         "/sessions",
         "/matches",
         "/learning",
@@ -1261,6 +1263,14 @@ try:
         assert status == 200 and b"<h1>" in content
         assert response_headers["Cache-Control"] == "no-store"
         assert b"app-distribution-token" not in content
+    status, _, content = app_request("GET", "/review/recorded", headers=app_get_headers)
+    assert status == 200 and b'id="recorded-review-chooser"' in content
+    assert b'href="/review"' in content and b'action="/review/open-recording"' not in content
+    status, _, content = app_request("POST", "/review/open-recording",
+        headers=app_post_headers, body=urlencode({"family": "foreign"}).encode("ascii"))
+    assert status == 400 and b'id="recorded-review-chooser"' in content
+    status, _, content = app_request("GET", "/matches/review/36", headers=app_get_headers)
+    assert status == 409 and b'id="recorded-review-chooser"' in content
     invalid_guided_body = urlencode(
         {
             "revision": "0",

@@ -105,6 +105,16 @@ These policy strings are private internal policies, not Public API exports.
 
 ## Current behavior
 
+Issue #229 deliberately revises earlier private Home/navigation presentation:
+normal Review goes to `/review/recorded`, manual `/review` remains served, and
+`/matches/review/N` openly exposes the existing selected-Game analysis and Reports.
+Five Home tasks replace the original six; About moves to an ordinary footer link
+and Settings stays directly accessible. Exact served routes, visible navigation,
+same-context reuse and the bounded selector query are authoritative in
+[Home and recorded-game review navigation](home_and_recorded_review_navigation.md).
+The older route/task tables below document the original contract where superseded;
+no Public API, persistence, Engine workflow or tracking-only version changes.
+
 Package `0.17.0` currently exposes one Console Script,
 `skatmind = skatmind.cli:main`, and supports installed, module, and repository-
 root Legacy invocation. Empty argv and leading `app` select the unified shell;

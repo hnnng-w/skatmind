@@ -184,16 +184,16 @@ def test_browser_german_does_not_write_and_localizes_shell_home_about_and_errors
     home_html = home.decode()
     home_main = home_html[home_html.index("<main") : home_html.index("</main>")]
     home_groups = home_main[home_main.index('<section class="home-group"') :]
-    assert "SkatMind läuft lokal auf diesem Computer" in home_html
-    assert home_html.count('<article class="task-card">') == 6
-    assert home_html.count('<section class="home-group"') == 4
-    assert "Welchen Bereich brauche ich?" in home_html
-    assert "Benötigte Angaben" in home_html
+    assert "Lokale Skat-Analyse. Kein Cloud-Dienst." in home_html
+    assert home_html.count('<article class="task-card">') == 4
+    assert home_html.count('<section class="home-group"') == 3
+    assert "Welchen Bereich brauche ich?" not in home_html
+    assert "Benötigte Angaben" not in home_html
     assert "Eine Entscheidung analysieren" in home_html
-    assert home_groups.index("Ein vollständiges 36er-Match erfassen") < home_groups.index(
-        "Ein einzelnes Spiel erfassen oder fortsetzen"
+    assert home_groups.index("36er-Match erfassen") < home_groups.index(
+        "Einzelspiel erfassen"
     )
-    assert "Aktuell oder nachträglich" in home_html
+    assert 'href="/review/recorded"' in home_groups
 
     status, _headers, about = _request(server, "GET", "/about", headers=german)
     assert status == 200
