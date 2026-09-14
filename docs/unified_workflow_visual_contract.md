@@ -33,7 +33,17 @@ the existing shrinkable form-track pattern. See
 [Recorded Trick progress](recorded_trick_progress.md) for actual totals, hashes,
 screenshots and focus evidence. Historical #224–#226 evidence remains unchanged.
 
-`app_web/assets/app.css` is the single theme owner. All unified Match and Learning
+Issue #228 extends this app-owned boundary to shared Session/Match declaration
+fields and accepted summaries. Visible bid input and a shrinkable native checkbox
+group replace the earlier Session bid-under-Advanced layout. Optional Matador help
+and CSS-only Game-family guidance never disable retained inputs. Installed-Wheel
+Edge 153 checks include de/en, JavaScript on/off, native saves/correction/reopen,
+320-pixel reflow and 200% text. Desktop forms are shorter than the old exposed
+bid-entry form; wrapped guidance increases some narrow heights. Actual comparisons,
+15.93:1 checkbox-label contrast and inspected screenshots are in
+[Compact Game declaration](compact_game_declaration.md).
+
+`app_web/assets/app.css` remains the single theme owner. All unified Match and Learning
 HTML loads only `/assets/app.css`. The shell's `main[data-workflow]` attribute
 scopes these workflow components, including creation, contextual errors, status
 feedback and secondary content outside the task-first wrapper. The attribute is

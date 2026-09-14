@@ -28,6 +28,7 @@ from .card_entry_http import (
     dispatch_card_entry,
     match_card_binding,
 )
+from .compact_declaration_http import declaration_binding, dispatch_compact_declaration
 from .context import AppWebContextV1
 from .contracts import APP_ROUTE_PATHS
 from .cross_area_transfer import (
@@ -925,6 +926,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 media_type == "multipart/form-data" and multipart.search(body_prefix) is not None
             ):
                 matches.append(definition)
+        compact = [form for form in matches if form.discriminator_field == "declaration_form"]
+        if len(compact) == 1:
+            matches = compact
         if len(matches) == 1:
             self._current_form_definition = matches[0]
         elif candidates:
@@ -948,6 +952,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             if len(items) != 1 and not (repeated_cards and name == "cards")
         )
         if duplicates:
+            if "declaration_form" in parsed or "declaration_selection" in parsed:
+                from .compact_declaration_form import form_error
+                raise form_error("duplicate", duplicates[0])
             raise ValueError(f"Form fields must not repeat: {', '.join(duplicates)}.")
         return {
             name: items if repeated_cards and name == "cards" and len(items) > 1 else items[0]
@@ -1733,6 +1740,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             state = build_task_first_match_page_state_v1(active, view, report_id=report_id)
             card_bindings = {operation: match_card_binding(active, operation)
                              for operation in MATCH_CARD_OPERATIONS}
+            state["declaration_bindings"] = {marker: declaration_binding(active, marker)
+                for marker in ("match-declaration", "match-clear")}
             result = active.last_result
             transfer_notice = active.transfer_notice
             active.transfer_notice = None
@@ -2614,6 +2623,11 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 self.server.app_context, path,
                 self._flat_form(body, content_type, repeated_cards=True)))
             return
+        if path in {"/sessions/command", "/matches/api/v1/operation"}:
+            values = self._flat_form(body, content_type, repeated_cards=True)
+            if "declaration_form" in values or "declaration_selection" in values:
+                self._redirect(dispatch_compact_declaration(self.server.app_context, path, values))
+                return
         if path == "/sessions/import":
             self._import_session(body, content_type)
             return

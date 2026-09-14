@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import re
 
+from skatmind.declaration_diagnostics import DeclarationValueError
 from skatmind.errors import SkatMindWorkflowError
 from skatmind.observed_trace_diagnostics import ObservedTraceError
 
 from .card_entry_http import CardEntryConflict
+from .compact_declaration_http import DeclarationConflict
 from .form_parsing import FormFieldErrorV1
 from .form_registry import FrontendFormDefinitionV1
 from .frontend_profile_operations import FrontendProfilePersistenceConflictError
@@ -91,6 +93,13 @@ def map_frontend_exception_v1(
     *,
     status: int,
 ) -> tuple[FrontendValidationIssueV1, ...]:
+    if isinstance(error, DeclarationValueError) and (
+            definition.discriminator_field == "declaration_form" or definition.form_key in {
+                "session.command.set_declaration", "match.operation.set_declaration"}):
+        return (_issue(_known_field(definition, error.field_key),
+                       f"validation.declaration.{error.reason}"),)
+    if isinstance(error, DeclarationConflict):
+        return (_issue(None, f"validation.declaration.{error.reason}"),)
     if isinstance(error, CardEntryError):
         return (_issue(_known_field(definition, error.field_key),
                        f"validation.card_entry.{error.reason}"),)

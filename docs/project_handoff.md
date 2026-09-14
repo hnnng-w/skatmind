@@ -2473,6 +2473,18 @@ earlier own decision after 30 Plays, recognize its comparison and source, then
 reopen and review the saved decision again. This does not request another complete
 walkthrough now. Implementation does not close UAT findings or reopen #220/B-06.
 
+Issue #228 implements [Compact Game declaration](compact_game_declaration.md):
+shared visible bid entry, four explicit native checkbox choices, optional bounded
+Matador help, exact-source forms and accepted-only summaries. Canonical rule and
+information restrictions, historical Session correction, Match no-op/clear and
+#221–#227 Result/recovery/progress lifecycle remain authoritative. The current
+registry has 57 routes/97 definitions and catalogs have 1,375 keys. Real HTTP tests
+and installed-Wheel Edge 153 de/en/script/no-script saves, correction, errors,
+language, reopen and 320-pixel/200%-text evidence are documented with actual height
+tradeoffs and hashes. Both exact-merged-commit jobs remain required for #228;
+this bounded slice does not resolve #208 or the remaining metadata, knowledge,
+timezone and Home/Learning findings.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

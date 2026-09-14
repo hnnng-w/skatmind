@@ -30,10 +30,15 @@ def test_session_render_all_phases_and_all_commands(tmp_path: Path, locale):
             handle="a" * 64, document=build_session_persistence_document_v1(state))
         original = context.document
         html = render_task_first_session_v1(context, locale=locale)
-        headings = [html.index(t(locale, f"task.session.{key}"))
-                    for key in ("state", "next", "primary", "entered")]
+        headings = [html.index('<h2>' + t(locale, key) + '</h2>') for key in (
+            "task.session.state", "task.session.next", "task.session.entered")]
         assert headings == sorted(headings)
-        assert all(f'name="kind" value="{kind}"' in html for kind in SESSION_COMMAND_KINDS)
+        assert headings[1] < html.index('id="session-recording"') < headings[2]
+        assert all(f'name="kind" value="{kind}"' in html for kind in SESSION_COMMAND_KINDS
+                   if kind != "set_declaration")
+        # Declaration correction is rendered only for its actual accepted target.
+        accepted = any(record.command.kind == "set_declaration" for record in state.command_log)
+        assert ('value="session-correction"' in html) is accepted
         assert context.document is original
         assert '<script' not in html
 

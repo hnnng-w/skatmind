@@ -761,6 +761,56 @@ details[open] > summary {
 }
 
 /* Accepted Trick progress has no form, counter, or collapsed diagnostic targets. */
+/* Native declaration fields share layout, never change selection or rule semantics. */
+.compact-declaration,
+.accepted-declaration {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.compact-declaration { display: grid; gap: 0.65rem; }
+.declaration-core {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13em), 1fr));
+  gap: 0.65rem;
+}
+.declaration-options { display: block; min-width: 0; padding: 0.5rem; }
+.declaration-options p { margin-block: 0.3em; }
+form:has(> input[name="declaration_form"]) > p { margin-block: 0.25em; }
+.compact-declaration:not(:has(option[value="null"]:checked)) .declaration-null,
+.compact-declaration:has(option[value="null"]:checked) .declaration-dependencies {
+  display: none;
+}
+.declaration-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 6em), 1fr));
+  gap: 0.4em;
+}
+.declaration-checks label {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  min-height: 2.75rem;
+  padding-block: 0.25em;
+  color: var(--ink);
+  background: var(--surface);
+}
+.declaration-checks input { flex: 0 0 auto; }
+.declaration-checks label:focus-within { outline: 0.2rem solid var(--focus); }
+.compact-declaration :where(input, select, label, details, summary, legend) {
+  min-width: 0;
+  max-width: 100%;
+}
+.declaration-count { border-top: 1px solid var(--line); padding-block: 0.5em; }
+.accepted-declaration dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15em), 1fr));
+  gap: 0.4em 1em;
+}
+.accepted-declaration dl > div { min-width: 0; }
+.accepted-declaration dd { margin: 0; font-weight: bold; }
+.accepted-declaration h3 { margin-block: 0.5em; }
+
 .recording-progress-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

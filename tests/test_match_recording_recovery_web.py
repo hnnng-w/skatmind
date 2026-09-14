@@ -57,7 +57,7 @@ def start_match(browser, locale="en", name="Alexandra Long-Synthetic-Player-Name
     options = re.search(r'<select name="declarer_player_id"[^>]*>(.*?)</select>', page, re.S)[1]
     declarer = re.findall(r'<option value="([^"]+)"', options)[0]
     return follow(browser, browser.submit(operation_form(page, "set_declaration"),
-        declarer_player_id=declarer, game_type="grand", hand_game="on"))
+        declarer_player_id=declarer, game_type="grand", hand_game="true"))
 
 
 @pytest.mark.parametrize("locale", ("en", "de"))

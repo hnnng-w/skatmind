@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from skatmind.declaration_diagnostics import DeclarationValueError
 from skatmind.information_view import is_skat_visible_to_local_player
 from skatmind.matador_inference import (
     get_completed_trick_ownership_cards_for_declarer,
@@ -88,7 +89,8 @@ def validate_declaration_game_type(game_type: str) -> None:
     Validates a declared game type.
     """
     if game_type not in VALID_DECLARATION_GAME_TYPES:
-        raise ValueError(f"Invalid declaration game type: {game_type}")
+        raise DeclarationValueError(f"Invalid declaration game type: {game_type}",
+                                    reason="game_type", field_key="game_type")
 
 
 def validate_matadors(matadors: int | None, game_type: str | None = None) -> None:
@@ -99,33 +101,39 @@ def validate_matadors(matadors: int | None, game_type: str | None = None) -> Non
         return
 
     if isinstance(matadors, bool) or not isinstance(matadors, int):
-        raise ValueError("matadors must be an integer or null.")
+        raise DeclarationValueError("matadors must be an integer or null.",
+                                    reason="integer", field_key="matadors")
 
     if game_type == "null":
-        raise ValueError("Null games cannot have matadors.")
+        raise DeclarationValueError("Null games cannot have matadors.",
+                                    reason="null_matadors", field_key="matadors")
 
     if game_type == "grand":
         if not 1 <= matadors <= 4:
-            raise ValueError(
-                "matadors must be between 1 and 4 for Grand games, or null when unknown."
+            raise DeclarationValueError(
+                "matadors must be between 1 and 4 for Grand games, or null when unknown.",
+                reason="grand_count", field_key="matadors",
             )
         return
 
     if game_type in SUIT_GAME_TYPES:
         if not 1 <= matadors <= 11:
-            raise ValueError(
-                "matadors must be between 1 and 11 for Suit games, or null when unknown."
+            raise DeclarationValueError(
+                "matadors must be between 1 and 11 for Suit games, or null when unknown.",
+                reason="suit_count", field_key="matadors",
             )
         return
 
     if matadors < 1:
-        raise ValueError("matadors must be a positive integer or null.")
+        raise DeclarationValueError("matadors must be a positive integer or null.",
+                                    reason="positive", field_key="matadors")
 
 
 def validate_declaration_boolean(value: Any, field_name: str) -> None:
     """Validates one declaration boolean field."""
     if not isinstance(value, bool):
-        raise ValueError(f"{field_name} must be a boolean.")
+        raise DeclarationValueError(f"{field_name} must be a boolean.",
+                                    reason="flag", field_key=field_name)
 
 
 def validate_bid_value(bid_value: int | None) -> None:
@@ -134,7 +142,8 @@ def validate_bid_value(bid_value: int | None) -> None:
         return
 
     if isinstance(bid_value, bool) or not isinstance(bid_value, int) or bid_value <= 0:
-        raise ValueError("bid_value must be a positive integer when provided.")
+        raise DeclarationValueError("bid_value must be a positive integer when provided.",
+                                    reason="positive", field_key="bid_value")
 
 
 def normalize_game_declaration_values(
@@ -185,9 +194,11 @@ def normalize_game_declaration_values(
 
         for required_field in required_fields:
             if supplied_boolean_values[required_field] is False:
-                raise ValueError(
+                raise DeclarationValueError(
                     f"{dependent_field}=true requires {required_field}=true; "
-                    f"{required_field} was explicitly false."
+                    f"{required_field} was explicitly false.",
+                    reason=dependent_field + "_requires", field_key=required_field,
+                    required_fields=required_fields,
                 )
             normalized_booleans[required_field] = True
 
@@ -196,10 +207,12 @@ def normalize_game_declaration_values(
 
     if game_type == "null":
         if normalized_booleans["schneider_announced"]:
-            raise ValueError("Null games cannot have schneider_announced=true.")
+            raise DeclarationValueError("Null games cannot have schneider_announced=true.",
+                                        reason="null_announcement", field_key="schneider_announced")
 
         if normalized_booleans["schwarz_announced"]:
-            raise ValueError("Null games cannot have schwarz_announced=true.")
+            raise DeclarationValueError("Null games cannot have schwarz_announced=true.",
+                                        reason="null_announcement", field_key="schwarz_announced")
 
     return {
         "game_type": game_type,

@@ -4,10 +4,16 @@ from __future__ import annotations
 from html import escape
 
 from skatmind.deck import get_full_deck
+from skatmind.game_declaration import build_serializable_game_declaration
 from skatmind.session_commands import SESSION_COMMAND_KINDS
 
 from .card_entry_http import session_card_binding
 from .compact_card_rendering import compact_card_selector
+from .compact_declaration_http import declaration_binding
+from .compact_declaration_rendering import (
+    accepted_declaration_summary,
+    compact_declaration_fields,
+)
 from .recorded_trick_progress import project_session_trick_progress
 from .recorded_trick_rendering import (
     render_current_trick,
@@ -79,14 +85,7 @@ def session_command_fields(locale: str, view: TaskFirstSessionV1, kind: str, *, 
     if kind == "set_declarer":
         return select_field(locale, "player_id", "task.field.declarer_player_id", players)
     if kind == "set_declaration":
-        return (_choice(locale, "game_type", ("clubs", "spades", "hearts", "diamonds", "grand", "null"))
-                + boolean_field(locale, "hand_game", "task.field.hand_game")
-                + boolean_field(locale, "ouvert", "task.field.ouvert")
-                + disclosure(locale, "task.advanced", ''.join(
-                    boolean_field(locale, name, f"task.field.{name}")
-                    for name in ("schneider_announced", "schwarz_announced"))
-                    + input_field(locale, "matadors", "task.field.matadors", kind="number")
-                    + input_field(locale, "bid_value", "task.field.bid_value", kind="number")))
+        return compact_declaration_fields(locale, session=True)
     if kind == "record_discard":
         cards = facts.remaining_hand_for(facts.declarer_player_id) if normal else None
         return card_select(locale, cards=cards)
@@ -151,6 +150,28 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
                     "compact.record" if play else "compact.save", primary=True)
     fields = hidden("managed_handle", context.handle) + hidden("expected_revision", context.state.revision)
     fields += hidden("kind", kind)
+    if kind == "set_declaration":
+        marker = "session-correction" if correction else "session-declaration"
+        target = ""
+        values = None
+        declarer = view.facts.declarer_player_id
+        if correction:
+            record = next((record for record in context.state.command_log
+                           if record.command.kind == kind), None)
+            if record is None:
+                return ""
+            target = str(record.revision)
+            values = build_serializable_game_declaration(record.command.declaration)
+            declarer = next((item.command.declarer_player_id for item in context.state.command_log
+                if item.revision < record.revision and item.command.kind == "set_declarer"), None)
+            fields += hidden("target_revision", target) + paragraph(
+                locale, "declaration.correction", revision=target)
+        fields += hidden("declaration_form", marker) + hidden(
+            "declaration_selection", declaration_binding(context, marker, target))
+        fields += paragraph(locale, "task.session.declarer",
+            player=player_name(locale, view.facts.players, declarer))
+        fields += compact_declaration_fields(locale, values, session=True)
+        return form(locale, "/sessions/command", fields, "declaration.save", primary=normal)
     if correction:
         fields += paragraph(locale, "task.session.correction_help") + input_field(
             locale, "target_revision", "task.field.target_revision", kind="number", required=True)
@@ -227,8 +248,12 @@ def render_task_first_session_v1(
         controls = (_command(context, locale, view, primary, normal=True, progress=progress)
                     if primary else paragraph(locale, "task.session.next.complete"))
         normal += '<div id="session-recording" tabindex="-1"><div id="session-card-feedback"></div>' + section(
-            locale, "task.session.primary", '<div class="recording-progress-layout"><div>'
+            locale, "declaration.title" if primary == "set_declaration" else "task.session.primary", '<div class="recording-progress-layout"><div>'
             + controls + '</div>' + render_recorded_summary(progress, locale) + '</div>') + '</div>'
+        if facts.declaration is not None:
+            normal += accepted_declaration_summary(locale,
+                build_serializable_game_declaration(facts.declaration),
+                player_name(locale, facts.players, facts.declarer_player_id))
         normal += render_recorded_session_decisions_v1(context, locale=locale)
         normal += render_recorded_history(progress, locale)
         entered = '<ul>' + ''.join('<li>' + escape(label) + '</li>' for _, label in _players(locale, facts)) + '</ul>'
@@ -239,14 +264,9 @@ def render_task_first_session_v1(
             public = facts.public_hand_for(player.player_id)
             if public is not None:
                 entered += paragraph(locale, "task.session.public_hand") + cards_summary(locale, public)
-        entered += paragraph(locale, "task.session.declarer",
-            player=player_name(locale, facts.players, facts.declarer_player_id))
-        if facts.declaration is not None:
-            entered += paragraph(locale, f"task.value.{facts.declaration.game_type}")
-            entered += '<dl>' + ''.join('<dt>' + translated(locale, f"task.field.{name}")
-                + '</dt><dd>' + translated(locale, "common.answer.yes" if getattr(facts.declaration, name)
-                    else "common.answer.no") + '</dd>'
-                for name in ("hand_game", "ouvert", "schneider_announced", "schwarz_announced")) + '</dl>'
+        if facts.declaration is None:
+            entered += paragraph(locale, "task.session.declarer",
+                player=player_name(locale, facts.players, facts.declarer_player_id))
         entered += paragraph(locale, "task.skat") + cards_summary(locale, facts.known_skat or None)
         discards = facts.discarded_cards or (() if facts.declaration and facts.declaration.hand_game else None)
         entered += paragraph(locale, "task.discards") + cards_summary(locale, discards)

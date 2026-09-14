@@ -304,7 +304,8 @@ def test_real_match_overlap_single_save_and_advanced_trace_order(localized_serve
     declaration = operation_form(page, "set_declaration")
     choices = re.search(r'<select name="declarer_player_id"[^>]*>(.*?)</select>', page, re.S)[1]
     own = re.search(r'<option value="([^"]+)"[^>]*>Alexandra', choices)[1]
-    page = follow(browser, browser.submit(declaration, hand_game="false", declarer_player_id=own))
+    declaration["values"].pop("hand_game", None)  # Native explicit uncheck.
+    page = follow(browser, browser.submit(declaration, declarer_player_id=own))
     saves = []
     original = MatchCaptureWebContextV1.save_candidate
     def save(context, candidate):

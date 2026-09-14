@@ -204,7 +204,7 @@ def test_rejected_thirtieth_witness_excluded_and_accepted_warning_is_distinct(lo
     page = follow(browser, browser.submit(operation_form(page, "start_game")))
     page = follow(browser, browser.submit(operation_form(page, "set_declaration"),
         declarer_player_id=active.workspace.match_definition.participants[0].player_id,
-        game_type="grand", hand_game="on"))
+        game_type="grand", hand_game="true"))
     for card in "SA H7 S7 CA S8".split():
         page = follow(browser, browser.submit(operation_form(page, "append_plays"), cards=card))
     assert_progress(page, ((1, 11), (0, 0), (0, 0)))

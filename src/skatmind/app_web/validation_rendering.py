@@ -409,6 +409,8 @@ def apply_validation_feedback_to_html_v1(
         if definition.form_key.startswith("match.recovery.")
         else ("card_selection",)
         if definition.action_route in {"/sessions/cards", "/sessions/play", "/matches/cards"}
+        else ("declaration_selection",)
+        if definition.discriminator_field == "declaration_form"
         else ()
     )
     form_identity = tuple(
@@ -418,11 +420,40 @@ def apply_validation_feedback_to_html_v1(
     )
     form_instance = None if form_identity else state.form_instance
     card_entry = definition.action_route in {"/sessions/cards", "/sessions/play", "/matches/cards"}
+    declaration_entry = definition.discriminator_field == "declaration_form"
     # A missing/malformed source token cannot qualify an attempted selection for
     # today's actor merely because its old form happened to have the same ordinal.
-    bounds = (None if card_entry and not form_identity else
+    bounds = (None if (card_entry or declaration_entry) and not form_identity else
               _find_form_bounds(html, definition, form_instance, form_identity))
     if bounds is None:
+        if declaration_entry:
+            session = definition.active_context_requirement == "sessions"
+            target = 'session-card-feedback' if session else 'match-recovery-feedback'
+            summary = _render_summary(
+                state, translated, field_definitions, rendered_fields, locale=locale,
+                fallback_anchor="session-recording" if session else "match-recording",
+                last_valid_result_retained=last_valid_result_retained)
+            # Stale values are visible as rejected input, never restored into a new source form.
+            summary += '<details open><summary>' + escape(translate_frontend_message_v1(
+                locale, "declaration.rejected_input")) + '</summary><dl>'
+            for entry in state.safe_visible_values.entries:
+                field = field_definitions.get(entry.field)
+                if field is not None and entry.field not in {
+                        "declaration_selection", "declarer_player_id"}:
+                    summary += '<dt>' + escape(translate_frontend_message_v1(
+                        locale, field.field_label_key)) + '</dt><dd>'
+                    value = entry.values[0]
+                    if field.control_type == "checkbox":
+                        value = translate_frontend_message_v1(locale,
+                            "common.answer.yes" if value == "true" else "common.answer.no")
+                    elif entry.field == "game_type" and value:
+                        value = translate_frontend_message_v1(locale, "task.value." + value)
+                    elif not value:
+                        value = translate_frontend_message_v1(locale, "declaration.not_entered")
+                    summary += escape(value) + '</dd>'
+            summary += '</dl></details>'
+            return html.replace(f'<div id="{target}"></div>',
+                                f'<div id="{target}">' + summary + '</div>', 1)
         if definition.action_route in {"/sessions/cards", "/sessions/play", "/matches/cards"}:
             session = definition.active_context_requirement == "sessions"
             anchor = "session-recording" if session else "match-recording"

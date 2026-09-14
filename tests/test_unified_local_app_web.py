@@ -521,9 +521,10 @@ def test_managed_session_http_lifecycle_command_and_download(
     assert status == 200
     assert "web-game" in html
     assert all(f'name="kind" value="{kind}"' in html for kind in (
-        "set_game_metadata", "record_dealt_card", "set_declarer", "set_declaration",
+        "set_game_metadata", "record_dealt_card", "set_declarer",
         "record_discard", "record_play", "set_game_event", "set_game_end",
         "promote_to_retrospective", "set_public_hand"))
+    assert 'value="session-correction"' not in html  # No accepted declaration target yet.
 
     status, headers, body = _request(
         server,

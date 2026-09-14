@@ -2048,6 +2048,10 @@ ordinary Commands (N Cards, N revisions, one save); Match evidence replaces its
 existing set. Partial Session hands can be completed after reopening. Play choices
 omit played Cards and distinguish exact legality from bounded observations. See
 [Compact Card entry](docs/compact_card_entry.md).
+Session and Match declaration entry shares visible optional bid input, four native
+announcement checkboxes, optional Matador help, exact-source validation and an
+accepted-only summary. Existing explicit correction and save boundaries remain.
+See [Compact Game declaration](docs/compact_game_declaration.md).
 Exact merged-commit `check` and `v1-supported-platform-matrix` remain required;
 a future focused retest covers the affected Session and Match paths without claiming full
 UAT remediation.

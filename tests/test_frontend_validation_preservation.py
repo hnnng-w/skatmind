@@ -58,7 +58,7 @@ def _state(
 def test_validation_contract_and_registry_coverage_are_exact() -> None:
     assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
     assert len(UNIFIED_FRONTEND_POST_ROUTES) == 57
-    assert len(FRONTEND_FORM_REGISTRY) == 93
+    assert len(FRONTEND_FORM_REGISTRY) == 97
     assert {form.action_route for form in FRONTEND_FORM_REGISTRY} == set(
         UNIFIED_FRONTEND_POST_ROUTES
     )
@@ -67,7 +67,7 @@ def test_validation_contract_and_registry_coverage_are_exact() -> None:
     assert {
         form.discriminator_value
         for form in FRONTEND_FORM_REGISTRY
-        if form.action_route == "/sessions/command"
+        if form.action_route == "/sessions/command" and form.discriminator_field == "kind"
     } == {
         "set_game_metadata",
         "record_dealt_card",

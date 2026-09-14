@@ -162,6 +162,13 @@ for a local Declarer only when known ownership verifies them. Complete
 Retrospective ownership verifies any supplied count through the existing
 matador helper. No new inference algorithm is introduced.
 
+Issue #228's private [compact declaration forms](compact_game_declaration.md)
+consume these same transitions. Unchecked native options become explicit false;
+initial entry remains one Command and normal Checkpoint/Save boundary. Historical
+correction uses its actual accepted target and suffix-replay outcome. Concrete-count
+diagnostics are localized without changing mode/evidence restrictions or public
+omitted-value normalization. Bid is visible and optional; no bidding ladder is added.
+
 ## Skat and Discards
 
 A non-Hand Retrospective Session or Live local-Declarer Session requires the

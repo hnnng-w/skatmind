@@ -11,6 +11,7 @@ from skatmind.corpus_web.contracts import LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES
 from skatmind.session_commands import SESSION_COMMAND_KINDS
 
 from .card_entry_http import CARD_ENTRY_ROUTES, MATCH_CARD_OPERATIONS
+from .compact_declaration_form import DECLARATION_FIELDS
 from .form_parsing import FormValuesV1, FormValueV1
 from .frontend_profile_operations import (
     FRONTEND_PROFILE_ACTION_ROUTES,
@@ -251,6 +252,7 @@ def _field(
     control_override: str | None = None,
     cardinality_override: str | None = None,
     choices_override: tuple[str, ...] | None = None,
+    label_override: str | None = None,
 ) -> FrontendFormFieldV1:
     if control_override is not None:
         control = control_override
@@ -281,14 +283,15 @@ def _field(
             if name == "account_platform" or name in {
                 "forehand_name", "middlehand_name", "rearhand_name"}
             else 64
-            if name in {"decision_selection", "recovery_selection", "report_id", "card_selection"}
+            if name in {"decision_selection", "recovery_selection", "report_id",
+                        "card_selection", "declaration_selection"}
             else 4
             if control == "card"
             else 8192
             if name == "platform_player_ids"
             else 2048
         ),
-        field_label_key=_LABEL_KEYS.get(name, "validation.field.submitted_value"),
+        field_label_key=label_override or _LABEL_KEYS.get(name, "validation.field.submitted_value"),
         allowed_values=(
             choices_override if choices_override is not None else _SELECT_CHOICES.get(name, ())
         ),
@@ -313,6 +316,7 @@ def _definition(
     control_overrides: Mapping[str, str] | None = None,
     cardinality_overrides: Mapping[str, str] | None = None,
     choice_overrides: Mapping[str, tuple[str, ...]] | None = None,
+    label_overrides: Mapping[str, str] | None = None,
 ) -> FrontendFormDefinitionV1:
     controls = control_overrides or {}
     cardinalities = cardinality_overrides or {}
@@ -328,6 +332,7 @@ def _definition(
                 control_override=controls.get(name),
                 cardinality_override=cardinalities.get(name),
                 choices_override=choices.get(name),
+                label_override=(label_overrides or {}).get(name),
             )
             for name in fields
         ),
@@ -567,6 +572,29 @@ for _trick_number in range(1, 10):
 
 
 _FORMS: list[FrontendFormDefinitionV1] = [
+    *(_definition(
+        key, route, ("declaration_selection", *fields), page=page, active=family,
+        body_limit=(MATCH_CAPTURE_WEB_MAX_REQUEST_BYTES
+                    if family == "matches" else _DEFAULT_BODY_LIMIT),
+        success=success, discriminator=("declaration_form", marker),
+        control_overrides={"declarer_player_id": "select"},
+        label_overrides={**{name: "validation.field.declaration_" + name
+                            for name in DECLARATION_FIELDS},
+                         "declarer_player_id": "validation.field.declaration_declarer"},
+        choice_overrides={"game_type": (
+                              "", "clubs", "spades", "hearts", "diamonds", "grand", "null"),
+                          **{name: ("true", "") for name in (
+                              "hand_game", "ouvert", "schneider_announced", "schwarz_announced")}},
+    ) for key, route, page, family, success, marker, fields in (
+        ("session.declaration", "/sessions/command", "/sessions/current", "sessions",
+         "/sessions/current#session-recording", "session-declaration", DECLARATION_FIELDS),
+        ("session.declaration_correction", "/sessions/command", "/sessions/current", "sessions",
+         "/sessions/current#session-recording", "session-correction", DECLARATION_FIELDS),
+        ("match.declaration", "/matches/api/v1/operation", "/matches/current", "matches",
+         "contextual", "match-declaration", ("declarer_player_id", *DECLARATION_FIELDS)),
+        ("match.declaration_clear", "/matches/api/v1/operation", "/matches/current", "matches",
+         "contextual", "match-clear", ("confirm_clear",)),
+    )),
     _definition(
         "analyze.run_guided",
         "/actions/analyze/run-guided",
@@ -1388,7 +1416,7 @@ def validate_frontend_form_registry_v1() -> None:
     command_values = {
         form.discriminator_value
         for form in FRONTEND_FORM_REGISTRY
-        if form.action_route == "/sessions/command"
+        if form.action_route == "/sessions/command" and form.discriminator_field == "kind"
     }
     if command_values != set(SESSION_COMMAND_KINDS):
         raise ValueError("Session Command form registry coverage is incomplete.")
@@ -1396,6 +1424,7 @@ def validate_frontend_form_registry_v1() -> None:
         form.discriminator_value
         for form in FRONTEND_FORM_REGISTRY
         if form.action_route == "/matches/api/v1/operation"
+        and form.discriminator_field == "operation"
     }
     if mutation_values != set(MATCH_CAPTURE_WEB_MUTATION_OPERATIONS):
         raise ValueError("Match mutation form registry coverage is incomplete.")
@@ -1429,6 +1458,9 @@ def resolve_frontend_form_v1(
         for form in candidates
         if supplied.get(form.discriminator_field or "") == form.discriminator_value
     )
+    compact = tuple(form for form in matches if form.discriminator_field == "declaration_form")
+    if len(compact) == 1:
+        return compact[0]
     if len(matches) == 1:
         return matches[0]
     raise ValueError("The shared form discriminator is missing or unsupported.")

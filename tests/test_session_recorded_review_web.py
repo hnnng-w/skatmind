@@ -104,10 +104,17 @@ class Browser:
         form = compact or forms.find("/sessions/command", kind=kind)
         if compact is not None:
             values["cards"] = values.pop("card")
+        if form["values"].get("declaration_form"):
+            # Explicit test unchecking removes the native successful control.
+            for name in ("hand_game", "ouvert", "schneider_announced", "schwarz_announced"):
+                if values.get(name) == "false":
+                    values.pop(name)
+                    form["values"].pop(name, None)
         status, headers, content = self.submit(form, **values)
         assert status == 303, (status, content.decode())
         assert headers["location"] == "/sessions/current" + (
-            "#session-recording" if compact is not None else "")
+            "#session-recording" if compact is not None or form["values"].get("declaration_form")
+            else "")
 
 
 def record_live_game(browser, *, play_count=6):

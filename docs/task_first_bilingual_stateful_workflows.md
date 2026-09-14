@@ -167,6 +167,15 @@ anchors. Null omits point metrics; incomplete and shortened records receive no
 unplayed credit. Accepted warnings remain visible. This is partial C6 remediation.
 No route, Product operation, persistent counter or analysis is added.
 
+Issue #228 adds [Compact Game declaration](compact_game_declaration.md) to Session
+and Match. Game type and bid are visible; the earlier bid-under-Advanced decision
+is superseded. Shared native checkboxes send four explicit canonical choices through
+exact-source private markers on existing routes. Optional Matador help, precise
+localized errors and accepted-only summaries retain existing information limits,
+historical correction, Match no-op/clear and #221–#227 lifecycle semantics. There
+are now 97 form definitions on the same 57 routes. Bilingual narrow/enlarged forms
+wrap guidance without shrinking text; actual browser measurements are linked above.
+
 ## Explicit transfer and Learning
 
 Transfer displays friendly source-Match and target-collection labels and whether

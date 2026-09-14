@@ -4,6 +4,7 @@ from __future__ import annotations
 from html import escape
 
 from .compact_card_rendering import compact_card_selector
+from .compact_declaration_rendering import accepted_declaration_summary, compact_declaration_fields
 from .form_registry import get_frontend_form_by_key_v1
 from .recorded_trick_rendering import (
     render_current_trick,
@@ -64,6 +65,15 @@ def _options(state, locale, field, default=None):
 
 def operation_form(state, handle, locale, operation, *, values=None, primary=False, extra="", analysis=False, disabled=False):
     values = values or {}
+    if operation == "set_declaration":
+        fields = _hidden(state, handle, operation) + hidden("declaration_form", "match-declaration")
+        fields += hidden("declaration_selection", state.get("declaration_bindings", {}).get("match-declaration", ""))
+        fields += select_field(locale, "declarer_player_id", "task.field.declarer_player_id",
+            (("", text(locale, "declaration.choose_declarer")), *(
+                (player["player_id"], _named_seat(state, locale, player["player_id"]))
+                for player in state["participants"])), values.get("declarer_player_id"), required=True)
+        fields += compact_declaration_fields(locale, values)
+        return form(locale, "/matches/api/v1/operation", fields, "declaration.save", primary=primary)
     definition = get_frontend_form_by_key_v1(
         f"match.{'analysis' if analysis else 'operation'}.{operation}")
     fields = _hidden(state, handle, operation) + extra
@@ -284,7 +294,9 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
         task += form(locale, "/matches/api/v1/operation", _hidden(state, handle, "mark_passed_deal"),
                      "task.match.action.mark_passed_deal")
     elif view.workflow.primary_action == "set_declaration":
+        task += '<div id="match-declaration"><h3>' + translated(locale, "declaration.title") + '</h3>'
         task += operation_form(state, handle, locale, "set_declaration", primary=True)
+        task += '</div>'
     elif view.workflow.primary_action == "append_plays":
         task += paragraph(locale, "task.match.scope." + view.selected.card_selection_scope)
         task += paragraph(locale, "task.session.play_for", player=_named_seat(state, locale, view.selected.next_player_id))
@@ -295,6 +307,8 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
                            cards=view.selected.selectable_cards, play=True)
     task += '</div>' + ("" if recorded is None else render_recorded_summary(recorded, locale)) + '</div>'
     if game is not None:
+        task += accepted_declaration_summary(locale, game["declaration"],
+                                             _named_seat(state, locale, game["declarer_player_id"]))
         task += disclosure(locale, "compact.optional_hand", _evidence(
             state, handle, locale, card_bindings, hand=True))
     if game is not None:
@@ -337,8 +351,16 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
         corrections += operation_form(state, handle, locale, "start_game")
         corrections += operation_form(state, handle, locale, "mark_passed_deal")
     if game is not None:
-        corrections += '<div id="match-declaration">' + operation_form(state, handle, locale, "set_declaration", values={
-            **(game["declaration"] or {}), "declarer_player_id": game["declarer_player_id"]}) + '</div>'
+        if game["declaration"] is not None:
+            corrections += '<div id="match-declaration"><h3>' + translated(locale, "declaration.title") + '</h3>'
+            corrections += operation_form(state, handle, locale, "set_declaration", values={
+                **game["declaration"], "declarer_player_id": game["declarer_player_id"]}) + '</div>'
+            corrections += disclosure(locale, "declaration.clear", form(locale,
+                "/matches/api/v1/operation", _hidden(state, handle, "set_declaration")
+                + hidden("declaration_form", "match-clear")
+                + hidden("declaration_selection", state.get("declaration_bindings", {}).get("match-clear", ""))
+                + '<label><input type="checkbox" name="confirm_clear" required>'
+                + translated(locale, "declaration.confirm_clear") + '</label>', "declaration.clear"))
         corrections += operation_form(state, handle, locale, "set_game_timecode", values={
             "game_timecode_start": game["game_timecode"]["start"], "game_timecode_end": game["game_timecode"]["end"]})
         corrections += operation_form(state, handle, locale, "append_plays")

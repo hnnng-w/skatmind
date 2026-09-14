@@ -1613,6 +1613,13 @@ won-Trick prefixes, distinct Player/party totals, Null and incomplete/shortened
 scope, and retained correction anchors. Real HTTP and installed-Wheel browser
 checks cover partial C6 remediation. It adds no route, persisted scoreboard or
 final scoring and does not resolve the remaining frontend/UAT findings.
+Issue #228 adds [Compact Game declaration](compact_game_declaration.md): a visible
+optional bid, four native announced-option checkboxes with canonical explicit-false
+semantics, bounded Matador explanation, localized field issues, exact-source existing
+save/correction operations and accepted summaries. Real returned-form tests and
+installed-Wheel Edge evidence cover both languages/script modes and narrow/enlarged
+text, preserving #221–#227 lifecycle. It adds no scoring, inference, public contract
+or persistence change and does not complete unrelated frontend/UAT work.
 Exact merged-commit `check` and `v1-supported-platform-matrix` remain required,
 with future focused Session and Match affected-path retests. The September 11 repeated
 UAT failure and unresolved findings remain open; the technical ledger remains closed.

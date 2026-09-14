@@ -75,6 +75,7 @@ class GuidedSessionOperationResultV1:
     status: str
     message: str
     diagnostics: tuple[str, ...] = ()
+    validation_diagnostics: tuple[session_api.SessionValidationDiagnosticV1, ...] = ()
 
     def __post_init__(self) -> None:
         if self.status not in {
@@ -367,6 +368,7 @@ def apply_guided_session_command_v1(
                 status="rejected",
                 message="The Session Command was rejected without changing the Session.",
                 diagnostics=diagnostics,
+                validation_diagnostics=result.value.diagnostics,
             )
             context.last_operation = operation
             return operation
@@ -463,6 +465,7 @@ def correct_guided_session_command_v1(
                 status="rejected",
                 message="The Session correction was rejected without changing the Session.",
                 diagnostics=diagnostics,
+                validation_diagnostics=result.value.diagnostics,
             )
             context.last_operation = operation
             return operation

@@ -209,6 +209,13 @@ sets it through `set_match_workspace_observed_game_v1()`. Existing time,
 ownership, declaration, trace, and complete-card reconciliation remains
 authoritative.
 
+Issue #228's unified [compact declaration entry](compact_game_declaration.md)
+retains this same whole-candidate update, no-op and save boundary. Its private
+native-checkbox adapter requires the normal declarer/Game fields and keeps clearing
+as a separate explicit specialist form. A changed declaration never reassigns
+actors or repairs its retained trace; #222 diagnostics retain the actual conflict.
+The standalone Capture translation and Application operation are unchanged.
+
 ## Play append and truncation
 
 Single-Card append delegates to atomic batch append. Batch append:

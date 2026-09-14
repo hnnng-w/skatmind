@@ -412,6 +412,15 @@ expiry, and source-change invalidation remain authoritative.
 
 ### Focused browser evidence
 
+Issue #228's compact declaration forms reuse this exact-source restoration layer.
+Their four checkbox controls preserve unchecked false, while emptied bid/count
+remain empty. Private declaration markers, current revisions, selected positions,
+correction targets and HMAC bindings are rendered afresh, never copied from the
+language envelope. The shared Boolean-select helper and unrelated analysis forms
+are unchanged. Current catalogs contain 1,375 matching keys. See
+[Compact Game declaration](compact_game_declaration.md) for native and enhanced
+de/en error/save/reopen evidence and its installed-Wheel hashes.
+
 Issue #226's compact Card controls use the same exact manifest/checked/repeated
 preservation. Native language switching retains server-held rejected selection;
 the optional enhancement also carries multiple unsent Cards without a Product

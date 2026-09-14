@@ -42,7 +42,7 @@ See [Settings and Player seat setup](settings_and_player_seat_setup.md).
 
 ## Canonical Form Registry
 
-`FRONTEND_FORM_REGISTRY` covers all 57 unified frontend POST routes through 93
+`FRONTEND_FORM_REGISTRY` covers all 57 unified frontend POST routes through 97
 exact definitions. Shared routes are split by their existing discriminator:
 
 ```text
@@ -87,6 +87,16 @@ instance and contains no Product identity. Multipart forms are not instrumented.
 The standalone Capture and Corpus renderers are not modified.
 
 ## Accepted And Submitted State
+
+Issue #228 adds four exact compact-declaration marker definitions on the existing
+Session Command and Match operation routes. Their native checkbox types, localized
+labels and safe empty values are scoped; legacy explicit parsers are unchanged.
+Private reasons from canonical declaration checks and existing typed Session
+diagnostics provide field feedback without a duplicate acceptance table. Exact
+`declaration_selection` identity prevents stale draft restoration into a different
+source or correction target. Current controls are regenerated; stale values remain
+separate unaccepted text without internal declarer IDs. Match trace conflicts retain
+#222's actual diagnosis. See [Compact Game declaration](compact_game_declaration.md).
 
 Issue #226 registers three private Card routes and six exact definitions. Their
 opaque `card_selection` binds complete source content and the current task;
