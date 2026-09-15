@@ -76,6 +76,8 @@ def render_seat_setup_v1(profile, locale, *, family, setup=None):
         '<div class="seat-setup">' + controls
         + f'<p>{_t(locale, "creation.setup.help")}</p>'
         + (f'<p>{_t(locale, "creation.setup.game_one")}</p>' if family == "matches" else '')
+        + (f'<p>{_t(locale, "creation.session.knowledge_perspective")}</p>'
+           if family == "sessions" else '')
         + ''.join(rows)
         + '<div class="manual-perspective">'
         + _select("perspective_seat", _t(locale, "creation.session.perspective"),

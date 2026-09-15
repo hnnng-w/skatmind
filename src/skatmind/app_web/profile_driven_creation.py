@@ -355,7 +355,8 @@ def prepare_profile_driven_session_creation_v1(
     if capture_mode not in {"live", "retrospective"}:
         raise ProfileDrivenCreationFieldError(
             "capture_mode",
-            "Recording mode must be During play or After the game.",
+            "Recording mode must be one of Player-perspective recording "
+            "or Complete-deal reconstruction.",
         )
     selected = _select_players(values, profile)
     perspective_seat = _trimmed(values, "perspective_seat")
@@ -367,7 +368,7 @@ def prepare_profile_driven_session_creation_v1(
     if capture_mode == "live" and not perspective_seat:
         raise ProfileDrivenCreationFieldError(
             "perspective_seat",
-            "During-play recording requires one perspective seat.",
+            "Player-perspective recording requires one perspective seat.",
         )
     save_players = _checkbox(values, "save_players")
     perspective_index = None if not perspective_seat else _SEATS.index(perspective_seat)

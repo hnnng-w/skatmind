@@ -8,6 +8,12 @@ The actual Product phase remains visible: viewing a fresh selector still means
 
 ## Task and optional details
 
+Issue #233's [knowledge-based entry](session_knowledge_based_entry.md) supersedes the
+time-based UI labels: `live` means Player-perspective recording, usable during or
+after a Game; `retrospective` means complete-deal reconstruction. It adds contextual
+hand help and labels the effective accepted mode without changing the direct-start
+candidate, task selection, save boundary or Card request limit described below.
+
 `app_web/task_first_projections.py` selects the existing `record_dealt_card` task
 before the missing-identity task in setup/deal only. `session_card_entry.py` uses
 the same accepted replay for destination, Player and remaining capacity:
@@ -99,6 +105,8 @@ uses accepted Plays. No analysis, historical reconstruction or Game End is autom
 Historical export still requires stable Game identity, Retrospective complete-deal
 evidence and all existing declaration/ending prerequisites. Older later-phase or
 ended recordings missing identity retain their actual explicit-recovery limits.
+Ending does not require promotion for eligible saved-decision review. Explicit
+promotion adds no facts and does not reopen initial-deal entry during play/ended.
 
 ## Exact HTTP and language boundary
 

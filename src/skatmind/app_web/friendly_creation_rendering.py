@@ -56,13 +56,16 @@ def render_profile_driven_session_creation_v1(
         + _profile_generation(profile_generation)
         + f"<label>{_t(locale, 'creation.session.name')} "
         '<input name="game_name" maxlength="160" required></label>'
-        f"<fieldset><legend>{_t(locale, 'creation.session.recording_mode')}</legend>"
-        f'<label><input type="radio" name="capture_mode" value="live" checked> '
-        f"{_t(locale, 'creation.session.during')}</label>"
-        f"<p>{_t(locale, 'creation.session.during_help')}</p>"
-        f'<label><input type="radio" name="capture_mode" value="retrospective"> '
-        f"{_t(locale, 'creation.session.after')}</label>"
-        f"<p>{_t(locale, 'creation.session.after_help')}</p></fieldset>"
+        f"<fieldset><legend>{_t(locale, 'creation.session.knowledge_question')}</legend>"
+        '<label><input type="radio" name="capture_mode" value="live" checked '
+        'aria-describedby="perspective-knowledge-help"> '
+        f"{_t(locale, 'session.knowledge.perspective')}</label>"
+        f'<p id="perspective-knowledge-help">{_t(locale, "creation.session.perspective_help")}</p>'
+        '<label><input type="radio" name="capture_mode" value="retrospective" '
+        'aria-describedby="reconstruction-knowledge-help"> '
+        f"{_t(locale, 'session.knowledge.reconstruction')}</label>"
+        '<p id="reconstruction-knowledge-help">'
+        f'{_t(locale, "creation.session.reconstruction_help")}</p></fieldset>'
         + render_seat_setup_v1(profile, locale, family="sessions", setup=setup)
         + _save_controls(locale)
         + render_setup_actions_v1(locale, family="sessions", setup=setup)

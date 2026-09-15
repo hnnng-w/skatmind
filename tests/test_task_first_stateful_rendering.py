@@ -30,6 +30,11 @@ def test_session_render_all_phases_and_all_commands(tmp_path: Path, locale):
             handle="a" * 64, document=build_session_persistence_document_v1(state))
         original = context.document
         html = render_task_first_session_v1(context, locale=locale)
+        mode = "perspective" if state.capture_mode == "live" else "reconstruction"
+        assert t(locale, "session.knowledge.accepted_mode",
+                 mode=t(locale, f"session.knowledge.{mode}")) in html
+        assert t(locale, "creation.session.after_help") not in html
+        assert t(locale, "task.session.next.promote_to_retrospective") not in html
         headings = [html.index('<h2>' + t(locale, key) + '</h2>') for key in (
             "task.session.state", "task.session.next", "task.session.entered")]
         assert headings == sorted(headings)

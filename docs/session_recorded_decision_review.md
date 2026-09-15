@@ -153,6 +153,15 @@ preference changes retain their existing separate profile behavior.
 
 ## Separation from complete Historical review
 
+Issue #233's [knowledge-based entry](session_knowledge_based_entry.md) replaces the
+unified time-based mode labels with Player-perspective recording (`live`) and
+complete-deal reconstruction (`retrospective`). A past Game can remain `live` and
+use these saved decisions after 30 Plays or explicit Game End, without promotion.
+Historical blockers now explicitly identify full Historical review/export. The
+optional **Switch to reconstruction mode** Command adds no evidence, preserves
+phase and cannot reopen initial-deal entry during play/ended. It retains normal
+Result invalidation and leaves still-valid ancestor Requests frozen.
+
 The three actions have distinct labels and readiness:
 
 * **Analyze current position** uses the existing current-turn Position exporter.

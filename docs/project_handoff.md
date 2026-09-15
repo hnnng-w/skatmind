@@ -2540,6 +2540,21 @@ evidence cover the slice, including 320 pixels/200% text. Counts remain 59 route
 exact merged-commit CI jobs gate manual closure; #208/unresolved findings remain
 open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open, B-06 closed, Release unready.
 
+Issue #233 implements [knowledge-based Session entry](session_knowledge_based_entry.md):
+native perspective (`live`, during or after a Game) and complete-reconstruction
+(`retrospective`, all three initial hands plus original Skat) choices, accepted-mode
+labels, named direct-deal help and scoped Historical blockers. Ended recordings use
+eligible saved-decision review without promotion. Specialist promotion remains
+one-way, fact-free and phase-preserving with normal Result invalidation. #231's
+eleven-Command/one-save first hand, exact time, frozen Requests and #232 remain intact.
+The 1,153-pass affected-path run has one existing Windows symlink-permission skip;
+88 installed-Wheel Edge measurements cover both locales/script modes, native saves,
+complete reconstruction, ended review and 320-pixel/200%-text reflow. Counts remain
+59 routes/103 forms/98 outputs, with 1,474 matching catalog keys. #231/#232 remain
+completed; both exact merged-commit CI jobs gate manual #233 closure. #208 and
+unresolved findings remain open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open,
+B-06 closed. No complete UAT or release readiness is claimed.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

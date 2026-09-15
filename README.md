@@ -2055,6 +2055,11 @@ The September 11 repeated UAT remains failed. Issue #221 is documented in
 Issue #222 adds [Match recording error recovery](docs/match_recording_error_recovery.md):
 evidence-based conflict locations, linked Trick history, one-Card retained-suffix
 replacement previews, and explicit rewind with source-bound atomic Apply.
+Session creation asks **Which Cards can you supply?** Choose **Player-perspective
+recording** for one known initial hand, during or after a Game, or **Complete-deal
+reconstruction** for all three initial hands plus the original Skat. A local Player
+does not reduce reconstruction's requirements. See
+[Knowledge-based Session entry](docs/session_knowledge_based_entry.md).
 Normal Session/Match Card entry uses compact native selection: select known Cards
 together and save once, then explicitly record one played Card. Session sets append
 ordinary Commands (N Cards, N revisions, one save); Match evidence replaces its

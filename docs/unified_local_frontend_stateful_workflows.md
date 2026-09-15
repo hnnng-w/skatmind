@@ -97,9 +97,13 @@ non-object root. Uploaded JSON content is bounded to `16,777,216` bytes.
 ## Sessions
 
 `/sessions` lists managed Sessions and provides strict creation and import.
-Normal creation asks for a Game name, recording mode, three saved-or-new Player
-names, and a visible perspective seat, then generates the Session and any new
-Player IDs. Saving new Players and the selected perspective is explicit.
+Normal creation asks for a Game name, available Card knowledge, three saved-or-new
+Player names, and an explicit perspective seat where required. #225 setup review
+precedes generation of Session/new Player IDs; saving new Players is unchecked and
+Session creation saves no perspective default. #233 replaces the time-based UI:
+Player-perspective recording (`live`) works during or after a Game; complete-deal
+reconstruction (`retrospective`) requires all three initial hands and original Skat,
+with or without a local Player. See [Knowledge-based Session entry](session_knowledge_based_entry.md).
 Opening uses the stable Public Session File API and existing strict persistence
 resume. The active guided page supports all ten existing typed Session Command
 kinds, phase-aware entry, accepted-Log history, strict-prefix Undo, one-Command

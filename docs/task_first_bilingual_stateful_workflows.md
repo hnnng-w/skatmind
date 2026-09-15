@@ -86,16 +86,21 @@ never translated.
 
 The active page starts with Current game state, Next required Skat action, Primary
 action, and Cards and Players already entered, with complete German equivalents.
-It uses During play and After the game and localized explanations for all six
-existing phases: setup, deal, declaration, skat_and_discard, play, and ended.
+Issue #233 supersedes During play / After the game with knowledge-based paths:
+Player-perspective recording (`live`) and complete-deal reconstruction (`retrospective`).
+The effective accepted mode is shown independently of timestamps and completeness,
+with localized explanations for all six existing phases: setup, deal, declaration,
+skat_and_discard, play, and ended. See [Knowledge-based Session entry](session_knowledge_based_entry.md).
 
 One replay provides the selected perspective, declaration, known remaining hands,
 public hands, Skat/discards, chronological Plays, current Trick, completed Tricks,
 next Player, continuation, ending, and existing export readiness. Missing evidence
 remains unknown; exact known-empty hands or Hand-game discards remain distinct.
-No hidden ownership is completed. During-play entry retains the existing local
-hand and legitimate Skat restrictions. Retrospective promotion remains explicit,
-one-way, and fact-free.
+No hidden ownership is completed. Perspective entry works during or after the Game
+with the existing local-hand, legitimate Skat/discard and public-hand rules.
+Reconstruction requires all three initial hands and original Skat even with a local
+Player. Promotion remains explicit, one-way, fact-free and phase-preserving; it is
+an optional specialist action rather than the expected next step after ending.
 
 The primary task selects an existing typed Command from the phase and retained
 facts. Issue #231 prioritizes authorized initial Cards in setup/deal: the first

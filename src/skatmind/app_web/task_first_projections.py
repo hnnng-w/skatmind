@@ -51,8 +51,6 @@ def project_task_first_session_v1(state: SessionStateV1) -> TaskFirstSessionV1:
             action = "record_play"
     if action is not None:
         task = f"task.session.next.{action}"
-    elif state.capture_mode == "live":
-        task = "task.session.next.promote_to_retrospective"
     position = state.validation.position_export.status == "available"
     historical = state.validation.historical_export.status == "available"
     blockers = () if position or historical else ("task.session.analysis_blocked",)

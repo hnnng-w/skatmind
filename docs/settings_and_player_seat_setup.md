@@ -29,9 +29,13 @@ below remain. See [Local time entry](local_time_entry.md) for compatibility and 
    generate no Product/Player IDs, and save no preferences.
 
 Other-perspective/manual setup remains available. Without an own preference it is
-the initial mode. A Retrospective Session may have no local Player; a Live Session
-requires a perspective. Recording afterward grants no additional hidden-card
-knowledge beyond the existing capture-mode contracts.
+the initial mode. Issue #233's [knowledge-based Session choice](session_knowledge_based_entry.md)
+uses Player-perspective recording (`live`) during or after a Game, requiring the
+known hand's explicitly seated local Player. Complete-deal reconstruction
+(`retrospective`) may have no local Player, but always requires all three initial
+hands and original Skat before normal declaration. Switching the radio never clears
+own identity or assigns a seat; changed setup requires re-review. Recording afterward
+grants no additional hidden-card knowledge beyond the existing capture-mode contracts.
 
 ## Private routes and forms
 

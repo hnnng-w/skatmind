@@ -40,6 +40,12 @@ controls and editor/setup transport selections are excluded from the language
 envelope. Collision feedback retains independent seat input without swapping Players.
 See [Settings and Player seat setup](settings_and_player_seat_setup.md).
 
+Issue #233 reuses the same `session.create` form and exact `capture_mode` values
+for [knowledge-based entry](session_knowledge_based_entry.md). Its missing-perspective
+message identifies the Player whose initial hand is known, during or after a Game.
+Field targeting, accepted values, safe roster/radio retention and regenerated
+language/setup bindings are unchanged; no invalid setup generates IDs or saves data.
+
 ## Canonical Form Registry
 
 `FRONTEND_FORM_REGISTRY` covers all 59 unified frontend POST routes through 103

@@ -1653,3 +1653,13 @@ and installed-Wheel de/en/script/no-script evidence cover creation/reopen and
 narrow/enlarged text. #231 remains completed; both exact merged-commit CI jobs
 remain closure gates. #208/unresolved findings, failed UAT-01, paused UAT-02–12,
 open B-09/B-07 and closed B-06 retain their state; no Release readiness is claimed.
+
+Issue #233 adds [knowledge-based Session entry](session_knowledge_based_entry.md):
+Player-perspective recording during or after a Game maps to `live`; complete-deal
+reconstruction maps to `retrospective` and requires all three hands plus original
+Skat regardless of local perspective. Active/ended guidance separates saved-decision
+review from full Historical requirements. Explicit specialist promotion adds no
+facts or phase rewind. Real returned-form tests and installed-Wheel de/en/script/
+no-script evidence preserve #231 direct saves, #221 frozen review, #225 seats,
+#230 time and completed #232. Both exact merged-commit CI jobs remain closure gates;
+the existing UAT and Release blockers above are unchanged.

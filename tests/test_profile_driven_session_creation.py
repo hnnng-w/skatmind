@@ -124,7 +124,7 @@ def test_session_validation_precedes_entropy_and_rejects_duplicate_seats() -> No
         )
     assert calls == 0
     values["middlehand_name"] = "Mira"
-    with pytest.raises(ValueError, match="During-play"):
+    with pytest.raises(ValueError, match="Player-perspective"):
         prepare_profile_driven_session_creation_v1(
             values,
             profile=None,

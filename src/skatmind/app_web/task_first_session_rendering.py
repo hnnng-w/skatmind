@@ -164,6 +164,12 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
         player = dict(_players(locale, facts)).get(task.player_id, text(locale, "task.skat"))
         fields += paragraph(locale, "task.session.play_for" if play else "compact.for",
                             player=player)
+        if kind == "record_dealt_card" and facts.phase in {"setup", "deal"}:
+            if facts.capture_mode == "live":
+                fields += paragraph(locale, "session.knowledge.local_hand", player=player)
+            else:
+                fields += paragraph(locale, "session.knowledge.all_hands",
+                    players=", ".join(label for _, label in _players(locale, facts)))
         if play:
             fields += paragraph(locale, "recovery.trick", number=len(facts.completed_tricks) + 1)
             fields += render_current_trick(progress, locale)
@@ -263,8 +269,9 @@ def render_task_first_session_v1(
         view = project_task_first_session_v1(context.state)
         facts = view.facts
         progress = project_session_trick_progress(facts)
-        mode = "during" if facts.capture_mode == "live" else "after"
-        current = paragraph(locale, f"creation.session.{mode}")
+        mode = "perspective" if facts.capture_mode == "live" else "reconstruction"
+        current = paragraph(locale, "session.knowledge.accepted_mode",
+                            mode=text(locale, f"session.knowledge.{mode}"))
         current += paragraph(locale, f"task.session.phase.{facts.phase}")
         current += paragraph(locale, f"task.session.phase_help.{facts.phase}")
         current += paragraph(locale, "task.session.perspective",

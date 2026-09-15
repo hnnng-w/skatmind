@@ -95,9 +95,14 @@ generation applies only to normal creation.
 
 ## Creation forms
 
-The Session form asks for a Game name, during-play or retrospective capture,
-three named Players, and an optional perspective seat where permitted. A Player
-seat uses either saved-Player or new-name mode. Own identity never implies a seat;
+Issue #233 supersedes the time-based Session choice with **Which Cards can you supply?**:
+Player-perspective recording (`live`, during or after a Game) or complete-deal
+reconstruction (`retrospective`, all three initial hands plus original Skat).
+The form asks for a Game name, three named Players, and a perspective seat required
+for `live` and optional for reconstruction. Selecting a local Player does not reduce
+reconstruction's complete-deal requirement. See
+[Knowledge-based Session entry](session_knowledge_based_entry.md).
+A Player seat uses either saved-Player or new-name mode. Own identity never implies a seat;
 the own seat begins empty and must be explicitly selected. A setup-only POST
 projects the named roster before final creation. Saving new Players defaults off;
 Session creation saves no separate perspective preference. The compatible hidden

@@ -15,6 +15,7 @@ from .local_time_conversion import LocalTimeError
 from .local_time_http import LocalTimeConflict
 from .match_recovery import MatchRecoveryConflict
 from .player_seat_setup import SeatSetupError
+from .profile_driven_creation import ProfileDrivenCreationFieldError
 from .session_card_entry import CardEntryError
 from .time_zone_preferences import TimeZonePreferenceSaveError
 from .time_zone_provider import TimeZoneUnavailable
@@ -125,7 +126,12 @@ def map_frontend_exception_v1(
         return (_issue(None, f"validation.message.match_recovery_{error.reason}"),)
     if isinstance(error, SeatSetupError):
         return (_issue(_known_field(definition, error.field_key),
-                       f"validation.message.setup_{error.reason}"),)
+                        f"validation.message.setup_{error.reason}"),)
+    if (isinstance(error, ProfileDrivenCreationFieldError)
+            and definition.form_key == "session.create"
+            and error.field_key == "perspective_seat"
+            and str(error) == "Player-perspective recording requires one perspective seat."):
+        return (_issue("perspective_seat", "validation.session.knowledge_perspective"),)
     fields = tuple(field.field_key for field in definition.safe_fields)
     lowered = str(error).lower()
     declared_field = getattr(error, "field_key", None)

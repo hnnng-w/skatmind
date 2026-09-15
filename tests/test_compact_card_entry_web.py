@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 from test_frontend_language_switching import localized_server as _localized_server
 from test_historical_game import build_historical_input
+from test_local_time_entry_web import local_form
 from test_match_recording_recovery_web import entry_action, follow, operation_form, start_match
 from test_session_recorded_review_web import Browser, Forms, review_first
 
@@ -95,8 +96,15 @@ def test_real_direct_start_eleven_commands_one_save_reopen_then_all_plays_and_re
     assert active.document == saved and replay_session_state_v1(active.state).initial_hand_for(
         active.state.local_player_id) == tuple(c for c in get_full_deck() if c in hand)
     assert browser.submit(form, cards=hand)[0] == 409
+    # Explicit past metadata describes the Game; it never selects the recording path.
+    page = browser.page()
+    follow(browser, browser.submit(local_form(page, "session-metadata"),
+        local_date="2026-01-15", local_time="19:30"))
+    assert active.state.capture_mode == "live"
+    assert replay_session_state_v1(active.state).played_at == "2026-01-15T19:30:00+01:00"
     browser.command("set_declarer")
     browser.command("set_declaration", game_type="grand", hand_game="true", bid_value="24")
+    frozen = active.decision_checkpoints[0].request.to_dict()["document"]
     plays = [play for trick in data["tricks"] for play in trick["plays"]]
     observed = []
     for play in plays:
@@ -116,14 +124,27 @@ def test_real_direct_start_eleven_commands_one_save_reopen_then_all_plays_and_re
     assert not executes and len(active.decision_checkpoints) == 10
     facts = replay_session_state_v1(active.state)
     assert len(facts.initial_known_hands) == 1 and facts.played_card_count == 30
+    assert active.state.phase == "play"
+    assert Forms(browser.page()).find("/sessions/review-decision")
+    browser.command("set_game_end")
+    assert active.state.phase == "ended" and active.state.capture_mode == "live"
+    assert all(r.command.kind != "promote_to_retrospective" for r in active.state.command_log)
     follow(browser, browser.submit(Forms(browser.page("/sessions")).find("/sessions/open")))
+    active = localized_server.app_context.managed_stateful.active_session
     before = active.path.read_bytes()
     save_count = len(saves)
     page, _ = review_first(browser)
     assert len(executes) == 1 and len(saves) == save_count
     assert active.path.read_bytes() == before and "10 of 10" in page
     request = json.loads(browser.request("GET", "/sessions/downloads/request.json")[2])
-    assert request["actual_card_played"] == plays[0]["card"]
+    assert request == {**frozen, "analysis_mode": "post_game_review",
+                       "actual_card_played": plays[0]["card"]}
+    assert text("en", "session.knowledge.accepted_mode",
+                mode=text("en", "session.knowledge.perspective")) in page
+    assert text("en", "task.session.next.complete") in page
+    assert text("en", "task.session.next.promote_to_retrospective") not in page
+    assert text("en", "task.session.readiness.historical.capture_mode") in page
+    assert active.state.capture_mode == "live" and active.state.phase == "ended"
 
 
 def test_partial_reopen_append_and_real_invalid_members_retain_selection(localized_server):
