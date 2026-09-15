@@ -5,6 +5,7 @@ import json
 import socket
 import threading
 from dataclasses import replace
+from errno import ENOTCONN
 from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
@@ -162,6 +163,71 @@ def _workspace_bytes(workspace) -> bytes:
     ).encode()
 
 
+class _ShutdownObserver:
+    def __init__(self, original_shutdown, closed):
+        self.original_shutdown = original_shutdown
+        self.closed = closed
+        self.target_request = None
+
+    def observe_headers(self, handler, client_port):
+        # The client records its port before sending headers; setup can run earlier.
+        if client_port is not None and handler.client_address[1] == client_port:
+            self.target_request = handler.request
+
+    def __call__(self, request):
+        self.original_shutdown(request)
+        # Retain the accepted socket itself: peer lookup need not survive teardown.
+        if self.target_request is not None and request is self.target_request:
+            self.closed.set()
+
+
+@pytest.mark.parametrize("cleanup_fails", [False, True])
+def test_shutdown_observer_uses_retained_identity_without_peer_lookup(cleanup_fails: bool) -> None:
+    closed = threading.Event()
+    calls = []
+
+    def unavailable_peer():
+        raise OSError(ENOTCONN, "Injected disconnected peer lookup")
+
+    early, unrelated, target = (
+        SimpleNamespace(getpeername=unavailable_peer) for _ in range(3)
+    )
+
+    def original_shutdown(request):
+        assert not closed.is_set(), "Completion signaled before cleanup returned"
+        calls.append(request)
+        if request is target and cleanup_fails:
+            raise OSError("Injected shutdown failure")
+
+    observer = _ShutdownObserver(original_shutdown, closed)
+    handler = SimpleNamespace(request=target, client_address=("127.0.0.1", 43210))
+    observer.observe_headers(handler, None)
+    assert observer.target_request is None
+    observer(early)
+    assert not closed.is_set()
+
+    observer.observe_headers(handler, 43210)
+    assert observer.target_request is target
+    observer.observe_headers(
+        SimpleNamespace(request=unrelated, client_address=("127.0.0.1", 43211)), 43210,
+    )
+    assert observer.target_request is target
+    assert unrelated == target and unrelated is not target
+    observer(unrelated)
+    assert not closed.is_set()
+
+    if cleanup_fails:
+        with pytest.raises(OSError, match="Injected shutdown failure"):
+            observer(target)
+    else:
+        observer(target)
+    assert closed.is_set() is not cleanup_fails
+    assert len(calls) == 3
+    assert calls[0] is early
+    assert calls[1] is unrelated
+    assert calls[2] is target
+
+
 @pytest.fixture
 def running_server(tmp_path: Path):
     context = LearningCorpusWebContextV1.open(tmp_path / "corpus-root")
@@ -314,7 +380,7 @@ def test_rejected_split_post_delivers_403_before_discard_and_never_dispatches(
     client_port = None
     original_setup = handler_class.setup
     original_headers = handler_class._headers
-    original_shutdown = server.shutdown_request
+    shutdown = _ShutdownObserver(server.shutdown_request, closed)
 
     def setup(handler):
         original_setup(handler)
@@ -331,14 +397,9 @@ def test_rejected_split_post_delivers_403_before_discard_and_never_dispatches(
         handler.rfile.read1 = read1
 
     def headers(handler, status, *args, **kwargs):
+        shutdown.observe_headers(handler, client_port)
         statuses.append(status)
         original_headers(handler, status, *args, **kwargs)
-
-    def shutdown(request):
-        is_target = request.getpeername()[1] == client_port
-        original_shutdown(request)
-        if is_target:
-            closed.set()
 
     def forbidden_product_work(*_args, **_kwargs):
         product_calls.append("unexpected Product work")
@@ -435,14 +496,15 @@ def test_rejected_post_cleanup_finishes_with_missing_or_ambiguous_body(
     cookie = _bootstrap(server)
     closed = threading.Event()
     client_port = None
-    original_shutdown = server.shutdown_request
+    handler_class = server_module.LearningCorpusWebRequestHandlerV1
+    original_headers = handler_class._headers
+    shutdown = _ShutdownObserver(server.shutdown_request, closed)
 
-    def shutdown(request):
-        is_target = request.getpeername()[1] == client_port
-        original_shutdown(request)
-        if is_target:
-            closed.set()
+    def headers(handler, status, *args, **kwargs):
+        shutdown.observe_headers(handler, client_port)
+        original_headers(handler, status, *args, **kwargs)
 
+    monkeypatch.setattr(handler_class, "_headers", headers)
     monkeypatch.setattr(server, "shutdown_request", shutdown)
     framing_headers = {
         "missing": "",
