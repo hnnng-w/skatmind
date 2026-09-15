@@ -86,6 +86,7 @@ the repository and Issue #204 changes no dependency declaration.
 | `setuptools>=77.0.3` | PEP 517 build backend; build time | <https://github.com/pypa/setuptools/blob/main/LICENSE> | MIT | No | Its permissive terms do not conflict with distributing this project's source and artifacts under `AGPL-3.0-only`. |
 | `jsonschema>=4.23.0` | JSON Schema validation; direct runtime dependency | <https://github.com/python-jsonschema/jsonschema/blob/main/COPYING> | MIT | No | Its permissive terms do not conflict with the selected project license. |
 | `referencing>=0.31.0` | Local JSON Schema resource registry and reference resolution; direct runtime dependency | <https://github.com/python-jsonschema/referencing/blob/main/COPYING> | MIT | No | Its permissive terms do not conflict with the selected project license. |
+| `tzdata>=2026.4` | Issue #230: packaged IANA timezone resources for optional local-time entry on all platforms | <https://github.com/python/tzdata/blob/master/LICENSE> | Apache-2.0 for the package; IANA database data is public domain | No | The separately installed data package is compatible with the selected AGPLv3-only boundary; upstream legal files remain with that dependency. |
 | `build>=1.2.2` | Wheel/sdist frontend; development only | <https://github.com/pypa/build/blob/main/LICENSE> | MIT | No | It is development tooling and its permissive terms do not conflict with the selected project license. |
 | `pytest>=9.0.0` | Automated tests; development only | <https://github.com/pytest-dev/pytest/blob/main/LICENSE> | MIT | No | It is development tooling and its permissive terms do not conflict with the selected project license. |
 | `ruff>=0.14.0` | Linting and formatting; development only | <https://github.com/astral-sh/ruff/blob/main/LICENSE> | MIT | No | It is development tooling and its permissive terms do not conflict with the selected project license. |
@@ -101,6 +102,14 @@ require normal dependency and license review.
 
 This is a bounded repository audit, not an automated legal opinion or a claim
 about every future transitive version.
+
+Issue #230 intentionally adds the third direct runtime dependency, `tzdata>=2026.4`,
+with exact `tzdata==2026.4` in the minimum-supported artifact lanes. Its resources
+are read directly by standard-library `zoneinfo`, without vendoring, system database
+selection or runtime downloads. The historical #204/#206 conclusions above remain
+history; the current inventory is the three runtime rows in the table. Package
+version, Python requirement, project license and existing dependency bounds remain
+unchanged. See [Local time entry](local_time_entry.md).
 
 ## Bundled asset audit
 

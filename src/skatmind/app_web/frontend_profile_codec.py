@@ -180,11 +180,13 @@ def resume_local_frontend_profile_v1(
     value: Mapping[str, object],
 ) -> LocalFrontendProfileV1:
     document = _exact_mapping(value, _PROFILE_FIELDS, "Frontend profile")
-    interface = _exact_mapping(
-        document["interface_preferences"],
-        ("advanced_settings_expanded",),
-        "interface_preferences",
-    )
+    interface = document["interface_preferences"]
+    if not isinstance(interface, Mapping) or tuple(interface) not in {
+        ("advanced_settings_expanded",), ("advanced_settings_expanded", "time_zone"),
+    }:
+        raise ValueError("interface_preferences must contain exact canonical fields in order.")
+    if "time_zone" in interface and type(interface["time_zone"]) is not str:
+        raise ValueError("Present time_zone must be text, never null.")
     workflow = _exact_mapping(
         document["workflow_preferences"],
         ("position_analysis", "historical_review"),
@@ -249,7 +251,8 @@ def resume_local_frontend_profile_v1(
         revision=document["revision"],
         language=document["language"],
         interface_preferences=FrontendInterfacePreferencesV1(
-            advanced_settings_expanded=interface["advanced_settings_expanded"]
+            advanced_settings_expanded=interface["advanced_settings_expanded"],
+            time_zone=interface.get("time_zone"),
         ),
         own_player_id=document["own_player_id"],
         known_players=tuple(resumed_players),

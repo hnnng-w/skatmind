@@ -9,6 +9,7 @@ from .profile_player_contracts import (
     ManagedItemDisplayLabelV1,
     normalize_player_display_name_v1,
 )
+from .time_zone_keys import require_time_zone_key
 
 LOCAL_FRONTEND_PROFILE_VERSION = 1
 LOCAL_FRONTEND_PROFILE_DOCUMENT_KIND = "skatmind_frontend_profile"
@@ -31,13 +32,19 @@ def _require_sha256(value: object, name: str) -> None:
 @dataclass(frozen=True, slots=True)
 class FrontendInterfacePreferencesV1:
     advanced_settings_expanded: bool = False
+    time_zone: str | None = None
 
     def __post_init__(self) -> None:
         if type(self.advanced_settings_expanded) is not bool:
             raise ValueError("advanced_settings_expanded must be a boolean.")
+        if self.time_zone is not None:
+            require_time_zone_key(self.time_zone)
 
     def to_dict(self) -> dict[str, object]:
-        return {"advanced_settings_expanded": self.advanced_settings_expanded}
+        result: dict[str, object] = {"advanced_settings_expanded": self.advanced_settings_expanded}
+        if self.time_zone is not None:
+            result["time_zone"] = self.time_zone
+        return result
 
 
 @dataclass(frozen=True, slots=True)

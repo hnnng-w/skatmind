@@ -114,6 +114,7 @@ class Browser:
         assert status == 303, (status, content.decode())
         assert headers["location"] == "/sessions/current" + (
             "#session-recording" if compact is not None or form["values"].get("declaration_form")
+            or form["values"].get("time_form")
             else "")
 
 

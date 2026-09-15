@@ -397,6 +397,9 @@ def apply_validation_feedback_to_html_v1(
         if issue.field_key is not None:
             field_messages.setdefault(issue.field_key, []).append((message_id, message))
     identity_fields = (
+        ("time_selection",)
+        if definition.discriminator_field == "time_form"
+        else
         ("managed_family", "managed_handle")
         if definition.form_key == "profile.managed_label"
         else ("player_handle",)
@@ -421,9 +424,10 @@ def apply_validation_feedback_to_html_v1(
     form_instance = None if form_identity else state.form_instance
     card_entry = definition.action_route in {"/sessions/cards", "/sessions/play", "/matches/cards"}
     declaration_entry = definition.discriminator_field == "declaration_form"
+    time_entry = definition.discriminator_field == "time_form"
     # A missing/malformed source token cannot qualify an attempted selection for
     # today's actor merely because its old form happened to have the same ordinal.
-    bounds = (None if (card_entry or declaration_entry) and not form_identity else
+    bounds = (None if (card_entry or declaration_entry or time_entry) and not form_identity else
               _find_form_bounds(html, definition, form_instance, form_identity))
     if bounds is None:
         if declaration_entry:

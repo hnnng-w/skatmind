@@ -6,6 +6,7 @@ from html import escape
 from .compact_card_rendering import compact_card_selector
 from .compact_declaration_rendering import accepted_declaration_summary, compact_declaration_fields
 from .form_registry import get_frontend_form_by_key_v1
+from .local_time_rendering import render_local_time_editor
 from .match_report_rendering import render_match_reports_v1
 from .recorded_trick_rendering import (
     render_current_trick,
@@ -84,6 +85,10 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
     advanced = ""
     for field in definition.safe_fields:
         name = field.field_key
+        if operation == "update_match_metadata" and name == "played_at" and state.get("local_time_context"):
+            fields += render_local_time_editor(locale, state["local_time_context"],
+                original=values.get("played_at"), new=False)
+            continue
         key = f"task.field.{name}"
         value = values.get(name, "")
         if name == "cards" and operation in {"set_perspective_hand", "set_original_skat", "set_discarded_cards"}:
@@ -290,8 +295,8 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     for index, player in enumerate(state["participants"], 1):
         metadata[f"player_{index}_label"] = player["player_label"]
         metadata[f"player_{index}_platform_id"] = player["platform_player_id"]
-    body += disclosure(locale, "task.match.metadata", paragraph(locale, "task.match.metadata_help")
-        + operation_form(state, handle, locale, "update_match_metadata", values=metadata))
+    body += '<div id="match-metadata" tabindex="-1">' + disclosure(locale, "task.match.metadata", paragraph(locale, "task.match.metadata_help")
+        + operation_form(state, handle, locale, "update_match_metadata", values=metadata)) + '</div>'
     body += disclosure(locale, "task.match.statistics", _statistics(state, handle, locale))
     from .match_review_rendering import render_match_analysis_v1
     analysis = render_match_analysis_v1(state, view, handle, locale)

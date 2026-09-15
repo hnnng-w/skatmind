@@ -29,6 +29,7 @@ def _valid_result() -> dict[str, object]:
             "direct_dependency_versions": {
                 "jsonschema": "4.23.0",
                 "referencing": "0.31.0",
+                "tzdata": "2026.4",
             },
             "installation_form": installation_form,
             "pip_check": "passed",
@@ -43,7 +44,7 @@ def _valid_result() -> dict[str, object]:
     ]
     return {
         "cells": cells,
-        "direct_imports": ["jsonschema", "referencing"],
+        "direct_imports": ["jsonschema", "referencing", "tzdata"],
         "matrix_version": 1,
         "minimum_runtime_dependencies": list(matrix.V1_MINIMUM_RUNTIME_DEPENDENCIES),
         "platform": {
@@ -110,6 +111,7 @@ def test_runtime_dependency_declarations_are_exact() -> None:
     assert pyproject["project"]["dependencies"] == [
         "jsonschema>=4.23.0",
         "referencing>=0.31.0",
+        "tzdata>=2026.4",
     ]
     assert matrix.declared_runtime_dependencies() == matrix.V1_RUNTIME_DEPENDENCIES
     assert distribution_validation.RUNTIME_DEPENDENCIES == matrix.V1_RUNTIME_DEPENDENCIES
@@ -122,7 +124,7 @@ def test_runtime_dependency_declarations_are_exact() -> None:
 def test_direct_production_import_inventory_matches_package_metadata() -> None:
     inventory = matrix.validate_direct_import_inventory()
 
-    assert set(inventory) == {"jsonschema", "referencing"}
+    assert set(inventory) == {"jsonschema", "referencing", "tzdata"}
     assert all(locations for locations in inventory.values())
     assert all(
         location.startswith("src/skatmind/")
@@ -130,6 +132,7 @@ def test_direct_production_import_inventory_matches_package_metadata() -> None:
         for location in locations
     )
     assert any("api/v1/schema_validation.py" in location for location in inventory["jsonschema"])
+    assert any("app_web/time_zone_provider.py" in location for location in inventory["tzdata"])
     assert any("api/v1/schema_validation.py" in location for location in inventory["referencing"])
     assert any(
         "api/v1/session/schema_validation.py" in location
@@ -186,6 +189,7 @@ def test_minimum_artifact_install_plan_uses_no_deps_and_exact_floors(
             "--no-input",
             "jsonschema==4.23.0",
             "referencing==0.31.0",
+            "tzdata==2026.4",
         ),
         (
             str(python),

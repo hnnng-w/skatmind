@@ -431,6 +431,7 @@ def test_schema_libraries_are_runtime_dependencies_and_dev_tools_remain_optional
     assert pyproject["project"]["dependencies"] == [
         "jsonschema>=4.23.0",
         "referencing>=0.31.0",
+        "tzdata>=2026.4",
     ]
     assert pyproject["project"]["optional-dependencies"]["dev"] == [
         "build>=1.2.2",

@@ -626,6 +626,7 @@ Result/artifact serialization without widening that public view. See
 
   * `jsonschema>=4.23.0`
   * `referencing>=0.31.0`
+  * `tzdata>=2026.4` (packaged IANA timezone data on all platforms)
 * Development dependencies from `.[dev]`, including:
 
   * `build`
@@ -716,6 +717,13 @@ identity. Review the named roster before creation; Match seats mean game 1 and
 are translated to the existing table places. Saving new Players is unchecked by
 default. Legacy aliases/account sets and existing recordings remain intact.
 Managed display labels are edited on the stateful landing pages. See
+the [optional local-time editor](docs/local_time_entry.md) to save a usual timezone
+in Settings and enter known local dates/times for Session and Match metadata.
+Europe/Berlin is the explicit unset input default; date-only Matches invent no
+instant, gaps are rejected, folds require a choice, and existing time defaults to
+Keep. This intentionally adds one optional private-profile field and the tzdata
+dependency; older builds may reject the extended profile until the preference is
+explicitly cleared. See also
 [Settings and Player seat setup](docs/settings_and_player_seat_setup.md),
 [Guided analysis and Results](docs/unified_local_frontend_guided_analysis_and_results.md),
 the [managed stateful workflows](docs/unified_local_frontend_stateful_workflows.md),

@@ -151,7 +151,8 @@ def _match_values(server: SkatMindAppWebServerV1) -> dict[str, str]:
         "source_kind": "",
         "source_title": "",
         "source_channel_name": "",
-        "played_at": "",
+        "local_date": "",
+        "local_time": "",
         "match_timecode_start": "",
         "match_timecode_end": "",
         "profile_generation": _generation(server),
@@ -706,7 +707,9 @@ def test_language_switch_preserves_match_creation_and_field_local_feedback(
             "source_kind": "manual_observation",
             "source_title": "Retained source",
             "source_channel_name": "Retained channel",
-            "played_at": "2026-09-03T19:30:00+02:00",
+            "local_date": "2026-09-03",
+            "local_time": "19:30",
+            "local_zone": "Europe/Berlin",
             "match_timecode_start": "00:01:00",
             "match_timecode_end": "00:02:00",
         }
@@ -750,7 +753,9 @@ def test_language_switch_preserves_match_creation_and_field_local_feedback(
     assert '<option value="manual_observation" selected>' in german
     assert 'value="Retained source"' in german
     assert 'value="Retained channel"' in german
-    assert 'value="2026-09-03T19:30:00+02:00"' in german
+    assert 'name="local_date"' in german and 'value="2026-09-03"' in german
+    assert 'name="local_time"' in german and 'value="19:30"' in german
+    assert '<option value="Europe/Berlin" selected>' in german
     assert 'value="00:01:00"' in german and 'value="00:02:00"' in german
     assert 'name="source_kind" aria-invalid="true"' in german
     assert "Quellentyp" in german

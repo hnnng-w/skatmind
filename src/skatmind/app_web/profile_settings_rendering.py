@@ -12,6 +12,7 @@ from .frontend_profile_operations import (
     FRONTEND_PROFILE_PREFERENCES_ACTION_ROUTE,
     FRONTEND_PROFILE_RECOMMENDED_RESET_ACTION_ROUTE,
 )
+from .local_time_rendering import render_time_zone_settings
 from .profile_driven_creation import FRIENDLY_GAME_PLATFORMS
 from .settings_forms import SettingsEditorV1
 from .translation_catalog import translate_frontend_message_v1
@@ -310,6 +311,7 @@ def render_local_settings_v1(
             generation=profile_generation,
             locale=locale,
         )
+        + render_time_zone_settings(profile, profile_generation, locale)
         + '<p><a href="/sessions">' + _t(locale, "creation.session.heading") + '</a> · '
         + '<a href="/matches/new">' + _t(locale, "creation.match.heading") + '</a></p>'
         + _recommended_reset(generation=profile_generation, locale=locale)

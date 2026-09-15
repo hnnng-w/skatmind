@@ -34,6 +34,7 @@ unchanged. The profile may now retain:
 * one own Player and one preferred perspective Player;
 * one preferred friendly game platform;
 * the existing Advanced-settings display preference;
+* Issue #230's optional independently saved timezone for new exact-time entry;
 * private display names for managed Sessions, Matches, and Learning collections;
 * an optional date-only Match display label.
 
@@ -110,8 +111,9 @@ seat. Friendly platform values are `euroskat`, `in_person`, `other_online`,
 `unknown`, and `custom`. An optional Source URL is a normal field; source kind,
 title, channel, timecodes, and other exact Product metadata remain inside
 Advanced settings. A date-only value is private display metadata and does not
-invent `played_at`; only an explicit Advanced RFC 3339 value populates that
-Product field. Saved platform account IDs are not copied invisibly into a new
+invent `played_at`. Issue #230 adds optional native local date/time/zone controls;
+only an explicit complete, resolved entry populates that Product field. The separate
+legacy explicit RFC 3339 adapter remains. Saved platform account IDs are not copied invisibly into a new
 Match; only values explicitly submitted for that Match enter Product metadata.
 Issue #225 gives these fields seat-named game-1 semantics. Complete Forehand,
 Middlehand and Rearhand bundles map respectively to places 2, 3 and 1. Rotation
@@ -162,9 +164,13 @@ safe validation retention, bilingual rendering, one-call Product/profile
 ordering, and Product survival across profile conflict, size, and storage
 failures for Session, Match, and Learning creation.
 
-The private modules, translation catalogs, and local CSS remain packaged
-resources. No new dependency, route outside the loopback application, Public API,
-Schema, example, generated output, or Package entry point is introduced.
+The private modules, translation catalogs, and local CSS remain packaged resources.
+Issue #230 intentionally adds `tzdata>=2026.4` and optional `interface_preferences.time_zone`;
+old default bytes remain exact, but older readers may reject the new shape. Current
+counts are 59 POST routes/103 forms. See [Local time entry](local_time_entry.md) for
+explicit gaps/folds, creation binding, before-ID validation, literal local-date
+reconciliation and directional compatibility. No Public API, Schema, example,
+generated output or Package entry point is introduced.
 
 ## Remaining frontend work
 

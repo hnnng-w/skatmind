@@ -11,9 +11,13 @@ from .compact_declaration_http import DeclarationConflict
 from .form_parsing import FormFieldErrorV1
 from .form_registry import FrontendFormDefinitionV1
 from .frontend_profile_operations import FrontendProfilePersistenceConflictError
+from .local_time_conversion import LocalTimeError
+from .local_time_http import LocalTimeConflict
 from .match_recovery import MatchRecoveryConflict
 from .player_seat_setup import SeatSetupError
 from .session_card_entry import CardEntryError
+from .time_zone_preferences import TimeZonePreferenceSaveError
+from .time_zone_provider import TimeZoneUnavailable
 from .validation_contracts import FrontendValidationIssueV1
 
 
@@ -93,6 +97,16 @@ def map_frontend_exception_v1(
     *,
     status: int,
 ) -> tuple[FrontendValidationIssueV1, ...]:
+    if isinstance(error, LocalTimeError):
+        return (_issue(_known_field(definition, error.field_key),
+                       "validation.local_time." + error.reason),)
+    if isinstance(error, LocalTimeConflict):
+        return (_issue(None, "validation.local_time." + error.reason),)
+    if isinstance(error, TimeZoneUnavailable):
+        return (_issue(_known_field(definition, "time_zone"),
+                       "validation.local_time." + error.reason),)
+    if isinstance(error, TimeZonePreferenceSaveError):
+        return (_issue("time_zone", "validation.local_time.preference_save_failed"),)
     if isinstance(error, DeclarationValueError) and (
             definition.discriminator_field == "declaration_form" or definition.form_key in {
                 "session.command.set_declaration", "match.operation.set_declaration"}):

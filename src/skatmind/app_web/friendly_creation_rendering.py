@@ -4,6 +4,8 @@ from html import escape
 
 from .frontend_profile_contracts import LocalFrontendProfileV1
 from .frontend_profile_operations import FRONTEND_PROFILE_MANAGED_LABEL_ACTION_ROUTE
+from .local_time_forms import LocalTimeFormContext
+from .local_time_rendering import render_local_time_editor
 from .managed_item_contracts import ManagedCategoryViewV1
 from .profile_driven_creation import FRIENDLY_GAME_PLATFORMS
 from .seat_setup_rendering import render_seat_setup_v1, render_setup_actions_v1
@@ -34,7 +36,7 @@ def _setup_values(html, setup):
     from .form_parsing import FormValuesV1, FormValueV1
     from .validation_rendering import _replace_safe_values
     return _replace_safe_values(html, FormValuesV1(tuple(
-        FormValueV1(name, (value,)) for name, value in setup.values)))
+        FormValueV1(name, (value,)) for name, value in setup.values if name != "local_occurrence")))
 
 
 def render_profile_driven_session_creation_v1(
@@ -93,7 +95,12 @@ def render_profile_driven_match_creation_v1(
     profile_generation: int,
     locale: str,
     setup=None,
+    time_context=None,
 ) -> str:
+    if time_context is None:
+        time_context = LocalTimeFormContext("match-create", "", b"unbound-rendering",
+            profile_generation, "Europe/Berlin" if profile is None else
+            profile.interface_preferences.time_zone or "Europe/Berlin")
     advanced_open = (
         " open"
         if profile is not None and profile.interface_preferences.advanced_settings_expanded
@@ -123,6 +130,8 @@ def render_profile_driven_match_creation_v1(
         '<input name="match_title" maxlength="160" required></label>'
         f"<label>{_t(locale, 'creation.match.date')} "
         '<input type="date" name="played_date"></label>'
+        + render_local_time_editor(locale, time_context, include_generation=False)
+        +
         f'<label>{_t(locale, "creation.match.platform")}<select name="platform_choice">'
         f"{_platform_options(profile, locale)}</select></label>"
         f'<label class="custom-platform-field">{_t(locale, "creation.match.custom_platform")} '
@@ -153,9 +162,6 @@ def render_profile_driven_match_creation_v1(
         f"<label>{_t(locale, 'creation.advanced.source_title')} "
         '<input name="source_title" maxlength="160"></label>'
         f"<small>{_t(locale, 'creation.advanced.source_title_help')}</small>"
-        f"<label>{_t(locale, 'creation.advanced.played_at')} "
-        '<input name="played_at" placeholder="2026-09-03T19:30:00+02:00"></label>'
-        f"<p>{_t(locale, 'creation.advanced.played_at_help')}</p>"
         '<div class="media-source-fields">'
         f"<label>{_t(locale, 'creation.advanced.source_channel')} "
         '<input name="source_channel_name" maxlength="160"></label>'

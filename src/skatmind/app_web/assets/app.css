@@ -1494,3 +1494,26 @@ main[data-workflow="matches"] .workflow-table-scroll:focus-visible {
     scroll-behavior: auto !important;
   }
 }
+/* Optional exact-time controls share the app-owned shrinkable light presentation. */
+.local-time-editor, .local-time-fields, .local-time-grid, .local-time-grid label {
+  min-width: 0;
+  max-width: 100%;
+}
+.local-time-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: .75rem;
+}
+.local-time-grid p { grid-column: 1 / -1; }
+.local-time-grid input, .local-time-grid select, #time-zone-settings select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+.local-time-editor:has(select[name="time_mode"] option[value="keep"]:checked) .local-time-fields,
+.local-time-editor:has(select[name="time_mode"] option[value="remove"]:checked) .local-time-fields {
+  display: none;
+}
+.local-time-editor:has([aria-invalid="true"]) .local-time-fields { display: block; }
+.recorded-time { overflow-wrap: anywhere; }

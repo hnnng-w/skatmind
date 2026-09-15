@@ -13,6 +13,7 @@ license-files = ["LICENSE", "COPYRIGHT"]
 dependencies = [
     "jsonschema>=4.23.0",
     "referencing>=0.31.0",
+    "tzdata>=2026.4",
 ]
 
 [project.scripts]

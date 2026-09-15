@@ -256,7 +256,8 @@ def set_frontend_creation_preferences_v1(
         preferred_game_platform=preferred_game_platform,
         preserve_preferred_platform=False,
         interface_preferences=FrontendInterfacePreferencesV1(
-            advanced_settings_expanded=advanced_settings_expanded
+            advanced_settings_expanded=advanced_settings_expanded,
+            time_zone=None if document is None else document.interface_preferences.time_zone,
         ),
     )
     return save_prepared_frontend_profile_v1(

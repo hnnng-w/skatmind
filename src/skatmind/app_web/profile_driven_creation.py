@@ -17,6 +17,7 @@ from .frontend_identifier_generation import (
 )
 from .frontend_profile_codec import build_local_frontend_profile_v1
 from .frontend_profile_contracts import LocalFrontendProfileV1
+from .local_time_forms import LOCAL_TIME_FIELDS
 from .player_seat_setup import SEAT_SETUP_FIELDS, require_own_binding_v1
 from .profile_player_contracts import (
     MAX_KNOWN_PLAYERS,
@@ -72,6 +73,10 @@ PROFILE_DRIVEN_MATCH_CREATE_FIELDS = (
 PROFILE_DRIVEN_LEARNING_CREATE_FIELDS = (
     "collection_name",
     "profile_generation",
+)
+PROFILE_DRIVEN_LOCAL_MATCH_CREATE_FIELDS = (
+    *(name for name in PROFILE_DRIVEN_MATCH_CREATE_FIELDS if name != "played_at"),
+    *LOCAL_TIME_FIELDS,
 )
 
 _GAME_PLATFORM_BY_CHOICE = dict(FRIENDLY_GAME_PLATFORMS)

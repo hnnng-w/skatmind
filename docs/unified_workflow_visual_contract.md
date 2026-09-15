@@ -15,6 +15,15 @@ evidence below remains historical. See [Settings and Player seat setup](settings
 
 ## Asset and component ownership
 
+Issue #230 adds a compact app-owned local-time disclosure and shrinkable native
+date/time/zone tracks to Settings and unified Match/Session metadata. CSS follows
+Keep/Replace/Remove without disabling or clearing submitted values. Date-only Match
+entry remains separate. Installed-Wheel Edge evidence covers 128 de/en/script/no-script
+measurements, including 320 pixels and 200% text; document/client widths agree.
+Baseline forms, native keyboard changes, actual saves, focus and source/resource
+hashes are documented in [Local time entry](local_time_entry.md). This slice
+intentionally adds a private preference and timezone-data dependency.
+
 Issue #229 extends the app-owned boundary to the compact Home, recording chooser,
 and focused Match review/Report view. Historical #224 concept disclosures are
 superseded by short shared introductions; active correction/transfer controls

@@ -120,6 +120,7 @@ def test_pep_639_source_metadata_preserves_the_package_baseline() -> None:
     assert project["dependencies"] == [
         "jsonschema>=4.23.0",
         "referencing>=0.31.0",
+        "tzdata>=2026.4",
     ]
     assert project["optional-dependencies"]["dev"] == [
         "build>=1.2.2",
@@ -253,6 +254,7 @@ def test_documented_dependency_and_bundled_asset_audit_is_complete() -> None:
         "setuptools>=77.0.3",
         "jsonschema>=4.23.0",
         "referencing>=0.31.0",
+        "tzdata>=2026.4",
         "build>=1.2.2",
         "pytest>=9.0.0",
         "ruff>=0.14.0",

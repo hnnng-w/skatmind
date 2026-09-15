@@ -1626,6 +1626,13 @@ reuse, and focused selected-Game Match analysis/Reports through existing executi
 Manual input remains separate and retained. Native installed-Wheel evidence covers
 both languages, script modes, source-bound Results, errors and narrow/enlarged text.
 It adds no Engine workflow, public/persisted version or complete UAT acceptance.
+Issue #230 adds [Saved time zones and local time entry](local_time_entry.md): an
+independent optional private profile preference, `tzdata>=2026.4`, and native
+optional Match/Session metadata controls with exact-source gap/fold resolution and
+byte-preserving Keep. Date-only labels remain non-temporal. Real HTTP and installed-
+Wheel de/en/script/no-script evidence covers saves, corrections and reopen; this is
+partial remediation, not a complete frontend/UAT pass. Older-reader limits and the
+intentional dependency/profile-shape extension are documented explicitly.
 Exact merged-commit `check` and `v1-supported-platform-matrix` remain required,
 with future focused Session and Match affected-path retests. The September 11 repeated
 UAT failure and unresolved findings remain open; the technical ledger remains closed.

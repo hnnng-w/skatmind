@@ -16,6 +16,15 @@ informational, and revises normal Player/own-seat/default behavior. Legacy profi
 fields and bytes remain compatible. See [Settings and Player seat
 setup](settings_and_player_seat_setup.md) for the lossless adapter and confirmation policy.
 
+Issue #230 intentionally extends only `interface_preferences` with optional
+`time_zone` after `advanced_settings_expanded`, and adds `tzdata>=2026.4`. The old
+one-key and new ordered two-key shapes are accepted; present null/extra keys are
+not. Unset omits the key and preserves exact old bytes. Older builds may reject
+the extension: explicitly save Use application default to remove only this field.
+No load/GET migration occurs; recommended-default reset and unrelated operations
+preserve it. A missing installed zone is a timezone-specific unavailable state,
+not an invalid profile. See [Local time entry](local_time_entry.md).
+
 The implemented contract versions are exactly:
 
 ```text
@@ -265,6 +274,7 @@ POST /actions/profile/players/accounts-preview
 POST /actions/profile/players/accounts-replace
 POST /actions/profile/players/cancel
 POST /actions/profile/preferences
+POST /actions/profile/time-zone
 POST /actions/profile/recommended-defaults/reset
 POST /actions/profile/managed-label
 ```
@@ -423,6 +433,15 @@ prepare, renew, consume, or confirm an Apply selection. Normal edit, reopen,
 expiry, and source-change invalidation remain authoritative.
 
 ### Focused browser evidence
+
+Issue #230's native local date/time/zone fields reuse this exact-source restoration
+layer. Safe values and errors survive language changes, while occurrence choices
+are excluded and transport is regenerated. A stale choice cannot confirm changed
+input. JavaScript remains necessary for unsent values in another form. The current
+catalogs contain 1,462 keys; the current private registry is 59 routes/103 forms.
+Its separate installed-Wheel evidence, provider versions and profile compatibility
+boundary are documented in [Local time entry](local_time_entry.md). Earlier counts
+and browser runs below are historical.
 
 Issue #228's compact declaration forms reuse this exact-source restoration layer.
 Their four checkbox controls preserve unchecked false, while emptied bid/count

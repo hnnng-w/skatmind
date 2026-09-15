@@ -121,6 +121,12 @@ from .learning_frontend import (
     remove_unified_learning_report_source_v1,
     select_unified_learning_current_snapshot_v1,
 )
+from .local_time_forms import canonical_time_payload
+from .local_time_http import (
+    dispatch_local_metadata,
+    local_time_context,
+    prepare_match_creation_time,
+)
 from .managed_item_contracts import MANAGED_ITEM_MAX_IMPORT_BYTES
 from .managed_item_discovery import (
     apply_managed_item_display_labels_v1,
@@ -227,6 +233,7 @@ from .task_first_match_rendering import render_task_first_match_v1
 from .task_first_match_state import build_task_first_match_page_state_v1
 from .task_first_projections import project_task_first_match_v1
 from .task_first_session_rendering import render_task_first_session_v1
+from .time_zone_preferences import set_frontend_time_zone
 from .translation_catalog import translate_frontend_message_v1
 from .validation_contracts import (
     FRONTEND_VALIDATION_PRESERVATION_VERSION,
@@ -947,7 +954,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 media_type == "multipart/form-data" and multipart.search(body_prefix) is not None
             ):
                 matches.append(definition)
-        compact = [form for form in matches if form.discriminator_field == "declaration_form"]
+        compact = [form for form in matches
+                   if form.discriminator_field in {"declaration_form", "time_form"}]
         if len(compact) == 1:
             matches = compact
         if len(matches) == 1:
@@ -1408,6 +1416,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
 
     def _profile_operation(self, path: str, body: bytes, content_type: str) -> None:
         values = self._text_form(body, content_type)
+        if path == "/actions/profile/time-zone":
+            self._profile_action_return_to = "/settings"
+            self._exact_fields(values, {"profile_generation", "time_zone"})
+            set_frontend_time_zone(self.server.app_context, time_zone=values["time_zone"] or None,
+                expected_generation=self._profile_generation_value(values))
+            self._redirect("/settings")
+            return
         if (path.startswith("/actions/profile/players/")
                 or path == FRONTEND_PROFILE_PREFERENCES_ACTION_ROUTE):
             self._profile_action_return_to = "/settings"
@@ -1769,6 +1784,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             content=notice
             + render_task_first_session_v1(
                 active,
+                app_context=self.server.app_context,
                 locale=locale,
                 show_operation_notice=status < HTTPStatus.BAD_REQUEST,
                 game_label=managed_name(locale, profile, "sessions", active.state.session_id),
@@ -1835,6 +1851,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                              for operation in MATCH_CARD_OPERATIONS}
             state["declaration_bindings"] = {marker: declaration_binding(active, marker)
                 for marker in ("match-declaration", "match-clear")}
+            state["local_time_context"] = local_time_context(
+                self.server.app_context, active, "match-metadata")
             result = active.last_result
             transfer_notice = active.transfer_notice
             active.transfer_notice = None
@@ -1920,6 +1938,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             profile_generation=profile_state.generation,
             locale=frontend.locale,
             setup=current_seat_setup_v1(self.server.app_context, "matches", profile_state.document),
+            time_context=local_time_context(self.server.app_context, None, "match-create"),
         )
         self._content_page(
             "/matches",
@@ -2288,10 +2307,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self._refresh_category("sessions")
         self._redirect("/sessions/current")
 
-    def _submit_seat_setup(self, family, profile, values, generation):
+    def _submit_seat_setup(self, family, profile, values, generation, *, local_timestamp=None):
         try:
             return submit_seat_setup_v1(self.server.app_context, family, profile, values,
-                                        generation=generation)
+                                        generation=generation, local_timestamp=local_timestamp)
         except ValueError:
             self._current_safe_values = capture_safe_submitted_values_v1(
                 self._current_form_definition, values)
@@ -2399,13 +2418,21 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if any(type(value) is not str for value in values.values()):
             raise ValueError("Match creation fields must contain text.")
         text_values = {name: str(value) for name, value in values.items()}
+        from .profile_driven_creation import PROFILE_DRIVEN_LOCAL_MATCH_CREATE_FIELDS
+        local = "time_form" in text_values
+        timestamp = (prepare_match_creation_time(self.server.app_context, text_values)
+                     if local else None)
         profile, generation = self._profile_creation_snapshot(
             text_values,
-            PROFILE_DRIVEN_MATCH_CREATE_FIELDS,
+            (PROFILE_DRIVEN_LOCAL_MATCH_CREATE_FIELDS
+             if local else PROFILE_DRIVEN_MATCH_CREATE_FIELDS),
         )
-        if not self._submit_seat_setup("matches", profile, text_values, generation):
+        if not self._submit_seat_setup("matches", profile, text_values, generation,
+                                       local_timestamp=timestamp):
             self._redirect("/matches/new")
             return
+        if local:
+            text_values = canonical_time_payload(text_values, timestamp)
         discovery = self._refresh_category("matches")
         prepared = prepare_profile_driven_match_creation_v1(
             text_values,
@@ -2768,6 +2795,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             return
         if path in {"/sessions/command", "/matches/api/v1/operation"}:
             values = self._flat_form(body, content_type, repeated_cards=True)
+            if "time_form" in values or "time_selection" in values:
+                self._redirect(dispatch_local_metadata(self.server.app_context, path, values))
+                return
             if "declaration_form" in values or "declaration_selection" in values:
                 self._redirect(dispatch_compact_declaration(self.server.app_context, path, values))
                 return

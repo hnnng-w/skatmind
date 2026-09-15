@@ -32,6 +32,7 @@ def test_build_metadata_package_discovery_and_package_data_are_explicit() -> Non
     assert pyproject["project"]["dependencies"] == [
         "jsonschema>=4.23.0",
         "referencing>=0.31.0",
+        "tzdata>=2026.4",
     ]
     assert pyproject["project"]["scripts"] == {"skatmind": "skatmind.cli:main"}
     assert pyproject["project"]["optional-dependencies"]["dev"] == [

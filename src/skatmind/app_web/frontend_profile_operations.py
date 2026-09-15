@@ -23,6 +23,7 @@ FRONTEND_PROFILE_PLAYER_REMOVE_ACTION_ROUTE = "/actions/profile/players/remove"
 FRONTEND_PROFILE_PREFERENCES_ACTION_ROUTE = "/actions/profile/preferences"
 FRONTEND_PROFILE_RECOMMENDED_RESET_ACTION_ROUTE = "/actions/profile/recommended-defaults/reset"
 FRONTEND_PROFILE_MANAGED_LABEL_ACTION_ROUTE = "/actions/profile/managed-label"
+FRONTEND_TIME_ZONE_ACTION_ROUTE = "/actions/profile/time-zone"
 FRONTEND_SETTINGS_PLAYER_ACTION_ROUTES = tuple(
     f"/actions/profile/players/{action}"
     for action in ("edit", "remove-preview", "accounts-preview", "accounts-replace", "cancel")
@@ -36,6 +37,7 @@ FRONTEND_PROFILE_ACTION_ROUTES = (
     FRONTEND_PROFILE_PREFERENCES_ACTION_ROUTE,
     FRONTEND_PROFILE_RECOMMENDED_RESET_ACTION_ROUTE,
     FRONTEND_PROFILE_MANAGED_LABEL_ACTION_ROUTE,
+    FRONTEND_TIME_ZONE_ACTION_ROUTE,
     *FRONTEND_SETTINGS_PLAYER_ACTION_ROUTES,
 )
 
@@ -235,7 +237,8 @@ def reset_frontend_recommended_defaults_v1(
         requested = build_local_frontend_profile_v1(
             revision=document.revision + 1,
             language=document.language,
-            interface_preferences=FrontendInterfacePreferencesV1(),
+            interface_preferences=FrontendInterfacePreferencesV1(
+                time_zone=document.interface_preferences.time_zone),
             own_player_id=document.own_player_id,
             known_players=document.known_players,
             preferred_perspective_player_id=None,

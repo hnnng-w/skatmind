@@ -59,14 +59,17 @@ V1_SURFACE_FAMILIES = (
 V1_RUNTIME_DEPENDENCIES = (
     "jsonschema>=4.23.0",
     "referencing>=0.31.0",
+    "tzdata>=2026.4",
 )
 V1_MINIMUM_RUNTIME_DEPENDENCIES = (
     "jsonschema==4.23.0",
     "referencing==0.31.0",
+    "tzdata==2026.4",
 )
 V1_RUNTIME_DISTRIBUTION_IMPORT_ROOTS = {
     "jsonschema": ("jsonschema",),
     "referencing": ("referencing",),
+    "tzdata": ("tzdata",),
 }
 V1_MATRIX_CELLS = (
     ("source", "resolved"),
@@ -556,7 +559,7 @@ def validate_matrix_result(result: dict[str, object]) -> None:
         _require(cell.get("pip_check") == "passed", "A matrix pip check failed.")
         versions = cell.get("direct_dependency_versions")
         _require(
-            isinstance(versions, dict) and set(versions) == {"jsonschema", "referencing"},
+            isinstance(versions, dict) and set(versions) == {"jsonschema", "referencing", "tzdata"},
             "A matrix cell omitted direct dependency versions.",
         )
         surfaces = cell.get("surface_statuses")
@@ -596,7 +599,8 @@ def validate_matrix_result(result: dict[str, object]) -> None:
         == list(V1_MINIMUM_RUNTIME_DEPENDENCIES),
         "Matrix minimum runtime dependencies changed.",
     )
-    _require(result.get("direct_imports") == ["jsonschema", "referencing"], "Imports changed.")
+    _require(result.get("direct_imports") == ["jsonschema", "referencing", "tzdata"],
+             "Imports changed.")
     _require(result.get("semantic_parity") == "passed", "Semantic parity failed.")
     _require(result.get("repository_mutation") == "none", "Repository mutation was detected.")
     _require(not _contains_non_finite(result), "Matrix evidence contains a non-finite number.")

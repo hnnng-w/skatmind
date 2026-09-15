@@ -4,6 +4,15 @@ Issue #225 implements a private Settings-to-recording path. It revises the earli
 Issue-#219 About placement, alias/account-list editor, preferred-perspective UI,
 and default-saving choices. Earlier release and browser evidence remains historical.
 
+Issue #230 subsequently adds an independent native Time zone form at
+`POST /actions/profile/time-zone`. Unset uses Europe/Berlin for new exact-time
+input; explicit save/clear changes only the optional `interface_preferences.time_zone`
+field through existing CAS. This deliberately extends the private shape and adds
+`tzdata>=2026.4`; older readers may reject the extension. Recommended-default reset
+preserves the zone, full reset clears it, and no GET or unrelated edit changes it.
+Current counts are 59 POST routes/103 forms. Existing roster/seat/account semantics
+below remain. See [Local time entry](local_time_entry.md) for compatibility and evidence.
+
 ## Normal flow
 
 1. Open **Settings** from the shared navigation. Viewing it creates no profile.

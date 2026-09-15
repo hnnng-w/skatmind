@@ -25,6 +25,7 @@ from .frontend_profile_operations import (
 )
 from .guided_contracts import GUIDED_ACTION_ROUTE_PATHS
 from .json_transfer import FRONTEND_JSON_MAX_FILE_BYTES
+from .local_time_forms import LOCAL_TIME_VISIBLE_FIELDS
 from .managed_item_contracts import MANAGED_ITEM_MAX_IMPORT_BYTES
 from .match_recovery import RECOVERY_ROUTES
 from .position_form import (
@@ -278,6 +279,10 @@ def _field(
         reflection_length=(
             0
             if control == "file"
+            else 255 if name in {"time_zone", "local_zone"}
+            else 16 if name == "local_time"
+            else 10 if name == "local_date"
+            else 72 if name == "local_occurrence"
             else 255
             if name == "account_id"
             else 120
@@ -285,7 +290,7 @@ def _field(
                 "forehand_name", "middlehand_name", "rearhand_name"}
             else 64
             if name in {"decision_selection", "recovery_selection", "report_id",
-                        "card_selection", "declaration_selection"}
+                        "card_selection", "declaration_selection", "time_selection"}
             else 4
             if control == "card"
             else 8192
@@ -296,7 +301,7 @@ def _field(
         allowed_values=(
             choices_override if choices_override is not None else _SELECT_CHOICES.get(name, ())
         ),
-        clear_after_rejection=name in _DESTRUCTIVE_FIELDS,
+        clear_after_rejection=name in _DESTRUCTIVE_FIELDS or name == "local_occurrence",
     )
 
 
@@ -573,6 +578,37 @@ for _trick_number in range(1, 10):
 
 
 _FORMS: list[FrontendFormDefinitionV1] = [
+    *(_definition(
+        key, route, ("time_selection", *LOCAL_TIME_VISIBLE_FIELDS, *fields),
+        page=page, active=family, success=success, discriminator=("time_form", marker),
+        body_limit=(MATCH_CAPTURE_WEB_MAX_REQUEST_BYTES
+                    if family == "matches" else _DEFAULT_BODY_LIMIT),
+        control_overrides={
+            "time_mode": "select", "local_zone": "select", "local_occurrence": "select",
+            **{f"{seat}_handle": "select" for seat in ("forehand", "middlehand", "rearhand")},
+            "perspective_seat": "select", "save_players": "checkbox", "save_platform": "checkbox"},
+        choice_overrides={"time_mode": ("enter", "keep", "replace", "remove"),
+            "perspective_seat": ("", "forehand", "middlehand", "rearhand"),
+            "source_kind": ("", "youtube_video", "other_video", "manual_observation")},
+        label_overrides={name: "validation.field.local_" + label for name, label in (
+            ("time_mode", "mode"), ("local_date", "date"), ("local_time", "time"),
+            ("local_zone", "zone"), ("local_occurrence", "occurrence"))},
+    ) for key, route, page, family, success, marker, fields in (
+        ("session.local_metadata", "/sessions/command", "/sessions/current", "sessions",
+         "/sessions/current#session-recording", "session-metadata", ("game_id",)),
+        ("session.local_metadata_correction", "/sessions/command", "/sessions/current", "sessions",
+         "/sessions/current#session-recording", "session-metadata-correction", ("game_id",)),
+        ("match.local_metadata", "/matches/api/v1/operation", "/matches/current", "matches",
+         "contextual", "match-metadata",
+         tuple(n for n in _MATCH_METADATA_FIELDS if n != "played_at")),
+        ("match.local_create", "/matches/api/v1/create", "/matches/new", "matches",
+         "/matches/position/1", "match-create",
+         tuple(n for n in _MATCH_CREATE_FIELDS if n != "played_at")),
+    )),
+    _definition("profile.time_zone", "/actions/profile/time-zone", ("time_zone",),
+        page="/settings", active="local_settings", success="/settings",
+        control_overrides={"time_zone": "select"},
+        label_overrides={"time_zone": "validation.field.local_zone"}),
     *(_definition(
         key, route, ("declaration_selection", *fields), page=page, active=family,
         body_limit=(MATCH_CAPTURE_WEB_MAX_REQUEST_BYTES
@@ -1464,7 +1500,8 @@ def resolve_frontend_form_v1(
         for form in candidates
         if supplied.get(form.discriminator_field or "") == form.discriminator_value
     )
-    compact = tuple(form for form in matches if form.discriminator_field == "declaration_form")
+    compact = tuple(form for form in matches
+                    if form.discriminator_field in {"declaration_form", "time_form"})
     if len(compact) == 1:
         return compact[0]
     if len(matches) == 1:

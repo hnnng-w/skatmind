@@ -149,7 +149,7 @@ def roster_names_v1(values, profile):
     return tuple(names)
 
 
-def submit_seat_setup_v1(context, family, profile, values, *, generation):
+def submit_seat_setup_v1(context, family, profile, values, *, generation, local_timestamp=None):
     """Return True only for an unchanged, explicitly reviewed final roster."""
     from .profile_driven_creation import (
         prepare_profile_driven_match_creation_v1,
@@ -169,7 +169,9 @@ def submit_seat_setup_v1(context, family, profile, values, *, generation):
         if values.get(name, "") not in {"", "on"}:
             raise SeatSetupError("choice", name)
     if action == "create":
-        if not current.reviewed or dict(current.values) != values:
+        compared = {name: value for name, value in values.items() if name != "local_occurrence"}
+        previous = {name: value for name, value in current.values if name != "local_occurrence"}
+        if not current.reviewed or previous != compared:
             raise SeatSetupError("review_required")
         require_own_binding_v1(values, profile)
         with context.lock:
@@ -196,7 +198,10 @@ def submit_seat_setup_v1(context, family, profile, values, *, generation):
                 expected_profile_generation=generation, existing_session_ids=(),
                 entropy_source=None, validation_only=True)
         else:
-            prepare_profile_driven_match_creation_v1(values, profile=profile,
+            from .local_time_forms import canonical_time_payload
+            metadata = (canonical_time_payload(values, local_timestamp)
+                        if values.get("time_form") == "match-create" else values)
+            prepare_profile_driven_match_creation_v1(metadata, profile=profile,
                 expected_profile_generation=generation, existing_match_ids=(),
                 entropy_source=None, validation_only=True)
     with context.lock:

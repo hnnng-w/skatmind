@@ -118,10 +118,12 @@ PACKAGE_LICENSE_EXPRESSION = "AGPL-3.0-only"
 RUNTIME_DEPENDENCIES = (
     "jsonschema>=4.23.0",
     "referencing>=0.31.0",
+    "tzdata>=2026.4",
 )
 MINIMUM_RUNTIME_DEPENDENCIES = (
     "jsonschema==4.23.0",
     "referencing==0.31.0",
+    "tzdata==2026.4",
 )
 EXPECTED_LICENSE_FILES = ("LICENSE", "COPYRIGHT")
 EXPECTED_LICENSE_SHA256 = "d8a6cc31abc16b6748c7a21f21611f5a1ec33f67d22ca23d7da1c19b95496bee"
@@ -1181,8 +1183,8 @@ assert FRONTEND_TRANSLATION_CATALOG_VERSION == 1
 assert LOCAL_FRONTEND_PROFILE_VERSION == 1
 assert FRONTEND_INFORMATION_ARCHITECTURE_VERSION == 1
 assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-assert len(UNIFIED_FRONTEND_POST_ROUTES) == 58
-assert len(FRONTEND_FORM_REGISTRY) == 98
+assert len(UNIFIED_FRONTEND_POST_ROUTES) == 59
+assert len(FRONTEND_FORM_REGISTRY) == 103
 validate_frontend_form_registry_v1()
 frontend_catalogs = load_frontend_translation_catalogs_v1()
 assert tuple(frontend_catalogs) == ("de", "en")
@@ -1206,6 +1208,25 @@ assert project_task_first_learning_v1({
 }).primary_action is None
 assert load_frontend_profile_file_v1(app_home.root).status == "absent"
 assert not (app_home.root / "frontend-profile.json").exists()
+from skatmind.app_web.time_zone_provider import time_zone_inventory, packaged_time_zone
+from skatmind.app_web.local_time_conversion import local_time_candidates, LocalTimeError
+inventory = time_zone_inventory()
+assert inventory.keys[:2] == ("Europe/Berlin", "UTC")
+assert inventory.package_version == importlib.metadata.version("tzdata")
+assert inventory.iana_version
+berlin = packaged_time_zone("Europe/Berlin")
+assert local_time_candidates("2026-01-15", "19:30", berlin)[0].timestamp == (
+    "2026-01-15T19:30:00+01:00")
+assert local_time_candidates("2026-07-15", "19:30", berlin)[0].timestamp == (
+    "2026-07-15T19:30:00+02:00")
+assert tuple(c.offset for c in local_time_candidates("2026-10-25", "02:30", berlin)) == (
+    "+02:00", "+01:00")
+try:
+    local_time_candidates("2026-03-29", "02:30", berlin)
+except LocalTimeError as error:
+    assert error.reason == "gap"
+else:
+    raise AssertionError("Installed provider accepted a nonexistent Berlin time.")
 app_server = start_app_web_server_v1(app_context, port=0, token="app-distribution-token")
 app_thread = threading.Thread(target=app_server.serve_forever, daemon=True)
 app_thread.start()
@@ -1395,6 +1416,12 @@ try:
         if route == "/matches/current":
             assert content.count(b'class="match-tile"') == 35
             assert content.count(b'class="match-tile selected"') == 1
+            assert b'value="match-metadata"' in content
+        if route == "/matches/new":
+            assert b'name="local_date" type="date"' in content
+            assert b'name="local_time" type="time"' in content
+            assert b'<select name="local_zone"' in content
+            assert b'name="played_at"' not in content
     status, _, _ = app_request("GET", "/api/v1/operations", headers=app_get_headers)
     assert status == 404
     language_body = urlencode(
@@ -1416,6 +1443,24 @@ try:
     assert saved_profile.document is not None and saved_profile.document.language == "en"
     status, _, content = app_request("GET", "/", headers=german_headers)
     assert status == 200 and b'<html lang="en">' in content
+    status, _, content = app_request("GET", "/settings", headers=app_get_headers)
+    assert status == 200 and b'action="/actions/profile/time-zone"' in content
+    assert b'<select name="time_zone"' in content
+    assert b'"time_zone"' not in (app_home.root / "frontend-profile.json").read_bytes()
+    recording_bytes = visual_match.path.read_bytes()
+    status, headers, content = app_request("POST", "/actions/profile/time-zone",
+        headers=app_post_headers, body=urlencode({
+            "profile_generation": str(app_context.frontend_profile.generation),
+            "time_zone": "Europe/Berlin"}).encode("ascii"))
+    assert status == 303 and headers["Location"] == "/settings"
+    assert visual_match.path.read_bytes() == recording_bytes
+    saved_zone_bytes = (app_home.root / "frontend-profile.json").read_bytes()
+    status, _, _ = app_request("POST", "/actions/profile/time-zone",
+        headers=app_post_headers, body=urlencode({
+            "profile_generation": str(app_context.frontend_profile.generation),
+            "time_zone": "Europe/Berlin"}).encode("ascii"))
+    assert status == 303
+    assert (app_home.root / "frontend-profile.json").read_bytes() == saved_zone_bytes
 finally:
     app_server.shutdown()
     app_server.server_close()
@@ -1425,6 +1470,8 @@ finally:
 reloaded_app_context = AppWebContextV1.create(app_home)
 assert reloaded_app_context.frontend_profile.document is not None
 assert reloaded_app_context.frontend_profile.document.language == "en"
+assert (reloaded_app_context.frontend_profile.document.interface_preferences.time_zone
+        == "Europe/Berlin")
 
 capture_path = cwd / "capture-workspace.json"
 capture_context = MatchCaptureWebContextV1.open(capture_path)
@@ -2765,7 +2812,7 @@ assert [
     requirement
     for requirement in distribution.metadata.get_all("Requires-Dist", [])
     if "extra ==" not in requirement
-] == ["jsonschema>=4.23.0", "referencing>=0.31.0"]
+] == ["jsonschema>=4.23.0", "referencing>=0.31.0", "tzdata>=2026.4"]
 license_entries = {}
 for entry in distribution.files or ():
     path = PurePosixPath(str(entry).replace("\\", "/"))
@@ -3174,7 +3221,7 @@ def _install_and_smoke(
     )
     dependency_version_program = (
         "import importlib, importlib.metadata, json; "
-        "names=('jsonschema','referencing'); "
+        "names=('jsonschema','referencing','tzdata'); "
         "[importlib.import_module(name) for name in names]; "
         "print(json.dumps({name: importlib.metadata.version(name) for name in names}, "
         "sort_keys=True))"
@@ -3192,12 +3239,13 @@ def _install_and_smoke(
         ) from error
     _require(
         isinstance(dependency_versions, dict)
-        and set(dependency_versions) == {"jsonschema", "referencing"},
+        and set(dependency_versions) == {"jsonschema", "referencing", "tzdata"},
         f"{label} did not report the exact direct runtime dependencies.",
     )
     if minimum_dependencies is not None:
         _require(
-            dependency_versions == {"jsonschema": "4.23.0", "referencing": "0.31.0"},
+            dependency_versions == {
+                "jsonschema": "4.23.0", "referencing": "0.31.0", "tzdata": "2026.4"},
             f"{label} silently substituted a newer direct runtime dependency.",
         )
     _require(console_script.is_file(), f"{label} did not install the skatmind command.")

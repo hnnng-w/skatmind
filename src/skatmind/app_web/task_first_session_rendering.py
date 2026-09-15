@@ -14,6 +14,8 @@ from .compact_declaration_rendering import (
     accepted_declaration_summary,
     compact_declaration_fields,
 )
+from .local_time_http import local_time_context
+from .local_time_rendering import render_local_time_editor
 from .recorded_trick_progress import project_session_trick_progress
 from .recorded_trick_rendering import (
     render_current_trick,
@@ -126,7 +128,33 @@ def session_command_fields(locale: str, view: TaskFirstSessionV1, kind: str, *, 
     return paragraph(locale, "task.session.event_help") + ''.join(fields)
 
 
-def _command(context, locale, view, kind, *, normal=False, correction=False, progress=None):
+def _metadata_command(context, locale, view, app, *, normal=False, record=None):
+    if record is None and not normal and view.facts.played_at is not None:
+        return paragraph(locale, "local_time.correction_help") + '<p><a href="#session-history">' + translated(
+            locale, "task.session.corrections") + '</a></p>'
+    marker = "session-metadata" if record is None else "session-metadata-correction"
+    target = "" if record is None else str(record.revision)
+    original = view.facts.played_at if record is None else record.command.played_at
+    game_id = ((view.facts.session_id if view.facts.game_id is None else None)
+               if record is None else record.command.game_id)
+    fields = hidden("managed_handle", context.handle) + hidden("expected_revision", context.state.revision)
+    fields += hidden("kind", "set_game_metadata")
+    if record is not None:
+        fields += hidden("target_revision", target) + paragraph(locale, "local_time.correction", revision=target)
+    fields += (hidden("game_id", game_id) if normal else disclosure(locale, "task.technical",
+        input_field(locale, "game_id", "task.field.game_id", game_id), technical=True))
+    fields += paragraph(locale, "task.session.metadata_help") + render_local_time_editor(locale,
+        local_time_context(app, context, marker, target), original=original,
+        new=record is None and original is None)
+    return form(locale, "/sessions/command", fields, "task.command.set_game_metadata", primary=normal)
+
+
+def _command(context, locale, view, kind, *, normal=False, correction=False, progress=None, app=None):
+    if kind == "set_game_metadata":
+        if correction:
+            return ''.join(_metadata_command(context, locale, view, app, record=record)
+                for record in context.state.command_log if record.command.kind == kind)
+        return _metadata_command(context, locale, view, app, normal=normal)
     if normal and kind in {"record_dealt_card", "record_discard", "record_play"}:
         task = project_session_card_task(context.state, view=view)
         facts = view.facts
@@ -229,6 +257,7 @@ def _analysis(context, locale, view, game_label):
 def render_task_first_session_v1(
     context: GuidedSessionContextV1, *, locale: str = "en", show_operation_notice: bool = True,
     game_label: str | None = None,
+    app_context=None,
 ) -> str:
     with context.lock:
         view = project_task_first_session_v1(context.state)
@@ -245,7 +274,7 @@ def render_task_first_session_v1(
         primary = view.workflow.primary_action
         normal = section(locale, "task.session.state", current)
         normal += section(locale, "task.session.next", paragraph(locale, view.workflow.next_task_key))
-        controls = (_command(context, locale, view, primary, normal=True, progress=progress)
+        controls = (_command(context, locale, view, primary, normal=True, progress=progress, app=app_context)
                     if primary else paragraph(locale, "task.session.next.complete"))
         normal += '<div id="session-recording" tabindex="-1"><div id="session-card-feedback"></div>' + section(
             locale, "declaration.title" if primary == "set_declaration" else "task.session.primary", '<div class="recording-progress-layout"><div>'
@@ -284,12 +313,12 @@ def render_task_first_session_v1(
                 "partial" if context.last_operation.status == "partial" else
                 "rejected" if context.last_operation.status in {"rejected", "unavailable"} else "saved"))
         optional = ''.join(disclosure(locale, f"task.command.{kind}",
-            _command(context, locale, view, kind)) for kind in view.workflow.secondary_actions)
+            _command(context, locale, view, kind, app=app_context)) for kind in view.workflow.secondary_actions)
         normal += disclosure(locale, "task.session.optional", optional)
         normal += _analysis(context, locale, view, game_label or text(locale, "page.session_current.title"))
         corrections = paragraph(locale, "task.session.correction_help")
         corrections += ''.join(disclosure(locale, f"task.command.{kind}",
-            _command(context, locale, view, kind, correction=True)) for kind in SESSION_COMMAND_KINDS)
+            _command(context, locale, view, kind, correction=True, app=app_context)) for kind in SESSION_COMMAND_KINDS)
         corrections += form(locale, "/sessions/undo", hidden("managed_handle", context.handle)
             + hidden("expected_revision", context.state.revision)
             + input_field(locale, "target_revision", "task.field.target_revision", kind="number", required=True),

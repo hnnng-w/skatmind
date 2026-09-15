@@ -29,7 +29,11 @@ Package Data is declared for:
 
 The Package name remains `skatmind`, the Package version is `0.17.0`, and the
 Python requirement remains `>=3.13`. The exact ordered direct runtime
-dependencies are `jsonschema>=4.23.0` and `referencing>=0.31.0`. The `dev` extra
+dependencies are `jsonschema>=4.23.0`, `referencing>=0.31.0`, and
+`tzdata>=2026.4`. Issue #230 intentionally adds the data-only timezone dependency
+on every platform; `tzdata==2026.4` is the minimum lane. Its packaged resources,
+not host IANA files, supply local-time conversion. See [Local time entry](local_time_entry.md).
+The `dev` extra
 includes `build`, pytest, and Ruff.
 
 The project declares exactly one Console Script:
@@ -323,7 +327,7 @@ verifies:
 * no GUI Script, second Console Script, or installed root `main` module exists.
 
 Wheel and sdist smoke Results must be equal. Every clean environment now also
-runs `pip check`, imports both direct runtime dependencies, and records their
+runs `pip check`, imports all three direct runtime dependencies, and records their
 exact installed versions. Legacy Session CLI parity remains a
 repository-checkout gate because root `main.py` is intentionally not installed.
 Legacy Capture and Corpus help parity are repository-checkout gates for the same

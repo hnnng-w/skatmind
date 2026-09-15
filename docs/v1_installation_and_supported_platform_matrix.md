@@ -28,6 +28,7 @@ The exact ordered direct runtime dependency declarations are:
 dependencies = [
     "jsonschema>=4.23.0",
     "referencing>=0.31.0",
+    "tzdata>=2026.4",
 ]
 ```
 
@@ -37,17 +38,22 @@ dependency is added. The exact minimum-supported lane installs:
 ```text
 jsonschema==4.23.0
 referencing==0.31.0
+tzdata==2026.4
 ```
 
-Both are direct Production imports used by packaged-Schema validation. The
+The first two are direct Production imports used by packaged-Schema validation;
+Issue #230 adds the third, data-only runtime dependency for private local-time entry.
+It uses installed package resources consistently on Windows/Ubuntu, without system
+IANA files or runtime downloads. Local evidence is tzdata 2026.4 / IANA 2026d.
+See [Local time entry](local_time_entry.md). The
 runner statically inventories every import in `src/skatmind` and repository
 Legacy `main.py`, classifies standard-library and first-party imports, and
 requires every remaining import root to have an explicit Package dependency
 mapping. Availability through a transitive dependency is not sufficient.
 
 The minimum Wheel and sdist cells install the artifact with `--no-deps`, install
-the two exact direct floors while allowing their required transitive
-dependencies, import both direct dependencies, verify that neither direct floor
+the three exact direct floors while allowing their required transitive
+dependencies, import all direct dependencies, verify that no direct floor
 was replaced by a newer version, and run `pip check`.
 
 ## Matrix contract
@@ -127,6 +133,18 @@ all 71 Schemas, execute all seven Root workflows, and exercise installed and
 module CLI smoke. The existing deterministic injected-clock repository tests
 remain the evidence for timing-sensitive `timeout`; the matrix does not add a
 wall-clock timing test.
+
+Issue #230 retains every matrix cell and semantic comparison. The installed smoke
+also checks the exact three-dependency metadata/import inventory, packaged timezone
+offsets/gap/fold behavior, native creation/metadata controls, no GET profile write,
+explicit Settings save/no-op, and restart preference loading. It does not reopen
+the completed technical ledger or claim maintainer UAT acceptance.
+
+Local Issue-#230 Windows 11 / PowerShell 5.1 / CPython 3.13.7 validation passed
+all six unchanged cells. Resolved direct versions were 4.26.0 / 0.37.0 / 2026.4
+for jsonschema/referencing/tzdata; minimum cells used 4.23.0 / 0.31.0 / 2026.4.
+Semantic parity and repository-mutation checks passed. Exact merged-commit Ubuntu
+`check` and `v1-supported-platform-matrix` remain required before closure.
 
 ## Semantic parity
 

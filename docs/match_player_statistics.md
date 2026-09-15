@@ -69,6 +69,13 @@ Both values are parsed as aware RFC 3339 instants. Equality, including equivalen
 instants written with different offsets, and later capture are ineligible.
 Missing Match time is ineligible. Every valid ineligible Snapshot remains
 unchanged as descriptive Match metadata; there is no tolerance or bypass.
+
+Issue #230's unified local-time editor converts only explicit complete entries to
+the existing offset-bearing `played_at`. A saved timezone, locale or Match display
+date supplies no instant and changes no eligibility. Keep preserves original text;
+Replace/Remove uses the same metadata update and recomputation described below,
+without a second profile-label synchronization. The Statistics timestamp editor is
+unchanged. See [Local time entry](local_time_entry.md).
 The Context builder and Issue #173 observations share the pure temporal-status
 helper. A Snapshot ineligible for its source Match may still be strictly before
 a later target and eligible for that later as-of query.

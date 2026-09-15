@@ -128,6 +128,15 @@ the active prefix.
 
 ## One-command correction
 
+Issue #230 adds private unified local date/time entry to the existing metadata
+correction surface. Each emitted form targets one exact accepted metadata Command.
+Keep reads that Command's original timestamp server-side, preserving all accepted
+source spelling and precision; Replace converts an explicit local date/time/zone
+and Remove uses the existing absent value. Source binding includes full history,
+reopen context, target and profile generation, so equal revisions are insufficient.
+The existing one-command/suffix replay below remains authoritative. See
+[Local time entry](local_time_entry.md); no Command or Product persistence format changes.
+
 `SessionCommandCorrectionV1` contains:
 
 ```text

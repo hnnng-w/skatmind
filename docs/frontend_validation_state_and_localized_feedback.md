@@ -42,7 +42,7 @@ See [Settings and Player seat setup](settings_and_player_seat_setup.md).
 
 ## Canonical Form Registry
 
-`FRONTEND_FORM_REGISTRY` covers all 58 unified frontend POST routes through 98
+`FRONTEND_FORM_REGISTRY` covers all 59 unified frontend POST routes through 103
 exact definitions. Shared routes are split by their existing discriminator:
 
 ```text
@@ -87,6 +87,15 @@ instance and contains no Product identity. Multipart forms are not instrumented.
 The standalone Capture and Corpus renderers are not modified.
 
 ## Accepted And Submitted State
+
+Issue #230 adds five exact local-time/Settings forms with narrow `time_form` markers,
+source-bound `time_selection`, current profile generation, native date/time/zone
+controls, explicit Keep/Replace/Remove and occurrence choices. The unchanged raw
+RFC 3339 forms remain a separate legacy adapter; mixed representations are rejected.
+Safe local controls/errors reuse #223 preservation, with occurrence choices excluded
+from language envelopes. HMAC choices bind exact input, provider version and source.
+Gaps, partial date/time, unavailable zones, stale selections and save failures have
+specific bilingual `400`/`409` feedback. See [Local time entry](local_time_entry.md).
 
 Issue #229 adds value-free `recordings.open` selection with a separate bounded
 feedback family, contextual chooser `400`/`409`, and existing explicit Reload.

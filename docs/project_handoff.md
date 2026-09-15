@@ -2496,6 +2496,22 @@ languages/script modes, source-labelled Results/downloads, errors, and 320-pixel
 explicitly superseded. Both exact-merged-commit jobs remain closure gates; #208,
 unresolved UAT findings, B-09/B-07, and paused UAT-02–12 remain unchanged.
 
+Issue #230 adds [Saved time zones and local time entry](local_time_entry.md): an
+independent Settings preference, native optional local date/time entry for Match
+creation/update and Session metadata/correction, exact-source gaps/folds, and
+original-string Keep/Replace/Remove. It intentionally adds optional
+`interface_preferences.time_zone` and `tzdata>=2026.4` (minimum 2026.4); old profile
+bytes remain exact, but older builds may reject the extended shape until explicitly
+cleared. Packaged data is IANA 2026d in local evidence, with no host TZPATH required.
+Real returned-form/persistence tests and 128 installed-Wheel Edge measurements cover
+both languages/script modes, native inputs, errors, saves and reopen. Current counts
+are 59 private POST routes/103 forms/1,462 catalog keys. Profile-only changes retain
+#221 Requests/Results and temporal eligibility; real edits retain existing
+invalidation. Package 0.17.0, public/Product contracts and 98 outputs remain.
+This is partial remediation: exact merged-commit `check` and
+`v1-supported-platform-matrix` remain required; #208/unresolved findings remain
+open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open, B-06 closed, Release unready.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and
