@@ -152,6 +152,8 @@ def match_setup(cdp, server, title):
 
 
 def time_values(cdp, form, day, clock):
+    cdp.evaluate(f"""(() => {{for(let p=document.querySelector('{form}').parentElement;
+        p;p=p.parentElement) if(p.tagName==='DETAILS') p.open=true;}})()""")
     cdp.evaluate(f"document.querySelector('{form} .local-time-editor').open=true")
     fill(cdp, form + ' [name="local_date"]', day)
     fill(cdp, form + ' [name="local_time"]', clock)
@@ -256,7 +258,9 @@ def final_flow(cdp, server, context, output, evidence):
         fill(cdp, form + f' [name="{name}"]', value)
     save(cdp, form + ' button[value="update"]', evidence, "session-setup")
     save(cdp, form + ' button[value="create"]', evidence, "session-create")
-    form = '#session-recording form:has(input[value="session-metadata"])'
+    form = 'form:has(input[value="session-metadata"])'
+    cdp.evaluate(f"""(() => {{for(let p=document.querySelector('{form}').parentElement;
+        p;p=p.parentElement) if(p.tagName==='DETAILS') p.open=true;}})()""")
     measure(cdp, output, evidence, form, "session-metadata")
     time_values(cdp, form, "2026-01-15", "18:30")
     # Exercise native segmented date/time keys; inspect the actual resulting values.

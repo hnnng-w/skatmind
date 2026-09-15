@@ -98,8 +98,13 @@ hand and legitimate Skat restrictions. Retrospective promotion remains explicit,
 one-way, and fact-free.
 
 The primary task selects an existing typed Command from the phase and retained
-facts. Game metadata confirmation reuses the Session identity as the Game identity
-only on explicit submission. Cards use exact submitted codes with localized names.
+facts. Issue #231 prioritizes authorized initial Cards in setup/deal: the first
+successful normal Card save supplies missing Session-derived Game identity through
+one existing ID-only Command before the Cards. Creation stays revision zero;
+N Cards add N+1 revisions if identity is missing, otherwise N, with one save.
+Game details and exact time remain optional secondary operations. Opening and
+language changes initialize nothing. See [Direct Session Card start](session_direct_card_start.md).
+Cards use exact submitted codes with localized names.
 All ten existing Commands remain reachable through normal, optional, or correction
 forms. Corrections, strict-prefix Undo, Reload, accepted history, and raw payloads
 remain separate from normal recording. Existing expected-revision, replay,

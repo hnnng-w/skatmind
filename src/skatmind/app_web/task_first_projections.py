@@ -24,9 +24,7 @@ def project_task_first_session_v1(state: SessionStateV1) -> TaskFirstSessionV1:
         completed.append("task.command.set_declaration")
     if facts.played_card_count:
         completed.append("task.command.record_play")
-    if facts.game_id is None and "set_game_metadata" in allowed:
-        action = "set_game_metadata"
-    elif state.phase in {"setup", "deal"}:
+    if state.phase in {"setup", "deal"}:
         action = "record_dealt_card"
         player_id = next((player.player_id for player in facts.players
                           if (state.capture_mode == "retrospective"
@@ -34,6 +32,8 @@ def project_task_first_session_v1(state: SessionStateV1) -> TaskFirstSessionV1:
                           and len(facts.initial_hand_for(player.player_id) or ()) < 10), None)
         if player_id is None:
             destination = "skat"
+    elif facts.game_id is None and "set_game_metadata" in allowed:
+        action = "set_game_metadata"
     elif state.phase == "declaration":
         action = "set_declarer" if facts.declarer_player_id is None else "set_declaration"
     elif state.phase == "skat_and_discard":

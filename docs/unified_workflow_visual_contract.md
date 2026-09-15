@@ -103,6 +103,11 @@ transport regeneration remain unchanged.
 
 ## Contrast and reflow targets
 
+Issue #231 reuses these app-owned styles for
+[direct Session Card startup](session_direct_card_start.md#installed-browser-evidence).
+Its separate installed-Wheel evidence covers both languages/script modes, actual
+first-hand saves, optional details, errors and narrow/enlarged controls.
+
 The scoped reference is [WCAG 2.2](https://www.w3.org/TR/WCAG22/): normal text
 at least 4.5:1; large text at least 3:1 using the standard size definition;
 required authored enabled-control/state visuals at least 3:1 against adjacent

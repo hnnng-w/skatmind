@@ -124,6 +124,9 @@ Unavailable attempted Cards remain plain rejected input, and missing/stale bindi
 cannot restore selections into a new actor's form through a matching ordinal.
 Structured diagnostics, contextual `400`/`409`, recording anchors, and exact #223
 language restoration are documented in [Compact Card entry](compact_card_entry.md).
+Issue #231's [direct Session startup](session_direct_card_start.md) reuses those exact
+fields and bindings. Failure publishes neither missing identity nor a Card prefix;
+empty/checked initial selections retain the same task through language restoration.
 
 Rejected submitted state is separate from authoritative Product and accepted
 workflow state. Validation occurs before Product creation or mutation wherever

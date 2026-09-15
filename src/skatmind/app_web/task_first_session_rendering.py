@@ -312,7 +312,7 @@ def render_task_first_session_v1(
                 "conflict" if context.last_operation.status in {"conflict", "stale"} else
                 "partial" if context.last_operation.status == "partial" else
                 "rejected" if context.last_operation.status in {"rejected", "unavailable"} else "saved"))
-        optional = ''.join(disclosure(locale, f"task.command.{kind}",
+        optional = ''.join(disclosure(locale, "task.session.metadata_title" if kind == "set_game_metadata" else f"task.command.{kind}",
             _command(context, locale, view, kind, app=app_context)) for kind in view.workflow.secondary_actions)
         normal += disclosure(locale, "task.session.optional", optional)
         normal += _analysis(context, locale, view, game_label or text(locale, "page.session_current.title"))

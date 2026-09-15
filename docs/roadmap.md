@@ -1633,6 +1633,13 @@ byte-preserving Keep. Date-only labels remain non-temporal. Real HTTP and instal
 Wheel de/en/script/no-script evidence covers saves, corrections and reopen; this is
 partial remediation, not a complete frontend/UAT pass. Older-reader limits and the
 intentional dependency/profile-shape extension are documented explicitly.
+Issue #231 adds [Direct Session Card start](session_direct_card_start.md): revision-zero
+creation immediately offers initial Cards. Missing Game identity is an ID-only
+Command in the first successful initial batch: N+1 revisions and one save; existing
+identity retains N revisions. Optional time, exact accepted prefixes/checkpoints,
+Undo/reopen, language and saved decision review retain their boundaries. Real HTTP
+and installed-Wheel bilingual/native evidence cover this bounded path. #229/#230
+remain closed completed prerequisites after maintainer-confirmed CI.
 Exact merged-commit `check` and `v1-supported-platform-matrix` remain required,
 with future focused Session and Match affected-path retests. The September 11 repeated
 UAT failure and unresolved findings remain open; the technical ledger remains closed.

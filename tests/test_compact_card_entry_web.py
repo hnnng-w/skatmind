@@ -31,9 +31,12 @@ def create_live(browser):
         game_name="Synthetic recorded Game", capture_mode="live", perspective_seat="forehand",
         forehand_name="Alexandra Long-Synthetic-Player-Name", middlehand_name="Boris",
         rearhand_name="Clara", setup_action="update"))
-    follow(browser, browser.submit(Forms(page).find("/sessions/create"), setup_action="create"))
-    browser.command("set_game_metadata")
-    return Forms(browser.page()).find("/sessions/cards")
+    page = follow(browser, browser.submit(
+        Forms(page).find("/sessions/create"), setup_action="create"))
+    active = browser.server.app_context.managed_stateful.active_session
+    assert active.state.revision == 0 and active.state.command_log == ()
+    assert active.state.phase == "setup"
+    return Forms(page).find("/sessions/cards")
 
 
 def selected(page, route="/sessions/cards"):
@@ -46,7 +49,7 @@ def choice_codes(page, *, mode="play"):
     return re.findall(r'<input[^>]+name="cards" value="([^"]+)"', block)
 
 
-def test_real_one_post_ten_commands_one_save_reopen_then_all_plays_and_review(
+def test_real_direct_start_eleven_commands_one_save_reopen_then_all_plays_and_review(
     localized_server, monkeypatch,
 ):
     browser = Browser(localized_server)
@@ -75,11 +78,17 @@ def test_real_one_post_ten_commands_one_save_reopen_then_all_plays_and_review(
     assert saves == [original_fingerprint] and not executes
     assert len(replacements) == 1
     records = active.state.command_log[original_state.revision:]
-    assert len(records) == 10
-    assert all(record.command.kind == "record_dealt_card" for record in records)
-    assert [record.command.card for record in records] == [c for c in get_full_deck() if c in hand]
+    assert len(records) == 11
+    assert records[0].command == api.SetSessionGameMetadataCommandV1(
+        expected_revision=0, game_id=active.state.session_id, played_at=None)
+    assert all(record.command.kind == "record_dealt_card" for record in records[1:])
+    assert [record.command.card for record in records[1:]] == [
+        c for c in get_full_deck() if c in hand]
+    assert [record.revision for record in records] == list(range(1, 12))
+    assert [record.command.expected_revision for record in records] == list(range(11))
+    assert replay_session_state_v1(active.state).played_at is None
     assert active.state.phase == "declaration"
-    assert active.state.revision == original_state.revision + 10
+    assert active.state.revision == original_state.revision + 11
     saved = active.document
     follow(browser, browser.submit(Forms(browser.page("/sessions")).find("/sessions/open")))
     active = localized_server.app_context.managed_stateful.active_session
@@ -98,9 +107,11 @@ def test_real_one_post_ten_commands_one_save_reopen_then_all_plays_and_review(
         assert play["card"] in choice_codes(page)
         form = Forms(page).find("/sessions/play")
         assert "cards" not in form["values"]
+        count, revision = len(saves), active.state.revision
         response = browser.submit(form, cards=play["card"])
         assert response[1]["location"] == "/sessions/current#session-recording"
         follow(browser, response)
+        assert len(saves) == count + 1 and active.state.revision == revision + 1
         observed.append(play["card"])
     assert not executes and len(active.decision_checkpoints) == 10
     facts = replay_session_state_v1(active.state)
@@ -228,7 +239,8 @@ def test_native_rejected_selection_language_and_forged_fields(localized_server):
     assert selected(page) == ["SJ", "CA"]
     assert text("de", "validation.card_entry.duplicate") in page
     assert active.path.read_bytes() == before
-    for extra in ({"player_id": "forged"}, {"destination": "skat"}, {"command": "forged"}):
+    for extra in ({"player_id": "forged"}, {"destination": "skat"}, {"command": "forged"},
+                  {"game_id": "forged"}, {"played_at": "2026-01-15T19:30:00Z"}):
         assert browser.submit(form, cards=["CA"], **extra)[0] == 400
     assert browser.submit(form, cards=["CA"], managed_handle="f" * 64)[0] == 409
     assert browser.submit(form, cards=["CA"], card_selection="f" * 64)[0] == 409

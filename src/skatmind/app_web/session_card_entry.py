@@ -103,11 +103,24 @@ class SessionCardCandidate:
 def prepare_session_card_candidate(
     state, checkpoints, cards, *, task: SessionCardTask, export_options=None,
 ) -> SessionCardCandidate:
-    """N ordinary revisions, including intermediate Checkpoints, with no publication/I/O."""
-    if task != project_session_card_task(state):
+    """N Card revisions, plus missing initial identity, with no publication/I/O."""
+    view = project_task_first_session_v1(state)
+    if task is None or task != project_session_card_task(state, view=view):
         raise CardEntryError("task")
     ordered = validate_card_selection(cards, capacity=task.capacity)
     options = export_options or default_session_position_export_options_v1()
+    if (state.phase in {"setup", "deal"} and task.kind == "record_dealt_card"
+            and view.facts.game_id is None):
+        checkpoints = _collect_current_checkpoint(
+            state=state, checkpoints=checkpoints, export_options=options)
+        metadata = session_api.SetSessionGameMetadataCommandV1(
+            expected_revision=state.revision, game_id=state.session_id, played_at=None)
+        result = session_api.apply_session_command(state, metadata).value
+        if result.status != "applied":
+            raise CardEntryError("task")
+        state = result.state
+        checkpoints = _collect_current_checkpoint(
+            state=state, checkpoints=checkpoints, export_options=options)
     for card in ordered:
         checkpoints = _collect_current_checkpoint(
             state=state, checkpoints=checkpoints, export_options=options)

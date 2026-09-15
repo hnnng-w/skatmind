@@ -2512,6 +2512,22 @@ This is partial remediation: exact merged-commit `check` and
 `v1-supported-platform-matrix` remain required; #208/unresolved findings remain
 open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open, B-06 closed, Release unready.
 
+Issue #231 implements [Direct Session Card start](session_direct_card_start.md):
+setup/deal immediately offers known initial Cards, with optional Game details in
+the existing secondary area. Creation remains revision zero. A missing-ID normal
+initial batch composes one ID-only Command plus N Cards before one atomic save;
+existing-ID batches retain N revisions. Exact prefixes/checkpoints, timestamp text,
+Undo/reopen, explicit local time and #221 review remain intact. Focused coverage
+has 52 new tests; the 957-test affected-path run passed. The Card route now enforces
+its existing declared 8,192-byte bound before preparation. Installed-Wheel Edge 153
+evidence covers de/en, script/no-script, direct saves, errors, language, optional time and
+320-pixel/200%-text reflow; the successful initial path uses one mutation POST after
+creation instead of two. Counts remain 59 routes/103 forms, with 1,463 catalog keys.
+#229/#230 are closed completed prerequisites after maintainer-confirmed CI. Exact
+merged-commit `check` and `v1-supported-platform-matrix` remain required for #231;
+#208/unresolved findings stay open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open,
+B-06 closed, Release unready. Complete final-check results accompany the report.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

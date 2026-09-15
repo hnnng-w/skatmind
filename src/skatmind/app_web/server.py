@@ -2971,6 +2971,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             if parsed.path in _STATEFUL_POST_ROUTES:
                 if parsed.path in {"/sessions/import", "/matches/import"}:
                     max_bytes = _MANAGED_IMPORT_MAX_REQUEST_BYTES
+                elif parsed.path == "/sessions/cards":
+                    max_bytes = get_frontend_form_by_key_v1("session.cards").body_limit
                 elif parsed.path == "/learning/api/v1/operations":
                     max_bytes = LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES
                 elif parsed.path.startswith("/matches/api/v1/") or parsed.path in RECOVERY_ROUTES:

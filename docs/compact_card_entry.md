@@ -36,6 +36,11 @@ and standalone surfaces retain their meanings. Shared legacy `card_select` and
 
 ## Session append: candidate first, save last
 
+Issue #231 adds [Direct Session Card start](session_direct_card_start.md): setup/deal
+immediately offers the authorized selector. Creation remains revision zero. A missing
+Game ID is supplied by an existing ID-only Command in the first successful normal
+initial-deal candidate, before the Cards; optional metadata stays secondary.
+
 `app_web/session_card_entry.py` derives one current task from accepted replay and
 the task-first projection. A batch has one destination and, where applicable, one
 Player. Initial hands allow one through the remaining capacity out of ten, known
@@ -63,8 +68,10 @@ operation is not called in a loop.
 Only the final immutable candidate reaches existing `_persist_session_mutation`:
 one existing persistence document, one public `session.files.save_session_file`
 call against the original fingerprint, and unchanged same-directory atomic save.
-**N Cards are N ordinary Commands and N Product revisions, with one submission and
-one save.** There is no batch marker, new public kind, persistence field, group Undo,
+**With identity already recorded, N Cards are N ordinary Commands and N Product
+revisions. Missing-ID initial-deal entry adds N+1 ordinary Commands/revisions. Both
+use one submission and one save.** There is no batch marker, new public kind,
+persistence field, group Undo,
 or direct Log replacement. Undo/correction/replay/provenance and #221 lineage retain
 their existing interpretation.
 
@@ -166,7 +173,8 @@ and bounded unknown-hand filtering. Real later discard ownership failure is
 distinguished from injected Checkpoint failure.
 
 `tests/test_compact_card_entry_web.py` uses real #225 returned creation forms,
-transitions and files. It saves ten Cards in one POST/save, reopens partial/complete
+transitions and files. Its #231 startup now omits separate metadata submission and
+saves ID plus ten Cards at revision 11 in one POST/save, reopens partial/complete
 hands, records all 30 legal Plays without opponent hands, and executes genuine #221
 review after reopen. Match cases cover initial evidence after its owner's Play,
 exact/unknown/empty modes, valid Skat/discard overlap, ordered advanced Plays, genuine

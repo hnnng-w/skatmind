@@ -17,8 +17,10 @@ Settings has one native selector with **Use application default (Europe/Berlin)*
 then Europe/Berlin, UTC and remaining installed keys in stable order without
 duplicates. Saving Berlin explicitly stores a preference even though the unset
 default is also Berlin. Saving the stored selection is a no-op. GET creates/writes
-no profile. The normal Match display-date field and separate Session metadata
-confirmation remain. Statistics/manual Analyze/Review timestamps, video timecodes,
+no profile. The normal Match display-date field remains. Issue #231 makes Session
+metadata secondary: [direct initial Card entry](session_direct_card_start.md) supplies
+a missing ID in its one-save candidate, without a timestamp or separate confirmation.
+Statistics/manual Analyze/Review timestamps, video timecodes,
 platform/format controls and other timestamp surfaces are not replaced.
 
 ## Intentional private-profile extension
@@ -127,9 +129,12 @@ the current projected time.
 
 Session metadata remains append-only: an additional metadata entry supplies only
 a missing field. Once time is recorded, the optional area links to its explicit
-accepted-Command correction. Confirming a missing Game ID keeps an already recorded
+accepted-Command correction. Supplying a missing Game ID keeps an already recorded
 timestamp by leaving the new Command's timestamp absent, preserving the accepted
-original rather than attempting to record it twice.
+original rather than attempting to record it twice. Direct Card startup uses the
+same ID-only semantics without invoking local-time resolution. Optional time may
+still be appended after hand entry. Remove cannot replace a timestamp-only legacy
+Command with an invalid empty metadata Command or silently change correction targets.
 
 Match display date remains profile-only metadata, never temporal evidence. At
 creation it must match an explicitly entered local calendar date, not the UTC
