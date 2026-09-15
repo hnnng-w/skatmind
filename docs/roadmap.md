@@ -1643,3 +1643,13 @@ remain closed completed prerequisites after maintainer-confirmed CI.
 Exact merged-commit `check` and `v1-supported-platform-matrix` remain required,
 with future focused Session and Match affected-path retests. The September 11 repeated
 UAT failure and unresolved findings remain open; the technical ledger remains closed.
+
+Issue #232 clarifies [Match platform and fixed recording scope](settings_and_player_seat_setup.md#issue-232-fixed-recording-scope-evidence):
+one neutral 36-position/three-fixed-Player fact including passed deals, with the
+unchanged EuroSkat template under optional Technical details. Creation/setup/errors
+and active metadata distinguish platform, source and format. Existing mapping,
+defaults, rotation, local time and Product operations remain. Focused real HTTP
+and installed-Wheel de/en/script/no-script evidence cover creation/reopen and
+narrow/enlarged text. #231 remains completed; both exact merged-commit CI jobs
+remain closure gates. #208/unresolved findings, failed UAT-01, paused UAT-02–12,
+open B-09/B-07 and closed B-06 retain their state; no Release readiness is claimed.

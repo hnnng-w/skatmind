@@ -2528,6 +2528,18 @@ merged-commit `check` and `v1-supported-platform-matrix` remain required for #23
 #208/unresolved findings stay open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open,
 B-06 closed, Release unready. Complete final-check results accompany the report.
 
+Issue #232 clarifies the [fixed Match recording scope](settings_and_player_seat_setup.md#issue-232-fixed-recording-scope-evidence):
+normal creation/setup/errors and metadata use 36 positions including passed deals
+with three fixed Players, independently of descriptive platform and observation
+source. Optional Technical details retain the exact EuroSkat registry identity.
+It explicitly supersedes #219's normal format label; canonical format, platform
+mapping/defaults, source, seats, time entry and Product persistence are unchanged.
+Real HTTP creation/update/reopen tests and installed-Wheel Edge 153 de/en/native
+evidence cover the slice, including 320 pixels/200% text. Counts remain 59 routes,
+103 forms and 98 outputs; catalogs have 1,464 keys. #231 remains completed. Both
+exact merged-commit CI jobs gate manual closure; #208/unresolved findings remain
+open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open, B-06 closed, Release unready.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

@@ -104,8 +104,22 @@ Session creation saves no separate perspective preference. The compatible hidden
 preferred perspective is retained but does not fill ordinary forms. Capture mode
 is not a saved profile preference.
 
-The Match form presents the fixed `EuroSkat 36-game standard` format as a
-friendly non-editable fact. It asks for a Match title, an optional date-only
+Issue #232 supersedes #219's normal `EuroSkat 36-game standard` wording with
+**Recording format (fixed): 36 games · 3 fixed players**, translated through the
+German/English catalogs. The positions include passed deals. Platform describes
+where play occurred and does not select another template; other Match formats
+are not supported. Counts come from the existing canonical format object.
+Creation, setup review, validation rerenders and active Match metadata share the
+same compact scope paragraph. The existing metadata editor remains operational.
+
+Optional **Technical details**, appended inside the existing Advanced Match
+details disclosure, displays the exact read-only canonical definition:
+`euroskat_36_standard_v1`, provider `EuroSkat`, display name `36er Standard`,
+`player_count = 3`, `game_count = 36`. This is ordinary escaped presentation,
+not a submitted field or new browser payload. The earlier label remains historical
+evidence; the stored ID/provider/name, registry and template are unchanged.
+
+The form asks for a Match title, an optional date-only
 display value, a friendly platform, three named Players, and a perspective
 seat. Friendly platform values are `euroskat`, `in_person`, `other_online`,
 `unknown`, and `custom`. An optional Source URL is a normal field; source kind,
@@ -119,6 +133,14 @@ Issue #225 gives these fields seat-named game-1 semantics. Complete Forehand,
 Middlehand and Rearhand bundles map respectively to places 2, 3 and 1. Rotation
 and standalone table-place creation are unchanged. Match has a separate unchecked
 save-platform checkbox, with no seat or perspective saving effect.
+
+All five choices retain their exact mapping: `euroskat` → `EuroSkat`, `in_person`
+→ `In-person game`, `other_online` → `Other online platform`, `unknown` → `Unknown`,
+and `custom` → existing validated custom text. Custom metadata is not inspected
+for brands or Game counts. Source URL/kind describes the observation independently
+of platform and format. Native selection changes only unsaved input; roster,
+source and local-time values are retained. Neither selection nor disclosure
+opening sends a Product request. There is no provider-specific ranking/fee claim.
 
 The Learning form asks only for a collection name and generates the internal
 Corpus ID. It does not import Matches, select a Current Snapshot, prepare
@@ -171,6 +193,16 @@ counts are 59 POST routes/103 forms. See [Local time entry](local_time_entry.md)
 explicit gaps/folds, creation binding, before-ID validation, literal local-date
 reconciliation and directional compatibility. No Public API, Schema, example,
 generated output or Package entry point is introduced.
+
+Issue #232 retains those 59 POST routes and 103 exact forms and adds one matching
+catalog key, bringing the de/en catalogs to 1,464 keys. Its 35 focused cases cover
+all platform choices, saved/default-saving choices, custom escaping, exact canonical
+object identity, all 36 rotations, genuine returned-form creation/error/correction,
+strict reopen, and metadata updates preserving an accepted Play prefix. A real
+Decision Report survives no-op/passive operations and is invalidated by the actual
+metadata revision. Existing canonical count-override/unsupported-format tests and
+standalone interfaces remain intact. Installed-browser evidence is recorded in
+[Settings and Player seat setup](settings_and_player_seat_setup.md#issue-232-fixed-recording-scope-evidence).
 
 ## Remaining frontend work
 

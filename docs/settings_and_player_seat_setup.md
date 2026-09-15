@@ -163,6 +163,24 @@ this platform as my default** changes only that platform preference. It saves no
 seat, own identity, perspective, or analysis parameters. With no saved platform,
 the ordinary Match form starts at the explicit **Unknown** choice.
 
+Issue #232 supersedes the earlier #219 normal brand-specific format label. Match
+creation and its setup/error rerenders now state **Recording format (fixed):
+36 games · 3 fixed players**, with catalog-backed German/English wording. These
+are 36 positions including passed deals, with the same participants. Platform
+describes where play occurred; Source URL/kind describes the observation; the
+canonical format controls the fixed structure. Other Match formats are unsupported.
+All five native platform choices use that same scope immediately, without a request
+or script. Choosing one alone saves nothing and retains roster, time and source.
+Only the existing explicit save-platform choice changes the preferred platform.
+
+The existing Advanced Match details disclosure contains optional read-only
+**Technical details** with the canonical `euroskat_36_standard_v1` / `EuroSkat` /
+`36er Standard` / 3 Players / 36 Games identity. No format field is submitted.
+Active metadata correction uses the same scope and independent source guidance;
+its accepted values, rejected input, revision/CAS and Report lifecycle remain
+distinct. The template, account ownership, game-1 mapping and Games 2–36 rotation
+are unchanged. Historical #219/#225 evidence below remains historical.
+
 The Advanced creation-details checkbox retains its stored meaning: optional Match
 details start expanded. It does not make those details mandatory. Recommended
 reset still clears platform, legacy preferred perspective and Advanced expansion;
@@ -228,3 +246,89 @@ Exact merged-commit `check` and `v1-supported-platform-matrix` must be green bef
 UAT-02–12 paused, B-09/B-07 open, B-06 closed. #221–#224 remain completed bounded
 implementation slices. Package **0.17.0**, Python **>=3.13**, dependencies, license,
 public APIs, Schemas, generated outputs and Release state remain unchanged.
+
+## Issue #232 fixed recording scope evidence
+
+Starting clean branch: `feature/232-match-format-presentation`, HEAD
+`5c073862c3e3b8d5cbd79921fe50e62a8a0b34ad`. GitHub confirmed Issue #232. The four
+specified creation/format source files had no differences against archive
+`aecd151aafff1601b0366bb024e65a98006f4240`; #231's shared changes were retained.
+#231 remains a completed prerequisite.
+
+The optional `scripts/verify_match_format_presentation.py` reuses the existing
+dependency-free DevTools transport with independently installed Wheels. It rejects
+checkout imports and checks 16 installed modules/resources byte-for-byte against
+the starting commit (baseline) or current source (final). It uses real returned
+forms and native keyboard select/Enter/Space/text entry, not injected Workspaces
+or repaired hidden bindings. Local evidence is under:
+
+```text
+<temporary-directory>/opencode/match-232-before/evidence.json
+<temporary-directory>/opencode/match-232-after-final/evidence.json
+```
+
+Both have `completed: true`. Baseline: **16 measurements**. Final: **80 measurements
+and 112 PNGs**, Microsoft Edge **153.0.4234.32**, Windows, CPython **3.13.7**, Package
+**0.17.0**. Both locales and JavaScript modes cover **1365×900**, **390×844**,
+**320×800**, plus **200% text at 320 pixels**. Text enlargement doubles computed
+font sizes once; browser zoom/device scale remain 100%/1. Every final measured
+document/client width agrees: **1350/1350**, **375/375**, or **305/305** pixels.
+Existing app-owned wrapping/focus styles suffice; no stylesheet change is needed.
+
+The baseline normal line remained brand-specific after all five native platform
+changes. The final line remains neutral after the same changes. Initial, setup,
+validation-error, Technical details and active metadata screenshots were inspected,
+including enlarged German text and literal escaped custom characters. A transient
+blank capture after rapid reflow was corrected in the probe with a paint wait;
+the final enlarged-text PNGs show the actual text. Representative filenames:
+
+* `js-de-initial-1365-1.png` (also available in the baseline directory);
+* `js-de-setup-1365-1-platform.png`;
+* `native-en-initial-320-1-platform.png`;
+* `native-de-initial-320-2.png`;
+* `js-en-technical-320-2.png`;
+* `native-en-error-390-1.png`;
+* `js-en-metadata-1365-1.png` and `native-de-metadata-320-2.png`.
+
+All four final native flows change every platform choice, enter a custom value,
+reject empty custom text and duplicate Players, switch languages, correct and review
+setup, create a non-EuroSkat Match, and strictly reopen it. The explicit platform
+checkbox is checked in the German flow and omitted in the English flow, retaining
+the existing default. The stored custom value is `Club <18> & "Zocker"`; it remains
+descriptive. Source remains the supplied YouTube observation; local time remains
+`2026-09-03T19:30:00+02:00`. Each Workspace has 36 Slots and game-1 Forehand Anna,
+Middlehand Peter, Rearhand Mira, with Peter as perspective. Setup/errors write no
+Product; explicit creation performs exactly one Product replacement. GET, platform
+selection, disclosure opening and language changes perform no Product write or
+analysis. Unsent browser-only values survive language switching only with #223's
+optional JavaScript; already submitted safe errors/values survive both modes.
+
+Final installed resource SHA-256 values (full module inventory is in `evidence.json`):
+
+| Resource relative to `app_web` | SHA-256 |
+| --- | --- |
+| `assets/app.css` | `3b8257ebb8b9fa8f4587772c41bb5d749970a18da42e617349326e9f1377459c` |
+| `assets/workflow.js` | `f15857d1303a9a46f42b13ae3311533f50d822f8ef4f47d0d5c8015c04cf5298` |
+| `locales/en.json` | `a2e3c33549d4eeae79bc7614b049ae5b1f3e8eac319845ce3afc0e3efdcbc77a` |
+| `locales/de.json` | `3ba99b8c1904f3cde6def01c35684408f0b77eb2005bac3dad1ec6ad88b8deb3` |
+| `friendly_creation_rendering.py` | `34d1beb4c8647bbb04c31ef799f09707f06f2d68e5aa137ba87b18a2cf3f34e5` |
+| `task_first_match_rendering.py` | `a2e474c4a57782443e67ca1b6e8e2c82a0b223ab19b0e36864b2a0234f24d8e7` |
+
+The final Wheel SHA-256 is
+`8e9aacfcb17cab072f054ba2ffc4e2bc688fbc2e34ba66cbe04a43b2c8077932`.
+Loaded HTTP resources are `/assets/app.css` and `/matches/assets/capture.js`;
+authenticated bytes match their installed resources and current source. Catalogs
+are Package resources used server-side, not new browser downloads.
+
+The 488-test focused run covers creation/metadata, canonical contracts, locale,
+validation/security, packaging, standalone Capture, and #225/#229–#231 regressions.
+The 35-case new suite also checks real EuroSkat/custom HTTP creation in both languages,
+all 36 rotations, and a platform-only metadata revision preserving a three-Play
+prefix and invalidating a real Decision Report, with no-op/stale protection.
+Final full-check results accompany the implementation report. Both exact merged-
+commit `check` and `v1-supported-platform-matrix` remain required before manual
+closure. This is bounded implementation evidence: #208/unresolved findings remain
+open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open, B-06 closed. Package, Python
+minimum, AGPL-3.0-only, dependencies including `tzdata>=2026.4`, #230 profile shape,
+public/Product contracts and 98 outputs remain unchanged. No whole-UAT acceptance
+or Release readiness is claimed.

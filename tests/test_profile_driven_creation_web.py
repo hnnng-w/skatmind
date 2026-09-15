@@ -81,7 +81,8 @@ def test_match_creation_is_bilingual_friendly_and_keeps_technical_fields_advance
             (
                 "Match title",
                 "Date played",
-                "EuroSkat 36-game standard",
+                "Recording format (fixed)",
+                "36 games · 3 fixed players",
                 "Advanced Match details",
                 "Source URL",
             ),
@@ -91,7 +92,8 @@ def test_match_creation_is_bilingual_friendly_and_keeps_technical_fields_advance
             (
                 "Match-Titel",
                 "Spieldatum",
-                "EuroSkat-36er-Standard",
+                "Erfassungsformat (fest)",
+                "36 Spiele · 3 feste Spieler",
                 "Erweiterte Match-Angaben",
                 "Quellen-URL",
             ),
@@ -99,7 +101,7 @@ def test_match_creation_is_bilingual_friendly_and_keeps_technical_fields_advance
     ):
         assert all(value in html for value in values)
         assert "frontend-player-" not in html
-        assert "euroskat_36_standard_v1" not in html
+        assert html.index("euroskat_36_standard_v1") > html.index('class="technical-details"')
         assert 'name="match_id"' not in html
         assert 'name="perspective_player_id"' not in html
         assert 'name="player_1_id"' not in html

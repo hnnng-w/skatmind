@@ -6,6 +6,7 @@ from html import escape
 from .compact_card_rendering import compact_card_selector
 from .compact_declaration_rendering import accepted_declaration_summary, compact_declaration_fields
 from .form_registry import get_frontend_form_by_key_v1
+from .friendly_creation_rendering import render_fixed_match_format_v1
 from .local_time_rendering import render_local_time_editor
 from .match_report_rendering import render_match_reports_v1
 from .recorded_trick_rendering import (
@@ -295,7 +296,7 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     for index, player in enumerate(state["participants"], 1):
         metadata[f"player_{index}_label"] = player["player_label"]
         metadata[f"player_{index}_platform_id"] = player["platform_player_id"]
-    body += '<div id="match-metadata" tabindex="-1">' + disclosure(locale, "task.match.metadata", paragraph(locale, "task.match.metadata_help")
+    body += '<div id="match-metadata" tabindex="-1">' + disclosure(locale, "task.match.metadata", render_fixed_match_format_v1(locale) + paragraph(locale, "task.match.metadata_help")
         + operation_form(state, handle, locale, "update_match_metadata", values=metadata)) + '</div>'
     body += disclosure(locale, "task.match.statistics", _statistics(state, handle, locale))
     from .match_review_rendering import render_match_analysis_v1

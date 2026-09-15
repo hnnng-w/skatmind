@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from html import escape
 
+from skatmind.match_tournament_format import EUROSKAT_36_STANDARD_V1_FORMAT
+
 from .frontend_profile_contracts import LocalFrontendProfileV1
 from .frontend_profile_operations import FRONTEND_PROFILE_MANAGED_LABEL_ACTION_ROUTE
 from .local_time_forms import LocalTimeFormContext
@@ -9,6 +11,7 @@ from .local_time_rendering import render_local_time_editor
 from .managed_item_contracts import ManagedCategoryViewV1
 from .profile_driven_creation import FRIENDLY_GAME_PLATFORMS
 from .seat_setup_rendering import render_seat_setup_v1, render_setup_actions_v1
+from .task_first_rendering import technical_details
 from .translation_catalog import translate_frontend_message_v1
 
 
@@ -89,6 +92,18 @@ def _platform_options(
     )
 
 
+def render_fixed_match_format_v1(locale: str) -> str:
+    format_definition = EUROSKAT_36_STANDARD_V1_FORMAT
+    scope = _t(locale, "creation.match.format_value", games=format_definition.game_count,
+               players=format_definition.player_count)
+    return (
+        '<p class="match-recording-format">'
+        f"<strong>{_t(locale, 'creation.match.format')}</strong>: "
+        f"{scope}"
+        f"<br>{_t(locale, 'creation.match.format_help')}</p>"
+    )
+
+
 def render_profile_driven_match_creation_v1(
     *,
     profile: LocalFrontendProfileV1 | None,
@@ -137,8 +152,7 @@ def render_profile_driven_match_creation_v1(
         f'<label class="custom-platform-field">{_t(locale, "creation.match.custom_platform")} '
         f'<input name="custom_platform" maxlength="120" '
         f'value="{escaped_custom_platform}"></label>'
-        f"<p><strong>{_t(locale, 'creation.match.format')}</strong>: "
-        f"{_t(locale, 'creation.match.format_value')}</p>"
+        + render_fixed_match_format_v1(locale)
         + render_seat_setup_v1(profile, locale, family="matches", setup=setup)
         + f"<label>{_t(locale, 'creation.match.source_url')} "
         '<input type="url" name="source_url" maxlength="2048"></label>'
@@ -172,6 +186,8 @@ def render_profile_driven_match_creation_v1(
         '<input name="match_timecode_end" placeholder="02:03:04"></label>'
         f"<small>{_t(locale, 'creation.advanced.timecode_help')}</small>"
         "</div>"
+        + technical_details(locale, EUROSKAT_36_STANDARD_V1_FORMAT.to_dict())
+        +
         "</details>"
         + render_setup_actions_v1(locale, family="matches", setup=setup)
         + "</form></section>"
