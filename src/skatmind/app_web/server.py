@@ -179,6 +179,19 @@ from .recorded_review_opening import (
     require_recording_fresh_v1,
 )
 from .recorded_review_rendering import render_recorded_review_chooser_v1
+from .recording_deletion import (
+    DELETION_BODY_LIMIT,
+    DELETION_PAGE,
+    DELETION_POST_ROUTES,
+    invalidate_deletion_activation,
+)
+from .recording_deletion_http import (
+    deletion_error_key,
+    deletion_notice,
+    dispatch_recording_deletion,
+    render_deletion_page,
+    render_foreign_deletion_error,
+)
 from .rendering import (
     render_app_content_page_v1,
     render_app_error_page_v1,
@@ -332,6 +345,7 @@ _SESSION_DOWNLOAD_ROUTES = {
     "/sessions/downloads/result.json",
 }
 _STATEFUL_POST_ROUTES = {
+    *DELETION_POST_ROUTES,
     OPEN_RECORDING_ROUTE,
     "/sessions/create",
     "/sessions/import",
@@ -393,6 +407,7 @@ def _is_stateful_get_route(path: str) -> bool:
     return (
         path
         in {
+            DELETION_PAGE,
             "/sessions/current",
             "/matches/new",
             "/matches/current",
@@ -1109,6 +1124,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self,
         definition: FrontendFormDefinitionV1,
     ) -> object | None:
+        if definition.originating_page == DELETION_PAGE:
+            from .recording_deletion import current_deletion_preview
+            return current_deletion_preview(self.server.app_context)
         if definition.originating_page not in {
             "/sessions/current",
             "/matches/current",
@@ -1139,7 +1157,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 self.server.app_context.form_feedback.current(
                     family,
                     active_identity=(
-                        active_identity if family in {"sessions", "matches", "learning"} else None
+                        active_identity if family in {"sessions", "matches", "learning", "deletion"}
+                        else None
                     ),
                 )
                 for family in families
@@ -1179,6 +1198,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if media_type == "application/x-www-form-urlencoded":
             parsed = self._urlencoded_form(body, content_type)
             flattened = {name: values[0] for name, values in parsed.items() if len(values) == 1}
+            if path in DELETION_POST_ROUTES:
+                self._submitted_deletion_selection = flattened.get("deletion_selection")
             if (path == FRONTEND_LANGUAGE_ACTION_ROUTE
                     and is_safe_frontend_return_path_v1(flattened.get("return_to"))):
                 self._profile_action_return_to = flattened["return_to"]
@@ -1219,6 +1240,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         issues: tuple[FrontendValidationIssueV1, ...],
         status: int,
     ) -> None:
+        if getattr(getattr(self, "_submitted_active", None), "retired", False):
+            return
         family = definition.active_context_requirement or "profile"
         active_identity = self._feedback_identity(definition)
         with self.server.app_context.lock:
@@ -1256,6 +1279,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         status: int,
     ) -> None:
         page = definition.originating_page
+        if page == DELETION_PAGE:
+            render_deletion_page(self, status=status)
+            return
         if page == RECORDED_REVIEW_ROUTE:
             self._recorded_review_page(status=status)
             return
@@ -1360,6 +1386,15 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         definition = getattr(self, "_current_form_definition", None)
         if type(definition) is not FrontendFormDefinitionV1:
             return False
+        if definition.form_key.startswith("deletion."):
+            from .recording_deletion import current_deletion_preview
+            pending = current_deletion_preview(self.server.app_context)
+            if pending is not None and pending.selection != getattr(
+                    self, "_submitted_deletion_selection", None):
+                render_foreign_deletion_error(self, deletion_error_key(error, status), status)
+                return True
+            issues = (FrontendValidationIssueV1(field_key=None,
+                message_key="validation.deletion." + deletion_error_key(error, status)),)
         if definition.form_key == "session.review_decision" and issues is None:
             issues = (recorded_review_feedback_v1(error, status=status),)
         if definition.form_key == "recordings.open" and issues is None:
@@ -1614,16 +1649,24 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
 
     def _activate_session(self, active) -> None:
         with self.server.app_context.managed_stateful.session_lifecycle_lock:
+            with active.lock:
+                active.require_attached()
+                require_recording_fresh_v1(active, "sessions")
             with self.server.app_context.lock:
                 previous = self.server.app_context.managed_stateful.activate_session(active)
+                invalidate_deletion_activation(self.server.app_context, previous, active)
             if previous is not None:
                 with previous.lock:
                     previous.clear_execution()
 
     def _activate_match(self, active) -> None:
         with self.server.app_context.managed_stateful.match_lifecycle_lock:
+            with active.capture.lock:
+                active.require_attached()
+                require_recording_fresh_v1(active, "matches")
             with self.server.app_context.lock:
                 previous = self.server.app_context.managed_stateful.activate_match(active)
+                invalidate_deletion_activation(self.server.app_context, previous, active)
             if previous is not None:
                 with previous.capture.lock:
                     previous.capture.report_store.clear()
@@ -1670,9 +1713,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             else:
                 raise ValueError("family must identify one managed item family.")
             if active is None:
-                raise KeyError("No managed item is active for this form.")
+                raise StaleFrontendWorkflowRevisionError()
             if submitted_handle != active.handle:
                 raise StaleFrontendWorkflowRevisionError
+            self._submitted_active = active
         return active
 
     def _managed_category_page(
@@ -1704,7 +1748,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             route,
             return_to=route,
             title=title,
-            content=render_managed_category_landing_v1(
+            content=deletion_notice(self.server.app_context, route, self._frontend_state().locale)
+            + render_managed_category_landing_v1(
                 discovery.view,
                 profile=profile_state.document,
                 profile_generation=profile_state.generation,
@@ -1754,7 +1799,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         locale = self._frontend_state().locale
         self._content_page(RECORDED_REVIEW_ROUTE, return_to=RECORDED_REVIEW_ROUTE,
             title=translate_frontend_message_v1(locale, "navigation.review"),
-            content=render_recorded_review_chooser_v1(discoveries, profile=profile,
+            content=deletion_notice(context, RECORDED_REVIEW_ROUTE, locale)
+            + render_recorded_review_chooser_v1(discoveries, profile=profile,
                 locale=locale, active_sources=tuple(sources)), status=status,
             feedback_family="recordings", untranslated_workflow_body=False)
 
@@ -2075,6 +2121,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         return False
 
     def _stateful_get(self, path: str) -> bool:
+        if path == DELETION_PAGE:
+            render_deletion_page(self)
+            return True
         if path == RECORDED_REVIEW_ROUTE:
             self._recorded_review_page()
             return True
@@ -2596,6 +2645,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             report_id = values["report_id"]
         target_result = target.last_result
         status = HTTPStatus.OK if target_result is None else target_result.http_status
+        with source.capture.lock:
+            retired = source.retired
+        if retired:
+            # An independently captured transfer keeps its own outcome and target.
+            self._redirect("/learning/current")
+            return
         if status == HTTPStatus.OK:
             with source.capture.lock:
                 source.transfer_notice = result.message
@@ -2788,6 +2843,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         body: bytes,
         content_type: str,
     ) -> None:
+        if path in DELETION_POST_ROUTES:
+            dispatch_recording_deletion(self, path, self._text_form(body, content_type))
+            return
         if path in CARD_ENTRY_ROUTES:
             self._redirect(dispatch_card_entry(
                 self.server.app_context, path,
@@ -2966,10 +3024,17 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             if parsed.path in FRONTEND_PROFILE_ACTION_ROUTES:
                 body, content_type = self._read_body()
                 self._prepare_form_submission(parsed.path, body, content_type)
-                self._profile_operation(parsed.path, body, content_type)
+                if parsed.path in {FRONTEND_PROFILE_MANAGED_LABEL_ACTION_ROUTE,
+                                   FRONTEND_PROFILE_RESET_ACTION_ROUTE}:
+                    with self.server.app_context.recording_deletion.lock:
+                        self._profile_operation(parsed.path, body, content_type)
+                else:
+                    self._profile_operation(parsed.path, body, content_type)
                 return
             if parsed.path in _STATEFUL_POST_ROUTES:
-                if parsed.path in {"/sessions/import", "/matches/import"}:
+                if parsed.path in DELETION_POST_ROUTES:
+                    max_bytes = DELETION_BODY_LIMIT
+                elif parsed.path in {"/sessions/import", "/matches/import"}:
                     max_bytes = _MANAGED_IMPORT_MAX_REQUEST_BYTES
                 elif parsed.path == "/sessions/cards":
                     max_bytes = get_frontend_form_by_key_v1("session.cards").body_limit

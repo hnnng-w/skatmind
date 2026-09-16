@@ -110,6 +110,7 @@ class GuidedSessionContextV1:
     handle: str
     document: session_api.SessionPersistenceDocumentV1 = field(repr=False)
     generation: int = 1
+    retired: bool = field(default=False, repr=False)
     last_operation: GuidedSessionOperationResultV1 | None = None
     execution: GuidedFrontendExecutionV1 | None = field(default=None, repr=False)
     recorded_review_source: RecordedReviewSourceV1 | None = field(default=None, repr=False)
@@ -135,8 +136,14 @@ class GuidedSessionContextV1:
 
     def begin_execution(self) -> object:
         """Caller owns the Session lock; a newer attempt supersedes older work."""
+        self.require_attached()
         self.execution_attempt = object()
         return self.execution_attempt
+
+    def require_attached(self) -> None:
+        if self.retired:
+            from .workflow_state import StaleFrontendWorkflowRevisionError
+            raise StaleFrontendWorkflowRevisionError()
 
     def clear_execution(self) -> None:
         """Clear retained bytes and their label together; invalidate in-flight work."""
@@ -277,6 +284,7 @@ def open_guided_session_v1(
 
 def reload_guided_session_v1(context: GuidedSessionContextV1) -> GuidedSessionOperationResultV1:
     with context.lock:
+        context.require_attached()
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
@@ -316,6 +324,7 @@ def _persist_session_mutation(
     result_status: str,
     diagnostics: tuple[str, ...],
 ) -> GuidedSessionOperationResultV1:
+    context.require_attached()
     validate_managed_direct_child_path_v1(
         context.category_root,
         context.path,
@@ -356,6 +365,7 @@ def apply_guided_session_command_v1(
 ) -> GuidedSessionOperationResultV1:
     options = export_options or default_session_position_export_options_v1()
     with context.lock:
+        context.require_attached()
         checkpoints = _collect_current_checkpoint(
             state=context.state,
             checkpoints=context.decision_checkpoints,
@@ -403,6 +413,7 @@ def rewind_guided_session_v1(
 ) -> GuidedSessionOperationResultV1:
     options = export_options or default_session_position_export_options_v1()
     with context.lock:
+        context.require_attached()
         result = session_api.rewind_session(
             context.state,
             expected_revision=context.state.revision,
@@ -446,6 +457,7 @@ def correct_guided_session_command_v1(
 ) -> GuidedSessionOperationResultV1:
     options = export_options or default_session_position_export_options_v1()
     with context.lock:
+        context.require_attached()
         checkpoints = context.decision_checkpoints
         source = session_api.rewind_session(
             context.state,
@@ -497,6 +509,7 @@ def execute_guided_session_position_v1(
     execution_options: ExecutionOptionsV1,
 ) -> GuidedSessionOperationResultV1:
     with context.lock:
+        context.require_attached()
         exported = session_api.export_session_position_request(
             context.state,
             export_options,
@@ -549,7 +562,8 @@ def execute_guided_session_position_v1(
                 status="executed",
                 message="Position analysis completed for the current Session revision.",
             )
-        context.last_operation = operation
+        if not context.retired:
+            context.last_operation = operation
         return operation
 
 
@@ -559,6 +573,7 @@ def execute_guided_session_historical_v1(
     execution_options: ExecutionOptionsV1,
 ) -> GuidedSessionOperationResultV1:
     with context.lock:
+        context.require_attached()
         exported = session_api.export_session_historical_request(context.state)
         if exported.value.status != "available":
             operation = GuidedSessionOperationResultV1(
@@ -593,7 +608,8 @@ def execute_guided_session_historical_v1(
                 status="executed",
                 message="Completed-game Review finished for the current Session revision.",
             )
-        context.last_operation = operation
+        if not context.retired:
+            context.last_operation = operation
         return operation
 
 
@@ -601,4 +617,5 @@ def build_guided_session_persistence_download_v1(
     context: GuidedSessionContextV1,
 ) -> bytes:
     with context.lock:
+        context.require_attached()
         return _build_session_persistence_file_bytes_v1(context.document)

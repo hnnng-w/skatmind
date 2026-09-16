@@ -1672,3 +1672,13 @@ points. Accepted corrections and rewind recompute the view. Real HTTP and instal
 Wheel bilingual/native verification cover completion, reversal, source editors and
 retained Results. #233 remains completed; both exact merged-commit CI jobs remain
 required before manual #234 closure. The existing UAT and Release blockers remain.
+
+Issue #235 adds [permanent managed recording deletion](managed_recording_deletion.md)
+for one valid Session or entire Match file with named, unchecked, source-bound
+confirmation. It retires only the deleted active source, preserves profile metadata
+and independent Learning copies, and documents the optimistic external-writer
+check/unlink gap. Real HTTP/filesystem/lifecycle tests and 224 installed-Wheel
+de/en/native browser measurements cover the bounded operation. No public format,
+Game behavior, dependency, Package version, or generated output changes. #234 stays
+completed; both exact merged-commit CI jobs gate #235 closure. The existing open
+UAT/Release blockers and closed B-06 remain unchanged.

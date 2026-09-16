@@ -63,6 +63,14 @@ return URL. Legacy forms without that field retain their original parser path.
 
 ## Discovery, explicit opening, and lifetime
 
+Issue #235 adds a secondary delete action for available Session/Match choices.
+Its [named permanent-file confirmation](managed_recording_deletion.md) is bound to
+the exact discovered source, not its title. Preview/Cancel preserve genuine
+Results, selected Game and recovery expiry; confirmed active deletion retires only
+the owning context. The entire Match is selected, not one Game. Imported Learning
+copies, exports and the profile remain. The private registry is now 62 POST
+routes/106 definitions; the four deletion routes are separate from opening/review.
+
 The chooser uses the existing direct-child, nonrecursive, strict discovery of at
 most 2,048 candidates per family. Friendly profile labels and localized imported
 fallbacks use the same managed-name projection. Duplicate titles remain separate

@@ -12,6 +12,7 @@ FRONTEND_VALIDATION_ACTIVE_FAMILIES = (
     "analyze",
     "review",
     "recordings",
+    "deletion",
     "profile",
     "local_settings",
     "sessions",

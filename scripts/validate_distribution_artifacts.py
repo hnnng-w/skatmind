@@ -1183,8 +1183,13 @@ assert FRONTEND_TRANSLATION_CATALOG_VERSION == 1
 assert LOCAL_FRONTEND_PROFILE_VERSION == 1
 assert FRONTEND_INFORMATION_ARCHITECTURE_VERSION == 1
 assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-assert len(UNIFIED_FRONTEND_POST_ROUTES) == 59
-assert len(FRONTEND_FORM_REGISTRY) == 103
+assert len(UNIFIED_FRONTEND_POST_ROUTES) == 62
+assert len(FRONTEND_FORM_REGISTRY) == 106
+deletion_forms = tuple(form for form in FRONTEND_FORM_REGISTRY
+                       if form.form_key.startswith("deletion."))
+assert tuple(form.form_key for form in deletion_forms) == (
+    "deletion.preview", "deletion.apply", "deletion.cancel")
+assert all(form.body_limit == 8192 for form in deletion_forms)
 validate_frontend_form_registry_v1()
 frontend_catalogs = load_frontend_translation_catalogs_v1()
 assert tuple(frontend_catalogs) == ("de", "en")

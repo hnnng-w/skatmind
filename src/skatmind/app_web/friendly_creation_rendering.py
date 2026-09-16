@@ -316,6 +316,8 @@ def _managed_item_card(
             f'<button type="submit">{_t(locale, action_key)}</button>'
             "</form>"
         )
+        from .recording_deletion_http import render_delete_action
+        action += render_delete_action(item, locale, item.family)
     revision = (
         ""
         if item.revision is None

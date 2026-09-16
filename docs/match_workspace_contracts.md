@@ -330,6 +330,12 @@ field or migration. See [Match recording error recovery](match_recording_error_r
 
 ## Private-data boundary
 
+Issue #235 authorizes private unified-app
+[permanent recording removal](managed_recording_deletion.md) for the entire
+single-file Workspace after a fresh exact-source confirmation. All 36 positions
+belong to that target. No format/Save change or individual-slot deletion is added;
+independent Corpus Snapshot/Catalog data, exports and profile metadata remain.
+
 Workspace files are private local working data. They may contain source URLs and
 titles, Player Statistics, perspective hands, Plays, original Skat, Discards,
 free-text commentary, and response links. No public redaction is applied.

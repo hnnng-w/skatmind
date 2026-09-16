@@ -27,6 +27,8 @@ _GUIDED_MODULES = (
     "position_form",
     "recorded_review_opening",
     "recorded_review_rendering",
+    "recording_deletion",
+    "recording_deletion_http",
     "result_presentation",
     "result_rendering",
     "workflow_operations",
@@ -69,6 +71,7 @@ def test_existing_local_app_resources_contain_guided_no_javascript_styles() -> N
     for required in (
         b".home-group",
         b"#recorded-review-chooser",
+        b".recording-deletion",
         b".match-review-selector",
         b".workflow-form",
         b".card-grid",

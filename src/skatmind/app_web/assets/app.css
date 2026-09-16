@@ -69,6 +69,28 @@ details button {
   border-bottom: 1px solid var(--line);
 }
 
+.recording-deletion,
+.recording-deletion :where(form, label, button, h2, p),
+.delete-recording button {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.recording-deletion form,
+.delete-recording {
+  margin-block: 1rem;
+}
+
+.recording-deletion form {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.recording-deletion h2 {
+  font-size: 1.5rem;
+}
+
 .recording-choice h3,
 .recording-choice p {
   margin-block: 0.3rem;

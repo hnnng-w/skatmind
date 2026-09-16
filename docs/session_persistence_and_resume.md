@@ -337,6 +337,12 @@ first be strictly loaded and verified.
 
 ## Privacy and security boundary
 
+Issue #235 adds a separate private unified-app
+[managed recording removal](managed_recording_deletion.md) operation after exact
+confirmation. It unlinks only one valid discovered Session file, without changing
+the public file API, canonical codecs, Save algorithm or document format. It does
+not promise secure erase, app Undo, or deletion of exported copies/profile data.
+
 Session persistence is private local working data. A Retrospective Session may
 contain the complete three hands, Skat, Discards, and Plays as accepted Commands.
 Optional Decision Checkpoints contain local-private Position Requests, including

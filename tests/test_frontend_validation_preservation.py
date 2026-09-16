@@ -57,8 +57,8 @@ def _state(
 
 def test_validation_contract_and_registry_coverage_are_exact() -> None:
     assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-    assert len(UNIFIED_FRONTEND_POST_ROUTES) == 59
-    assert len(FRONTEND_FORM_REGISTRY) == 103
+    assert len(UNIFIED_FRONTEND_POST_ROUTES) == 62
+    assert len(FRONTEND_FORM_REGISTRY) == 106
     assert {form.action_route for form in FRONTEND_FORM_REGISTRY} == set(
         UNIFIED_FRONTEND_POST_ROUTES
     )

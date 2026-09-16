@@ -89,6 +89,8 @@ def open_recording_for_review_v1(context, values: dict[str, str]) -> str:
                 if getattr(managed, attribute) is not previous or resolve() is not entry:
                     raise RecordingOpenConflict()
                 if not same:
+                    from .recording_deletion import invalidate_deletion_activation
+                    invalidate_deletion_activation(context, previous, active)
                     if family == "sessions":
                         managed.activate_session(active)
                     else:

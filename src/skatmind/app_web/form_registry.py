@@ -43,6 +43,7 @@ from .profile_driven_creation import (
     PROFILE_DRIVEN_SESSION_CREATE_FIELDS,
 )
 from .recorded_review_opening import OPEN_RECORDING_ROUTE, RECORDED_REVIEW_ROUTE
+from .recording_deletion import DELETION_BODY_LIMIT, DELETION_PAGE, DELETION_POST_ROUTES
 
 _DEFAULT_BODY_LIMIT = FRONTEND_JSON_MAX_FILE_BYTES + 4_096
 _MANAGED_IMPORT_BODY_LIMIT = MANAGED_ITEM_MAX_IMPORT_BYTES + 4_096
@@ -83,6 +84,7 @@ _CHECKBOX_FIELDS = {
     "use_profile_presets",
 }
 _DESTRUCTIVE_FIELDS = {
+    "confirm_delete",
     "confirm_apply",
     "confirm_clear",
     "confirm_clear_snapshot",
@@ -1410,6 +1412,15 @@ _FORMS.append(_definition(
     "recordings.open", OPEN_RECORDING_ROUTE, page=RECORDED_REVIEW_ROUTE,
     active="recordings", success="contextual", value_free=True,
 ))
+for action in ("preview", "apply", "cancel"):
+    _FORMS.append(_definition(
+        f"deletion.{action}", f"{DELETION_PAGE}/{action}",
+        ("confirm_delete",) if action == "apply" else (),
+        page=DELETION_PAGE, active="deletion", success="contextual",
+        body_limit=DELETION_BODY_LIMIT, value_free=action != "apply",
+        choice_overrides={"confirm_delete": ("on",)},
+        label_overrides={"confirm_delete": "validation.field.confirm_delete"},
+    ))
 FRONTEND_FORM_REGISTRY = tuple(_FORMS)
 UNIFIED_FRONTEND_POST_ROUTES = tuple(
     dict.fromkeys(
@@ -1418,6 +1429,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             *FRONTEND_PROFILE_ACTION_ROUTES,
             *CARD_ENTRY_ROUTES,
             OPEN_RECORDING_ROUTE,
+            *DELETION_POST_ROUTES,
             "/sessions/create",
             "/sessions/import",
             "/sessions/open",

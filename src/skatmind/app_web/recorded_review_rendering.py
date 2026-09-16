@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .friendly_creation_rendering import managed_item_label_v1
 from .recorded_review_opening import OPEN_RECORDING_ROUTE, RECORDING_FAMILIES
+from .recording_deletion_http import render_delete_action
 from .stateful_localization import translated
 from .task_first_rendering import hidden, paragraph
 
@@ -26,7 +27,8 @@ def render_recorded_review_chooser_v1(discoveries, *, profile, locale, active_so
                          + hidden("family", family) + hidden("handle", item.handle)
                          + hidden("generation", view.generation)
                          + '<button type="submit">' + translated(locale, "recordings.open")
-                         + '</button></form>')
+                          + '</button></form>')
+                body += render_delete_action(item, locale, "review")
             body += '</article>'
         body += f'<p><a href="/{family}">' + translated(
             locale, f"navigation.{family}") + '</a></p></section>'

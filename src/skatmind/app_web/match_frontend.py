@@ -71,6 +71,7 @@ class UnifiedMatchContextV1:
     handle: str
     capture: MatchCaptureWebContextV1 = field(repr=False)
     selected_position: int = 1
+    retired: bool = field(default=False, repr=False)
     position_generation: int = field(default=0, repr=False)
     last_result: MatchCaptureWebResultV1 | None = field(default=None, repr=False)
     transfer_notice: str | None = field(default=None, repr=False)
@@ -96,6 +97,11 @@ class UnifiedMatchContextV1:
     @property
     def workspace(self):
         return self.capture.workspace
+
+    def require_attached(self):
+        if self.retired:
+            from .workflow_state import StaleFrontendWorkflowRevisionError
+            raise StaleFrontendWorkflowRevisionError()
 
 
 def _context(
@@ -205,6 +211,7 @@ def reload_unified_match_v1(
     context: UnifiedMatchContextV1,
 ) -> MatchCaptureWebResultV1:
     with context.capture.lock:
+        context.require_attached()
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
@@ -226,6 +233,7 @@ def apply_unified_match_operation_v1(
     values: Mapping[str, object],
 ) -> MatchCaptureWebResultV1:
     with context.capture.lock:
+        context.require_attached()
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
@@ -259,6 +267,7 @@ def execute_unified_match_analysis_v1(
     values: Mapping[str, object],
 ) -> MatchCaptureWebResultV1:
     with context.capture.lock:
+        context.require_attached()
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
@@ -269,6 +278,8 @@ def execute_unified_match_analysis_v1(
         values,
         browser_form=True,
     )
+    with context.capture.lock:
+        context.require_attached()
     selected = result.state.get("selected_position")
     if type(selected) is int and 1 <= selected <= 36:
         select_unified_match_position_v1(context, selected)
@@ -329,6 +340,7 @@ def build_unified_match_workspace_download_v1(
     context: UnifiedMatchContextV1,
 ) -> bytes:
     with context.capture.lock:
+        context.require_attached()
         workspace = context.capture.workspace
         if workspace is None:
             raise ValueError("No managed Match is active.")

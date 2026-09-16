@@ -2568,6 +2568,20 @@ Final complete-check output accompanies the report. #233 remains completed; both
 exact merged-commit CI jobs gate manual #234 closure. #208/unresolved findings stay
 open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 
+Issue #235 adds [permanent managed recording deletion](managed_recording_deletion.md):
+available Session/entire-Match list and chooser actions, one named unchecked
+confirmation, exact single-use 30-minute selections, strict file rechecks, and
+private active-context retirement. Profile bytes/dormant labels, unrelated work and
+independent Corpus copies remain. The private registry is 62 POST routes/106 forms;
+catalogs have 1,508 keys. Synthetic HTTP/filesystem tests and 224 installed-Wheel
+Edge measurements cover native de/en/script/no-script deletion and source safety,
+including 16 real removals and corrected narrow/enlarged confirmation reflow.
+The operation is new; public/Game/persistence formats, dependencies and 98 outputs
+remain. Final full-check native output/exit evidence accompanies the report, and
+both exact merged-commit CI jobs remain closure gates. #234 remains completed;
+#208/unresolved findings stay open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open,
+B-06 closed. No maintainer UAT or release readiness is claimed.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

@@ -19,6 +19,12 @@ Report sources remain process-local and are not added to the fixed layout. See
 
 ## Source-of-truth boundary
 
+The private [managed Session/Match deletion](managed_recording_deletion.md) added
+by Issue #235 removes only an editable recording file. It does not remove or scan
+Corpus Catalogs, immutable imported Snapshots, Current selections, or prepared
+artifacts. An independently captured explicit transfer retains its own lifecycle.
+Corpus deletion and garbage collection remain separate, unimplemented operations.
+
 The exact relationship is:
 
 ```text

@@ -344,6 +344,15 @@ raw technical values are disclosed explicitly. The implementation is documented 
 
 ## State and security
 
+Issue #235's [recording deletion](managed_recording_deletion.md) adds the exact safe
+HTML origin `/recordings/delete` and three authenticated, same-origin, 8,192-byte
+POST forms. Its source binding retains the exact target and original 30-minute
+expiry across language changes; `confirm_delete` is excluded from every safe-value
+overlay and returns unchecked. Relevant label/source changes require a fresh
+preview. Deletion itself never writes the profile or removes dormant labels.
+Retirement invalidates only affected source-bound language/feedback, preserving
+unrelated workflows and the existing security headers/Origin/CSP rules.
+
 Language switching changes only profile/locale state. It does not execute or
 rerun Product work and retains server-owned Analyze/Review drafts and Results,
 Review step, active Session, active Match, active Learning Corpus, Match Reports,

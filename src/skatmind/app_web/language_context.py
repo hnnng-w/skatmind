@@ -76,6 +76,21 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
     """
     if not is_safe_frontend_return_path_v1(route):
         raise ValueError("Language origin must be a safe HTML route.")
+    if route == "/recordings/delete":
+        from .recording_deletion import _active, _binding, _label, current_deletion_preview
+        preview = current_deletion_preview(context)
+        with context.lock:
+            feedback = context.form_feedback._feedback.get("deletion")
+            label = None if preview is None else _label(context, preview.family, preview.product_id)
+            active = None if preview is None else _active(context, preview.family, preview.path)
+            outcome = context.recording_deletion.outcome
+        binding = ()
+        if active is not None:
+            lock = active.lock if preview.family == "sessions" else active.capture.lock
+            with lock:
+                binding = _binding(active, preview.family)
+        return LanguageSourceV1(route, (preview, active, None if feedback is None else feedback[1]),
+                                (label, binding, outcome))
     references: list[object] = []
     values: list[object] = []
     with context.lock:
@@ -199,6 +214,19 @@ def validate_language_page_v1(
 
 
 def _require_files(context: AppWebContextV1, route: str) -> None:
+    if route == "/recordings/delete":
+        from .recording_deletion import (
+            RecordingDeletionConflict,
+            current_deletion_preview,
+            validate_deletion_preview,
+        )
+        preview = current_deletion_preview(context)
+        if preview is not None:
+            try:
+                validate_deletion_preview(context, preview)
+            except RecordingDeletionConflict as error:
+                raise LanguageContextConflict from error
+        return
     from skatmind.api.v1.session import files as session_files
     from skatmind.errors import SkatMindValidationError
     from skatmind.learning_corpus_persistence import load_learning_corpus_directory_v1

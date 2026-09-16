@@ -46,6 +46,7 @@ _SAFE_STATIC_HTML_ROUTES = {
     "/analyze",
     "/review",
     "/review/recorded",
+    "/recordings/delete",
     "/sessions",
     "/sessions/current",
     "/matches",

@@ -44,7 +44,8 @@ strict_create_import_open_resume_reload_without_silent_overwrite
 existing_session_match_and_corpus_persistence_remains_authoritative
 one_active_process_local_context_per_stateful_family
 switching_items_discards_only_process_local_artifacts
-all_mutations_reuse_existing_operations_and_conflict_semantics
+product_mutations_reuse_existing_operations_and_conflict_semantics
+single_managed_recording_removal_requires_exact_fresh_confirmation
 cross_area_match_to_corpus_transfer_is_explicit_and_source_verified
 unified_app_cookie_and_security_context_only
 no_child_server_proxy_iframe_or_background_worker
@@ -95,6 +96,13 @@ finite UTF-8 JSON object without a BOM, duplicate keys, non-finite numbers, or a
 non-object root. Uploaded JSON content is bounded to `16,777,216` bytes.
 
 ## Sessions
+
+Issue #235 adds [permanent managed recording deletion](managed_recording_deletion.md)
+for one available Session file or entire Match file, from the family lists and
+recorded-review chooser. It intentionally adds a private removal operation and
+four bounded routes, with exact named confirmation and active-context retirement.
+Profile bytes/dormant labels and independent Learning copies remain unchanged.
+Invalid/ambiguous files and Corpora have no deletion action.
 
 `/sessions` lists managed Sessions and provides strict creation and import.
 Normal creation asks for a Game name, available Card knowledge, three saved-or-new
