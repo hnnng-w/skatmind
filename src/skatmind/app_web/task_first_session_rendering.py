@@ -46,6 +46,8 @@ from .task_first_rendering import (
     select_field,
     technical_details,
 )
+from .unplayed_card_rendering import render_unplayed_cards
+from .unplayed_card_summary import project_unplayed_cards
 
 
 def _players(locale, facts):
@@ -269,6 +271,7 @@ def render_task_first_session_v1(
         view = project_task_first_session_v1(context.state)
         facts = view.facts
         progress = project_session_trick_progress(facts)
+        unplayed = project_unplayed_cards(progress, facts.declaration)
         mode = "perspective" if facts.capture_mode == "live" else "reconstruction"
         current = paragraph(locale, "session.knowledge.accepted_mode",
                             mode=text(locale, f"session.knowledge.{mode}"))
@@ -290,6 +293,8 @@ def render_task_first_session_v1(
             normal += accepted_declaration_summary(locale,
                 build_serializable_game_declaration(facts.declaration),
                 player_name(locale, facts.players, facts.declarer_player_id))
+        normal += render_unplayed_cards(unplayed, locale,
+            original_skat=facts.known_skat or None, discarded_cards=facts.discarded_cards or None)
         normal += render_recorded_session_decisions_v1(context, locale=locale)
         normal += render_recorded_history(progress, locale)
         entered = '<ul>' + ''.join('<li>' + escape(label) + '</li>' for _, label in _players(locale, facts)) + '</ul>'
@@ -303,9 +308,10 @@ def render_task_first_session_v1(
         if facts.declaration is None:
             entered += paragraph(locale, "task.session.declarer",
                 player=player_name(locale, facts.players, facts.declarer_player_id))
-        entered += paragraph(locale, "task.skat") + cards_summary(locale, facts.known_skat or None)
-        discards = facts.discarded_cards or (() if facts.declaration and facts.declaration.hand_game else None)
-        entered += paragraph(locale, "task.discards") + cards_summary(locale, discards)
+        if unplayed is None:
+            entered += paragraph(locale, "task.skat") + cards_summary(locale, facts.known_skat or None)
+            discards = facts.discarded_cards or (() if facts.declaration and facts.declaration.hand_game else None)
+            entered += paragraph(locale, "task.discards") + cards_summary(locale, discards)
         entered += paragraph(locale, "task.session.play_progress", plays=facts.played_card_count,
                              tricks=len(facts.completed_tricks))
         if facts.continuation_event is not None:

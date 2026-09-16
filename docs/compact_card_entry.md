@@ -124,6 +124,12 @@ current total to 1,318 without changing the 57-route/93-definition registry.
 
 ## Exact private HTTP contract
 
+Issue #234 adds a compact [Unplayed Card summary](unplayed_card_summary.md) after
+thirty accepted Plays, beside the accepted declaration. Hand means original Skat
+with no discards; non-Hand means the discarded pair, not original Skat. This labelled
+conclusion never populates evidence controls, changes a palette or adds a save.
+Rewind to 29 removes it while recorded evidence remains visible under existing rules.
+
 The three new URL-encoded routes have an **8,192-byte** body bound:
 
 | Route | Exact fields after renderer instrumentation | Meaning |

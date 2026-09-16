@@ -2555,6 +2555,19 @@ completed; both exact merged-commit CI jobs gate manual #233 closure. #208 and
 unresolved findings remain open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open,
 B-06 closed. No complete UAT or release readiness is claimed.
 
+Issue #234 adds [Unplayed Cards after complete recording](unplayed_card_summary.md):
+one private guarded deck-complement projection and compact bilingual Session/Match/
+focused-review presentation. Exactly thirty accepted Plays and ten completed Tricks
+yield original Skat for Hand or discards for non-Hand, including Null. Original Skat,
+recorded evidence, capability flags, earlier Requests, #227 totals and specialist
+editors retain their source meanings. Corrections recompute; 30-to-29 removes the
+conclusion. Real HTTP execution/download/save-count regressions and 240 installed-
+Wheel Edge measurements cover both languages/script modes and narrow/enlarged text.
+Package/contracts/dependencies and 98 outputs remain; no route or form is added.
+Final complete-check output accompanies the report. #233 remains completed; both
+exact merged-commit CI jobs gate manual #234 closure. #208/unresolved findings stay
+open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

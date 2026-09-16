@@ -66,6 +66,10 @@ current turn, phase, Live-to-Retrospective promotion, or Historical readiness.
 
 ## Immutable information cutoff and execution
 
+Issue #234's [Unplayed Card summary](unplayed_card_summary.md) is a separate current
+full-recording conclusion. It never enters these frozen Requests or retained Results.
+Passive display preserves downloads; accepted corrections retain normal invalidation.
+
 Submission calls the public
 `session_api.export_session_checkpoint_review_request(state=..., checkpoint=...)`,
 which delegates to the existing

@@ -1663,3 +1663,12 @@ facts or phase rewind. Real returned-form tests and installed-Wheel de/en/script
 no-script evidence preserve #231 direct saves, #221 frozen review, #225 seats,
 #230 time and completed #232. Both exact merged-commit CI jobs remain closure gates;
 the existing UAT and Release blockers above are unchanged.
+
+Issue #234 adds [Unplayed Cards after complete recording](unplayed_card_summary.md)
+beside accepted Session/Match facts and outside focused Match decision Results.
+The thirty-Play/ten-Trick gate labels Hand original Skat or non-Hand discards without
+recording inferred evidence, promoting readiness, changing prior knowledge or adding
+points. Accepted corrections and rewind recompute the view. Real HTTP and installed-
+Wheel bilingual/native verification cover completion, reversal, source editors and
+retained Results. #233 remains completed; both exact merged-commit CI jobs remain
+required before manual #234 closure. The existing UAT and Release blockers remain.

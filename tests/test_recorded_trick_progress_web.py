@@ -190,12 +190,14 @@ def test_rejected_thirtieth_witness_excluded_and_accepted_warning_is_distinct(lo
         page = follow(browser, browser.submit(operation_form(page, "append_plays"),
                                               cards="SA" if index == 26 else card))
     accepted_summary = summary_html(page)
+    assert "data-unplayed-cards" not in page
     accepted_rows = re.findall(r'<section class="recorded-trick".*?</section>', page, re.S)
     assert "trick-warning" not in accepted_summary
     before = active.path.read_bytes()
     bad = browser.submit(operation_form(page, "append_plays"), cards="DQ")
     assert bad[0] == 400 and active.path.read_bytes() == before
     page = bad[2].decode()
+    assert "data-unplayed-cards" not in page
     assert summary_html(page) == accepted_summary
     assert re.findall(r'<section class="recorded-trick".*?</section>', page, re.S) == accepted_rows
     assert 'id="match-play-30"' not in page and 'href="#match-play-26"' in page

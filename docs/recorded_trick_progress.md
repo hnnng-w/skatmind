@@ -283,6 +283,12 @@ so those measurements need no affected-path rerun for this transport/test change
 
 ## Compatibility and remaining gates
 
+Issue #234 separately adds [Unplayed Cards](unplayed_card_summary.md) from the same
+accepted complete progress/declaration snapshot. It does not add the pair's points
+to these totals or render a deduction under earlier Trick prefixes. The read-only
+summary requires all thirty Plays; shortened awards do not satisfy that gate.
+Source evidence and recorded-Trick accounting remain unchanged after this addition.
+
 Package **0.17.0**, Python **>=3.13**, dependencies, license, APIs, Command kinds,
 seven Root workflows, 71 Schemas/resources, six Session examples, persistence and
 98 generated outputs are unchanged. Standalone presentation is unchanged. Host,

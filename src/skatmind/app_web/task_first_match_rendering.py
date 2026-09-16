@@ -27,6 +27,7 @@ from .task_first_rendering import (
     select_field,
     technical_details,
 )
+from .unplayed_card_rendering import render_unplayed_cards
 
 
 def _name(state, locale, player_id):
@@ -278,6 +279,8 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     if game is not None:
         task += accepted_declaration_summary(locale, game["declaration"],
                                              _named_seat(state, locale, game["declarer_player_id"]))
+        task += render_unplayed_cards(state.get("unplayed_cards"), locale,
+            original_skat=game["original_skat"], discarded_cards=game["discarded_cards"])
         task += disclosure(locale, "compact.optional_hand", _evidence(
             state, handle, locale, card_bindings, hand=True))
     if game is not None:

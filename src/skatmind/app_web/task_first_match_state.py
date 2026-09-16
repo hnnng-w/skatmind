@@ -13,6 +13,7 @@ from skatmind.match_player_statistics_preparation import (
 )
 
 from .recorded_trick_progress import project_match_trick_progress
+from .unplayed_card_summary import project_unplayed_cards
 
 
 def build_task_first_match_page_state_v1(context, view, *, report_id=None):
@@ -28,9 +29,13 @@ def build_task_first_match_page_state_v1(context, view, *, report_id=None):
                             if report.report_kind == "materialization"), None)
     list_available = (materialization is not None and materialization.value.materialization
                       .historical_list_materialization.status == "available")
+    game = workspace.slots[view.selected_position - 1].observed_game
+    recorded = project_match_trick_progress(workspace, view.selected_position)
     return {
         "selected_position": view.selected_position,
-        "recorded_progress": project_match_trick_progress(workspace, view.selected_position),
+        "recorded_progress": recorded,
+        "unplayed_cards": project_unplayed_cards(
+            recorded, None if game is None else game.declaration),
         "workspace_revision": workspace.revision,
         "match": {"match_id": definition.match_id, "title": definition.title,
                   "game_platform": definition.game_platform,
@@ -46,7 +51,7 @@ def build_task_first_match_page_state_v1(context, view, *, report_id=None):
                              statistics.participant_contexts, strict=True)],
         "progress": view.selected.workspace_progress.to_dict(),
         "position_view": view.selected.to_dict(),
-        "game": _game_summary(workspace.slots[view.selected_position - 1].observed_game),
+        "game": _game_summary(game),
         "decision_preparation": _decision_preparation_summary(workspace, view.selected_position),
         "reports": [build_match_analysis_report_summary_v1(report, selected=report is selected)
                     for report in reports],

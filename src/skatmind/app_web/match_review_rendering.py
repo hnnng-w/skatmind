@@ -6,6 +6,7 @@ from .recorded_trick_rendering import render_recorded_summary
 from .stateful_localization import text, translated
 from .task_first_match_rendering import _named_seat, _reports, operation_form
 from .task_first_rendering import disclosure, hidden, paragraph, section, select_field
+from .unplayed_card_rendering import render_unplayed_cards
 
 
 def render_match_analysis_v1(state, view, handle, locale):
@@ -64,6 +65,8 @@ def render_match_review_v1(state, view, *, managed_handle, locale, transfer=""):
     if game is not None:
         body += accepted_declaration_summary(locale, game["declaration"],
                                              _named_seat(state, locale, game["declarer_player_id"]))
+        body += render_unplayed_cards(state.get("unplayed_cards"), locale,
+            original_skat=game["original_skat"], discarded_cards=game["discarded_cards"], review=True)
         body += render_recorded_summary(state["recorded_progress"], locale)
     body += section(locale, "task.match.action.analyze_decision",
                     render_match_analysis_v1(state, view, managed_handle, locale))

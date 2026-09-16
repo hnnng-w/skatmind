@@ -72,6 +72,12 @@ envelope correctly reports the current observation revision.
 
 ## Verification
 
+Issue #234 adds a separate [Unplayed Card conclusion](unplayed_card_summary.md) at
+thirty accepted Plays, including before explicit Game End. It labels Hand original
+Skat versus non-Hand discards without completing recorded fields, promoting mode,
+establishing full Historical readiness or enlarging saved-decision knowledge.
+Unknown non-Hand original Skat stays unknown; Undo/correction recomputes the view.
+
 Preflight started clean on `feature/233-session-knowledge-choice` at
 `ffe1c3c6f8f08940e80875f4a5608516ad170f50`. The four specified core/creation files
 had no differences from planning archive `aecd151aafff1601b0366bb024e65a98006f4240`.
