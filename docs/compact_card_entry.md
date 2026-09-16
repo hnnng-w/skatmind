@@ -124,6 +124,13 @@ current total to 1,318 without changing the 57-route/93-definition registry.
 
 ## Exact private HTTP contract
 
+Issue #237 adds [source-bound Session Card feedback](session_card_feedback.md) to
+the two normal Session forms. Real canonical rejections now distinguish recorded
+ownership, exact-hand membership, follow-suit and used/unplayable Cards with accepted
+evidence links. Palette prevention and one-save candidates remain unchanged. Both
+Session routes now enforce their registered 8,192-byte limit; Match and specialist
+feedback keep their existing contracts.
+
 Issue #234 adds a compact [Unplayed Card summary](unplayed_card_summary.md) after
 thirty accepted Plays, beside the accepted declaration. Hand means original Skat
 with no discards; non-Hand means the discarded pair, not original Skat. This labelled

@@ -296,22 +296,24 @@ def render_task_first_session_v1(
         normal += render_unplayed_cards(unplayed, locale,
             original_skat=facts.known_skat or None, discarded_cards=facts.discarded_cards or None)
         normal += render_recorded_session_decisions_v1(context, locale=locale)
-        normal += render_recorded_history(progress, locale)
+        normal += render_recorded_history(progress, locale, anchor_prefix="session-play")
         entered = '<ul>' + ''.join('<li>' + escape(label) + '</li>' for _, label in _players(locale, facts)) + '</ul>'
-        for player in facts.players:
+        for number, player in enumerate(facts.players, 1):
             hand = facts.remaining_hand_for(player.player_id)
-            entered += '<p><strong>' + escape(player_name(locale, facts.players, player.player_id))
+            entered += f'<p id="session-hand-{number}" tabindex="-1"><strong>' + escape(player_name(locale, facts.players, player.player_id))
             entered += '</strong>: ' + cards_summary(locale, hand) + '</p>'
             public = facts.public_hand_for(player.player_id)
             if public is not None:
+                entered += f'<div id="session-public-hand-{number}" tabindex="-1">'
                 entered += paragraph(locale, "task.session.public_hand") + cards_summary(locale, public)
+                entered += '</div>'
         if facts.declaration is None:
             entered += paragraph(locale, "task.session.declarer",
                 player=player_name(locale, facts.players, facts.declarer_player_id))
         if unplayed is None:
-            entered += paragraph(locale, "task.skat") + cards_summary(locale, facts.known_skat or None)
+            entered += '<div id="session-skat" tabindex="-1">' + paragraph(locale, "task.skat") + cards_summary(locale, facts.known_skat or None) + '</div>'
             discards = facts.discarded_cards or (() if facts.declaration and facts.declaration.hand_game else None)
-            entered += paragraph(locale, "task.discards") + cards_summary(locale, discards)
+            entered += '<div id="session-discards" tabindex="-1">' + paragraph(locale, "task.discards") + cards_summary(locale, discards) + '</div>'
         entered += paragraph(locale, "task.session.play_progress", plays=facts.played_card_count,
                              tricks=len(facts.completed_tricks))
         if facts.continuation_event is not None:

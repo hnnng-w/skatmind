@@ -1176,12 +1176,28 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             if state is None:
                 continue
             definition = get_frontend_form_by_key_v1(state.form_key)
+            card_details = None
+            if definition.action_route in {"/sessions/cards", "/sessions/play"}:
+                from .card_entry_http import resolve_session_card_feedback
+                feedback = state.validation_issues[0].session_card_feedback
+                if feedback is not None and active_identity is not None:
+                    with active_identity.lock:
+                        with self.server.app_context.lock:
+                            current = self.server.app_context.managed_stateful.active_session
+                        if current is active_identity:
+                            try:
+                                card_details = resolve_session_card_feedback(
+                                    active_identity, feedback, locale)
+                            except Exception:
+                                # Explanation is optional; rejection remains renderable.
+                                card_details = None
             rendered = apply_validation_feedback_to_html_v1(
                 rendered,
                 definition,
                 state,
                 locale=locale,
                 last_valid_result_retained=last_valid_result_retained,
+                session_card_details=card_details,
             )
         return rendered
 
@@ -2878,6 +2894,22 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             dispatch_recording_deletion(self, path, self._text_form(body, content_type))
             return
         if path in CARD_ENTRY_ROUTES:
+            if path in {"/sessions/cards", "/sessions/play"}:
+                # Keep attempt ordering through feedback publication, including competing rejects.
+                with self.server.app_context.managed_stateful.session_lifecycle_lock:
+                    with self.server.app_context.lock:
+                        self._submitted_active = (
+                            self.server.app_context.managed_stateful.active_session)
+                    try:
+                        location = dispatch_card_entry(self.server.app_context, path,
+                            self._flat_form(body, content_type, repeated_cards=True))
+                    except (ValueError, StaleFrontendWorkflowRevisionError) as error:
+                        status = (HTTPStatus.CONFLICT if isinstance(
+                            error, StaleFrontendWorkflowRevisionError) else HTTPStatus.BAD_REQUEST)
+                        self._reject_registered_form(error, status=status)
+                        return
+                    self._redirect(location)
+                return
             self._redirect(dispatch_card_entry(
                 self.server.app_context, path,
                 self._flat_form(body, content_type, repeated_cards=True)))
@@ -3069,8 +3101,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     max_bytes = LEARNING_ENTRY_BODY_LIMIT
                 elif parsed.path in {"/sessions/import", "/matches/import"}:
                     max_bytes = _MANAGED_IMPORT_MAX_REQUEST_BYTES
-                elif parsed.path == "/sessions/cards":
-                    max_bytes = get_frontend_form_by_key_v1("session.cards").body_limit
+                elif parsed.path in {"/sessions/cards", "/sessions/play"}:
+                    key = "session.play" if parsed.path == "/sessions/play" else "session.cards"
+                    max_bytes = get_frontend_form_by_key_v1(key).body_limit
                 elif parsed.path == "/learning/api/v1/operations":
                     max_bytes = LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES
                 elif parsed.path.startswith("/matches/api/v1/") or parsed.path in RECOVERY_ROUTES:

@@ -277,6 +277,11 @@ def language_return_location_v1(context: AppWebContextV1, route: str) -> str:
         match = context.managed_stateful.active_match
     if route == "/sessions/current" and session is not None:
         with session.lock:
+            with context.lock:
+                feedback = context.form_feedback.current("sessions", active_identity=session)
+            if feedback is not None and feedback.originating_route in {
+                    "/sessions/cards", "/sessions/play"}:
+                return route + "#session-card-error"
             if session.recorded_review_source is not None:
                 return route + "#session-result"
             return route + "#session-recording"

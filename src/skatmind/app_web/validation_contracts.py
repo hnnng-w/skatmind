@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 
 from .form_parsing import FormValuesV1
+from .session_card_feedback import SessionCardFeedback
 
 FRONTEND_VALIDATION_PRESERVATION_VERSION = 1
 
@@ -31,8 +32,15 @@ class FrontendValidationIssueV1:
     field_key: str | None
     message_key: str
     interpolation_arguments: tuple[tuple[str, str], ...] = ()
+    session_card_feedback: SessionCardFeedback | None = None
 
     def __post_init__(self) -> None:
+        if self.session_card_feedback is not None and (
+                type(self.session_card_feedback) is not SessionCardFeedback
+                or self.field_key != "cards" or self.interpolation_arguments
+                or self.message_key not in {"validation.card_entry.unavailable",
+                                           "validation.card_entry.ownership"}):
+            raise ValueError("Optional Card feedback requires an exact bounded private payload.")
         if self.field_key is not None and (
             type(self.field_key) is not str
             or not self.field_key

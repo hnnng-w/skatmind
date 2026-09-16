@@ -165,7 +165,12 @@ def test_partial_reopen_append_and_real_invalid_members_retain_selection(localiz
         status, _, body = browser.submit(form, cards=cards)
         assert status == 400
         page = body.decode()
-        assert text("en", f"validation.card_entry.{reason}") in page
+        if reason == "unavailable":
+            assert 'class="session-card-evidence" href="#session-hand-1"' in page
+            assert text("en", "task.card.name", suit="Clubs", rank="Ace") in page
+            assert "already assigned" in page
+        else:
+            assert text("en", f"validation.card_entry.{reason}") in page
         assert active.path.read_bytes() == before and active.state.command_log == prefix
         if "C9" in cards:
             assert re.search(r'<input[^>]*value="C9"[^>]*checked', page)

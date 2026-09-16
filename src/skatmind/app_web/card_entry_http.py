@@ -18,6 +18,7 @@ from .session_card_entry import (
     project_session_card_task,
     validate_card_selection,
 )
+from .session_card_feedback import SessionCardFeedback, render_card_witness
 from .session_frontend import _persist_session_mutation
 from .workflow_state import StaleFrontendWorkflowRevisionError
 
@@ -101,6 +102,7 @@ def dispatch_card_entry(app, route, values):
 
 
 def _session_entry(active, route, values):
+    active.require_attached()
     if set(values) - {"managed_handle", "card_selection", "cards"}:
         raise CardEntryError("fields", "cards")
     task = project_session_card_task(active.state)
@@ -110,8 +112,14 @@ def _session_entry(active, route, values):
     if (route == "/sessions/play") != (task.kind == "record_play"):
         raise CardEntryConflict()
     _fresh(active, session=True)
-    candidate = prepare_session_card_candidate(
-        active.state, active.decision_checkpoints, _cards(values), task=task)
+    try:
+        candidate = prepare_session_card_candidate(
+            active.state, active.decision_checkpoints, _cards(values), task=task)
+    except CardEntryError as error:
+        if error.witness is not None:
+            error.feedback = SessionCardFeedback(selection=values["card_selection"],
+                                                route=route, witness=error.witness)
+        raise
     try:
         result = _persist_session_mutation(
             active, state=candidate.state, checkpoints=candidate.checkpoints,
@@ -121,6 +129,21 @@ def _session_entry(active, route, values):
     if result.status == "conflict":
         raise CardEntryConflict("file_changed")
     return "/sessions/current#session-recording"
+
+
+def resolve_session_card_feedback(active, feedback, locale):
+    """Caller holds the Session lock; no labels or witness links before source checks."""
+    if active is None or active.retired:
+        return None
+    task = project_session_card_task(active.state)
+    if task is None or (feedback.route == "/sessions/play") != (task.kind == "record_play"):
+        return None
+    try:
+        _require_binding(feedback.selection, session_card_binding(active, task))
+        _fresh(active, session=True)
+    except (CardEntryError, CardEntryConflict):
+        return None
+    return render_card_witness(feedback.witness, active.state.players, locale)
 
 
 def _match_entry(active, values):

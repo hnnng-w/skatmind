@@ -125,6 +125,12 @@ feedback/source label in the selected language without executing a review.
 
 ## Freshness and Result lifetime
 
+Issue #237's [normal Session Card feedback](session_card_feedback.md) preserves a
+still-valid recorded-decision Result, source label, checkpoints and exact downloads
+through rejection, source inspection and native language changes. A retained Card
+error takes language-return focus at `session-card-error`; it performs no review.
+A real accepted Card keeps the ordinary Result invalidation below.
+
 Before execution, the adapter snapshots the exact active context, complete
 persistence document, generation, selected Checkpoint and observed Play, and a
 private attempt object. The strict direct-child validator and public Session

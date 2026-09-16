@@ -38,6 +38,12 @@ setup/deal recording preserves its bytes until an explicit successful edit.
 
 ## One immutable candidate and one publication
 
+Issue #237's [Card conflict feedback](session_card_feedback.md) explains a rejected
+batch from its original accepted source. It may name the failing Card after candidate
+progress, but never calls unsaved identity/Card entries accepted or links to them.
+The N+1/N history and single-save boundary below are unchanged; native empty/capacity
+errors and valid pending choices remain usable through language switching.
+
 The exact existing `/sessions/cards` source/task binding and the entire selection's
 basic nonempty/code/duplicate/capacity shape are validated first. Only when the
 accepted source is setup/deal, its authoritative task is `record_dealt_card`, and

@@ -32,6 +32,14 @@ feedback generation.
 These immutable values are private implementation contracts. They are not Public
 API exports and are not persisted.
 
+Issue #237 adds an optional exact bounded Session Card descriptor to an issue on
+`/sessions/cards` or `/sessions/play`. It retains one locale-neutral witness and
+the existing exact source/task binding, with full source checks before labels and
+links are resolved. Full Player labels bypass neither escaping nor the unchanged
+generic 80-character argument limit: they are resolved from accepted source instead
+of retained as arguments. Only these two forms use the concise Card-not-recorded
+summary and evidence/change-selection actions. See [Session Card feedback](session_card_feedback.md).
+
 Issue #225 adds exact Settings editor/preview/confirmation routes and changes the
 two private creation forms to seat-named fields and setup-only/final submitters.
 Operational profile origins are `/settings`. New native save-Players, save-platform

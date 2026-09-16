@@ -116,8 +116,11 @@ def map_frontend_exception_v1(
     if isinstance(error, DeclarationConflict):
         return (_issue(None, f"validation.declaration.{error.reason}"),)
     if isinstance(error, CardEntryError):
-        return (_issue(_known_field(definition, error.field_key),
-                       f"validation.card_entry.{error.reason}"),)
+        return (FrontendValidationIssueV1(
+            field_key=_known_field(definition, error.field_key),
+            message_key=f"validation.card_entry.{error.reason}",
+            session_card_feedback=(error.feedback if definition.action_route in {
+                "/sessions/cards", "/sessions/play"} else None)),)
     if isinstance(error, CardEntryConflict):
         return (_issue(None, f"validation.card_entry.{error.reason}"),)
     if isinstance(error, ObservedTraceError) and definition.active_context_requirement == "matches":

@@ -13,6 +13,7 @@ from skatmind.session_incremental_validation import (
     _validate_card_owner_conflicts,
 )
 
+from .session_card_feedback import SessionCardWitness, rejected_card_witness
 from .session_frontend import (
     _collect_current_checkpoint,
     default_session_position_export_options_v1,
@@ -21,10 +22,12 @@ from .task_first_projections import project_task_first_session_v1
 
 
 class CardEntryError(ValueError):
-    def __init__(self, reason: str, field_key: str = "cards") -> None:
+    def __init__(self, reason: str, field_key: str = "cards", *, witness=None) -> None:
         super().__init__("The Card entry was rejected.")
         self.reason = reason
         self.field_key = field_key
+        self.witness = witness if type(witness) is SessionCardWitness else None
+        self.feedback = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,7 +124,7 @@ def prepare_session_card_candidate(
         state = result.state
         checkpoints = _collect_current_checkpoint(
             state=state, checkpoints=checkpoints, export_options=options)
-    for card in ordered:
+    for index, card in enumerate(ordered):
         checkpoints = _collect_current_checkpoint(
             state=state, checkpoints=checkpoints, export_options=options)
         if task.kind == "record_dealt_card":
@@ -145,7 +148,13 @@ def prepare_session_card_candidate(
                 "phase_violation": "task",
                 "missing_required_value": "task",
             }.get(result.diagnostics[0].code, "task")
-            raise CardEntryError(reason)
+            try:
+                witness = rejected_card_witness(view.facts, command, result.diagnostics,
+                                               candidate_progress=index > 0)
+            except Exception:
+                # Optional explanation must never alter canonical rejection or publication.
+                witness = None
+            raise CardEntryError(reason, witness=witness)
         state = result.state
         checkpoints = _collect_current_checkpoint(
             state=state, checkpoints=checkpoints, export_options=options)

@@ -305,13 +305,15 @@ def _render_summary(
     locale: str,
     fallback_anchor: str,
     last_valid_result_retained: bool,
+    evidence_anchor: str | None = None,
 ) -> str:
-    heading_key = (
+    session_card = state.originating_route in {"/sessions/cards", "/sessions/play"}
+    heading_key = "validation.session_card.heading" if session_card else (
         "validation.summary.conflict_heading"
         if state.status == "conflict"
         else "validation.summary.heading"
     )
-    guidance_key = (
+    guidance_key = "validation.session_card.no_save" if session_card else (
         "validation.summary.conflict_guidance"
         if state.status == "conflict"
         else "validation.summary.guidance"
@@ -346,14 +348,25 @@ def _render_summary(
         else ""
     )
     locale_attribute = escape(locale, quote=True)
+    summary_identity = ' id="session-card-error"' if session_card else ""
+    actions = ""
+    if session_card:
+        if evidence_anchor is not None:
+            actions += f'<a class="session-card-evidence" href="#{evidence_anchor}">' + escape(
+                translate_frontend_message_v1(locale, "validation.session_card.inspect"))
+            actions += '</a> · '
+        target = rendered_fields.get("cards", fallback_anchor)
+        actions += f'<a href="#{escape(target, quote=True)}">' + escape(
+            translate_frontend_message_v1(locale, "validation.session_card.change")) + '</a>'
+        actions = '<p>' + actions + '</p>'
     return (
-        f'<section class="error-summary" role="alert" tabindex="-1" autofocus '
+        f'<section class="error-summary"{summary_identity} role="alert" tabindex="-1" autofocus '
         f'aria-labelledby="validation-summary-heading-{state.feedback_generation}" '
         f'lang="{locale_attribute}">'
         f'<h2 id="validation-summary-heading-{state.feedback_generation}">'
         f"{escape(translate_frontend_message_v1(locale, heading_key))}</h2>"
         f"<p>{escape(translate_frontend_message_v1(locale, guidance_key))}</p>"
-        f"<ul>{''.join(items)}</ul>{reload_guidance}{retained_result}</section>"
+        f"<ul>{''.join(items)}</ul>{actions}{reload_guidance}{retained_result}</section>"
     )
 
 
@@ -375,6 +388,7 @@ def apply_validation_feedback_to_html_v1(
     *,
     locale: str,
     last_valid_result_retained: bool = False,
+    session_card_details: tuple[str, str | None] | None = None,
 ) -> str:
     """Applies locale-at-render-time feedback to one exact registered form."""
 
@@ -386,12 +400,22 @@ def apply_validation_feedback_to_html_v1(
     field_messages: dict[str, list[tuple[str, str]]] = {}
     rendered_fields: dict[str, str] = {}
     field_definitions = {field.field_key: field for field in definition.safe_fields}
+    evidence_anchor = None
     for index, issue in enumerate(state.validation_issues, start=1):
         message = translate_frontend_message_v1(
             locale,
             issue.message_key,
             **issue.interpolation_values(),
         )
+        feedback = issue.session_card_feedback
+        if (session_card_details is not None and feedback is not None
+                and feedback.route == definition.action_route
+                and feedback.selection == state.safe_visible_values.singular("card_selection")
+                and _find_form_bounds(html, definition, None,
+                    (("card_selection", feedback.selection),)) is not None):
+            message, evidence_anchor = session_card_details
+            if evidence_anchor is not None and f'id="{evidence_anchor}"' not in html:
+                evidence_anchor = None
         message_id = f"validation-message-{state.feedback_generation}-{index}"
         translated.append((issue.field_key, message_id, message))
         if issue.field_key is not None:
@@ -536,6 +560,7 @@ def apply_validation_feedback_to_html_v1(
         locale=locale,
         fallback_anchor=form_anchor_id,
         last_valid_result_retained=last_valid_result_retained,
+        evidence_anchor=evidence_anchor,
     )
     form_anchor = f'<span class="validation-anchor" id="{form_anchor_id}"></span>'
     block = form_anchor + block

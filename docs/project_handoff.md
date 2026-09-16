@@ -2597,6 +2597,20 @@ and 98 outputs remain. #235 stays completed; both exact merged-commit CI jobs ga
 manual closure. #208/unresolved findings stay open, UAT-01 failed, UAT-02–12 paused,
 B-09/B-07 open and B-06 closed; no maintainer UAT or release-readiness claim is made.
 
+Issue #237 adds [source-bound rejected Session Card explanations](session_card_feedback.md)
+on the two normal Card routes. A bounded private witness distinguishes accepted
+assignment/ownership, used/Skat/discard Cards, exact-hand membership and proven
+follow-suit; visible native links inspect exact accepted hands or Plays. Original
+accepted facts remain separate from candidate progress, full labels are rendered
+in the selected language, and exact source/language/retirement gates remain. The
+registered Play body limit is now actually enforced at 8,192 bytes. Thirty-four
+focused tests and 320 installed-Wheel browser measurements cover real rejection,
+unchanged bytes/checkpoints/Results, source inspection and valid continued saves.
+Final full-check output/child exit accompanies the report. No public/persistence,
+palette, core-rule, dependency, Package or output changes are introduced. #236 stays
+completed; both exact merged-commit CI jobs gate #237 closure. #208/unresolved
+findings remain open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

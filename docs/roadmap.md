@@ -1695,3 +1695,12 @@ Package, dependencies, public/persistence formats and 98 outputs remain unchange
 #235 remains completed; exact merged-commit `check` and `v1-supported-platform-matrix`
 gate manual #236 closure. #208/unresolved findings remain open, UAT-01 failed,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No full-UAT or release claim is made.
+
+Issue #237 implements [rejected Session Card feedback](session_card_feedback.md):
+specific source-bound Card/Player reasons, visible accepted-evidence anchors and
+bilingual exact-source lifetime for the two normal forms. Existing palette prevention,
+canonical validation, batch atomicity, checkpoints and valid #221 Results remain.
+The registered 8,192-byte Play request bound is enforced alongside Card batches.
+Focused real-form tests and installed-Wheel browser evidence cover C5 without changing
+specialist correction, Match or Learning contracts. #236 remains completed; both exact
+merged-commit CI jobs gate #237 closure. Existing UAT/Release blockers remain unchanged.
