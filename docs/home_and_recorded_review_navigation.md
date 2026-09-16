@@ -27,6 +27,14 @@ explanation beneath the page title. Actual recovery, transfer, prerequisite,
 source-selection, and return links remain; Learning's explicit-operation
 explanation is retained beside its existing preparation controls.
 
+Issue #236 adds [direct saved-Match entry](learning_direct_match_entry.md) within an
+active Learning collection. It supersedes the former requirement to open a Match
+before transferring it: choose a saved Match, explicitly Add, explicitly Build,
+then View results. Learning can initialize missing bounded Match discovery once on
+explicit page entry and otherwise reuses it. Home remains passive. The shortcut
+preserves unrelated active recordings, Reports, recovery and Session Results, and
+retains #235's independent-copy/deletion semantics.
+
 `APP_ROUTE_PATHS` retains eight prior static pages and adds the chooser. It is
 separate from seven visible navigation entries, in order: Home, Match recording,
 individual recording, recorded review, independent decision analysis, Learning,

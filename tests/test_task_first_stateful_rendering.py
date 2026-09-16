@@ -66,8 +66,8 @@ def test_learning_empty_sequence_precedes_import_and_has_no_build(tmp_path, loca
     initialize_learning_corpus_web_v1(context, corpus_id="private-collection")
     state = build_learning_corpus_web_state_v1(context)
     html = render_task_first_learning_v1(state, managed_handle="c" * 64, locale=locale)
-    for step in ("record", "add", "select", "build", "review"):
-        assert t(locale, f"task.learning.empty.{step}") in html
+    for key in ("next.add", "recorded_help", "no_recorded", "refresh_recorded"):
+        assert t(locale, f"task.learning.{key}") in html
     assert 'value="prepare_learning_artifacts"' not in html
     assert html.index(t(locale, "task.learning.next")) < html.index('name="workspace_file"')
     assert '<script' not in html

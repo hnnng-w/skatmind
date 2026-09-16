@@ -2582,6 +2582,21 @@ both exact merged-commit CI jobs remain closure gates. #234 remains completed;
 #208/unresolved findings stay open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open,
 B-06 closed. No maintainer UAT or release readiness is claimed.
 
+Issue #236 adds [direct saved-Match Learning entry](learning_direct_match_entry.md):
+an initially unselected native Match choice, guarded saved-source capture without
+activation, exact target/discovery binding, fixed `keep_current`, precise version
+outcomes, explicit Build and View results with coverage. The two new private routes
+bring the registry to 63 POST routes/107 forms; catalogs have 1,529 keys. Partial,
+empty and passed input, independent copies after #235 deletion, genuine unrelated
+Results/recovery, canonical import/CAS/orphans and all ten downloads are covered by
+real-file/HTTP regressions. Installed-Wheel Edge 153 evidence has 144 measurements
+across de/en, scripts on/off and narrow/enlarged controls. Final complete-check
+native output/child exit accompanies the report. Package 0.17.0, Python >=3.13,
+AGPL-3.0-only, dependencies including tzdata>=2026.4, profile/source/public formats,
+and 98 outputs remain. #235 stays completed; both exact merged-commit CI jobs gate
+manual closure. #208/unresolved findings stay open, UAT-01 failed, UAT-02–12 paused,
+B-09/B-07 open and B-06 closed; no maintainer UAT or release-readiness claim is made.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

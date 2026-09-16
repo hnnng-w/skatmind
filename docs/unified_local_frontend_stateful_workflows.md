@@ -194,6 +194,15 @@ imports, explicit Current selection, Reload, source removal/clear, explicit
 artifact preparation, and all ten authenticated canonical downloads reuse the
 existing Corpus context and operations.
 
+Issue #236 adds [direct saved-Match entry](learning_direct_match_entry.md) inside
+the active collection through `GET /learning/recorded-matches/refresh` and
+`POST /learning/add-recorded-match`. First explicit collection-page entry initializes
+missing Match discovery once; subsequent rendering reuses its bounded cache. The
+new Add fixes `keep_current`, selecting a new Match's first version but retaining
+later versions without replacing Current. It accepts partial/empty strict Workspaces,
+never activates a Match, and leaves Build explicit. Prepared input leads to View
+results; coverage and non-current-source remediation are visible.
+
 The active managed directory is revalidated as a direct non-link child under the
 existing Corpus lock immediately before adapter access. A replaced link,
 junction, or non-directory is rejected rather than followed.
@@ -222,6 +231,14 @@ automatic Match import, Current selection, Report capture, analysis, preparation
 or Dataset conversion. Both source and target opaque handles are retained by the
 form, and applied, unchanged, resolution-required, and conflict outcomes remain
 visible in the refreshed Match page.
+
+The in-collection shortcut captures inactive or fresh active saved input under the
+Match lifecycle/recording guards, releases source locks, then rechecks the exact
+target under a narrow Learning lifecycle gate shared with activation. Independent
+captured bytes can finish import after #235 source deletion. Existing transfer and
+multipart defaults, one canonical Catalog save/CAS/orphan behavior, and source bytes
+remain unchanged. Applied new input invalidates preparation even with Current kept;
+identical input preserves prepared objects and all ten download bytes.
 
 ## Server and locking
 
@@ -252,7 +269,7 @@ public JSON API.
 All lifecycle and active-item POST forms are covered by the private canonical
 registry documented in
 [Frontend validation state and localized feedback](frontend_validation_state_and_localized_feedback.md).
-The complete unified registry has 49 POST routes and 82 definitions. Creation
+The current unified registry has 63 POST routes and 107 definitions. Creation
 and settings forms use profile-generation checks and exact opaque form identity.
 Rejected safe values remain on the exact originating form. The active Session,
 Match, or Learning Corpus is retained, and switching that exact active object

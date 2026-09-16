@@ -359,7 +359,7 @@ def test_stateful_landing_empty_states_explain_scope_prerequisite_and_next_actio
         "/learning": (
             "No learning collections yet",
             "selected evidence from recorded Matches",
-            "First record one or more complete Matches",
+            "Create a collection below, then choose saved Matches inside it",
         ),
     }
     for route, values in expected.items():
@@ -848,9 +848,9 @@ def test_managed_match_learning_and_explicit_transfer_http_lifecycle(
     )
     assert status == 200
     learning_html = body.decode("utf-8")
-    assert "This learning collection has no Match data" in learning_html
-    assert "Add selected Matches to this collection." in learning_html
-    assert "Nothing is imported, selected, analyzed, or built automatically" in learning_html
+    assert "Choose a saved Match below" in learning_html
+    assert 'action="/learning/add-recorded-match"' in learning_html
+    assert "The first version of a new Match becomes selected" in learning_html
 
     status, headers, _body = _post_form(
         server,

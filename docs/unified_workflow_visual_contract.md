@@ -103,6 +103,13 @@ transport regeneration remain unchanged.
 
 ## Contrast and reflow targets
 
+Issue #236's [direct Learning entry](learning_direct_match_entry.md) adds one native
+Match selector and explicit Add, consolidates selected/alternative versions, exposes
+blocking source controls and leads prepared input to View results. Only the Learning
+form track and its anchored panel ownership extend the app CSS. Its separate
+installed-Wheel evidence covers native source/conflict/build controls and retained
+versions at 320 pixels and 200% text, retaining this document's contrast/reflow rules.
+
 Issue #231 reuses these app-owned styles for
 [direct Session Card startup](session_direct_card_start.md#installed-browser-evidence).
 Its separate installed-Wheel evidence covers both languages/script modes, actual

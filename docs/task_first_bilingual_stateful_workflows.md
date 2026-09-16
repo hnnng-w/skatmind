@@ -206,13 +206,14 @@ Same-revision conflict defaults to explicit resolution; retaining both never mer
 them. Decision Report-source transfer is Advanced and limited to eligible executed
 Decision Reports. No transfer runs analysis, preparation, or Dataset construction.
 
-Learning starts with What is needed next?, Recorded Matches available, Matches
-added to this collection, Versions selected for insights, Build insights, and
-Results and downloads. Its empty state explains the full five-step recording,
-adding, choosing, building, and reviewing/downloading sequence in both languages.
-It distinguishes managed recorded Matches from imported collection evidence and
-provides an explicit path through the existing Match-open and transfer operations.
-Opening Learning does not silently discover, import, activate, or select Matches.
+Issue #236 supersedes the former five-step/open-Match-first Learning presentation:
+[Direct saved-Match entry](learning_direct_match_entry.md) provides one initially
+unselected native selector, explicit Add, explicit Build, then View results.
+The first collection-page GET can initialize missing bounded Match discovery once;
+ordinary/language/error renders reuse it and refresh is explicit. Add copies the
+current valid saved version without activating a recording. Partial/empty valid
+Matches are allowed. The first version becomes Current; later direct adds use
+`keep_current`, unlike the unchanged Match-side transfer default above.
 
 Snapshot presentation uses Saved Match version and Version used for insights.
 Retained alternatives stay Advanced, selection stays explicit, and IDs stay
@@ -221,8 +222,11 @@ The normal Build action appears after prerequisite guidance. Defaults remain
 Dataset ID derived from the Corpus ID, seeds `0` and `0`, and weights `70/15/15`.
 Configuration is neither learned nor saved automatically.
 
-Strategy Teacher import, binding, replacement/removal, and non-current-source
-remediation remain Advanced. Uploads always require file reselection when needed.
+Strategy Teacher import remains Advanced. Non-current-source remediation exposes
+its native removal controls visibly when it blocks Build. Uploads always require
+file reselection when needed. Matching prepared artifacts lead to View results at
+`#learning-results`, with rebuild secondary. Counts describe available evidence,
+not 36-position completeness, Player strength, or zero mistakes without Teacher input.
 Prepared summaries and all ten exact authenticated downloads retain existing
 filenames, Routes, JSON, lineage, and invalidation behavior. Viewing or downloading
 does not rebuild artifacts.
@@ -252,6 +256,12 @@ creation rejections, selected Match Game/Report, active Session/Learning, Review
 step, Analyze, and About in their rendered task. The safe HTML-route allowlist
 remains unchanged; only known server-owned Result/recording/recovery anchors are
 appended separately. A complete PRG response uses one consistent rendering locale.
+
+Issue #236 additionally binds Learning's retained Match discovery/generation into
+that semantic source. Safe submitted source choices and conflict resolution survive
+errors/language changes; hidden direct-add target/discovery bindings are regenerated.
+The current registry is 63 POST routes / 107 definitions; the de/en catalogs have
+1,529 keys. Historical #222/#223 counts retain their original evidence scope.
 
 Native language switching retains authoritative state, active items, selected
 position, rejected safe values, structured validation issues, and process-local

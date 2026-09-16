@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import secrets
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -47,6 +48,9 @@ class UnifiedLearningContextV1:
     handle: str
     corpus: LearningCorpusWebContextV1 = field(repr=False)
     last_result: LearningCorpusWebResultV1 | None = field(default=None, repr=False)
+    entry_key: bytes = field(default_factory=lambda: secrets.token_bytes(32), repr=False)
+    entry_outcome: tuple[LearningCorpusWebResultV1, str, int, bool] | None = field(
+        default=None, repr=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.category_root, Path) or not isinstance(self.path, Path):

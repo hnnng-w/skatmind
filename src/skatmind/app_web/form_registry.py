@@ -25,6 +25,7 @@ from .frontend_profile_operations import (
 )
 from .guided_contracts import GUIDED_ACTION_ROUTE_PATHS
 from .json_transfer import FRONTEND_JSON_MAX_FILE_BYTES
+from .learning_direct_entry import LEARNING_ADD_ROUTE, LEARNING_ENTRY_BODY_LIMIT
 from .local_time_forms import LOCAL_TIME_VISIBLE_FIELDS
 from .managed_item_contracts import MANAGED_ITEM_MAX_IMPORT_BYTES
 from .match_recovery import RECOVERY_ROUTES
@@ -1139,6 +1140,14 @@ _FORMS: list[FrontendFormDefinitionV1] = [
         success="/learning/current",
         value_free=True,
     ),
+    _definition(
+        "learning.add_recorded_match", LEARNING_ADD_ROUTE,
+        ("source_handle", "same_revision_resolution"),
+        page="/learning/current", active="learning", success="contextual",
+        body_limit=LEARNING_ENTRY_BODY_LIMIT,
+        control_overrides={"source_handle": "select"},
+        label_overrides={"source_handle": "validation.field.match_id"},
+    ),
 ]
 
 for route in FRONTEND_SETTINGS_PLAYER_ACTION_ROUTES:
@@ -1449,6 +1458,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             "/matches/transfer-report",
             *RECOVERY_ROUTES,
             "/learning/create",
+            LEARNING_ADD_ROUTE,
             "/learning/open",
             "/learning/api/v1/operations",
         )

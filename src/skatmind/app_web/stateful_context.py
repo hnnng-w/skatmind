@@ -33,6 +33,7 @@ class ManagedStatefulContextV1:
     active_match: UnifiedMatchContextV1 | None = field(default=None, repr=False)
     match_lifecycle_lock: RLock = field(default_factory=RLock, repr=False)
     active_learning: UnifiedLearningContextV1 | None = field(default=None, repr=False)
+    learning_lifecycle_lock: RLock = field(default_factory=RLock, repr=False)
 
     def __post_init__(self) -> None:
         if type(self.managed_home) is not ManagedHomeV1:

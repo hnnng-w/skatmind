@@ -1682,3 +1682,16 @@ de/en/native browser measurements cover the bounded operation. No public format,
 Game behavior, dependency, Package version, or generated output changes. #234 stays
 completed; both exact merged-commit CI jobs gate #235 closure. The existing open
 UAT/Release blockers and closed B-06 remain unchanged.
+
+Issue #236 adds [direct saved-Match entry inside Learning](learning_direct_match_entry.md):
+choose one saved Match, explicitly add its independent saved version without
+activation, explicitly build existing summaries, then inspect coverage/results.
+Exact target/discovery bindings and source/target lifecycle guards preserve #235;
+first-version selection, retained updates, identical no-op and explicit same-revision
+resolution reuse the canonical import. The private registry is 63 POST routes/107
+forms, with 1,529 catalog keys and ten unchanged downloads. Synthetic real-file/HTTP
+tests and 144 installed-Wheel bilingual/native measurements cover the shortcut.
+Package, dependencies, public/persistence formats and 98 outputs remain unchanged.
+#235 remains completed; exact merged-commit `check` and `v1-supported-platform-matrix`
+gate manual #236 closure. #208/unresolved findings remain open, UAT-01 failed,
+UAT-02–12 paused, B-09/B-07 open and B-06 closed. No full-UAT or release claim is made.

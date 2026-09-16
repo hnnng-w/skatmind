@@ -117,12 +117,15 @@ def project_task_first_learning_v1(state: Mapping[str, object]) -> TaskFirstWork
     completed = []
     if not matches:
         task, action = "add", None
-    elif not selections:
+    elif not selections or any(not match.get("current_match_snapshot_id") for match in matches):
         task, action = "select", None
         completed.append("task.learning.added")
     elif any(source["binding_status"] == "non_current" for source in sources):
         task, action = "sources", None
         completed.extend(("task.learning.added", "task.learning.selected"))
+    elif state.get("prepared") is not None:
+        task, action = "results", "view_results"
+        completed.extend(("task.learning.added", "task.learning.selected", "task.learning.build"))
     else:
         task, action = "build", "prepare_learning_artifacts"
         completed.extend(("task.learning.added", "task.learning.selected"))

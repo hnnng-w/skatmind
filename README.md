@@ -712,6 +712,12 @@ without normal-user paths or ports. Normal creation uses names and saved Players
 generates internal Product identities, presents friendly Match platform/date/
 source fields, and keeps Session and Match JSON import secondary. Open **Settings**
 to add/edit Players, identify **Your player**, and choose local creation defaults.
+
+Inside a Learning collection, [choose a saved Match directly](docs/learning_direct_match_entry.md),
+add its saved version without opening the recording, explicitly build summaries,
+then view their coverage and downloads. Partial recordings are allowed. Imported
+versions are independent copies; later source edits or deletion do not change them.
+
 New recordings ask for an explicit own seat, with no starting seat inferred from
 identity. Review the named roster before creation; Match seats mean game 1 and
 are translated to the existing table places. Saving new Players is unchecked by

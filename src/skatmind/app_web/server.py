@@ -20,7 +20,6 @@ from skatmind.corpus_web.downloads import (
 from skatmind.corpus_web.uploads import parse_learning_corpus_multipart_upload_v1
 from skatmind.errors import SkatMindError, SkatMindInvariantError, SkatMindWorkflowError
 from skatmind.match_workspace_persistence_codec import resume_match_workspace_document_v1
-from skatmind.match_workspace_progress import build_match_workspace_progress_v1
 
 from .card_entry_http import (
     CARD_ENTRY_ROUTES,
@@ -108,6 +107,14 @@ from .language_form_preservation import (
     instrument_language_forms_v1,
     parse_language_page_values_v1,
 )
+from .learning_direct_entry import (
+    LEARNING_ADD_ROUTE,
+    LEARNING_ENTRY_BODY_LIMIT,
+    LEARNING_ENTRY_LOCATION,
+    LEARNING_REFRESH_ROUTE,
+    learning_selection_v1,
+)
+from .learning_direct_entry_http import dispatch_learning_direct_entry
 from .learning_frontend import (
     build_unified_learning_download_v1,
     build_unified_learning_state_v1,
@@ -367,6 +374,7 @@ _STATEFUL_POST_ROUTES = {
     "/matches/transfer-report",
     *RECOVERY_ROUTES,
     "/learning/create",
+    LEARNING_ADD_ROUTE,
     "/learning/open",
     "/learning/api/v1/operations",
 }
@@ -414,6 +422,7 @@ def _is_stateful_get_route(path: str) -> bool:
             "/matches/api/v1/state",
             "/matches/downloads/workspace.json",
             "/learning/current",
+            LEARNING_REFRESH_ROUTE,
             "/learning/api/v1/state",
         }
         or path in _SESSION_DOWNLOAD_ROUTES
@@ -1242,6 +1251,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
     ) -> None:
         if getattr(getattr(self, "_submitted_active", None), "retired", False):
             return
+        if definition.action_route == LEARNING_ADD_ROUTE:
+            with self.server.app_context.lock:
+                if (getattr(self, "_submitted_active", None) is not None
+                        and self.server.app_context.managed_stateful.active_learning
+                        is not self._submitted_active):
+                    return
         family = definition.active_context_requirement or "profile"
         active_identity = self._feedback_identity(definition)
         with self.server.app_context.lock:
@@ -1673,11 +1688,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     previous.recovery.clear()
 
     def _activate_learning(self, active) -> None:
-        with self.server.app_context.lock:
-            previous = self.server.app_context.managed_stateful.activate_learning(active)
-            self.server.app_context.form_feedback.clear("matches")
-        if previous is not None:
-            previous.corpus.shutdown()
+        with self.server.app_context.managed_stateful.learning_lifecycle_lock:
+            with self.server.app_context.lock:
+                previous = self.server.app_context.managed_stateful.activate_learning(active)
+                self.server.app_context.form_feedback.clear("matches")
+            if previous is not None:
+                previous.corpus.shutdown()
 
     def _active_session(self):
         with self.server.app_context.lock:
@@ -2001,8 +2017,15 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         *,
         status: int = HTTPStatus.OK,
         error_notice: str | None = None,
+        initialize_discovery: bool = False,
     ) -> None:
         active = self._active_learning()
+        if initialize_discovery:
+            with self.server.app_context.managed_stateful.learning_lifecycle_lock:
+                with self.server.app_context.lock:
+                    missing = "matches" not in self.server.app_context.managed_stateful.discoveries
+                if missing:
+                    self._refresh_category("matches")
         self._rendered_language_source = capture_language_source_v1(
             self.server.app_context, "/learning/current")
         state = build_unified_learning_state_v1(active)
@@ -2020,30 +2043,30 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         with self.server.app_context.lock:
             profile = self.server.app_context.frontend_profile.document
             discovery = self.server.app_context.managed_stateful.discoveries.get("matches")
-            recorded_active = self.server.app_context.managed_stateful.active_match
+            source_generation = self.server.app_context.managed_stateful.generations["matches"]
             feedback = self.server.app_context.form_feedback.current(
                 "learning", active_identity=active)
         locale = self._frontend_state().locale
-        active_recorded = None
-        if recorded_active is not None:
-            with recorded_active.capture.lock:
-                workspace = recorded_active.workspace
-                progress = build_match_workspace_progress_v1(workspace)
-                active_recorded = (
-                    workspace.match_definition.match_id, workspace.match_definition.title,
-                    progress.occupied_slot_count, progress.passed_deal_count,
-                )
+        with active.corpus.lock:
+            selection = (None if discovery is None else
+                         learning_selection_v1(active, discovery, source_generation))
         body = self._take_creation_notice("corpora") + render_task_first_learning_v1(
             state,
             managed_handle=active.handle,
             locale=locale,
             profile=profile,
             recorded=() if discovery is None else discovery.view.items,
-            active_recorded=active_recorded,
+            learning_selection=selection,
+            source_generation=source_generation,
+            candidate_limit_reached=(discovery is not None
+                                     and discovery.view.candidate_limit_reached),
+            entry_outcome=active.entry_outcome if active.entry_outcome is not None
+                and active.entry_outcome[0] is result else None,
             rejected_build=(feedback is not None
                 and feedback.form_key == "learning.operation.prepare_learning_artifacts"),
         )
-        if notice is not None:
+        if notice is not None and not (active.entry_outcome is not None
+                                      and active.entry_outcome[0] is result):
             key = ("task.operation.conflict" if notice_kind in {"warning", "error"}
                    else "task.operation.saved")
             body += (
@@ -2160,7 +2183,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             self._match_page(active, position=active.selected_position)
             return True
         if path == "/learning/current":
-            self._learning_page()
+            self._learning_page(initialize_discovery=True)
+            return True
+        if path == LEARNING_REFRESH_ROUTE:
+            self._active_learning()
+            self._refresh_category("matches")
+            self._redirect(LEARNING_ENTRY_LOCATION)
             return True
         position = _MATCH_POSITION_PATTERN.fullmatch(path)
         if position is not None:
@@ -2843,6 +2871,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         body: bytes,
         content_type: str,
     ) -> None:
+        if path == LEARNING_ADD_ROUTE:
+            dispatch_learning_direct_entry(self, self._text_form(body, content_type))
+            return
         if path in DELETION_POST_ROUTES:
             dispatch_recording_deletion(self, path, self._text_form(body, content_type))
             return
@@ -3034,6 +3065,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             if parsed.path in _STATEFUL_POST_ROUTES:
                 if parsed.path in DELETION_POST_ROUTES:
                     max_bytes = DELETION_BODY_LIMIT
+                elif parsed.path == LEARNING_ADD_ROUTE:
+                    max_bytes = LEARNING_ENTRY_BODY_LIMIT
                 elif parsed.path in {"/sessions/import", "/matches/import"}:
                     max_bytes = _MANAGED_IMPORT_MAX_REQUEST_BYTES
                 elif parsed.path == "/sessions/cards":

@@ -67,51 +67,67 @@ def _match_label(locale, profile, match_id, recorded):
 
 def _version(locale, snapshot, number):
     return (paragraph(locale, "task.learning.version_number", number=number)
+        + paragraph(locale, "task.learning.saved_revision", revision=snapshot["workspace_revision"])
         + paragraph(locale, "task.learning.version_progress", games=snapshot["observed_game_count"],
                     decisions=snapshot["decision_count"]))
 
 
-def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile=None, recorded=(), rejected_build=False, active_recorded=None):
+def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile=None, recorded=(), rejected_build=False, active_recorded=None, learning_selection=None, source_generation=0, candidate_limit_reached=False, entry_outcome=None):
     view = project_task_first_learning_v1(state)
     handle = managed_handle
     revision = state["corpus"]["catalog_revision"]
     guidance = paragraph(locale, view.next_task_key)
     if not state["matches"]:
-        guidance += paragraph(locale, "empty.learning_data.heading")
-        guidance += '<ol>' + ''.join('<li>' + translated(locale, f"task.learning.empty.{step}") + '</li>'
-                                     for step in ("record", "add", "select", "build", "review")) + '</ol>'
-    guidance += paragraph(locale, "task.learning.automatic")
-    if not state["matches"]:
-        guidance += '<p><a class="button-link" href="/matches">' + translated(locale, "task.learning.open_matches") + '</a></p>'
+        guidance += '<p><a class="button-link" href="#learning-recorded-matches">' + translated(locale, "task.learning.choose_recorded") + '</a></p>'
     elif view.status == "select":
         guidance += '<p><a href="#insight-versions">' + translated(locale, "task.learning.choose_version") + '</a></p>'
     elif view.status == "sources":
         guidance += paragraph(locale, "task.learning.sources_help")
+        guidance += '<p><a href="#learning-sources">' + translated(locale, "task.learning.sources") + '</a></p>'
+    elif view.status == "results":
+        guidance += '<p><a class="button-link" href="#learning-results">' + translated(locale, "task.learning.view_results") + '</a></p>'
+    else:
+        guidance += '<p><a href="#learning-build">' + translated(locale, "task.learning.build") + '</a></p>'
     body = section(locale, "task.learning.next", guidance)
     available = paragraph(locale, "task.learning.recorded_help")
-    if active_recorded is not None:
-        match_id, title, occupied, passed = active_recorded
-        label = managed_name(locale, profile, "matches", match_id, title)
-        available += '<article><h3>' + escape(label) + '</h3>'
-        available += paragraph(locale, "task.match.progress_value", occupied=occupied, passed=passed)
-        available += '<p><a href="/matches/current">' + translated(locale, "task.learning.open_to_add") + '</a></p></article>'
-    for item in recorded:
-        if item.status != "available":
-            continue
-        if active_recorded is not None and item.semantic_product_id == active_recorded[0]:
-            continue
-        label = _match_label(locale, profile, item.semantic_product_id, recorded)
-        available += '<article><h3>' + escape(label) + '</h3>'
-        available += paragraph(locale, {"empty": "task.match.status.empty",
-            "in_progress": "result.value.partial", "complete": "result.value.complete"}.get(
-                item.phase, "creation.managed.status.available"))
-        available += form(locale, "/matches/open", hidden("handle", item.handle)
-            + hidden("generation", item.discovery_generation), "task.learning.open_to_add") + '</article>'
+    options = [("", text(locale, "task.learning.choose_recorded"))]
+    for number, item in enumerate(recorded, 1):
+        if item.status == "available":
+            label = _match_label(locale, profile, item.semantic_product_id, recorded)
+            options.append((item.handle, text(locale, "task.learning.recorded_choice",
+                number=number, name=label, revision=item.revision)))
+        else:
+            available += paragraph(locale, "task.learning.recorded_unavailable", number=number,
+                reason=text(locale, "creation.managed.status." + item.status))
+    if len(options) == 1:
+        available += paragraph(locale, "task.learning.no_recorded")
+    if candidate_limit_reached:
+        available += paragraph(locale, "task.learning.discovery_limit")
+    if learning_selection is not None:
+        resolution = disclosure(locale, "task.advanced", select_field(locale, "same_revision_resolution",
+            "task.transfer.conflict", (("reject", text(locale, "task.transfer.reject")),
+                                      ("retain", text(locale, "task.transfer.retain")))))
+        if entry_outcome is not None and entry_outcome[0].status == "resolution_required":
+            resolution = resolution.replace('<details', '<details open', 1)
+        available += form(locale, "/learning/add-recorded-match",
+            hidden("managed_handle", handle) + hidden("learning_selection", learning_selection)
+            + hidden("source_generation", source_generation)
+            + hidden("expected_catalog_revision", revision)
+            + select_field(locale, "source_handle", "task.learning.choose_recorded", tuple(options), required=True)
+            + resolution,
+            "task.learning.add_recorded", primary=not state["matches"], disabled=len(options) == 1)
+    if entry_outcome is not None:
+        result, match_id, copied_revision, selected = entry_outcome
+        outcome = {"unchanged": "unchanged", "resolution_required": "resolution",
+                   "revision_conflict": "conflict", "persistence_conflict": "conflict"}.get(result.status)
+        if result.status == "applied":
+            outcome = "selected" if result.state["relation"] == "new_match" and selected else "retained"
+        if outcome is not None:
+            available += '<div role="status">' + paragraph(locale, "task.learning.import." + outcome,
+                name=_match_label(locale, profile, match_id, recorded), revision=copied_revision) + '</div>'
+    available += '<p><a href="/learning/recorded-matches/refresh">' + translated(locale, "task.learning.refresh_recorded") + '</a></p>'
     available += '<p><a href="/matches">' + translated(locale, "task.learning.open_matches") + '</a></p>'
-    body += section(locale, "task.learning.recorded", available)
-    added = '<ul>' + ''.join('<li>' + escape(_match_label(locale, profile, match["match_id"], recorded)) + '</li>'
-                             for match in state["matches"]) + '</ul>'
-    body += section(locale, "task.learning.added", added or paragraph(locale, "task.learning.next.add"))
+    body += '<div id="learning-recorded-matches" tabindex="-1">' + section(locale, "task.learning.recorded", available) + '</div>'
     selections = paragraph(locale, "task.learning.versions_help")
     alternatives = ''
     for match in state["matches"]:
@@ -137,7 +153,10 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
             selections += choices
         else:
             alternatives += label + choices
-    body += '<div id="insight-versions">' + section(locale, "task.learning.selected", selections) + '</div>'
+    if alternatives:
+        selections += disclosure(locale, "task.learning.alternatives", alternatives)
+    if state["matches"]:
+        body += '<div id="insight-versions">' + section(locale, "task.learning.selected", selections) + '</div>'
     fields = ''.join(input_field(locale, name, f"task.field.{name}", default, kind=kind, required=True)
         for name, default, kind in (
             ("dataset_id", state["corpus"]["corpus_id"] + "-learning-dataset-v2", "text"),
@@ -148,7 +167,7 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
     if view.primary_action:
         build += form(locale, "/learning/api/v1/operations", _hidden(handle, "prepare_learning_artifacts")
             + disclosure(locale, "task.learning.settings", paragraph(locale, "task.learning.settings_help")
-                         + fields), "task.learning.build", primary=True)
+                          + fields), "task.learning.build", primary=view.status == "build")
     else:
         build += paragraph(locale, view.next_task_key)
         if rejected_build:
@@ -156,11 +175,14 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
                 _hidden(handle, "prepare_learning_artifacts")
                 + disclosure(locale, "task.learning.settings", fields),
                 "task.learning.build", disabled=True)
-    body += section(locale, "task.learning.build", build)
+    body += '<div id="learning-build" tabindex="-1">' + section(locale, "task.learning.build", build) + '</div>'
     prepared = state["prepared"]
     results = paragraph(locale, "task.learning.no_results")
     if prepared is not None:
         results = paragraph(locale, "task.learning.current_results")
+        results += paragraph(locale, "task.learning.coverage_help")
+        results += paragraph(locale, "task.learning.dataset_status",
+                             status=text(locale, "task.learning.dataset." + prepared["dataset_status"]))
         results += '<dl>' + ''.join('<dt>' + translated(locale, f"task.learning.count.{name}") + '</dt><dd>'
             + escape(str(prepared[name])) + '</dd>' for name in (
                 "cross_game_match_count", "cross_game_player_count", "observed_decision_count",
@@ -170,8 +192,8 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
         results += '<ul>' + ''.join(f'<li><a href="/learning/downloads/{kind.replace("_", "-")}.json" download>'
             + translated(locale, f"task.download.{kind}") + '</a></li>'
             for kind in LEARNING_CORPUS_ALL_PREPARED_DOWNLOAD_KINDS) + '</ul>'
-    body += section(locale, "task.learning.results", results)
-    advanced = disclosure(locale, "task.learning.alternatives", alternatives)
+    body += '<div id="learning-results" tabindex="-1">' + section(locale, "task.learning.results", results) + '</div>'
+    advanced = ''
     upload = ('<label>' + translated(locale, "creation.import.file")
               + '<input type="file" name="workspace_file" accept="application/json,.json" required></label>')
     advanced += section(locale, "creation.import.heading", paragraph(locale, "task.transfer.help")
@@ -196,7 +218,11 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
             + hidden("source_binding_id", source["source_binding_id"]), "task.learning.remove_source")
     sources += form(locale, "/learning/api/v1/operations", _hidden(handle, "clear_strategy_teacher_reports"),
                     "task.learning.clear_sources", disabled=not state["strategy_sources"])
-    advanced += section(locale, "task.learning.sources", sources, level=3)
+    source_section = '<div id="learning-sources">' + section(locale, "task.learning.sources", sources, level=3) + '</div>'
+    if view.status == "sources":
+        body += source_section
+    else:
+        advanced += source_section
     advanced += form(locale, "/learning/api/v1/operations", _hidden(handle, "reload_corpus"), "common.action.reload")
     body += disclosure(locale, "task.advanced", advanced)
     body += technical_details(locale, {"corpus": state["corpus"], "matches": state["matches"],

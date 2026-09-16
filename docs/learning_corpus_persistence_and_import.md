@@ -25,6 +25,12 @@ Corpus Catalogs, immutable imported Snapshots, Current selections, or prepared
 artifacts. An independently captured explicit transfer retains its own lifecycle.
 Corpus deletion and garbage collection remain separate, unimplemented operations.
 
+Issue #236's [direct saved-Match entry](learning_direct_match_entry.md) reuses this
+same immutable-byte import/Catalog boundary after guarded inactive or fresh active
+source capture. It fixes `keep_current` only for the new in-collection shortcut.
+Partial/empty valid input, identical no-op preservation, applied-import invalidation,
+and object-before-Catalog conflict/orphan behavior remain the existing contracts.
+
 The exact relationship is:
 
 ```text

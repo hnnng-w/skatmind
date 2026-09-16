@@ -14,6 +14,7 @@
 
 #session-app > .panel,
 #task-first-match > .panel,
+#task-first-learning > div > .panel,
 #task-first-learning > .panel {
   padding: clamp(1rem, 3vw, 1.8rem);
   margin-block: 1rem;
@@ -27,6 +28,10 @@
   display: grid;
   gap: 0.8rem;
   max-width: 65rem;
+}
+
+#task-first-learning .form-grid {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 button.secondary,

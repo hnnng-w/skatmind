@@ -54,6 +54,7 @@ def test_learning_guidance_uses_only_selections_and_exact_source_status():
     state["matches"] = [{}]
     assert project_task_first_learning_v1(state).status == "select"
     state["current_match_snapshots"] = [{}]
+    state["matches"] = [{"current_match_snapshot_id": "selected"}]
     assert project_task_first_learning_v1(state).primary_action == "prepare_learning_artifacts"
     state["strategy_sources"] = [{"binding_status": "non_current"}]
     assert project_task_first_learning_v1(state).primary_action is None

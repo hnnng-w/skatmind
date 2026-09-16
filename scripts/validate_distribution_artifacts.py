@@ -1183,8 +1183,14 @@ assert FRONTEND_TRANSLATION_CATALOG_VERSION == 1
 assert LOCAL_FRONTEND_PROFILE_VERSION == 1
 assert FRONTEND_INFORMATION_ARCHITECTURE_VERSION == 1
 assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-assert len(UNIFIED_FRONTEND_POST_ROUTES) == 62
-assert len(FRONTEND_FORM_REGISTRY) == 106
+assert len(UNIFIED_FRONTEND_POST_ROUTES) == 63
+assert len(FRONTEND_FORM_REGISTRY) == 107
+direct = next(form for form in FRONTEND_FORM_REGISTRY
+              if form.form_key == "learning.add_recorded_match")
+assert direct.action_route == "/learning/add-recorded-match" and direct.body_limit == 8192
+assert direct.originating_page == "/learning/current"
+assert {field.field_key for field in direct.safe_fields} == {
+    "source_handle", "same_revision_resolution"}
 deletion_forms = tuple(form for form in FRONTEND_FORM_REGISTRY
                        if form.form_key.startswith("deletion."))
 assert tuple(form.form_key for form in deletion_forms) == (

@@ -128,6 +128,14 @@ and the file is removed after success or every failure path.
 
 ## Workspace import and Current selection
 
+The unified app's Issue #236 [direct saved-Match shortcut](learning_direct_match_entry.md)
+adds an in-collection native selector without opening the source Match. That private
+shortcut alone fixes `keep_current`: first version selected, later versions retained
+without replacing Current. Partial/empty valid Workspaces remain permitted. The
+standalone/multipart and older Match-side defaults documented below are unchanged.
+Unified preparation/results guidance now exposes coverage and View results rather
+than repeatedly recommending Build; the same ten canonical downloads are reused.
+
 The import form supplies the current Catalog revision plus two explicit options:
 
 ```text

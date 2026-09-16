@@ -185,6 +185,9 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
             values.extend((learning.corpus.generation,
                            learning.corpus.strategy_source_store.revision))
         if route == "/learning/current":
+            with context.lock:
+                references.append(managed.discoveries.get("matches"))
+                values.append(managed.generations["matches"])
             references.append(match)
             if match is not None:
                 with match.capture.lock:
