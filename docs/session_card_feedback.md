@@ -77,6 +77,49 @@ The existing registered **8,192-byte** limit is now enforced on `/sessions/play`
 as well as `/sessions/cards`: preflight found only the latter wired to its limit.
 No incoming field, route, Product format, acceptance rule or save is added.
 
+### Issue #238 response-transport follow-up
+
+The post-merge failure at `cc051c77615edf3a28fee04b5321f00f7ebb4812`
+(run `35187708150`, job `105093241807`, Linux/Python 3.13.15) occurred during
+the client's complete response-body read after the expected status assertion.
+The original loop does not establish whether malformed 8192/400 or oversized
+8193/413 failed, and its evidence-content assertion did not complete.
+
+On Windows 11/Python 3.13.7 the unchanged exact test passed. A bounded staged
+real-socket regression then established the lifecycle defect on both routes:
+headers-only oversized input produced a response followed by full socket closure,
+with no body consumption or staged cleanup. This is deterministic lifecycle
+evidence, not a reproduction of Linux Errno 104 or proof of its original iteration.
+
+The private unified byte-response path now sends existing rejected responses with
+`Connection: close`, flushes, half-closes the sending direction, then discards opaque
+input before normal final teardown. It uses the standalone Corpus design's limits:
+**65,536 bytes total**, **at most 8,192 bytes/read**, a **250-ms absolute monotonic
+cleanup deadline** that arriving bytes cannot renew, and **250-ms socket timeouts
+for response writes**. Buffered header read-ahead and late socket input both pass
+through `rfile.read1`. No declared length controls cleanup, no discarded bytes are
+parsed, and no pipelined request is dispatched. Authorization rejection also replies
+first, replacing its former declared-length read before the response. Successful
+responses do not drain or change their socket timeout. Transport-only write/cleanup
+errors end the connection without generating a second filesystem-error response.
+
+The boundary test now names route and size/status independently, reads the complete
+body, checks framing/security headers and absent Card evidence, and preserves all
+original duplicate-field and authorization assertions. Genuine retained Request/
+Result downloads, accepted State/file/checkpoints and zero save/analysis/witness
+calls are checked. `tests/test_unified_rejection_transport.py` covers staged/split
+and prefetched input, a valid pipelined mutation discarded without preparation,
+missing bodies, excess bytes, departing peers, actual fresh-connection Card saves,
+and deterministic byte/deadline/partial-write faults. Socket identity is retained
+before teardown; request workers are joined, and client cleanup uses `finally` or
+context managers. The standalone Corpus implementation and observer fix are retained.
+
+Local verification uses disposable synthetic roots. The available WSL Ubuntu has
+Python 3.12.3 rather than 3.13, and the Docker Linux engine is unavailable; no local
+Linux/Python 3.13 pass is claimed. #238's completion gate and #208 UAT-01 approval
+remain blocked until `check` and `v1-supported-platform-matrix` pass on the exact
+corrected merged commit. This correction is not maintainer UAT.
+
 ## Verification and fixture boundaries
 
 `tests/test_session_card_feedback.py` and `tests/test_session_card_feedback_web.py`

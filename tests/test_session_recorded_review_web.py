@@ -81,12 +81,13 @@ class Browser:
                              "Content-Type": "application/x-www-form-urlencoded"})
         supplied.update(headers or {})
         body = None if values is None else urlencode(values, doseq=True).encode("ascii")
-        connection.request(method, route, body=body, headers=supplied)
-        response = connection.getresponse()
-        result = (response.status, dict((k.lower(), v) for k, v in response.getheaders()),
-                  response.read())
-        connection.close()
-        return result
+        try:
+            connection.request(method, route, body=body, headers=supplied)
+            with connection.getresponse() as response:
+                return (response.status, dict((k.lower(), v) for k, v in response.getheaders()),
+                        response.read())
+        finally:
+            connection.close()
 
     def page(self, route="/sessions/current"):
         status, _, content = self.request("GET", route)

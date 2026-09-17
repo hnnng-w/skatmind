@@ -4,12 +4,14 @@ import hmac
 import json
 import re
 import secrets
+import socket
 import threading
 from email.message import Message
 from html import escape
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
+from time import monotonic
 from urllib.parse import parse_qs, quote, urlsplit
 
 from skatmind.capture_web.contracts import MATCH_CAPTURE_WEB_MAX_REQUEST_BYTES
@@ -436,6 +438,10 @@ def _is_stateful_get_route(path: str) -> bool:
     )
 
 
+_REJECT_DRAIN_MAX_BYTES = 65_536
+_REJECT_DRAIN_TIMEOUT_SECONDS = 0.25
+
+
 class SkatMindAppWebServerV1(ThreadingHTTPServer):
     """One loopback-only server for the unified local application shell."""
 
@@ -532,13 +538,44 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         content_type: str,
         extra_headers: tuple[tuple[str, str], ...] = (),
     ) -> None:
-        self._headers(
-            status,
-            content_type,
-            len(content),
-            extra_headers=extra_headers,
-        )
-        self.wfile.write(content)
+        rejected = status >= HTTPStatus.BAD_REQUEST
+        if rejected:
+            self.close_connection = True
+            extra_headers = (*extra_headers, ("Connection", "close"))
+        try:
+            if rejected:
+                self.connection.settimeout(_REJECT_DRAIN_TIMEOUT_SECONDS)
+            self._headers(
+                status,
+                content_type,
+                len(content),
+                extra_headers=extra_headers,
+            )
+            self.wfile.write(content)
+            if rejected:
+                self._finish_rejected_response()
+        except OSError:
+            # Only transport I/O is guarded. A partial write is not a filesystem
+            # failure and must never trigger a second response.
+            self.close_connection = True
+
+    def _finish_rejected_response(self) -> None:
+        """Response-first staged close with finite opaque cleanup (RFC 9112 9.6)."""
+        self.wfile.flush()
+        self.connection.shutdown(socket.SHUT_WR)
+        deadline = monotonic() + _REJECT_DRAIN_TIMEOUT_SECONDS
+        remaining = _REJECT_DRAIN_MAX_BYTES
+        while remaining:
+            timeout = deadline - monotonic()
+            if timeout <= 0:
+                break
+            self.connection.settimeout(timeout)
+            # read1 includes prefetched input and performs at most one socket read.
+            # Ignore framing: discarded bytes must never become another request.
+            chunk = self.rfile.read1(min(8192, remaining))
+            if not chunk:
+                break
+            remaining -= len(chunk)
 
     def _send_text(
         self,
@@ -686,7 +723,6 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
 
     def _authorize_mutation(self) -> bool:
         if not self._host_is_valid() or not self._cookie_is_valid():
-            self._drain_rejected_body()
             self._send_authorization_failure()
             return False
         if len(self.headers.get_all("Origin", [])) != 1 or not validate_app_web_origin_v1(
@@ -694,25 +730,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             self.server.port,
             self.headers.get("Host"),
         ):
-            self._drain_rejected_body()
             self._send_authorization_failure()
             return False
         return True
-
-    def _drain_rejected_body(self) -> None:
-        """Avoids a Windows TCP reset without changing authorization precedence."""
-
-        if self.headers.get_all("Transfer-Encoding", []):
-            return
-        raw_lengths = self.headers.get_all("Content-Length", [])
-        if len(raw_lengths) != 1:
-            return
-        try:
-            length = int(raw_lengths[0])
-        except ValueError:
-            return
-        if 0 <= length <= APP_WEB_MAX_REQUEST_BYTES:
-            self.rfile.read(length)
 
     def _page(self, route: str, *, status: int = HTTPStatus.OK) -> None:
         self._rendered_language_source = capture_language_source_v1(self.server.app_context, route)

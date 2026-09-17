@@ -19,6 +19,7 @@ import skatmind.api.v1.session.files as files
 import skatmind.app_web.execution as execution
 import skatmind.app_web.server as server_module
 import skatmind.app_web.session_card_entry as entry
+from skatmind.app_web.security import app_web_security_headers_v1
 from skatmind.app_web.session_card_feedback import render_card_witness
 from skatmind.app_web.stateful_localization import card_name, text
 from skatmind.deck import get_full_deck
@@ -251,30 +252,60 @@ def test_optional_witness_failure_and_failed_save_preserve_real_result(
 
 
 @pytest.mark.parametrize("route", ("/sessions/cards", "/sessions/play"))
-def test_real_8192_boundary_and_strict_security(localized_server, route):
+@pytest.mark.parametrize("size,expected", ((8192, 400), (8193, 413)),
+                         ids=("malformed-8192-400", "oversized-8193-413"))
+def test_real_8192_boundary_and_strict_security(
+    localized_server, monkeypatch, route, size, expected,
+):
     browser = Browser(localized_server)
     if route.endswith("play"):
         active = start_play(browser)
+        browser.command("record_play", card="C7")
+        follow(browser, browser.submit(Forms(browser.page()).find("/sessions/review-decision")))
+        assert active.execution is not None
     else:
         create_live(browser)
         active = localized_server.app_context.managed_stateful.active_session
     form = Forms(browser.page()).find(route)
     before = snapshot(active)
+    downloads = tuple(browser.request("GET", "/sessions/downloads/" + name + ".json")[2]
+                      for name in ("request", "result")) if active.execution else ()
+    unexpected = []
+
+    def forbidden(*args, **kwargs):
+        unexpected.append(args)
+        raise AssertionError("Transport rejection must not save, analyze or construct evidence")
+
+    monkeypatch.setattr(files, "save_session_file", forbidden)
+    monkeypatch.setattr(execution, "execute", forbidden)
+    monkeypatch.setattr(entry, "rejected_card_witness", forbidden)
     prefix = urlencode({**form["values"], "cards": ""}).encode()
-    for size, expected in ((8192, 400), (8193, 413)):
-        connection = http.client.HTTPConnection("127.0.0.1", localized_server.port, timeout=60)
+    connection = http.client.HTTPConnection("127.0.0.1", localized_server.port, timeout=60)
+    try:
         connection.request("POST", route, prefix + b"X" * (size - len(prefix)), headers={
             "Origin": localized_server.origin, "Cookie": browser.cookie,
             "Content-Type": "application/x-www-form-urlencoded"})
-        response = connection.getresponse()
-        assert response.status == expected
-        assert b"session-card-evidence" not in response.read()
+        with connection.getresponse() as response:
+            assert response.status == expected
+            content = response.read()
+            assert b"session-card-evidence" not in content
+            assert len(content) == int(response.getheader("Content-Length"))
+            assert response.getheader("Transfer-Encoding") is None
+            assert response.getheader("Connection") == "close"
+            for name, value in app_web_security_headers_v1():
+                assert response.getheader(name) == value
+            assert response.getheader("Access-Control-Allow-Origin") is None
+    finally:
         connection.close()
     for field in ("managed_handle", "card_selection"):
         assert browser.submit(form, **{field: [form["values"][field]] * 2}, cards="SQ")[0] == 400
     for header in ({"Origin": "null"}, {"Origin": "http://foreign.invalid"}, {"Cookie": ""}):
         assert browser.request("POST", route, form["values"], headers=header)[0] == 403
     assert snapshot(active) == before
+    assert unexpected == []
+    if downloads:
+        assert tuple(browser.request("GET", "/sessions/downloads/" + name + ".json")[2]
+                     for name in ("request", "result")) == downloads
 
 
 def test_complete_long_label_is_escaped_and_language_resolves_names_again(localized_server):
