@@ -133,6 +133,15 @@ its existing state.
 
 ## Selected-Game Match review and Reports
 
+Issue #238 uses Game/Spiel numbering consistently in ordinary recording tiles,
+the existing review selector and Report links. Its
+[selected-Game-first recording view](match_game_navigation.md) leads with identity,
+seats and controls before the full overview, and normal tile/create/continuation
+destinations include `#match-recording`. Technical position semantics and the
+review routes, selector query, exact Report attribution and backlinks below remain.
+Retained Match errors take priority over a normal language-return fragment, while
+valid recovery previews keep their existing target and lifetime.
+
 The focused page is an alternate view of the same Workspace. A new context keeps
 its existing initial position; reuse keeps the current selection. The native
 selector shows all 36 positions in canonical order with existing state labels.

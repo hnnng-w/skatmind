@@ -858,7 +858,7 @@ def test_managed_match_learning_and_explicit_transfer_http_lifecycle(
         mutation_headers,
         _match_creation_values(server, match_title="Web match"),
     )
-    assert status == 303 and headers["location"] == "/matches/position/1"
+    assert status == 303 and headers["location"] == "/matches/position/1#match-recording"
     match = server.app_context.managed_stateful.active_match
     assert match is not None
     status, _headers, body = _request(
@@ -1137,7 +1137,7 @@ def test_browser_policy_allows_same_origin_review_session_match_and_corpus_posts
         (
             "/matches/api/v1/create",
             lambda: _match_creation_values(server, match_title="Policy match"),
-            "/matches/position/1",
+            "/matches/position/1#match-recording",
         ),
     )
     for route, build_values, location in same_origin_actions:

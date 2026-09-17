@@ -15,6 +15,14 @@ evidence below remains historical. See [Settings and Player seat setup](settings
 
 ## Asset and component ownership
 
+Issue #238's [Match Game navigation](match_game_navigation.md) deliberately
+supersedes the grid-before-task ordering and ordinary Position numbering. One
+labelled recording section leads with the selected Game and wrapping named seats;
+one labelled focusable overview follows. App-owned focus/scroll styles cover both
+native targets. The separately installed before/after evidence includes real
+zero-save navigation, 320-pixel/200%-text reflow and error/recovery focus priority.
+Earlier #224 measurements below remain historical, not current page coordinates.
+
 Issue #230 adds a compact app-owned local-time disclosure and shrinkable native
 date/time/zone tracks to Settings and unified Match/Session metadata. CSS follows
 Keep/Replace/Remove without disabling or clearing submitted values. Date-only Match
@@ -97,9 +105,10 @@ inside their parent, actions wrap, and file-selection buttons wrap at enlarged
 text sizes. Primary, secondary, destructive and disabled appearances have explicit
 foreground/background pairs. Unavailable-work explanations remain ordinary,
 readable text outside disabled buttons. Scoped hover styles retain readable text.
-Native controls, names, values, options, destinations and required semantics are
-unchanged. No form or disclosure is duplicated or reordered; #223 identity and
-transport regeneration remain unchanged.
+In the original #224 slice, native controls, names, values, options, destinations
+and required semantics were unchanged, with no form/disclosure duplication or
+reordering. #238 subsequently moves the existing overview below recording and
+adds named native fragments; #223 identity and transport regeneration remain.
 
 ## Contrast and reflow targets
 

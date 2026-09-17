@@ -2611,6 +2611,21 @@ palette, core-rule, dependency, Package or output changes are introduced. #236 s
 completed; both exact merged-commit CI jobs gate #237 closure. #208/unresolved
 findings remain open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
 
+Issue #238 implements [Match Game navigation and recording focus](match_game_navigation.md):
+compact truthful progress and selected Game/round/named seats/controls precede one
+native 36-entry/twelve-round overview. Game/Spiel replaces ordinary Position labels;
+tiles, explicit first-unfinished continuation and normal creation target the named
+recording region. The unchanged suggestion can point backward and does not advance
+selection or save. Match error language returns retain native summary focus before
+generic recording focus; same-Game Report/preview lifetime and real-switch invalidation
+remain. Twenty-seven new regressions and 176 installed-Wheel measurements compare
+the actual clean starting HEAD `dd98181` with the implementation, including de/en,
+script/no-script, 320 pixels/200% text, real saves, review and rewind. Final complete-
+check native output/child exit accompanies the report. Package 0.17.0, dependencies,
+profile/public/Product formats, registry counts and 98 outputs remain. #237 stays
+completed; both exact merged-commit CI jobs gate #238 closure. #208/unresolved
+findings remain open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

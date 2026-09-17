@@ -131,12 +131,16 @@ execution, Result lifetime, and contextual bilingual feedback are documented in
 
 ## Match
 
-The active page begins with Match progress, Next empty or active position,
-36-position overview, and Record this game or mark it passed. All 36 positions
-remain in canonical order across twelve rounds and the existing three-seat
-rotation. Named Players, localized text statuses, selected/next markers, and native
-links provide keyboard-accessible, non-color-only navigation. The next position is
-the first position whose existing view is neither passed nor play-complete.
+Issue #238 supersedes the old progress → suggestion → full overview → task order
+and normal Position labels. Compact started/complete-trace/passed counts now precede
+the selected **Game N of 36**, actual round, named seats and existing recording
+action inside `#match-recording`. The one native 36-tile/twelve-round overview
+follows recording at `#match-games`. Tiles and first-unfinished links use the
+existing `/matches/position/N#match-recording` destination. The suggestion still
+uses the first view neither passed nor play-complete; it is omitted as a CTA when
+already selected, can point backward, and never changes selection automatically.
+See [Match Game navigation](match_game_navigation.md) for exact progress, native
+focus, same-source lifecycle and measured before/after evidence.
 
 An empty position offers Record this game as primary and Mark as passed as
 secondary. Neither requires a Game ID or timecode. Optional exact values remain

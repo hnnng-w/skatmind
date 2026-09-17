@@ -1704,3 +1704,13 @@ The registered 8,192-byte Play request bound is enforced alongside Card batches.
 Focused real-form tests and installed-Wheel browser evidence cover C5 without changing
 specialist correction, Match or Learning contracts. #236 remains completed; both exact
 merged-commit CI jobs gate #237 closure. Existing UAT/Release blockers remain unchanged.
+
+Issue #238 adds [selected-Game-first Match navigation](match_game_navigation.md),
+superseding the overview-before-task order and normal Position numbering. Named
+native recording/overview targets, truthful started-versus-complete counts and the
+unchanged first-unfinished suggestion support explicit out-of-order entry without
+automatic advancement or writes. Real returned-form and installed-Wheel bilingual/
+native checks cover one-save recording, zero-save navigation, Report/recovery retention
+and error focus. Package, dependencies, formats and 98 outputs remain. #237 stays
+completed; both exact merged-commit CI jobs remain closure gates. #208/unresolved
+findings stay open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open and B-06 closed.

@@ -287,6 +287,11 @@ def language_return_location_v1(context: AppWebContextV1, route: str) -> str:
             return route + "#session-recording"
     if route.startswith("/matches/position/") and match is not None:
         with match.capture.lock:
+            with context.lock:
+                feedback = context.form_feedback.current("matches", active_identity=match)
+            if feedback is not None:
+                # A normal fragment suppresses the existing native error-summary autofocus.
+                return route
             selected = match.recovery.selected
             return route + ("#match-recovery" if selected is not None
                             and time.monotonic() - selected.created_at < 1800

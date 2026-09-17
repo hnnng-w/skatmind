@@ -137,7 +137,7 @@ def test_36_structured_tiles_match_authoritative_rotation_and_selection(localize
         view = project_task_first_match_v1(active.workspace, selected_position=selected)
         assert markup.rounds == 12 and len(markup.tiles) == 36
         assert [tile["href"] for tile in markup.tiles] == [
-            f"/matches/position/{number}" for number in range(1, 37)]
+            f"/matches/position/{number}#match-recording" for number in range(1, 37)]
         assert sum(tile.get("aria-current") == "page" for tile in markup.tiles) == 1
         for tile, position in zip(markup.tiles, view.positions, strict=True):
             assert tile["data-status"] == position.game_state
@@ -146,9 +146,9 @@ def test_36_structured_tiles_match_authoritative_rotation_and_selection(localize
             assert tile["parts"]["match-tile-status"] == text(
                 locale, f"task.match.status.{position.game_state}")
             markers = tile["parts"]["match-tile-markers"]
-            assert (text(locale, "task.selected") in markers) == (
+            assert (text(locale, "task.match.selected") in markers) == (
                 position.match_position == selected)
-            assert (text(locale, "task.next") in markers) == (
+            assert (text(locale, "task.match.next") in markers) == (
                 position.match_position == view.next_position)
             participants = tile["parts"]["match-tile-participants"]
             for seat in ("forehand", "middlehand", "rearhand"):

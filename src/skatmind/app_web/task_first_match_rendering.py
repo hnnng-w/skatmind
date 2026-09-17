@@ -219,16 +219,7 @@ def _reports(state, handle, locale, *, secondary=True, results=True):
         if secondary else ""))
 
 
-def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en", transfer="", recovery=None, card_bindings=None):
-    card_bindings = card_bindings or {}
-    handle = managed_handle
-    progress = state["progress"]
-    body = section(locale, "task.match.progress", paragraph(locale, "task.match.progress_value",
-        occupied=progress["occupied_slot_count"], passed=progress["passed_deal_count"]))
-    next_content = paragraph(locale, "task.match.all_complete") if view.next_position is None else (
-        f'<p><a href="/matches/position/{view.next_position}">' + translated(
-            locale, "task.match.position", number=view.next_position) + '</a></p>')
-    body += section(locale, "task.match.next", next_content)
+def _game_overview(state, view, locale):
     positions = ''
     for round_number in range(1, 13):
         positions += '<section><h3>' + translated(locale, "task.match.round", number=round_number) + '</h3><div class="round-slots">'
@@ -236,7 +227,7 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
             selected = position.match_position == view.selected_position
             following = position.match_position == view.next_position
             positions += (f'<a class="match-tile{" selected" if selected else ""}" '
-                f'href="/matches/position/{position.match_position}" data-status="{position.game_state}"'
+                f'href="/matches/position/{position.match_position}#match-recording" data-status="{position.game_state}"'
                 f'{" aria-current=\"page\"" if selected else ""}>'
                 + '<strong class="match-tile-title">'
                 + translated(locale, "task.match.position", number=position.match_position)
@@ -244,18 +235,38 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
                 + translated(locale, f"task.match.status.{position.game_state}") + '</span>'
                 + '<span class="match-tile-markers">')
             if selected:
-                positions += '<span>' + translated(locale, "task.selected") + '</span>'
+                positions += '<span>' + translated(locale, "task.match.selected") + '</span>'
             if following:
-                positions += '<span>' + translated(locale, "task.next") + '</span>'
+                positions += '<span>' + translated(locale, "task.match.next") + '</span>'
             positions += '</span><span class="match-tile-participants">'
             for seat in ("forehand", "middlehand", "rearhand"):
                 positions += '<span><b>' + translated(locale, f"creation.seat.{seat}") + ':</b> ' + escape(
                     _name(state, locale, getattr(position, f"{seat}_player_id"))) + '</span>'
             positions += '</span><span>' + translated(locale, "task.match.plays", count=position.play_count) + '</span></a>'
         positions += '</div></section>'
-    body += section(locale, "task.match.overview", positions)
+    return ('<section id="match-games" class="panel" tabindex="-1" aria-labelledby="match-games-heading">'
+        + '<h2 id="match-games-heading">' + translated(locale, "task.match.overview") + '</h2>'
+        + paragraph(locale, "task.match.navigation_help")
+        + '<p><a href="#match-recording">' + translated(locale, "task.match.selected") + '</a></p>'
+        + positions + '</section>')
+
+
+def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en", transfer="", recovery=None, card_bindings=None):
+    card_bindings = card_bindings or {}
+    handle = managed_handle
+    progress = state["progress"]
+    body = '<p><strong>' + translated(locale, "task.match.progress") + ':</strong> ' + translated(
+        locale, "task.match.progress_value", observed=progress["observed_game_count"],
+        complete=progress["complete_play_trace_count"], passed=progress["passed_deal_count"]) + '</p>'
     game = state["game"]
-    task = '<div id="match-recovery-feedback"></div>' + ("" if recovery is None else recovery[0]) + paragraph(locale, view.workflow.next_task_key)
+    task = '<h2 id="match-recording-heading">' + translated(
+        locale, "task.match.game_heading", number=view.selected_position) + '</h2>'
+    task += paragraph(locale, "task.match.round", number=view.selected.round_number)
+    task += '<dl class="match-game-seats">' + ''.join('<div><dt>' + translated(
+        locale, f"creation.seat.{seat}") + '</dt><dd>' + escape(_name(
+            state, locale, getattr(view.selected, f"{seat}_player_id"))) + '</dd></div>'
+        for seat in ("forehand", "middlehand", "rearhand")) + '</dl>'
+    task += '<div id="match-recovery-feedback"></div>' + ("" if recovery is None else recovery[0]) + paragraph(locale, view.workflow.next_task_key)
     recorded = state.get("recorded_progress")
     task += '<div class="recording-progress-layout"><div>'
     if view.workflow.primary_action == "start_game":
@@ -276,6 +287,13 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
         task += _card_form(state, handle, locale, "append_plays", card_bindings.get("append_plays", ""),
                            cards=view.selected.selectable_cards, play=True)
     task += '</div>' + ("" if recorded is None else render_recorded_summary(recorded, locale)) + '</div>'
+    if view.next_position is None:
+        task += paragraph(locale, "task.match.all_complete")
+    elif view.next_position != view.selected_position:
+        task += f'<p><a href="/matches/position/{view.next_position}#match-recording">' + translated(
+            locale, "task.match.first_unfinished", number=view.next_position) + '</a></p>'
+    task += '<p><a href="#match-games">' + translated(locale, "task.match.overview") + '</a>'
+    task += ' · <a href="/matches/review/' + str(view.selected_position) + '">' + translated(locale, "recordings.match.open") + '</a></p>'
     if game is not None:
         task += accepted_declaration_summary(locale, game["declaration"],
                                              _named_seat(state, locale, game["declarer_player_id"]))
@@ -288,8 +306,8 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
             + translated(locale, "task.recorded") + '</li>' for step in view.workflow.completed_steps) + '</ul>'
         task += (recovery[1] if recovery is not None else "" if recorded is None
                  else render_recorded_history(recorded, locale))
-    body += '<div id="match-recording" tabindex="-1">' + section(locale, "task.match.record_or_pass", task) + '</div>'
-    body += '<p><a class="button-link" href="/matches/review/' + str(view.selected_position) + '">' + translated(locale, "recordings.match.open") + '</a></p>'
+    body += '<section id="match-recording" class="panel" tabindex="-1" aria-labelledby="match-recording-heading">' + task + '</section>'
+    body += _game_overview(state, view, locale)
     body += transfer
     body += disclosure(locale, "task.match.evidence", '<div id="match-evidence">' + _evidence(state, handle, locale, card_bindings) + '</div>')
     body += disclosure(locale, "task.match.annotations", _annotations(state, handle, locale))

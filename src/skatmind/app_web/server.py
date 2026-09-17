@@ -2556,7 +2556,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self._save_creation_profile(prepared, family="matches")
         self._activate_match(active)
         self._refresh_category("matches")
-        self._redirect("/matches/position/1")
+        self._redirect("/matches/position/1#match-recording")
 
     def _import_match(self, body: bytes, content_type: str) -> None:
         upload = parse_managed_item_json_upload_v1(

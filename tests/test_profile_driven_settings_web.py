@@ -531,7 +531,7 @@ def test_profile_failure_after_product_creation_keeps_product_and_warns(
     elif family == "matches":
         route = "/matches/api/v1/create"
         values = _match_values(server)
-        location = "/matches/position/1"
+        location = "/matches/position/1#match-recording"
         active_attribute = "active_match"
     else:
         route = "/learning/create"
@@ -552,7 +552,7 @@ def test_profile_failure_after_product_creation_keeps_product_and_warns(
     assert active is not None and active.path.exists()
     assert save_attempts == 1
     assert not (server.app_context.managed_home.root / "frontend-profile.json").exists()
-    status, _headers, body = _request(server, "GET", location, headers=get_headers)
+    status, _headers, body = _request(server, "GET", location.split("#", 1)[0], headers=get_headers)
     assert status == 200
     assert b"The Product was created and remains available" in body
     assert warning in body
