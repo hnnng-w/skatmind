@@ -9,7 +9,8 @@ from skatmind.information_set_search_workflow import (
 )
 from skatmind.recommendation_workflow import COMPATIBLE_WORLD_MINIMAX_METHOD
 
-from .render_locale import localized_render, message
+from .render_locale import localized_card_name, localized_render, message
+from .result_immediate import retained_immediate_best_cards
 
 RESULT_SECTION_TITLES_V1 = (
     "Summary",
@@ -179,7 +180,9 @@ def _optional_detail(
         details.append(_detail(label, source[key]))
 
 
-def _analysis_candidate_table(rows: object) -> ResultTableV1 | None:
+def _analysis_candidate_table(
+    rows: object, best_cards: tuple[str, ...] = (),
+) -> ResultTableV1 | None:
     candidates = _objects(rows)
     if not candidates:
         return None
@@ -187,17 +190,21 @@ def _analysis_candidate_table(rows: object) -> ResultTableV1 | None:
         caption="Card comparisons in public Result order",
         columns=(
             "Card",
-            "Recommended",
+            "Evaluation" if best_cards else "Recommended",
             "Win rate",
             "Expected point swing",
             "Average trick points",
         ),
         rows=tuple(
             (
-                _text(candidate.get("card")),
-                _text(candidate.get("is_recommended")),
+                (localized_card_name(candidate["card"]) if best_cards
+                 else _text(candidate.get("card"))),
+                (("equal_best" if len(best_cards) > 1 else "best")
+                 if candidate.get("card") in best_cards else "lower_evaluated")
+                if best_cards else _text(candidate.get("is_recommended")),
                 _percentage(candidate.get("win_rate")),
-                _text(candidate.get("expected_point_swing")),
+                (f"{candidate['expected_point_swing']:.2f}" if best_cards
+                 else _text(candidate.get("expected_point_swing"))),
                 _text(candidate.get("average_trick_points")),
             )
             for candidate in candidates
@@ -235,7 +242,9 @@ def _search_candidate_table(rows: object) -> ResultTableV1 | None:
     )
 
 
-def _position_alternatives(document: Mapping[str, object]) -> ResultSectionV1:
+def _position_alternatives(
+    document: Mapping[str, object], best_cards: tuple[str, ...] = (),
+) -> ResultSectionV1:
     method = _object(document.get("recommendation_method_summary"))
     effective_method = method.get("effective_method")
     information_set = _object(document.get("information_set_search_result"))
@@ -247,7 +256,7 @@ def _position_alternatives(document: Mapping[str, object]) -> ResultSectionV1:
     elif effective_method == COMPATIBLE_WORLD_MINIMAX_METHOD or (not method and bounded):
         table = _search_candidate_table(bounded.get("candidate_results"))
     else:
-        table = _analysis_candidate_table(document.get("analysis_report"))
+        table = _analysis_candidate_table(document.get("analysis_report"), best_cards)
     if table is None:
         return ResultSectionV1(
             title="Alternatives",
@@ -371,8 +380,12 @@ def _build_position_presentation(
     search_result = _object(document.get("information_set_search_result")) or _object(
         document.get("bounded_search_result")
     )
+    best_cards = retained_immediate_best_cards(document)
     recommendation_details = [
-        _detail("Recommended Card", recommendation.get("card")),
+        (_detail("Best evaluated Cards", ", ".join(map(localized_card_name, best_cards)))
+         if len(best_cards) > 1 else _detail(
+             "Recommended Card", localized_card_name(best_cards[0])
+             if best_cards else recommendation.get("card"))),
         _detail(
             "Method",
             method.get(
@@ -382,13 +395,38 @@ def _build_position_presentation(
         ),
     ]
     _optional_detail(recommendation_details, "Fallback used", method, "fallback_used")
-    _optional_detail(recommendation_details, "Actual Card", review, "actual_card_played")
+    if best_cards and review.get("actual_card_played") in tuple(
+        row["card"] for row in _objects(document.get("analysis_report"))
+    ):
+        recommendation_details.append(_detail(
+            "Actual Card", localized_card_name(review["actual_card_played"])))
+    else:
+        _optional_detail(recommendation_details, "Actual Card", review, "actual_card_played")
     _optional_detail(recommendation_details, "Decision quality", review, "decision_quality")
+    if len(best_cards) > 1:
+        explanation = message("result.immediate.equal_scope")
+        if position.get("game_type") != "null":
+            explanation += " " + message(
+                "result.immediate.equal_points",
+                value=f"{document['analysis_report'][0]['expected_point_swing']:.2f}",
+            )
+        if (review.get("is_available") is True and review.get("actual_card_played") in best_cards
+                and review.get("decision_quality") == "optimal"
+                and type(review.get("better_card_count")) is int
+                and review["better_card_count"] == 0):
+            explanation += " " + message(
+                "result.immediate.actual_equal",
+                card=localized_card_name(review["actual_card_played"]),
+            )
+        recommendation_details.append(_detail("Immediate evaluation", explanation))
     recommendation_paragraph = recommendation.get("reason")
     if type(recommendation_paragraph) is not str or not recommendation_paragraph:
         recommendation_paragraph = message("result.no_recommendation")
 
     evidence_details, technical_details = _search_evidence(document)
+    if len(best_cards) > 1:
+        technical_details.append(_detail(
+            "Deterministic representative", recommendation.get("card")))
     _optional_detail(evidence_details, "Samples", settings, "sample_count")
     _optional_detail(evidence_details, "Information cutoff mode", information, "analysis_mode")
     _optional_detail(evidence_details, "Skat visibility", information, "skat_visibility")
@@ -455,7 +493,7 @@ def _build_position_presentation(
                 paragraphs=(recommendation_paragraph,),
                 details=tuple(recommendation_details),
             ),
-            _position_alternatives(document),
+            _position_alternatives(document, best_cards),
             ResultSectionV1(
                 title="Evidence and limits",
                 details=tuple(evidence_details),

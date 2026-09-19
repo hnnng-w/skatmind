@@ -1,6 +1,7 @@
 from skatmind.game_history import get_all_played_cards
 from skatmind.game_state import GameState
 from skatmind.hidden_card_inference import HiddenCardInferenceModel
+from skatmind.immediate_explanation import build_equal_best_immediate_explanation
 from skatmind.objective_utility import (
     calculate_expected_objective_utility,
     choose_best_card_by_expected_objective,
@@ -307,6 +308,12 @@ def recommend_card_by_expected_value(
         player_role=state.player_role,
         value=values[recommended_card],
     )
+
+    tied_reason = build_equal_best_immediate_explanation(
+        values, state.game_type, state.player_role,
+    )
+    if tied_reason is not None:
+        return recommended_card, tied_reason, values
 
     if state.game_type == "null":
         reason = (

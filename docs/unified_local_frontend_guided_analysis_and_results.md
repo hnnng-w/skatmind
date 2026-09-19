@@ -273,7 +273,39 @@ normal-Summary assertions cover the score cases, immutable source documents,
 candidate/method/order preservation and Historical regressions. The
 [Session review guide](session_recorded_decision_review.md#verification-and-future-affected-path-retest)
 records genuine Session execution, exact downloads and installed-browser evidence.
-R10 ranking/prose and R11 context/download layout remain open.
+Issue #240 supplies the bounded R10 implementation below; R11 context/download
+layout remains open.
+
+### Equal-best Immediate evaluations
+
+For effective Immediate, the existing Alternatives table uses one **Evaluation**
+column: best evaluated, equally best evaluated, or lower evaluated. It preserves
+retained order and metrics. The primary Recommendation names all exactly equal-best
+Cards with localized names, retains the actual Card and quality, and explains that
+an equal-best observed Card has no evaluated disadvantage. Suit/Grand ties include
+the shared estimated point swing in the normal explanation as well as in the table.
+Thus CJ and played SJ both show 6.00 in the R10 example; 14/29 remains in Summary.
+
+`result_immediate.py` reads only retained Result values, reusing the existing
+full-precision game/role objective. Null equality is contract-objective equality,
+not equality of Card points. No rounding/tolerance or secondary-metric tie-breaker
+is added. Registered fixed detail/column labels keep this narrow catalog-backed
+explanation visible; raw English producer paragraphs still belong to Technical
+details. The deterministic representative is technical context. Its singleton
+flag and the existing ordinal ranks remain exact in downloads.
+
+This applies to legacy default-Immediate Results, explicit Immediate and genuine
+Auto fallback. Missing/inconsistent method evidence, incomplete/malformed or
+nonfinite/bool/duplicate candidate evidence cannot produce a confident tie claim.
+Primary Search and diagnostic Immediate baselines do not acquire effective-Immediate
+labels. Public acceptance, Search rendering and unavailable meanings are unchanged.
+
+Presentation performs no recording read, replay, simulation, score calculation or
+save. Retained old English strings can coexist with the new metric-based display;
+their downloads remain byte-identical. Corrected producer reason/summary text
+belongs only to a fresh explicit execution, as described in
+[Output JSON](output_json.md#recommendation). Source binding, invalidation and
+retirement remain unchanged.
 
 Existing normal states such as `complete`, `partial`, `timeout`, `unavailable`,
 `final`, `lot_required`, and `not_assessable` remain successful Result pages, not

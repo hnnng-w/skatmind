@@ -1,5 +1,6 @@
 from skatmind.game_state import GameState
 from skatmind.hidden_card_inference import HiddenCardInferenceModel
+from skatmind.immediate_explanation import build_equal_best_immediate_explanation
 from skatmind.objective_utility import (
     calculate_expected_objective_utility,
     sort_cards_by_expected_objective,
@@ -167,6 +168,12 @@ def build_strategic_summary(
             f"with a win rate of {best_win_rate:.3f}."
         )
 
+    tied_reason = build_equal_best_immediate_explanation(
+        {str(row["card"]): row for row in report}, game_type, player_role,
+    )
+    if tied_reason is not None:
+        return f"Strategic summary: {tied_reason}"
+
     second_row = report[1]
     second_card = second_row["card"]
     second_swing = second_row["expected_point_swing"]
@@ -190,10 +197,15 @@ def build_strategic_summary(
             f"and by {win_rate_gap:.3f} win rate."
         )
 
+    gap_text = (
+        "less than 0.01 expected points"
+        if swing_gap > 0 and f"{swing_gap:.2f}" == "0.00"
+        else f"{swing_gap:.2f}"
+    )
     return (
         "Strategic summary: "
         f"{best_card} is recommended, but the advantage over {second_card} is modest. "
-        f"The expected point swing gap is {swing_gap:.2f}, so this position may be close."
+        f"The expected point swing gap is {gap_text}, so this position may be close."
     )
 
 
@@ -226,6 +238,12 @@ def build_null_strategic_summary(
             f"utility is {best_utility:.3f}; the objective is to {objective_text}."
         )
 
+    tied_reason = build_equal_best_immediate_explanation(
+        {str(row["card"]): row for row in report}, "null", player_role,
+    )
+    if tied_reason is not None:
+        return f"Strategic summary: {tied_reason}"
+
     second_row = report[1]
     second_card = str(second_row["card"])
     second_utility = calculate_expected_objective_utility(
@@ -236,11 +254,15 @@ def build_null_strategic_summary(
     utility_gap = best_utility - second_utility
 
     if utility_gap > 0.0:
+        gap_text = (
+            "less than 0.001" if f"{utility_gap:.3f}" == "0.000"
+            else f"{utility_gap:.3f}"
+        )
         return (
             "Strategic summary: "
             f"{best_card} is recommended because it best supports the Null "
             f"contract objective to {objective_text}. It is ahead of {second_card} "
-            f"by {utility_gap:.3f} objective utility."
+            f"by {gap_text} objective utility."
         )
 
     return (

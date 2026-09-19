@@ -1,4 +1,5 @@
 from collections.abc import Mapping, Sequence
+from math import isfinite
 from typing import Any
 
 from skatmind.game_result import get_null_contract_winner_from_completed_tricks
@@ -162,3 +163,19 @@ def choose_best_card_by_expected_objective(
         game_type=game_type,
         player_role=player_role,
     )[0]
+
+
+def get_best_cards_by_expected_objective(
+    values: Mapping[str, Mapping[str, float]],
+    game_type: str,
+    player_role: str,
+) -> tuple[str, ...]:
+    """Returns all exact finite maxima in existing order, without selecting again."""
+    utilities = {
+        card: calculate_expected_objective_utility(game_type, player_role, value)
+        for card, value in values.items()
+    }
+    if not utilities or not all(isfinite(value) for value in utilities.values()):
+        return ()
+    best = max(utilities.values())
+    return tuple(card for card, utility in utilities.items() if utility == best)

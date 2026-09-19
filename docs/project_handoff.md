@@ -2633,9 +2633,19 @@ Real Session recording/review, completion/reopen, de/en defensive-value regressi
 and installed-Wheel native browser checks verify 14/29 and unchanged downloads.
 See [Session decision review](session_recorded_decision_review.md). #238, including
 the unified rejection-transport correction, remains completed. Exact merged-commit
-`check` and `v1-supported-platform-matrix` still gate manual #239 closure. R10/R11
-and other unresolved #208 findings remain open; UAT-01 is unaccepted, UAT-02–12
-paused, B-09/B-07 open and B-06 closed. No release-readiness claim follows.
+`check` and `v1-supported-platform-matrix` were its exact-commit closure gates;
+#239 remains completed.
+
+Issue #240 implements R10's exact equal-best Immediate explanation in fresh producer
+text and retained shared Position presentation. It preserves the representative,
+singleton flags, stable order, ordinal ranks, metrics, review quality, #239's 14/29
+and #238 transport. Old Results/Reports/Teacher exports remain exact; fresh text and
+its content-derived identities legitimately change. Real HTTP, strict consumer and
+installed-Wheel de/en/script/no-script evidence is in the
+[Session review guide](session_recorded_decision_review.md). Both exact merged-commit
+CI jobs remain #240 closure gates. R11 and other unresolved #208 findings remain
+open; UAT-01 is unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed. Package,
+dependencies, schemas, persistence and 98 scenarios remain; no release claim follows.
 
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player

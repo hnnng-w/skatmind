@@ -21,6 +21,10 @@ RESULT_LABEL_KEYS = {
     "Declarer points": "guided.declarer_points",
     "Defender points": "guided.defender_points",
     "Recommended Card": "task.recommendation",
+    "Best evaluated Cards": "result.immediate.best_cards",
+    "Immediate evaluation": "result.immediate.evaluation",
+    "Evaluation": "result.immediate.status",
+    "Deterministic representative": "result.immediate.representative",
     "Method": "task.field.recommendation_method",
     "Actual Card": "result.actual_card",
     "Decision quality": "result.decision_quality",
@@ -169,6 +173,8 @@ _ENUM_LABELS = frozenset({
 
 
 def result_value(label: str, value: str) -> str:
+    if label == "Evaluation":
+        return message(f"result.immediate.{value}")
     if label in {"Players", "Declarer", "Player"}:
         return value
     if value == "Not available":

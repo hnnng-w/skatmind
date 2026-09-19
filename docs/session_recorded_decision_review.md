@@ -112,7 +112,32 @@ or non-integer total, including booleans, strings and floats. No supplemental-va
 fallback or new import/Schema rule is introduced. Valid canonical Results already
 require both totals. The same mapping serves guided Position Results and Session
 current-position analysis; Historical and separate Match presentation retain their
-existing ownership. R10/R11 remain separate open findings.
+existing ownership. Issue #240 adds the bounded R10 implementation below; R11
+remains separate and open.
+
+### Equal-best saved Immediate decisions (R10)
+
+The shared normal Result now identifies all exactly equal-best Immediate Cards.
+In the saved Trick-4/Card-3 example, CJ and played SJ both have estimated point
+swing **6.00**, and the localized explanation explicitly gives SJ no evaluated
+disadvantage. Its existing **optimal** quality remains. The single candidate table
+marks both equally best, while normal Recommendation names both Cards. The exact
+download still selects CJ alone and retains ordinal ranks 1/2, flags true/false,
+zero loss and zero better Cards. Ordinal rank 2 is a stable ordering position,
+not evidence of worse play when objective values are equal.
+
+Equality is exact full-precision game/role objective equality, not rounded display
+equality or a whole-game strategy claim. Null uses contract utility; effective
+Search and diagnostic Immediate baselines are excluded. Legacy default Immediate,
+explicit Immediate and real Auto fallback are supported with defensive method and
+candidate checks. No later Plays, completed-recording hand knowledge or inferred
+Skat enter the display. Sole-choice and unavailable meanings remain.
+
+Fresh explicit execution corrects the producer's English reason/summary for ties
+and zero-looking positive gaps. Retained old Results/Reports/Teacher sources keep
+their exact strings, hashes and download bytes; the new private display needs only
+their metrics. No saved Session or Checkpoint changes, automatic execution, source
+rebinding or new form field is involved.
 
 ## Private route and form contract
 
@@ -211,10 +236,45 @@ supported metrics and units. Method/sample/budget limits and the recorded source
 scope are explicit. This is not full three-Player review, an optimal truth label,
 final-outcome causality, recovery of missing evidence, or general hidden-hand
 inference. Package `0.17.0`, Python `>=3.13`, license, dependencies, Public APIs,
-seven Root workflows, Schemas, persistence, examples, and generated outputs remain
-unchanged. No issue-specific version constant is introduced.
+seven Root workflows, Schemas, persistence, examples, and the set of 98 generated
+validation scenarios remain unchanged. Issue #240 intentionally changes fresh
+producer text within those existing contracts. No issue-specific version constant
+is introduced.
 
 ## Verification and future affected-path retest
+
+Issue #240 extends the existing genuine R09 HTTP sequence to assert de/en equal-best
+CJ/SJ, observed SJ, unchanged 6.0/6.0, singleton flags, ordinal ranks, optimal quality,
+supplemental 0/0 and known 14/29 before/after completion and strict reopen. Counters
+after real fixture setup verify that passive views, language actions and downloads
+execute no analysis or Product save and preserve source bytes and exact downloads.
+Scalar tests separately cover multi-Card ties, zero/negative maxima, tied lower
+groups, Null roles, positive sub-display-precision differences and malformed
+presentation evidence. Real Match exports and Historical Immediate/Search-baseline
+composition retain strict old/new Teacher source validation and derived identities.
+
+Installed-Wheel browser verification on September 19, 2026 reused the dependency-free
+DevTools harness with Python **3.13.7**, Package **0.17.0**, and headless Edge
+**153.0.4234.32**. One disposable synthetic 30-Play recording provided native tie
+review with JavaScript off, four native language submissions, exact native Request/
+Result downloads, and a second native review of its unique-best first decision
+(CA 15.00 versus C10 14.00). After HTTP fixture setup the counters recorded exactly
+**two executions and zero Product saves**. The tie Result was reused across de/en,
+JavaScript on/off, 1365/390/320 pixels and representative German 320-pixel 200% text.
+
+Evidence and 35 screenshots are retained outside the repository under
+`$env:TEMP/opencode/240-browser-02/`; `evidence.json` records installed module/resource
+hashes, native request counts, values and exact download hashes. The separately
+installed Wheel SHA-256 is
+`711cccb58d7fd9a905c236759d761a0daf0f088739a8382061bf8f74ee75892e`.
+Screenshots were inspected in addition to DOM assertions. Both best Cards, actual
+SJ, unchanged quality and the shared 6.00 estimate are readable in normal
+Recommendation without technical disclosure, including by scrolling at 200% text.
+The existing five-column table wraps heavily at narrow widths and becomes cramped
+and clipped at 320 pixels/200% text; its layout and the existing focus outline are
+not an R11 or whole-page usability pass. The normal explanation carries the complete
+tie meaning independently of that table. This is synthetic installed-browser
+evidence, not maintainer UAT; no broader browser/device acceptance is claimed.
 
 Issue #239's focused presentation regressions execute public Position Requests and
 check normal Summary labels in both languages: 14/29, supplemental 5/7 yielding

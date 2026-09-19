@@ -1342,6 +1342,13 @@ declarer-won evaluated tricks. A local Null defender prefers making the concrete
 declarer win an evaluated trick. The point fields above remain card-point
 metrics and are not redefined as contract utility.
 
+Immediate ordering is stable: exact objective ties retain legal-card order, and
+exactly one row, the selected representative, has `is_recommended: true`. Review
+ranks are one-based ordinal positions in this ordering, not shared quality ranks.
+A later equal-best Card can therefore have rank 2, `decision_quality: "optimal"`,
+zero missed objective value and `better_card_count: 0`. These fields are unchanged
+by Issue #240; a singleton flag does not imply that equal-value alternatives are worse.
+
 Example:
 
 ```json
@@ -1357,6 +1364,29 @@ Example:
 ```
 
 ## Recommendation
+
+Issue #240 corrects newly generated Immediate `recommendation.reason` and
+`strategic_summary` for exact top ties. All Cards exactly equal to the maximum
+full-precision finite game/role objective are named in existing order. Suit/Grand
+use expected point swing; Null uses the existing contract utility, with point
+metrics remaining informational. Positive, zero and negative maxima are handled
+alike. Tied lower rows and sole choices are not top ties. No epsilon, rounding or
+statistical-equivalence criterion is introduced.
+
+Fresh tie prose identifies the stable representative and equality under this
+Immediate method, without claiming whole-game equivalence. A genuinely positive
+gap that would print as `0.00` instead says `less than 0.01 expected points`;
+the corresponding Null summary uses `less than 0.001` objective utility. This is
+prose precision only: numerical gaps, quality thresholds, metrics and selection
+remain exact. Other non-tied, sole-choice and unavailable prose is unchanged.
+
+Existing shared callers propagate these text corrections through explicit fresh
+execution, including Auto fallback, Match Position exports, Historical Immediate
+Review, diagnostic Immediate baselines and composed copies. Fresh content-derived
+Report/Teacher identities may consequently change, with text still included in
+canonical hashing and provenance. Previously retained Results, Reports and Teacher
+sources remain strict-loadable with their original strings and exact export bytes;
+there is no migration, load-time rewrite or automatic re-execution.
 
 Example:
 
@@ -1518,8 +1548,8 @@ Fields:
 | `decision_quality`                 | `not_available`, `optimal`, `acceptable`, `suboptimal`, or `mistake`.                     |
 | `decision_factors`                 | Machine-readable explanation factors.                                                     |
 | `decision_explanation`             | Human-readable explanation.                                                               |
-| `actual_card_rank`                 | Rank of the actual card by expected point swing, or `null`.                               |
-| `recommended_card_rank`            | Rank of the recommended card by expected point swing.                                     |
+| `actual_card_rank`                 | One-based ordinal position of the actual Card in stable objective order, or `null`.        |
+| `recommended_card_rank`            | One-based ordinal position of the selected representative in stable objective order.        |
 | `candidate_count`                  | Number of legal candidate cards in the analysis report.                                   |
 | `better_card_count`                | Number of legal cards with a higher expected point swing than the actual card, or `null`. |
 

@@ -1720,6 +1720,15 @@ Issue #239 corrects R09's shared Position Summary to display retained
 supplemental Position inputs and later Session state. Focused real-execution and
 installed-Wheel de/en browser checks verify 14/29, per-side unavailable handling
 and immutable downloads; see [Session decision review](session_recorded_decision_review.md).
-#238 remains completed. Both exact merged-commit CI jobs gate manual #239 closure.
-R10/R11 and other unresolved #208 findings remain open; UAT-01 is unaccepted,
-UAT-02–12 paused, B-09/B-07 open and B-06 closed. Package and Release gates are unchanged.
+#238 and #239 remain completed.
+
+Issue #240 implements R10's equal-best Immediate explanation: exact existing
+game/role objective equality, stable singleton selection and ordinal ranks, truthful
+fresh tie/tiny-gap prose, and localized normal candidate statuses/observed-Card
+explanation from retained Results only. Old exports and strict Teacher sources stay
+exact; fresh text reaches shared consumers and content-derived identities normally.
+Real Session HTTP, consumer and installed-Wheel evidence is recorded in the
+[Session review guide](session_recorded_decision_review.md). Both exact merged-commit
+CI jobs gate manual #240 closure. R11 and other unresolved #208 findings remain
+open; UAT-01 is unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed. Package,
+dependencies, formats, 98 validation scenarios and Release gates are unchanged.

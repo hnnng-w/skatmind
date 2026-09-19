@@ -8,6 +8,7 @@ from threading import Event
 from urllib.parse import urlencode
 
 import pytest
+from test_equal_best_immediate import assert_visible_equal_best
 from test_frontend_language_switching import localized_server as _localized_server
 from test_guided_frontend_result_presentation import assert_summary_points, score_review_request
 from test_historical_game import build_historical_input, rebuild_historical_suffix
@@ -250,6 +251,7 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
         assert "Synthetic score review" in source and "Trick 4 · Card position 3" in source
         assert "SJ" in source
         assert_summary_points(page, "en", 14, 29)
+        assert_visible_equal_best(page, "en")
         execution, source = context.execution, context.recorded_review_source
         frozen = source.decision.checkpoint.request.to_dict()["document"]
         request_bytes = browser.request("GET", "/sessions/downloads/request.json")[2]
@@ -266,6 +268,15 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
         assert result["position"]["declarer_points"] == result["position"]["defender_points"] == 0
         assert result["score_summary"]["total_declarer_points"] == 14
         assert result["score_summary"]["total_defender_points"] == 29
+        assert result["recommendation"]["card"] == "CJ"
+        assert "equally best" in result["recommendation"]["reason"]
+        assert "equally best" in result["strategic_summary"]
+        assert [row["expected_point_swing"] for row in result["analysis_report"]] == [6.0, 6.0]
+        assert [row["is_recommended"] for row in result["analysis_report"]] == [True, False]
+        review = result["post_game_review_summary"]
+        assert (review["recommended_card_rank"], review["actual_card_rank"]) == (1, 2)
+        assert review["decision_quality"] == "optimal"
+        assert review["better_card_count"] == review["expected_point_swing_difference"] == 0
         assert json.loads(result_bytes) == serialize_result(execution.result)
 
         # Same-source chooser navigation preserves the exact active Result, unlike strict reopen.
@@ -278,6 +289,7 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
             status, headers, _ = browser.submit(language, language=locale)
             assert status == 303 and headers["location"] == "/sessions/current#session-result"
             assert_summary_points(browser.page(), locale, 14, 29)
+            assert_visible_equal_best(browser.page(), locale)
             assert browser.request("GET", "/sessions/downloads/request.json")[2] == request_bytes
             assert browser.request("GET", "/sessions/downloads/result.json")[2] == result_bytes
         assert len(calls) == count + 1 and len(saves) == save_count
