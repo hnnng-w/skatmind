@@ -1,10 +1,20 @@
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError
+import copy
+import re
+from dataclasses import FrozenInstanceError, replace
+from html import unescape
 
 import pytest
 
-from skatmind.api.v1 import ExecutionResultV1, ResultDocumentV1, WorkflowV1
+from skatmind.api.v1 import (
+    ExecutionResultV1,
+    ResultDocumentV1,
+    WorkflowV1,
+    execute,
+    parse_request,
+    serialize_result,
+)
 from skatmind.app_web.guided_contracts import (
     ANALYZE_REQUEST_DOWNLOAD_ROUTE_PATH,
     ANALYZE_RESULT_DOWNLOAD_ROUTE_PATH,
@@ -21,6 +31,138 @@ from skatmind.app_web.result_rendering import (
     render_result_presentation_v1,
     render_safe_result_error_summary_v1,
 )
+from skatmind.app_web.translation_catalog import translate_frontend_message_v1 as text
+
+
+def score_review_request():
+    """Public R09-equivalent input, independent of saved Session defaults."""
+    return {
+        "analysis_mode": "post_game_review", "game_type": "grand",
+        "player_role": "defender", "player_position": "rearhand",
+        "declarer_player": "left", "trick_leader": "left", "next_player": "me",
+        "hand": ["C10", "CJ", "SA", "SJ", "HA", "DK", "D7"],
+        "current_trick": ["HJ", "DJ"], "played_cards": [],
+        "completed_tricks": [
+            {"cards": ["CK", "C7", "CA"], "players": ["left", "right", "me"],
+             "winner_player": "me", "winner_role": "defenders"},
+            {"cards": ["SK", "S7", "S10"], "players": ["me", "left", "right"],
+             "winner_player": "right", "winner_role": "defenders"},
+            {"cards": ["HK", "H9", "H10"], "players": ["right", "me", "left"],
+             "winner_player": "left", "winner_role": "declarer"},
+        ],
+        "declarer_points": 0, "defender_points": 0, "skat": [],
+        "skat_visibility": "unknown", "game_end_reason": "not_ended",
+        "game_declaration": {
+            "game_type": "grand", "hand_game": False, "ouvert": False,
+            "schneider_announced": False, "schwarz_announced": False,
+            "matadors": 2, "bid_value": 18,
+        },
+        "left_hand_size": 6, "right_hand_size": 6, "sample_count": 100,
+        "random_seed": 0, "use_basic_opponent_strategy": True, "actual_card_played": "SJ",
+    }
+
+
+def assert_summary_points(html, locale, declarer, defenders):
+    """Check labelled values in the normal Summary, excluding technical duplicates."""
+    summaries = re.findall(
+        r'<section aria-labelledby="result-section-1">(.*?)</section>', html, re.S)
+    assert len(summaries) == 1
+    summary, = summaries
+    assert f'>{text(locale, "result.summary")}</h2>' in summary
+    assert "<details" not in summary
+    details = {unescape(label): unescape(value) for label, value in
+               re.findall(r"<dt>(.*?)</dt><dd>(.*?)</dd>", summary)}
+    for key, expected in (("guided.declarer_points", declarer),
+                          ("guided.defender_points", defenders)):
+        assert details[text(locale, key)] == (
+            text(locale, "status.unavailable") if expected is None else str(expected))
+
+
+@pytest.mark.parametrize(
+    ("with_tricks", "supplements", "expected"),
+    ((True, (0, 0), (14, 29)), (True, (5, 7), (19, 36)),
+     (False, (5, 7), (5, 7)), (False, (0, 0), (0, 0))),
+)
+def test_executed_position_known_totals_in_normal_summary(with_tricks, supplements, expected):
+    document = score_review_request()
+    document["declarer_points"], document["defender_points"] = supplements
+    if not with_tricks:
+        document.update(
+            completed_tricks=[], current_trick=[], player_position="forehand",
+            trick_leader="me", hand=["CA", "C10", "CJ", "SA", "SK", "SJ", "HA", "H9", "DK", "D7"],
+            left_hand_size=10, right_hand_size=10,
+        )
+    original = copy.deepcopy(document)
+    request = parse_request(document)
+    execution = execute(request)
+    retained = serialize_result(execution)
+    score = execution.result.document["score_summary"]
+    assert (score["total_declarer_points"], score["total_defender_points"]) == expected
+    assert (score["explicit_declarer_points"], score["explicit_defender_points"]) == supplements
+    if with_tricks:
+        assert execution.result.document["position"]["current_trick"] == ("HJ", "DJ")
+        assert score["completed_trick_declarer_points"] == 14
+        assert score["completed_trick_defender_points"] == 15 + 14
+    for locale in ("de", "en"):
+        presentation = build_result_presentation_v1(execution, locale=locale)
+        details = {detail.label: detail.value for detail in presentation.sections[0].details}
+        assert (details["Declarer points"], details["Defender points"]) == tuple(map(str, expected))
+        assert_summary_points(render_result_presentation_v1(presentation, locale=locale),
+                              locale, *expected)
+    assert serialize_result(execution) == retained
+    assert request.to_dict()["document"] == document == original
+
+
+@pytest.mark.parametrize("side", ("declarer", "defender"))
+@pytest.mark.parametrize("invalid", (None, True, False, "14", 14.0, 1.5, [], {}))
+def test_defensive_non_integer_total_is_unavailable_per_side(side, invalid):
+    document = _position_document()
+    document["score_summary"] = {"total_declarer_points": 14, "total_defender_points": 29}
+    document["score_summary"][f"total_{side}_points"] = invalid
+    original = copy.deepcopy(document)
+    execution = _execution(WorkflowV1.POSITION_ANALYSIS, document)
+    expected = (None, 29) if side == "declarer" else (14, None)
+    for locale in ("de", "en"):
+        assert_summary_points(render_result_presentation_v1(
+            build_result_presentation_v1(execution, locale=locale), locale=locale),
+            locale, *expected)
+    assert execution.result.to_dict()["document"] == document == original
+
+
+@pytest.mark.parametrize("summary", ("missing", None, [], {}, {"total_declarer_points": 0},
+                                    {"total_defender_points": 29}))
+def test_defensive_missing_totals_never_use_position_or_placeholder_tricks(summary):
+    document = _position_document()
+    if summary != "missing":
+        document["score_summary"] = summary
+    expected = (summary.get("total_declarer_points"), summary.get("total_defender_points")) \
+        if isinstance(summary, dict) else (None, None)
+    for locale in ("de", "en"):
+        assert_summary_points(render_result_presentation_v1(build_result_presentation_v1(
+            _execution(WorkflowV1.POSITION_ANALYSIS, document), locale=locale), locale=locale),
+            locale, *expected)
+
+
+@pytest.mark.parametrize("method", ("immediate_expected_value", "compatible_world_minimax_v1",
+                                  "bounded_information_set_policy_search_v1"))
+def test_only_score_details_change_independently_of_method_and_ending_context(method):
+    document = _position_document()
+    document["recommendation_method_summary"]["effective_method"] = method
+    document["score_summary"] = {"total_declarer_points": 14, "total_defender_points": 29}
+    before = build_result_presentation_v1(_execution(WorkflowV1.POSITION_ANALYSIS, document))
+    document["score_summary"] = {"total_declarer_points": 19, "total_defender_points": 36}
+    document["game_result_summary"] = {"declarer_points": 42, "defender_points": 78}
+    document["adjusted_score_summary"] = {"total_declarer_points": 120, "total_defender_points": 0}
+    after = build_result_presentation_v1(_execution(WorkflowV1.POSITION_ANALYSIS, document))
+    assert_summary_points(render_result_presentation_v1(before), "en", 14, 29)
+    assert_summary_points(render_result_presentation_v1(after), "en", 19, 36)
+    def without_scores(presentation):
+        summary = presentation.sections[0]
+        return replace(presentation, sections=(replace(summary, details=tuple(
+            detail for detail in summary.details
+            if detail.label not in {"Declarer points", "Defender points"})),
+            *presentation.sections[1:]))
+    assert without_scores(before) == without_scores(after)
 
 
 def _execution(

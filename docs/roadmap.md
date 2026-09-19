@@ -1714,3 +1714,12 @@ native checks cover one-save recording, zero-save navigation, Report/recovery re
 and error focus. Package, dependencies, formats and 98 outputs remain. #237 stays
 completed; both exact merged-commit CI jobs remain closure gates. #208/unresolved
 findings stay open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
+Issue #239 corrects R09's shared Position Summary to display retained
+`score_summary.total_declarer_points` / `total_defender_points`, independently of
+supplemental Position inputs and later Session state. Focused real-execution and
+installed-Wheel de/en browser checks verify 14/29, per-side unavailable handling
+and immutable downloads; see [Session decision review](session_recorded_decision_review.md).
+#238 remains completed. Both exact merged-commit CI jobs gate manual #239 closure.
+R10/R11 and other unresolved #208 findings remain open; UAT-01 is unaccepted,
+UAT-02–12 paused, B-09/B-07 open and B-06 closed. Package and Release gates are unchanged.

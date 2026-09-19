@@ -9,11 +9,14 @@ from urllib.parse import urlencode
 
 import pytest
 from test_frontend_language_switching import localized_server as _localized_server
-from test_historical_game import build_historical_input
+from test_guided_frontend_result_presentation import assert_summary_points, score_review_request
+from test_historical_game import build_historical_input, rebuild_historical_suffix
 
+import skatmind.api.v1.session.files as session_files
 import skatmind.app_web.execution as execution_module
 from skatmind.api.v1 import serialize_result
 from skatmind.app_web.translation_catalog import translate_frontend_message_v1 as text
+from skatmind.historical_game import build_historical_game_summary_from_input
 
 
 @pytest.fixture
@@ -160,6 +163,148 @@ def review_first(browser):
     assert "Alexandra Long-Synthetic-Player-Name" in page
     assert 'class="recorded-review-source"' in page
     return page, form
+
+
+def record_score_review_game(browser, *, play_count=12):
+    """Legally record R09, using the existing full-game generator for the suffix.
+
+    Fixture IDs follow the generator's seat order; visible Players are B, C, A.
+    Only A's hand and observed Plays are submitted to the perspective recording.
+    """
+    local_hand = ["CA", "C10", "CJ", "SA", "SK", "SJ", "HA", "H9", "DK", "D7"]
+    data = build_historical_input(declarer_player_id="player-a", deck=[
+        "S9", "H7", "CK", "S7", "H10", "HJ", "CQ", "C9", "HQ", "D10",
+        "C7", "S10", "HK", "DJ", "C8", "SQ", "S8", "H8", "DQ", "D9",
+        *local_hand, "DA", "D8",
+    ])
+    prefix = (
+        (("player-a", "CK"), ("player-b", "C7"), ("player-c", "CA")),
+        (("player-c", "SK"), ("player-a", "S7"), ("player-b", "S10")),
+        (("player-b", "HK"), ("player-c", "H9"), ("player-a", "H10")),
+        (("player-a", "HJ"), ("player-b", "DJ"), ("player-c", "SJ")),
+    )
+    data["tricks"][:4] = [
+        {"trick_number": index, "leader_player_id": trick[0][0],
+         "plays": [{"player_id": player, "card": card} for player, card in trick]}
+        for index, trick in enumerate(prefix, 1)
+    ]
+    data = rebuild_historical_suffix(data, 4)
+    assert build_historical_game_summary_from_input(data)["status"] == "complete"
+    form = Forms(browser.page("/sessions")).find("/sessions/create")
+    assert browser.submit(form, game_name="Synthetic score review", capture_mode="live",
+        forehand_name="B", middlehand_name="C", rearhand_name="A", perspective_seat="rearhand",
+        setup_action="update")[0] == 303
+    assert browser.submit(Forms(browser.page("/sessions")).find("/sessions/create"),
+                          setup_action="create")[0] == 303
+    browser.command("set_game_metadata")
+    assert browser.submit(Forms(browser.page()).find("/sessions/cards"), cards=local_hand)[0] == 303
+    browser.command("set_declarer")
+    browser.command("set_declaration", game_type="grand", hand_game="false",
+                    bid_value="18")
+    plays = [play for trick in data["tricks"] for play in trick["plays"]]
+    for play in plays[:play_count]:
+        browser.command("record_play", card=play["card"])
+    return plays
+
+
+def score_review_form(browser):
+    # A's fourth saved own decision is Trick 4, Card 3 (SJ).
+    return Forms(browser.page()).find("/sessions/review-decision", index=3)
+
+
+def test_real_score_review_after_later_plays_completion_reopen_and_passive_views(
+    localized_server, monkeypatch,
+):
+    browser = Browser(localized_server)
+    plays = record_score_review_game(browser, play_count=11)
+    context = localized_server.app_context.managed_stateful.active_session
+    calls, saves = [], []
+    real_execute, real_save = execution_module.execute, session_files.save_session_file
+    def execute(request, **kwargs):
+        calls.append(request)
+        return real_execute(request, **kwargs)
+    def save(*args, **kwargs):
+        saves.append(args)
+        return real_save(*args, **kwargs)
+    monkeypatch.setattr(execution_module, "execute", execute)
+    monkeypatch.setattr(session_files, "save_session_file", save)
+
+    # The same projection is also used by genuine current-position Session analysis.
+    assert browser.submit(Forms(browser.page()).find("/sessions/analyze"))[0] == 303
+    assert_summary_points(browser.page(), "en", 14, 29)
+    assert len(calls) == 1 and context.recorded_review_source is None
+    browser.command("record_play", card="SJ")
+    assert context.execution is None
+
+    def review_and_check():
+        form = score_review_form(browser)
+        before = context.path.read_bytes()
+        checkpoints = context.decision_checkpoints
+        profile = localized_server.app_context.frontend_profile
+        count, save_count = len(calls), len(saves)
+        status, headers, _ = browser.submit(form)
+        assert status == 303 and headers["location"] == "/sessions/current#session-result"
+        assert len(calls) == count + 1 and len(saves) == save_count
+        page = browser.page()
+        source = page.split('class="recorded-review-source"', 1)[1].split("</p>", 1)[0]
+        assert "Synthetic score review" in source and "Trick 4 · Card position 3" in source
+        assert "SJ" in source
+        assert_summary_points(page, "en", 14, 29)
+        execution, source = context.execution, context.recorded_review_source
+        frozen = source.decision.checkpoint.request.to_dict()["document"]
+        request_bytes = browser.request("GET", "/sessions/downloads/request.json")[2]
+        result_bytes = browser.request("GET", "/sessions/downloads/result.json")[2]
+        assert request_bytes == execution.request_json_bytes
+        assert result_bytes == execution.result_json_bytes
+        request = json.loads(request_bytes)
+        assert request == {
+            **frozen, "analysis_mode": "post_game_review", "actual_card_played": "SJ"}
+        expected = score_review_request()
+        for key in ("current_trick", "completed_tricks", "declarer_points", "defender_points"):
+            assert request[key] == expected[key]
+        result = execution.result.result.document
+        assert result["position"]["declarer_points"] == result["position"]["defender_points"] == 0
+        assert result["score_summary"]["total_declarer_points"] == 14
+        assert result["score_summary"]["total_defender_points"] == 29
+        assert json.loads(result_bytes) == serialize_result(execution.result)
+
+        # Same-source chooser navigation preserves the exact active Result, unlike strict reopen.
+        browser.page("/")
+        chooser = Forms(browser.page("/review/recorded")).find("/review/open-recording")
+        assert browser.submit(chooser)[0] == 303
+        assert localized_server.app_context.frontend_profile is profile
+        for locale in ("de", "en"):
+            language = Forms(browser.page()).find("/actions/profile/language")
+            status, headers, _ = browser.submit(language, language=locale)
+            assert status == 303 and headers["location"] == "/sessions/current#session-result"
+            assert_summary_points(browser.page(), locale, 14, 29)
+            assert browser.request("GET", "/sessions/downloads/request.json")[2] == request_bytes
+            assert browser.request("GET", "/sessions/downloads/result.json")[2] == result_bytes
+        assert len(calls) == count + 1 and len(saves) == save_count
+        assert context.path.read_bytes() == before
+        assert context.decision_checkpoints is checkpoints
+        assert source.decision.checkpoint.request.to_dict()["document"] == frozen
+        assert context.execution is execution and context.recorded_review_source is source
+        return request_bytes, form
+
+    earlier_request, earlier_form = review_and_check()
+    for play in plays[12:]:
+        browser.command("record_play", card=play["card"])
+    browser.command("set_game_end")
+    assert context.state.phase == "ended" and context.execution is None
+    assert browser.submit(earlier_form)[0] == 409
+    assert browser.request("GET", "/sessions/downloads/result.json")[0] == 404
+    ended_request, ended_form = review_and_check()
+    assert ended_request == earlier_request
+    saved, checkpoints = context.path.read_bytes(), context.decision_checkpoints
+    assert browser.submit(Forms(browser.page("/sessions")).find("/sessions/open"))[0] == 303
+    context = localized_server.app_context.managed_stateful.active_session
+    assert context.execution is context.recorded_review_source is None
+    assert context.decision_checkpoints == checkpoints
+    assert browser.submit(ended_form)[0] == 409
+    reopened_request, _ = review_and_check()
+    assert reopened_request == earlier_request and context.path.read_bytes() == saved
+    assert len(calls) == 4
 
 
 def test_real_http_record_review_all_30_plays_reopen_and_exact_downloads(

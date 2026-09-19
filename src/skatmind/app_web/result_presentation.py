@@ -348,6 +348,7 @@ def _build_position_presentation(
     settings = _object(document.get("settings"))
     recommendation = _object(document.get("recommendation"))
     review = _object(document.get("post_game_review_summary"))
+    score = _object(document.get("score_summary"))
 
     summary_details = [
         _detail("Analysis mode", information.get("analysis_mode")),
@@ -360,10 +361,11 @@ def _build_position_presentation(
         _detail("Legal Cards", _cards(document.get("legal_cards"))),
     ]
     for label, key in (
-        ("Declarer points", "declarer_points"),
-        ("Defender points", "defender_points"),
+        ("Declarer points", "total_declarer_points"),
+        ("Defender points", "total_defender_points"),
     ):
-        _optional_detail(summary_details, label, position, key)
+        total = score.get(key)
+        summary_details.append(_detail(label, total if type(total) is int else None))
 
     method = _object(document.get("recommendation_method_summary"))
     search_result = _object(document.get("information_set_search_result")) or _object(

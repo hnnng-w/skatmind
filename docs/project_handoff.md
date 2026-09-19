@@ -2626,6 +2626,17 @@ profile/public/Product formats, registry counts and 98 outputs remain. #237 stay
 completed; both exact merged-commit CI jobs gate #238 closure. #208/unresolved
 findings remain open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
 
+Issue #239 remediates #208 retest R09 through the shared private Position Result
+Summary: known points read retained `score_summary.total_declarer_points` and
+`total_defender_points`, preserving supplemental inputs and decision-time ownership.
+Real Session recording/review, completion/reopen, de/en defensive-value regressions
+and installed-Wheel native browser checks verify 14/29 and unchanged downloads.
+See [Session decision review](session_recorded_decision_review.md). #238, including
+the unified rejection-transport correction, remains completed. Exact merged-commit
+`check` and `v1-supported-platform-matrix` still gate manual #239 closure. R10/R11
+and other unresolved #208 findings remain open; UAT-01 is unaccepted, UAT-02–12
+paused, B-09/B-07 open and B-06 closed. No release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

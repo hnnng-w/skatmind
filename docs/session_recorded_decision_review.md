@@ -88,6 +88,32 @@ or invocation during rendering, navigation, language switching, or download.
 Current-position analysis is not used as a shortcut: its existing collection and
 persistence behavior remains separate.
 
+### Known points in the retained decision Result (R09)
+
+Issue #239 corrects the two existing normal Summary details in the shared private
+Position Result projection. Known Declarer points come from
+`score_summary.total_declarer_points`; known Defender points come from
+`score_summary.total_defender_points`. The retained Result owns both values.
+`position.declarer_points` and `position.defender_points` are supplemental inputs
+outside the supplied completed Tricks, not totals. Requests, Checkpoints, scoring,
+saved recordings and exact technical downloads retain their original values.
+
+For the R09-equivalent Grand decision, the completed Tricks contribute 14 Declarer
+points and 15 + 14 Defender points. The normal Summary therefore shows **14/29**
+despite supplemental **0/0**. The incomplete HJ/DJ Trick contributes nothing yet.
+Reviewing this saved decision after later Plays, Game End or strict reopen still
+uses its decision-time Result, never later 14/35 or final 42/78 context. Normal
+mutation invalidation still applies; reopen requires explicit review execution.
+Rendering never sums Tricks, adds Skat/discards, or calls a score builder.
+
+Literal integer zero remains zero. Defensive partial/malformed presentation
+fixtures use the existing localized unavailable value independently for a missing
+or non-integer total, including booleans, strings and floats. No supplemental-value
+fallback or new import/Schema rule is introduced. Valid canonical Results already
+require both totals. The same mapping serves guided Position Results and Session
+current-position analysis; Historical and separate Match presentation retain their
+existing ownership. R10/R11 remain separate open findings.
+
 ## Private route and form contract
 
 ```text
@@ -189,6 +215,32 @@ seven Root workflows, Schemas, persistence, examples, and generated outputs rema
 unchanged. No issue-specific version constant is introduced.
 
 ## Verification and future affected-path retest
+
+Issue #239's focused presentation regressions execute public Position Requests and
+check normal Summary labels in both languages: 14/29, supplemental 5/7 yielding
+19/36, explicit-only scores, genuine zero and per-side unavailable fixtures.
+They retain source immutability, non-score presentation, alternate-method and
+Historical regressions. The real Session web regression records B/C/A with A's
+known hand, collects Checkpoints normally, analyzes the current HJ/DJ position,
+and reviews A's SJ after later Plays, normal completion and strict reopen. Passive
+views, same-source chooser navigation, language changes and downloads execute no
+review or Product save and preserve exact bytes and source identity.
+
+Scoped installed-Wheel browser evidence on September 19, 2026 used Python 3.13.7,
+Package 0.17.0 and headless Edge 153.0.4234.32 with the existing dependency-free
+DevTools harness. One synthetic completed recording supplied one genuine native
+no-JavaScript review, then de/en views with JavaScript on/off at 1365, 390 and 320
+pixels and representative German 320-pixel 200% text. Native language changes and
+same-source opening preserved the Result; native downloads matched its exact
+retained bytes. After legal HTTP fixture setup, counters recorded one execution,
+zero Product saves, four language POSTs and one same-source opening POST.
+The same genuine Result projected through the starting-HEAD builder showed 0/0;
+the corrected installed builder showed 14/29 with identical non-score projection.
+Module/resource hashes, request counts and 28 viewport screenshots are retained
+outside the repository in `$env:TEMP/opencode/239-browser-02/evidence.json` and
+adjacent `*-source.png` / `*-score.png` files. Narrow enlarged labels wrap heavily;
+the existing focus outline and other UX findings remain separate. This is synthetic
+browser verification, not maintainer UAT or general accessibility acceptance.
 
 `tests/test_session_recorded_review.py` covers projection statuses, grouping,
 coverage, immutable cutoff/settings, exact identity, source freshness, correction,

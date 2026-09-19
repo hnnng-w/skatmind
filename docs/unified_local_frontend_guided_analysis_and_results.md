@@ -254,6 +254,27 @@ warnings, fallback, boundedness, information cutoffs, fixed-policy limits,
 selected-world limits, observed-Card limits, Coaching/Tactical limits, and Claim
 scope are shown only from retained public fields.
 
+Issue #239 remediates #208 retest R09 in the shared Position Summary: the existing
+known-party point details read `score_summary.total_declarer_points` and
+`score_summary.total_defender_points` from the retained Result. The Position's
+`declarer_points` / `defender_points` remain supplemental inputs outside completed
+Tricks. Totals already include these supplements once: the R09 completed history
+with 0/0 displays 14/29; a separate valid 5/7 input displays 19/36. The unfinished
+current Trick, later recording state, Skat/discards, forecasts and adjusted ending
+or settlement fields are not added during presentation. This applies to guided
+Position analysis/review and saved/current-position Session Results. Historical
+and separate Match rendering retain their existing contracts.
+
+Integer zero is displayed as zero. Defensive missing/non-integer total fixtures
+show localized **Not available** on that side without coercion or supplemental
+fallback, preserving an independently valid other total. Canonical Results already
+require both integers; import acceptance and Schemas are unchanged. Focused de/en
+normal-Summary assertions cover the score cases, immutable source documents,
+candidate/method/order preservation and Historical regressions. The
+[Session review guide](session_recorded_decision_review.md#verification-and-future-affected-path-retest)
+records genuine Session execution, exact downloads and installed-browser evidence.
+R10 ranking/prose and R11 context/download layout remain open.
+
 Existing normal states such as `complete`, `partial`, `timeout`, `unavailable`,
 `final`, `lot_required`, and `not_assessable` remain successful Result pages, not
 HTTP failures. Observed Cards are not described as ground truth, and Search is
