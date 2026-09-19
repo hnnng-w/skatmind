@@ -21,9 +21,11 @@ below remain. See [Local time entry](local_time_entry.md) for compatibility and 
 3. Choose **Your player**, or explicitly leave it unset.
 4. Open Session or Match creation. Own perspective supplies that identity, with
    **no seat selected**. For a Match, the seat explicitly means **game 1**.
-5. Select a seat and use **Update setup and review roster**. Fill the other seats
-   in saved-Player or new-name mode. Both modes work with JavaScript disabled;
-   app-owned CSS follows the native select state.
+5. Select a seat and fill the other two seats in saved-Player or new-name mode,
+   then use **Update setup and review roster** once. Issue #242 shows the free
+   own seat immediately as the derived own Player, with an Update-to-review note.
+   No own-only preparatory submission is required. Both modes work with JavaScript
+   disabled; app-owned CSS follows the native select state.
 6. Review the named roster and perspective, then Create. Changing the form after
    review requires another setup update. Setup-only requests create no Product,
    generate no Product/Player IDs, and save no preferences.
@@ -134,12 +136,43 @@ bindings and fresh profile generations are transport values, not persisted state
 Language saves preserve applicable setup presentation using the #223 exact-source
 and form-manifest checks, including the absent-to-language-only-profile case.
 
-Changing own seat moves only the server-retained automatic Player bundle. Any
-independent destination handle, new name, or account value produces field-linked
-collision feedback. Values are retained; no overwrite or swap resolves the conflict.
+Changing own seat moves only the server-retained automatic Player bundle. Issue
+#242 supersedes #225's blank-only destination rule with one exact-self exception:
+saved mode, the current validated own handle, and a blank new-name field qualify
+for adoption on **Update**. Selecting saved A again at own Rearhand therefore
+produces the same reviewed roster as the former empty-placeholder workaround.
+The adopted row becomes the server-retained automatic bundle, and repeated unchanged
+Update is idempotent. Other handles, same-name new entries, mixed modes and an
+independent duplicate own row remain rejected. Original inputs survive rejection.
+
+The automatic source identity is validated before movement. Explicit account
+values use the existing trimming/validation boundary: neither supplied stays empty;
+one supplied value is retained; equal source/target values are retained once; two
+distinct nonempty values are rejected with both controls preserved. This exception
+requires the same saved own identity. Account-only occupancy remains a conflict,
+and saved profile accounts are never imported implicitly. Other independent
+destination input still produces field-linked feedback, without overwrite or swap.
+
+All three named seats remain visible. The own row uses a complete escaped read-only
+label; the other two use their normal controls. The former duplicate full roster
+summary is removed. A changed reviewed seat/mode displays a pending automatic-source
+release rather than another independent own participant. Existing source release
+semantics remain: Update releases that bundle before the old seat can be refilled.
+The last reviewed perspective is labelled as such. Conflicting entered identities,
+mixed saved/new values, accounts and field errors remain editable and reachable.
+Native CSS uses current control state, including #223 restored safe input, rather
+than an old accepted-value attribute. Controls are neither duplicated, cleared nor
+disabled for presentation; their successful values remain subject to server checks.
+Selecting a seat or mode performs no POST. The existing optional language script
+is unchanged, and language saving performs no setup Update or Create.
+
 Final input must match the reviewed setup and current own identity. Final submission
 consumes the setup selection once. Exact Product metadata is validated before ID
 generation, followed by Product-first creation and at most one profile enrichment.
+Changed final-Create values are not projected back into an old review. Setup token,
+nonrenewed expiry, profile generation, family isolation and one-use failure behavior
+remain authoritative. Settings own A can coexist with manual B/C/A and perspective C;
+neither own nor hidden preferred perspective is changed by that choice.
 
 Session seats map directly. The new Match adapter translates complete bundles:
 
@@ -336,3 +369,98 @@ open, UAT-01 failed, UAT-02–12 paused, B-09/B-07 open, B-06 closed. Package, P
 minimum, AGPL-3.0-only, dependencies including `tzdata>=2026.4`, #230 profile shape,
 public/Product contracts and 98 outputs remain unchanged. No whole-UAT acceptance
 or Release readiness is claimed.
+
+## Issue #242 own-assignment evidence
+
+Preflight began clean on `bug/242-own-player-seat-setup` at
+`dc7b8f575b111be267993c5677181c1008df74f5`. The live #242 issue and R02 in #208's
+consolidated retest were read. The current shared adapter still rejected exact
+saved-own targets, independently of the archived characterization. Before production
+edits, six pure seat/family cases and two real returned-form HTTP cases failed:
+both Session and Match returned 400 for B/C/A with own A at Rearhand. Profile bytes
+were unchanged and neither Product was created. The retained pre-fix pytest output
+records all eight failures; no archive was restored.
+
+The corrected projection is compared with the valid placeholder-derived roster
+under deterministic entropy, including canonical prepared Session/Match output.
+Coverage includes all own seats, blank/exact/automatic targets, repeated Update,
+all six moves, the account matrix, source-binding validation, genuine occupants,
+mixed modes/names, unknown/forged handles and independent duplicates. Rejections
+leave the original pure input unchanged. Existing persisted permutation tests retain
+all eighteen roster/perspective combinations and every one of the 36 rotations.
+
+Real Settings operations create A/B/C and choose own A. Both creation families now
+reach a complete named roster with one Update from the first returned form, followed
+by explicit Create. The old redundant saved-A payload remains a separately labelled
+compatibility test; no helper clears it. Tests strictly reopen revision-zero files,
+continue a representative Session into its eleven-Command first-hand save, and
+explicitly Start/reopen a Match. Collision/language/manual-C paths retain exact
+local date/time, platform/source metadata and account ownership without changing own A.
+Changed final Create, stale/removed/forged own identity, expired/superseded setups,
+competing submissions, Product failure and profile failure keep one-use behavior.
+Real retained Session Results and Match Reports survive setup and rejection, with
+normal invalidation on successful same-family activation.
+
+The affected-path run passed **601 tests in 268.29s**, with no skips, covering
+creation, profile/private/public compatibility, language/validation, local time,
+knowledge entry, packaging/CLI imports and #239–#241 regressions. A final focused
+run passed **102 tests in 34.78s**, also covering retention of a supplied source
+account when the optional destination account key is absent. Three separately
+executed existing filesystem probes retain their Windows symlink-permission skips
+(learning entry errno 22, recording deletion WinError 1314, managed-item link creation).
+They are not new skips. The final unchanged-tree full-check log and actual child exit
+are reported with the implementation; both exact merged-commit CI jobs still gate closure.
+The first full run completed with one stale catalog-count assertion (1,564 instead
+of 1,569), 9,375 passing tests and the same three skips; all pre-pytest stages passed.
+The assertion now includes the five matching #242 messages. Production code and
+installed-browser resources were unchanged by this test-only correction; the final
+report records the required complete corrected-tree rerun.
+
+`scripts/verify_own_player_assignment.py` reuses the existing dependency-free native
+DevTools tooling and an independently installed Wheel. It checks fourteen installed
+module/resource hashes against the runtime source tree and authenticated served
+resource bytes. Final synthetic evidence is outside Product/user data:
+
+```text
+<temporary-directory>/opencode/242-browser-complete/evidence.json
+<temporary-directory>/opencode/242-accounts-complete/evidence.json
+<temporary-directory>/opencode/242-browser-summary.json
+```
+
+Both runs have `completed: true`: **172 measurements / 432 screenshots**, headless
+Microsoft Edge **153.0.4234.32**, Windows CPython **3.13.7**, Package **0.17.0**.
+German/English and script/no-script cover **1365×900**, **390×844**, **320×800**, plus
+**200% text at 320 pixels**, with browser zoom/device scale unchanged at 100%/1.
+Document/client widths agree throughout. Native controls demonstrate initial
+selection, the two remaining identity tasks, review/Create, an editable Boris
+collision, language correction, pending reviewed movement, and manual Clara
+perspective with Alexandra retained as own Player. The separate account probe
+preserves both distinct values through language switching, retains the explicitly
+chosen target account on correction, and verifies the moved persisted roster.
+Manual-to-own perspective errors expose a usable selector. Unsent title/seat values
+survive language changes only with the unchanged optional script; submitted values
+survive both modes. No selection triggers a POST.
+
+The native flows perform **20 creations**, each with one Product replacement and
+one profile enrichment. Subsequent explicit first-hand/Start actions bring the
+measured Product replacements to **12 Session / 16 Match**. The separately recorded
+Settings fixture operations and explicit language saves are not creation writes.
+Update/rejection performs zero Product/profile writes. Reopened rosters and
+perspectives match persisted values. HTTP metadata and direct duplicate-payload
+checks remain distinct from these native actions.
+
+The installed Wheel SHA-256 is
+`d036e2da730d0b0e01e0e3af1faf8df87fead8e20c467683f90ef244bddc9da3`.
+Installed CSS SHA-256 is
+`63f7645e346e46e7a1d8522494234149ef5b2db3d7b1a07630f6d80332bc80e5`;
+the exact adapter, renderer, catalogs and unchanged script hashes are in the evidence.
+Inspected screenshots include `native-de-sessions-reviewed-320-2-own-row.png`,
+`js-en-matches-occupied-390-1-own-row.png`, and the account-controls and mixed-perspective
+images. Complete long escaped names wrap and require vertical scrolling at enlarged
+text; native selects retain their complete options. Other engines and assistive
+technologies were not exercised. This is bounded implementation evidence, not
+maintainer UAT, R08/residual-R11 closure or a whole-frontend accessibility claim.
+#241 remains completed; #208 and other findings remain open, UAT-01 unaccepted,
+UAT-02–12 paused, B-09/B-07 open and B-06 closed. Current 63-route/107-form counts,
+Package, license, dependencies, profile/public/persistence contracts and 98 scenarios
+are preserved. Maintainer UAT/default roots and installation remain untouched.

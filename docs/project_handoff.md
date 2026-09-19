@@ -2659,6 +2659,19 @@ browser evidence are in [Recorded decision context](recorded_decision_context.md
 paused, B-09/B-07 open and B-06 closed. Producer bytes, Package, dependencies,
 formats and 98 scenarios remain unchanged; no release-readiness claim follows.
 
+Issue #242 repairs only R02's new Session/Match own assignment: initial own seat
+remains unset, native select-state presentation derives a free own row immediately,
+and exact saved-own repetition is adopted idempotently during Update. Genuine
+occupants, independent duplicates and distinct explicit accounts remain lossless
+conflicts. Exact reviewed Create, manual C perspective with own A, Game-1 mapping,
+rotation, local time/knowledge choices and Product-first lifecycle remain. Evidence
+and account rules are in [Settings and Player seat setup](settings_and_player_seat_setup.md).
+The clean starting HEAD is `dc7b8f575b111be267993c5677181c1008df74f5`; #241 stays
+completed. R08 and residual R11 remain separate. Both `check` and
+`v1-supported-platform-matrix` must pass on the exact merged implementation commit
+before manual #242 closure. #208/other findings remain open, UAT-01 unaccepted,
+UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

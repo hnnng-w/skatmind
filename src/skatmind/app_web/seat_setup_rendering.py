@@ -12,10 +12,11 @@ def _t(locale, key, **values):
     return escape(translate_frontend_message_v1(locale, key, **values))
 
 
-def _select(name, label, choices, selected):
+def _select(name, label, choices, selected, *, own=""):
     return (f'<label>{label}<select name="{name}">'
         + ''.join(f'<option value="{escape(value, quote=True)}"'
-                  f'{" selected" if value == selected else ""}>{text}</option>'
+                  f'{" selected" if value == selected else ""}'
+                  f'{" data-own" if own and value == own else ""}>{text}</option>'
                   for value, text in choices) + '</select></label>')
 
 
@@ -43,37 +44,35 @@ def render_seat_setup_v1(profile, locale, *, family, setup=None):
         for player in (() if profile is None else profile.known_players))
     rows = []
     for seat, label in seats:
-        if setup is not None and seat == setup.auto_seat:
-            name = resolve_known_player_handle_v1(profile, own).display_name
-            rows.append(
-                f'<fieldset class="seat-entry" data-seat="{seat}"><legend>{label}</legend>'
-                f'<p><strong>{escape(name)}</strong> · '
-                f'{_t(locale, "settings.preferences.own_player")}</p>'
-                f'<input type="hidden" name="{seat}_mode" value="saved">'
-                f'<input type="hidden" name="{seat}_handle" value="{own}">'
-                f'<input type="hidden" name="{seat}_name" value=""></fieldset>')
-            continue
+        auto = setup is not None and seat == setup.auto_seat
+        own_label = (
+            f'<p class="derived-own"><strong>{escape(player.display_name)}</strong> · '
+            f'{_t(locale, "settings.preferences.own_player")}'
+            f'<span class="own-pending"> — {_t(locale, "creation.setup.pending")}</span></p>'
+            if own else '')
+        release = ('<p class="own-release">'
+                   + _t(locale, "creation.setup.release", name=player.display_name)
+                   + '</p>' if auto else '')
         rows.append(
-            f'<fieldset class="seat-entry" data-seat="{seat}"><legend>{label}</legend>'
+            f'<fieldset class="seat-entry" data-seat="{seat}"'
+            f'{" data-auto" if auto else ""}><legend>{label}</legend>'
+            + own_label + release + '<div class="seat-identity">'
             + _select(f"{seat}_mode", _t(locale, "creation.setup.entry_mode"),
                 (("saved", _t(locale, "creation.common.known_player")),
                  ("new", _t(locale, "creation.common.new_player_name"))), values[f"{seat}_mode"])
             + '<div class="saved-player-entry">'
             + _select(f"{seat}_handle", _t(locale, "creation.common.known_player"),
-                      options, values.get(f"{seat}_handle", "")) + '</div>'
+                      options, values.get(f"{seat}_handle", ""), own=own) + '</div>'
             + f'<label class="new-player-entry">{_t(locale, "creation.common.new_player_name")}'
-            f'<input name="{seat}_name" maxlength="120" '
+            f'<input name="{seat}_name" maxlength="120" placeholder=" " '
             f'value="{escape(values.get(f"{seat}_name", ""), quote=True)}"></label>'
-            '</fieldset>')
+            '</div></fieldset>')
     names = roster_names_v1(values, profile)
-    summary = '<dl class="roster-summary">' + ''.join(
-        f'<dt>{label}</dt>'
-        f'<dd>{escape(name) if name else _t(locale, "creation.setup.unfilled")}</dd>'
-        for (_, label), name in zip(seats, names, strict=True)) + '</dl>'
     perspective = values.get("perspective_seat", "")
     perspective_name = names[SEATS.index(perspective)] if perspective in SEATS else ""
     return (
-        '<div class="seat-setup">' + controls
+        '<div class="seat-setup"'
+        + (' data-reviewed' if setup is not None and setup.reviewed else '') + '>' + controls
         + f'<p>{_t(locale, "creation.setup.help")}</p>'
         + (f'<p>{_t(locale, "creation.setup.game_one")}</p>' if family == "matches" else '')
         + (f'<p>{_t(locale, "creation.session.knowledge_perspective")}</p>'
@@ -82,10 +81,10 @@ def render_seat_setup_v1(profile, locale, *, family, setup=None):
         + '<div class="manual-perspective">'
         + _select("perspective_seat", _t(locale, "creation.session.perspective"),
             (("", _t(locale, "creation.common.no_perspective")), *seats), perspective) + '</div>'
-        + f'<p><strong>{_t(locale, "creation.setup.roster")}</strong></p>{summary}'
-        + f'<p>{_t(locale, "creation.setup.perspective")}: '
+        + (f'<p class="reviewed-perspective">{_t(locale, "creation.setup.reviewed")}: '
         + (escape(perspective_name) if perspective_name else _t(
             locale, "creation.common.no_perspective")) + '</p>'
+            if setup is not None and setup.reviewed else '')
         +
         '</div>'
     )

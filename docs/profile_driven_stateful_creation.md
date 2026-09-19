@@ -109,6 +109,22 @@ Session creation saves no separate perspective preference. The compatible hidden
 preferred perspective is retained but does not fill ordinary forms. Capture mode
 is not a saved profile preference.
 
+Issue #242 makes the shared Session/Match own assignment a single input task: choose
+the initially unset own seat, enter the other two Players, Update once, then explicitly
+Create. Native CSS presents a free own row as derived before the first submission;
+it retains real occupied destinations and error controls. Reviewed automatic rows
+and pending moves remain distinguishable, without a second full roster summary.
+The exact saved-own target (saved mode/current handle/blank new name) is idempotent
+on Update. Explicit same-identity accounts are retained losslessly or rejected if
+both nonempty values differ. Account-only occupancy, other Players, mixed names/modes
+and independent own duplicates remain conflicts. See the
+[exact-self and account rules](settings_and_player_seat_setup.md#seat-projection-and-match-translation).
+Final Create still compares exact reviewed values before consuming its one-use setup.
+No new route, field, setting, browser state, ID system or Product initialization
+Command is introduced. Setup/rejection generates no IDs, saves no Product/profile,
+collects no Checkpoint and runs no analysis. Manual C perspective with Settings own A,
+no-own defaults, Live's local requirement and Retrospective no-local support remain.
+
 Issue #232 supersedes #219's normal `EuroSkat 36-game standard` wording with
 **Recording format (fixed): 36 games · 3 fixed players**, translated through the
 German/English catalogs. The positions include passed deals. Platform describes
@@ -210,6 +226,12 @@ standalone interfaces remain intact. Installed-browser evidence is recorded in
 [Settings and Player seat setup](settings_and_player_seat_setup.md#issue-232-fixed-recording-scope-evidence).
 
 ## Remaining frontend work
+
+The #242 creation repair preserves the current **63 POST routes / 107 forms**,
+Package 0.17.0, dependencies including `tzdata>=2026.4`, public/profile/persistence
+shapes, Game-1 2/3/1 bundle mapping, 36 rotations and 98 generated scenarios.
+Its focused HTTP and independent-Wheel browser evidence is recorded in the Settings
+guide. #241 remains completed; R08 and residual R11 work remain separate.
 
 Issue #219 further partially remediates UAT-FINDING-001, implements the creation-
 form portion of UAT-FINDING-005, implements the profile/default/creation portion

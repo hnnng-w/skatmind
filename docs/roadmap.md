@@ -1741,3 +1741,14 @@ and exact producer/download bytes. See [Recorded decision context](recorded_deci
 for genuine HTTP and independent-Wheel browser evidence. #240 stays completed;
 both exact merged-commit CI jobs gate manual #241 closure. #208 and other R11/UAT
 findings stay open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
+Issue #242 repairs only R02: choose own seat once, enter the other two Players,
+review and explicitly Create a Session or Match. Exact saved-own repetition is
+idempotent on Update; genuine occupants and conflicting explicit accounts stay
+visible and lossless. Native no-script presentation, manual other-Player perspective,
+exact one-use creation and canonical bundle/rotation semantics remain. See
+[Settings and Player seat setup](settings_and_player_seat_setup.md) for evidence.
+#241 remains completed; R08 and remaining R11 work are separate. Exact merged-commit
+`check` and `v1-supported-platform-matrix` gate manual closure. #208 and other findings
+remain open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+Package 0.17.0, dependencies, formats, 98 scenarios and Release gates are unchanged.

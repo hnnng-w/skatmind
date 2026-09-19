@@ -85,6 +85,8 @@ def project_own_seat_v1(values, profile, *, auto_seat=""):
         raise StaleFrontendProfileGenerationError
     if mode == "own" and not own:
         raise StaleFrontendProfileGenerationError
+    if mode == "own":
+        resolve_known_player_handle_v1(profile, own)
     for place in SEATS:
         if result.get(f"{place}_mode") not in {"saved", "new"}:
             raise SeatSetupError("choice", f"{place}_mode")
@@ -95,10 +97,17 @@ def project_own_seat_v1(values, profile, *, auto_seat=""):
                 or result.get(f"{auto_seat}_mode") != "saved"):
             raise SeatSetupError("own_binding", f"{auto_seat}_handle")
     if target != auto_seat:
+        exact_own = bool(target and result.get(f"{target}_mode") == "saved"
+            and result.get(f"{target}_handle") == own
+            and not result.get(f"{target}_name", "").strip())
         if target and any(result.get(f"{target}_{suffix}", "").strip()
-                          for suffix in ("handle", "name", "platform_id")):
+                          for suffix in ("handle", "name", "platform_id")) and not exact_own:
             raise SeatSetupError("occupied", f"{target}_handle")
-        account = result.get(f"{auto_seat}_platform_id", "") if auto_seat else ""
+        account = result.get(f"{auto_seat}_platform_id", "").strip() if auto_seat else ""
+        target_account = result.get(f"{target}_platform_id", "").strip() if exact_own else ""
+        if account and target_account and account != target_account:
+            raise SeatSetupError("account_conflict", f"{target}_platform_id")
+        account = account or target_account
         if auto_seat:
             result[f"{auto_seat}_handle"] = ""
             if f"{auto_seat}_platform_id" in result:
@@ -107,9 +116,12 @@ def project_own_seat_v1(values, profile, *, auto_seat=""):
             result[f"{target}_mode"] = "saved"
             result[f"{target}_handle"] = own
             result[f"{target}_name"] = ""
-            if f"{target}_platform_id" in result:
+            if f"{target}_platform_id" in result or account:
                 result[f"{target}_platform_id"] = account
     if mode == "own":
+        for place in SEATS:
+            if place != target and result.get(f"{place}_handle") == own:
+                raise SeatSetupError("duplicate_own", f"{place}_handle")
         if result.get("perspective_seat", "") not in {"", target, auto_seat}:
             raise SeatSetupError("own_binding", "perspective_seat")
         result["perspective_seat"] = target

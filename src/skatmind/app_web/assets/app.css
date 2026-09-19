@@ -1250,14 +1250,50 @@ main[data-workflow="sessions"] { overflow-wrap: anywhere; }
 .local-settings .own-player { font-size: 0.9em; }
 .seat-setup { display: grid; gap: 0.65rem; }
 .seat-setup .seat-entry { margin: 0; }
-.seat-setup .roster-summary { margin: 0; }
-.seat-setup .roster-summary dd { margin: 0 0 0.4rem; }
+.seat-setup .derived-own, .seat-setup .own-release { display: none; }
+
+/* Presentation follows live native values, including restored rejected input.
+   All original controls remain successful; only Update can assign a Player. */
+.seat-entry[data-auto]:has(select[name$="_mode"] option[value="saved"]:checked):has(option[data-own]:checked) {
+  --seat-identity-display: none;
+  --seat-release-display: block;
+}
+.seat-setup[data-reviewed] .seat-entry[data-auto]:has(option[data-own]:checked) .own-pending { display: none; }
+.seat-setup:has([name="perspective_mode"] option[value="own"]:checked) {
+  &:has([name="own_seat"] option[value="forehand"]:checked) [data-seat="forehand"],
+  &:has([name="own_seat"] option[value="middlehand"]:checked) [data-seat="middlehand"],
+  &:has([name="own_seat"] option[value="rearhand"]:checked) [data-seat="rearhand"] {
+    --seat-own-display: block;
+    --seat-identity-display: none;
+    --seat-release-display: none;
+  }
+}
+.seat-entry:has(input[name$="_name"]:placeholder-shown):not(:has([aria-invalid="true"])) {
+  /* A free destination, or the exact saved own identity with no mixed new name. */
+  &:has(select[name$="_handle"] option[value=""]:checked),
+  &:has(select[name$="_mode"] option[value="saved"]:checked):has(option[data-own]:checked) {
+    .derived-own { display: var(--seat-own-display, none); }
+    .seat-identity { display: var(--seat-identity-display, block); }
+    .own-release { display: var(--seat-release-display, none); }
+  }
+}
+/* An account-only destination is occupied, even with an empty Player selector. */
+.friendly-create form {
+  &:has([name="forehand_platform_id"]:not(:placeholder-shown)) [data-seat="forehand"],
+  &:has([name="middlehand_platform_id"]:not(:placeholder-shown)) [data-seat="middlehand"],
+  &:has([name="rearhand_platform_id"]:not(:placeholder-shown)) [data-seat="rearhand"] {
+    &:has(select[name$="_handle"] option[value=""]:checked) {
+      .derived-own, .own-release { display: none; }
+      .seat-identity { display: block; }
+    }
+  }
+}
 
 /* Native select state also controls the compact no-JavaScript presentation. */
-.seat-entry:has(select[name$="_mode"] option[value="saved"]:checked) .new-player-entry,
-.seat-entry:has(select[name$="_mode"] option[value="new"]:checked) .saved-player-entry,
-.seat-setup:has(select[name="perspective_mode"] option[value="own"]:checked) .manual-perspective,
-.seat-setup:has(select[name="perspective_mode"] option[value="manual"]:checked) .own-seat-choice,
+.seat-entry:has(select[name$="_mode"] option[value="saved"]:checked) .new-player-entry:has(input:placeholder-shown),
+.seat-entry:has(select[name$="_mode"] option[value="new"]:checked) .saved-player-entry:has(option[value=""]:checked),
+.seat-setup:has(select[name="perspective_mode"] option[value="own"]:checked) .manual-perspective:not(:has([aria-invalid="true"])),
+.seat-setup:has(select[name="perspective_mode"] option[value="manual"]:checked) .own-seat-choice:not(:has([aria-invalid="true"])),
 .player-editor form:has(select[name="account_action"] option[value="keep"]:checked) .account-edit-fields {
   display: none;
 }

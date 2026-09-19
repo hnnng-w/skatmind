@@ -133,7 +133,7 @@ def render_profile_driven_match_creation_v1(
     )
     platform_ids = "".join(
         f"<label>{_t(locale, 'creation.advanced.player_platform_id', seat=seat_label)}"
-        f'<input name="{seat}_platform_id" maxlength="255"></label>'
+        f'<input name="{seat}_platform_id" maxlength="255" placeholder=" "></label>'
         for seat, seat_label in (
             (seat, _t(locale, f"creation.seat.{seat}"))
             for seat in ("forehand", "middlehand", "rearhand"))

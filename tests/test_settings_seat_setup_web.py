@@ -43,16 +43,55 @@ def setup_own(browser, family, handles, seat):
     assert form["values"]["own_seat"] == ""
     assert all(form["values"][f"{s}_handle"] == "" for s in ("forehand", "middlehand", "rearhand"))
     assert "save_players" not in form["values"]
-    page = follow(browser, browser.submit(form, own_seat=seat, setup_action="update"))
-    form = Forms(page).find(action)
-    assert form["values"][f"{seat}_handle"] == handles[0]
     remaining = iter(handles[1:])
     values = {f"{s}_handle": next(remaining)
               for s in ("forehand", "middlehand", "rearhand") if s != seat}
     values["game_name" if family == "sessions" else "match_title"] = "Exact roster"
-    page = follow(browser, browser.submit(form, **values, setup_action="update"))
+    # One Update from the first returned form; no preparatory own-only submission.
+    page = follow(browser, browser.submit(form, **values, own_seat=seat, setup_action="update"))
+    assert Forms(page).find(action)["values"][f"{seat}_handle"] == handles[0]
     assert 'name="setup_action" value="create"' in page
     return page, action
+
+
+@pytest.mark.parametrize("family", ("sessions", "matches"))
+def test_duplicate_saved_own_payload_real_http_compatibility(localized_server, family):
+    """Direct R02 payload compatibility, separate from native one-assignment UI use."""
+    browser = Browser(localized_server)
+    _, handles = add_players(browser)
+    context = localized_server.app_context
+    route = "/sessions" if family == "sessions" else "/matches/new"
+    action = "/sessions/create" if family == "sessions" else "/matches/api/v1/create"
+    form = Forms(browser.page(route)).find(action)
+    before = context.frontend_profile.profile_path.read_bytes()
+    response = browser.submit(form, **{
+        "game_name" if family == "sessions" else "match_title": "R02 exact self",
+        "own_seat": "rearhand", "forehand_handle": handles[1],
+        "middlehand_handle": handles[2], "rearhand_handle": handles[0],
+        "setup_action": "update"})
+    assert context.frontend_profile.profile_path.read_bytes() == before
+    assert context.managed_stateful.active_session is context.managed_stateful.active_match is None
+    assert response[0] == 303, response[2].decode()
+    page = follow(browser, response)
+    reviewed = Forms(page).find(action)
+    assert reviewed["values"]["perspective_seat"] == "rearhand"
+    follow(browser, browser.submit(reviewed, setup_action="create"))
+    if family == "sessions":
+        active = context.managed_stateful.active_session
+        state = session_files.load_session_file(active.path).value.document.state
+        assert state.revision == 0
+        assert tuple(p.player_label for p in state.players) == ("B", "C", "A")
+        assert state.local_player_id == state.players[2].player_id
+    else:
+        active = context.managed_stateful.active_match
+        workspace = load_match_workspace_file_v1(active.path).document.workspace
+        assert workspace.revision == 0
+        definition = workspace.match_definition
+        assignment = build_match_workspace_seat_assignment_v1(definition, 1)
+        labels = {p.player_id: p.player_label for p in definition.participants}
+        assert tuple(labels[getattr(assignment, f"{s}_player_id")]
+                     for s in ("forehand", "middlehand", "rearhand")) == ("B", "C", "A")
+        assert definition.perspective_player_id == assignment.rearhand_player_id
 
 
 @pytest.mark.parametrize("seat", ("rearhand", "forehand", "middlehand"))
@@ -72,6 +111,13 @@ def test_real_settings_session_match_start_reopen_and_scoped_removal(localized_s
     state = session_files.load_session_file(session.path).value.document.state
     own = next(player for player in state.players if player.player_label == "A")
     assert own.seat == seat and state.local_player_id == own.player_id
+    assert state.revision == 0
+    if seat == "rearhand":
+        hand = ["CA", "C10", "CJ", "SA", "SK", "SJ", "HA", "H9", "DK", "D7"]
+        page = follow(browser, browser.submit(Forms(page).find("/sessions/cards"), cards=hand))
+        state = session_files.load_session_file(session.path).value.document.state
+        assert state.revision == 11
+        assert len(state.command_log) == 11
     session_bytes = session.path.read_bytes()
 
     page, action = setup_own(browser, "matches", handles, seat)

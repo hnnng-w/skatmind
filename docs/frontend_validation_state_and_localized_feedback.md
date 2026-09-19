@@ -48,6 +48,27 @@ controls and editor/setup transport selections are excluded from the language
 envelope. Collision feedback retains independent seat input without swapping Players.
 See [Settings and Player seat setup](settings_and_player_seat_setup.md).
 
+Issue #242 adds the exact-saved-own exception during setup Update, with localized
+independent-own-duplicate and conflicting-explicit-account feedback through the
+existing `SeatSetupError` mapping. The renderer keeps one successful control per
+existing seat field, including the reviewed own bundle. CSS presents the derived
+identity only for a free or exact-own target; independent entered values and invalid
+controls stay usable after safe restoration. An account error opens its existing
+Advanced controls, and a pending manual/own perspective error exposes the actual
+perspective selector. Complete escaped Player labels stay in normal presentation,
+never raw opaque handles in feedback. The duplicate full roster summary is removed;
+the last reviewed perspective and pending automatic-source release are explicit.
+
+Neither the global safe-value parser nor #223 language envelopes are relaxed or
+filtered. Native language changes retain submitted safe input; unsent input additionally
+requires the unchanged optional script. Stale/removed own identity, generation,
+setup expiry/supersession and competing final submissions retain current rejection
+and single-use rules. Create compares exact reviewed input before any projection.
+Setup and rejection preserve real existing Session Results/Match Reports and their
+bytes; successful same-family activation keeps its normal invalidation. #238 rejection
+transport, Host/Origin, bounds, CSP/no-CORS and current 63-route/107-form registry
+remain unchanged. See the Settings guide for bounded HTTP/browser evidence.
+
 Issue #233 reuses the same `session.create` form and exact `capture_mode` values
 for [knowledge-based entry](session_knowledge_based_entry.md). Its missing-perspective
 message identifies the Player whose initial hand is known, during or after a Game.

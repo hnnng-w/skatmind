@@ -143,8 +143,6 @@ def run(args):
                 cdp.navigate(server.origin + route)
                 assert cdp.evaluate("document.querySelector('[name=own_seat]').value") == ""
                 fill(cdp, "own_seat", "rearhand")
-                cdp.activate(f'form[action="{action}"] button[value="update"]')
-                wait(cdp)
                 cdp.evaluate("document.querySelector('[name=forehand_handle]').selectedIndex=2")
                 cdp.evaluate("document.querySelector('[name=middlehand_handle]').selectedIndex=3")
                 fill(cdp, title_field, f"Browser {family} {suffix}")
@@ -157,7 +155,7 @@ def run(args):
                 cdp.activate(f'form[action="{action}"] button[value="update"]')
                 wait(cdp)
                 assert names[0] in cdp.evaluate(
-                    "document.querySelector('.roster-summary').innerText")
+                    "document.querySelector('[data-seat=rearhand] .derived-own').innerText")
                 cdp.screenshot(output / f"{suffix}-{family}-roster.png", whole=True)
                 cdp.activate(f'form[action="{action}"] button[value="create"]')
                 wait(cdp)
