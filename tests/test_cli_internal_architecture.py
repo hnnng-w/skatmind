@@ -643,6 +643,7 @@ def test_app_web_layering_and_startup_execution_boundaries() -> None:
         "managed_item_discovery.py",
         "position_form.py",
         "profile_driven_creation.py",
+        "recorded_decision_context_sources.py",  # Retained public Result type annotation only.
         "recorded_review_opening.py",  # Strict public Session file verification.
         "recording_deletion.py",  # Private removal uses the public strict Session loader.
         "result_presentation.py",

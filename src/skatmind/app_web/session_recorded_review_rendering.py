@@ -8,11 +8,11 @@ from .stateful_localization import player_name, translated
 from .task_first_rendering import hidden, paragraph
 
 
-def _decision_label(locale: str, context: GuidedSessionContextV1, row: RecordedDecisionV1) -> str:
+def _decision_label(locale: str, players, row: RecordedDecisionV1) -> str:
     checkpoint = row.checkpoint
     return translated(
         locale, "recorded_review.decision",
-        player=player_name(locale, context.state.players, checkpoint.acting_player_id),
+        player=player_name(locale, players, checkpoint.acting_player_id),
         trick=checkpoint.trick_number, position=checkpoint.play_index,
         card=row.observation.actual_card,
     )
@@ -37,7 +37,7 @@ def render_recorded_session_decisions_v1(context: GuidedSessionContextV1, *, loc
             + hidden("managed_handle", context.handle)
             + hidden("expected_revision", context.state.revision)
             + hidden("decision_selection", row.selection)
-            + f'<p id="{label_id}">{_decision_label(locale, context, row)}</p>'
+            + f'<p id="{label_id}">{_decision_label(locale, context.state.players, row)}</p>'
             + f'<button type="submit" class="secondary" aria-describedby="{label_id}">'
             + translated(locale, "recorded_review.action") + '</button></form></li>'
         )
@@ -64,7 +64,7 @@ def render_recorded_review_source_v1(
     return (
         '<p class="recorded-review-source"><strong>'
         + translated(locale, "recorded_review.result", game=game_label) + '</strong><br>'
-        + _decision_label(locale, context, source.decision) + '</p>'
+        + _decision_label(locale, source.document.state.players, source.decision) + '</p>'
         + paragraph(locale, "recorded_review.limit")
         + '<p><a href="#recorded-decision-'
         + escape(str(source.decision.checkpoint.decision_index)) + '">'

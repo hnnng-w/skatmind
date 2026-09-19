@@ -273,8 +273,22 @@ normal-Summary assertions cover the score cases, immutable source documents,
 candidate/method/order preservation and Historical regressions. The
 [Session review guide](session_recorded_decision_review.md#verification-and-future-affected-path-retest)
 records genuine Session execution, exact downloads and installed-browser evidence.
-Issue #240 supplies the bounded R10 implementation below; R11 context/download
-layout remains open.
+Issue #240 supplies the bounded R10 implementation below. Issue #241 adds only
+R11's recorded context slice; its remaining download/layout findings stay open.
+
+### Optional recorded pre-Card context
+
+Saved Session decision Results additionally pass a minimized, immutable private
+[recorded decision context](recorded_decision_context.md) into this renderer. It
+appears inside Summary before Recommendation, replacing equivalent raw Contract/
+Next Player/Current Trick rows while reusing the existing known-score rows once.
+The retained Result owns Cards and turn/contract facts; the matching saved source
+owns names and indexes. The legitimate full analyzed acting hand is deliberately
+visible in normal read-only HTML, with localized accessible symbols. It is not
+limited to legal Cards or candidates and does not append the actual Play to the
+Trick prefix. No opponent hands, Skat, full Requests or private execution state
+are added. Guided/current-position/Historical callers without recorded metadata
+remain unchanged; no producer output or exact download bytes change.
 
 ### Equal-best Immediate evaluations
 

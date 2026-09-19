@@ -983,6 +983,21 @@ form:has(> input[name="declaration_form"]) > p { margin-block: 0.25em; }
 .trick-warning { border-inline-start: 0.25rem solid var(--gold); padding-inline-start: 0.6em; }
 .recorded-card { display: inline-block; font-family: Arial, Helvetica, sans-serif; }
 
+.recorded-decision-context { min-width: 0; overflow-wrap: anywhere; }
+.recorded-decision-context h3 { margin-top: 0; }
+.recorded-decision-context h4 { margin-bottom: 0.5rem; }
+.recorded-decision-context dl { display: flex; flex-wrap: wrap; gap: 0.4rem 0.75rem; }
+.recorded-decision-context dt { font-weight: 700; }
+.recorded-decision-context dd { margin: 0 1rem 0 0; }
+.recorded-decision-context .decision-context-hand {
+  display: flex; flex-wrap: wrap; gap: 0.5rem; list-style: none; padding: 0;
+}
+.recorded-decision-context .decision-context-trick { padding-left: 1.5rem; }
+.recorded-decision-context li { min-width: 0; max-width: 100%; }
+.recorded-decision-context .recorded-card {
+  padding: 0.25rem 0.4rem; border: 1px solid var(--line); border-radius: 0.2rem;
+}
+
 .error-summary,
 .field-error {
   color: #702419;

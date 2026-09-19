@@ -16,6 +16,7 @@ from .compact_declaration_rendering import (
 )
 from .local_time_http import local_time_context
 from .local_time_rendering import render_local_time_editor
+from .recorded_decision_context_sources import session_decision_context
 from .recorded_trick_progress import project_session_trick_progress
 from .recorded_trick_rendering import (
     render_current_trick,
@@ -256,6 +257,9 @@ def _analysis(context, locale, view, game_label):
             request_download_available=True, result_download_available=True,
             request_download_route="/sessions/downloads/request.json",
             result_download_route="/sessions/downloads/result.json",
+            recorded_context=session_decision_context(
+                context.recorded_review_source, context.execution.result.result),
+            recorded_context_locale=locale,
             locale=locale,
         )
         controls += '</div>'

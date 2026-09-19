@@ -12,11 +12,12 @@ from .stateful_localization import card_name, translated
 _SYMBOLS = {"C": "♣", "S": "♠", "H": "♥", "D": "♦"}
 
 
-def compact_recorded_card(locale, card):
+def compact_recorded_card(locale, card, *, show_code=True):
     """Read-only Card label with the same symbols, exact code and full accessible name."""
+    suffix = f" ({card})" if show_code else ""
     return ('<span class="recorded-card" role="img" aria-label="'
-            + escape(f"{card_name(locale, card)} ({card})", quote=True) + '">'
-            + f'<span aria-hidden="true">{_SYMBOLS[card[0]]} {card[1:]} ({card})</span></span>')
+            + escape(f"{card_name(locale, card)}{suffix}", quote=True) + '">'
+            + f'<span aria-hidden="true">{_SYMBOLS[card[0]]} {card[1:]}{suffix}</span></span>')
 
 
 def card_display_groups(cards, game_type=None):

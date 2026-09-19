@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from html import escape
 
-from .stateful_localization import text, translated
+from .recorded_decision_context_rendering import render_recorded_decision_context
+from .stateful_localization import translated
 from .task_first_rendering import cards_summary, paragraph, technical_details
 
 
@@ -21,14 +22,8 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
     report = state["selected_report"] if results else None
     if report is not None:
         content += paragraph(locale, f"task.report.{report['report_kind']}")
-        row = next((row for row in state["decision_preparation"]["decisions"]
-                    if row["decision_index"] == report["decision_index"]), None)
-        if row is not None:
-            player = next((player["player_label"] or text(locale, "task.unknown")
-                           for player in state["participants"]
-                           if player["player_id"] == row["acting_player_id"]), text(locale, "task.unknown"))
-            content += paragraph(locale, "recordings.match.decision", player=player,
-                trick=(row["decision_index"] - 1) // 3 + 1, card=row["actual_card"])
+        if state.get("decision_context") is not None:
+            content += render_recorded_decision_context(state["decision_context"], locale)
         details = report["details"]
         status = details.get("status")
         if status in {"complete", "partial", "timeout", "unavailable", "not_assessable", "final"}:

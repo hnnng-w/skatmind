@@ -2647,6 +2647,18 @@ CI jobs remain #240 closure gates. R11 and other unresolved #208 findings remain
 open; UAT-01 is unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed. Package,
 dependencies, schemas, persistence and 98 scenarios remain; no release claim follows.
 
+Issue #241 implements only R11's visible pre-Card context in saved Session Results
+and executed Match decision Reports. The shared private immutable projection reads
+the retained Position hand/prefix/turn/contract/totals and exact source-bound names/
+indexes, under existing capture locks. Session reuses #239 scores and #240 ties;
+Match uses its Report binding rather than another Game's decision row. Real HTTP,
+completion/reopen, passive byte/count checks and independent-Wheel bilingual/narrow
+browser evidence are in [Recorded decision context](recorded_decision_context.md).
+#240 remains completed. Both exact merged-commit CI jobs gate manual #241 closure;
+#208 and remaining R11/UAT findings remain open. UAT-01 is unaccepted, UAT-02–12
+paused, B-09/B-07 open and B-06 closed. Producer bytes, Package, dependencies,
+formats and 98 scenarios remain unchanged; no release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

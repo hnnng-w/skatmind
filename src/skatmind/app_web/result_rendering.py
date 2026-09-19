@@ -10,6 +10,7 @@ from .guided_contracts import (
     REVIEW_REQUEST_DOWNLOAD_ROUTE_PATH,
     REVIEW_RESULT_DOWNLOAD_ROUTE_PATH,
 )
+from .recorded_decision_context_rendering import render_recorded_decision_context
 from .render_locale import html_message as _t
 from .render_locale import localized_render
 from .result_localization import RESULT_LABEL_KEYS, result_label, result_value
@@ -112,6 +113,8 @@ def render_result_presentation_v1(
     page: str | None = None,
     request_download_route: str | None = None,
     result_download_route: str | None = None,
+    recorded_context=None,
+    recorded_context_locale: str = "en",
 ) -> str:
     """Renders one browser-safe Result projection as semantic escaped HTML."""
 
@@ -148,7 +151,13 @@ def render_result_presentation_v1(
                 details=tuple(detail for detail in section.details if detail.label in RESULT_LABEL_KEYS and "fixed policy" not in detail.label),
                 items=tuple(item for item in section.items if not item.startswith(
                     ("Replay Coaching:", "Information-set Coaching:", "Tactical Review:"))))
+        if section.title == "Summary" and recorded_context is not None:
+            section = replace(section, details=tuple(detail for detail in section.details
+                if detail.label not in {"Contract", "Next player", "Current Trick"}))
         body = _section_body(section)
+        if section.title == "Summary" and recorded_context is not None:
+            body = render_recorded_decision_context(
+                recorded_context, recorded_context_locale, scores=False) + body
         if index == 0 and presentation.warnings:
             body = (
                 f'<aside aria-label="{_t("result.warnings")}"><h3>{_t("result.warnings")}</h3>'

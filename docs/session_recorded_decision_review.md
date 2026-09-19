@@ -17,8 +17,8 @@ B-06 remains closed, and Package `1.0.0` preparation is not ready.
 3. Recognize an own decision by Player name, one-based Trick, Card position within
    the Trick, and actual Card. Select **Review decision** on that row.
 4. The page moves to the Result with the source Game/Player/Trick/Card label,
-   actual Card, recommendation, and available assessment. The existing Request
-   and Result downloads contain the exact retained execution bytes.
+   visible pre-Card situation, actual Card, recommendation, and available assessment.
+   The existing Request and Result downloads contain the exact retained execution bytes.
 
 The German labels are in the packaged translation catalog. Native forms, links,
 buttons, disclosures, and downloads work without JavaScript and with a keyboard.
@@ -112,8 +112,8 @@ or non-integer total, including booleans, strings and floats. No supplemental-va
 fallback or new import/Schema rule is introduced. Valid canonical Results already
 require both totals. The same mapping serves guided Position Results and Session
 current-position analysis; Historical and separate Match presentation retain their
-existing ownership. Issue #240 adds the bounded R10 implementation below; R11
-remains separate and open.
+existing ownership. Issue #240 adds the bounded R10 implementation below; Issue
+#241 adds only R11's visible context slice. Other R11 findings remain open.
 
 ### Equal-best saved Immediate decisions (R10)
 
@@ -138,6 +138,22 @@ and zero-looking positive gaps. Retained old Results/Reports/Teacher sources kee
 their exact strings, hashes and download bytes; the new private display needs only
 their metrics. No saved Session or Checkpoint changes, automatic execution, source
 rebinding or new form field is involved.
+
+### Visible pre-Card situation (R11 context slice)
+
+Issue #241 adds a shared private [recorded decision context](recorded_decision_context.md)
+inside the normal Summary. Cards, contract, current leader/next Player and known
+points belong to the retained Position Result; names and stored Trick/Card indexes
+belong to the matching `RecordedReviewSourceV1` and selected Checkpoint. The normal
+view shows the full analyzed acting hand and chronological named prefix, including
+after Game End or strict reopen/review. For Trick 4/Card 3 this is B HJ / C DJ,
+A next, seven Cards including SJ, and the existing 14/29 score rows once.
+
+The renderer replaces equivalent raw context details without reordering top-level
+Result sections or changing #240 assessment. It does not replay, collect, prepare,
+execute, save or consult today's hand. Opponent/public hands, Skat and other
+technical evidence remain outside this compact slice. Exact Requests, Results,
+source bytes, downloads and the existing lifetime rules below remain unchanged.
 
 ## Private route and form contract
 

@@ -1732,3 +1732,12 @@ Real Session HTTP, consumer and installed-Wheel evidence is recorded in the
 CI jobs gate manual #240 closure. R11 and other unresolved #208 findings remain
 open; UAT-01 is unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed. Package,
 dependencies, formats, 98 validation scenarios and Release gates are unchanged.
+
+Issue #241 implements only R11's visible pre-Card situation: one shared private
+read-only context in recorded Session Summary and selected Match decision Reports,
+with retained full acting hands, named chronological prefixes, exact source indexes
+and known decision-time totals. It preserves #239/#240, passive execution/save counts
+and exact producer/download bytes. See [Recorded decision context](recorded_decision_context.md)
+for genuine HTTP and independent-Wheel browser evidence. #240 stays completed;
+both exact merged-commit CI jobs gate manual #241 closure. #208 and other R11/UAT
+findings stay open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.

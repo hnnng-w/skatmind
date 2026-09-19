@@ -272,6 +272,23 @@ comparison contradictions, and fixed-policy inconsistencies.
 
 ## Privacy and product boundaries
 
+Issue #241 adds the unified-only [recorded decision context](recorded_decision_context.md)
+before the selected one-Decision Report's actual/recommended Card comparison. Its
+typed Report and executed `profile_binding` identify the exact Game and acting/
+left/right Players; only the matching accepted Match supplies labels. The existing
+locked unified page snapshot projects the retained Position's full acting hand,
+ordered named current-Trick prefix, contract/Declarer, next Player and known
+`score_summary.total_*` points. It never borrows another selected Game's same-number
+decision or its current progress score. The Game-1/decision-2 fixture shows B CK,
+C next, ten C Cards including C7 and 0/0; later A C10 is excluded from this context.
+
+This intentionally allowlists the legitimate analyzed acting hand in normal HTML.
+It adds no opponent/public-hand/Skat details, Request, profile data or execution
+internals. Standalone Capture state JSON, Reports, producers, canonical downloads,
+analysis availability and publication/retirement remain unchanged. Executed Results
+with no recommendation can still show available Position context. Only R11's
+context slice is implementation-remediated; its other findings remain open.
+
 Selected browser report pages expose curated summaries, while exact downloads
 may contain private Cards, hands, Historical records and Results, Statistics, and
 Profile application details. Neither reports nor downloads receive public field-

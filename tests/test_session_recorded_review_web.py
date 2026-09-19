@@ -12,6 +12,7 @@ from test_equal_best_immediate import assert_visible_equal_best
 from test_frontend_language_switching import localized_server as _localized_server
 from test_guided_frontend_result_presentation import assert_summary_points, score_review_request
 from test_historical_game import build_historical_input, rebuild_historical_suffix
+from test_recorded_decision_context import SESSION_HAND, assert_context, context_html
 
 import skatmind.api.v1.session.files as session_files
 import skatmind.app_web.execution as execution_module
@@ -166,7 +167,7 @@ def review_first(browser):
     return page, form
 
 
-def record_score_review_game(browser, *, play_count=12):
+def record_score_review_game(browser, *, play_count=12, names=("B", "C", "A")):
     """Legally record R09, using the existing full-game generator for the suffix.
 
     Fixture IDs follow the generator's seat order; visible Players are B, C, A.
@@ -193,7 +194,8 @@ def record_score_review_game(browser, *, play_count=12):
     assert build_historical_game_summary_from_input(data)["status"] == "complete"
     form = Forms(browser.page("/sessions")).find("/sessions/create")
     assert browser.submit(form, game_name="Synthetic score review", capture_mode="live",
-        forehand_name="B", middlehand_name="C", rearhand_name="A", perspective_seat="rearhand",
+        forehand_name=names[0], middlehand_name=names[1], rearhand_name=names[2],
+        perspective_seat="rearhand",
         setup_action="update")[0] == 303
     assert browser.submit(Forms(browser.page("/sessions")).find("/sessions/create"),
                           setup_action="create")[0] == 303
@@ -252,6 +254,8 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
         assert "SJ" in source
         assert_summary_points(page, "en", 14, 29)
         assert_visible_equal_best(page, "en")
+        assert_context(page, "en", hand=SESSION_HAND, prefix=(("B", "HJ"), ("C", "DJ")),
+                       actor="A", trick=4, play=3)
         execution, source = context.execution, context.recorded_review_source
         frozen = source.decision.checkpoint.request.to_dict()["document"]
         request_bytes = browser.request("GET", "/sessions/downloads/request.json")[2]
@@ -290,6 +294,8 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
             assert status == 303 and headers["location"] == "/sessions/current#session-result"
             assert_summary_points(browser.page(), locale, 14, 29)
             assert_visible_equal_best(browser.page(), locale)
+            assert_context(browser.page(), locale, hand=SESSION_HAND,
+                           prefix=(("B", "HJ"), ("C", "DJ")), actor="A", trick=4, play=3)
             assert browser.request("GET", "/sessions/downloads/request.json")[2] == request_bytes
             assert browser.request("GET", "/sessions/downloads/result.json")[2] == result_bytes
         assert len(calls) == count + 1 and len(saves) == save_count
@@ -444,6 +450,7 @@ def test_http_external_edit_invalidates_review_download_without_reloading(locali
     assert browser.request("GET", "/sessions/downloads/result.json")[0] == 409
     assert context.execution is context.recorded_review_source is None
     assert context.document is document and context.path.read_bytes() == b"{}\n"
+    assert 'class="recorded-decision-context"' not in browser.page()
 
 
 def test_http_out_of_order_different_decisions_keep_newer_label_and_downloads(
@@ -478,6 +485,8 @@ def test_http_out_of_order_different_decisions_keep_newer_label_and_downloads(
     assert source.decision.selection == second_form["values"]["decision_selection"]
     source_block = html.decode().split('class="recorded-review-source"', 1)[1].split('</p>', 1)[0]
     assert "Trick 2" in source_block
+    situation = context_html(html.decode())
+    assert "Trick 2" in situation and "Trick 1" not in situation
     downloaded = browser.request("GET", "/sessions/downloads/request.json")[2]
     assert downloaded == execution.request_json_bytes
 
@@ -497,6 +506,7 @@ def test_http_current_position_and_unavailable_historical_keep_correct_labels(lo
     assert context.execution.request.document["analysis_mode"] == "live_decision"
     assert context.recorded_review_source is None
     assert 'class="recorded-review-source"' not in browser.page()
+    assert 'class="recorded-decision-context"' not in browser.page()
     _, form = review_first(browser)
     retained, source = context.execution, context.recorded_review_source
     status, _, _ = browser.request("POST", "/sessions/review", {
