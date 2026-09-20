@@ -24,6 +24,18 @@ text markers and exact seats. Nearby overview/selected-Game links work without
 JavaScript. Optional evidence, metadata including #232's fixed format, Statistics,
 transfer, analysis and specialist correction remain accessible.
 
+Issue #244 consolidates the selected Game's normal task: one Start/declaration/
+named-next-Player heading leads to its existing controls, with short selection/Trick
+context. The separate instruction paragraph and completed-step bookkeeping list
+are removed; accepted declaration, evidence, warnings and history remain. Passed
+and play-complete status use their actual existing projection; a missing declaration
+or rejected Play is not completion. The normal review link is omitted at zero Plays,
+offers truthful inspection at nonzero/zero-prepared coverage, and retains review at
+prepared decisions. Direct empty/passed review and exact retained Report routes
+remain supported. The existing Learning-transfer forms are in a secondary native
+disclosure after recording/overview, opened for relevant feedback. The first-unfinished
+rule, selected-Game-first ordering, all 36 tiles, rotation and Mark as passed remain.
+
 The existing `view.next_position` is unchanged: first canonical entry whose view
 is neither `passed_deal` nor `play_complete`. If it equals the selection, there is
 no redundant continuation CTA. Otherwise **First unfinished recording: Game N**

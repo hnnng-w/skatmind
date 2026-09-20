@@ -11,9 +11,11 @@ from .unplayed_card_rendering import render_unplayed_cards
 
 def render_match_analysis_v1(state, view, handle, locale):
     game = state["game"]
-    content = paragraph(locale, "recordings.match.coverage")
     if game is None:
-        return content + paragraph(locale, f"task.match.status.{view.selected.slot_kind}")
+        return paragraph(locale, f"task.match.status.{view.selected.slot_kind}")
+    if not view.selected.play_count:
+        return paragraph(locale, "recordings.match.no_observations")
+    content = paragraph(locale, "recordings.match.coverage")
     preparation = state["decision_preparation"]
     ready = preparation["prepared_decision_count"] > 0
     content += paragraph(locale, "recordings.match.prepared",
@@ -68,8 +70,9 @@ def render_match_review_v1(state, view, *, managed_handle, locale, transfer=""):
         body += render_unplayed_cards(state.get("unplayed_cards"), locale,
             original_skat=game["original_skat"], discarded_cards=game["discarded_cards"], review=True)
         body += render_recorded_summary(state["recorded_progress"], locale)
-    body += section(locale, "task.match.action.analyze_decision",
-                    render_match_analysis_v1(state, view, managed_handle, locale))
+    body += section(locale, "task.match.action.analyze_decision" if state[
+        "decision_preparation"]["prepared_decision_count"] else "recordings.match.inspect",
+                     render_match_analysis_v1(state, view, managed_handle, locale))
     if state["selected_report"] is None:
         body += section(locale, "recordings.match.result", _reports(state, managed_handle, locale, secondary=False))
     body += disclosure(locale, "task.match.action.prepare_materialization",

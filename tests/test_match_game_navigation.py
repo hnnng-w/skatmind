@@ -87,6 +87,14 @@ def test_selected_identity_controls_seats_and_single_overview(mixed, selected, a
     assert ('href="/matches/position/3#match-recording"' in recording) == (selected != 3)
     assert (text(locale, "task.match.first_unfinished", number=3) in recording) == (selected != 3)
     assert 'href="#match-games"' in recording
+    assert (f'href="/matches/review/{selected}"' in recording) == bool(view.selected.play_count)
+    for step in view.workflow.completed_steps:
+        assert (text(locale, f"task.match.action.{step}") + ' — '
+                + text(locale, "task.recorded")) not in recording
+    if action:
+        assert text(locale, view.workflow.next_task_key) not in recording
+    else:
+        assert recording.count(text(locale, view.workflow.next_task_key)) == 1
     assert 'aria-labelledby="match-games-heading"' in overview and 'tabindex="-1"' in overview
     assert re.findall(r'class="match-tile(?: selected)?" href="([^"]+)"', overview) == [
         f"/matches/position/{n}#match-recording" for n in range(1, 37)]

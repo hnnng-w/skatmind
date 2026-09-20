@@ -240,6 +240,8 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
     assert context.execution is None
 
     def review_and_check():
+        from test_recording_task_focus import Hierarchy
+
         form = score_review_form(browser)
         before = context.path.read_bytes()
         checkpoints = context.decision_checkpoints
@@ -249,6 +251,10 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
         assert status == 303 and headers["location"] == "/sessions/current#session-result"
         assert len(calls) == count + 1 and len(saves) == save_count
         page = browser.page()
+        markup = Hierarchy(page)
+        assert markup.visible(markup.by_id("session-result"))
+        assert not any(parent["tag"] == "details"
+                       for parent in markup.by_id("session-result")["parents"])
         source = page.split('class="recorded-review-source"', 1)[1].split("</p>", 1)[0]
         assert "Synthetic score review" in source and "Trick 4 · Card position 3" in source
         assert "SJ" in source
@@ -308,8 +314,13 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
     earlier_request, earlier_form = review_and_check()
     for play in plays[12:]:
         browser.command("record_play", card=play["card"])
+    assert context.state.phase == "play"
+    assert Forms(browser.page()).find("/sessions/command", kind="set_game_end")
     browser.command("set_game_end")
     assert context.state.phase == "ended" and context.execution is None
+    assert len(context.decision_checkpoints) == 10
+    assert context.state.validation.position_export.status == "unavailable"
+    assert context.state.validation.historical_export.status == "unavailable"
     assert browser.submit(earlier_form)[0] == 409
     assert browser.request("GET", "/sessions/downloads/result.json")[0] == 404
     ended_request, ended_form = review_and_check()

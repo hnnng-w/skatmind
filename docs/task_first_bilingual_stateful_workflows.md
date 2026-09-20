@@ -69,8 +69,11 @@ prepare a Dataset, materialize a Report, or run analysis.
 
 ## Normal, Advanced, and Technical hierarchy
 
-Normal content precedes optional controls: current state, next task, one primary
-entry action where available, and entered facts. Native Advanced disclosures hold
+Issue #244 supersedes the former **Current state → Next required Skat action →
+Next step** instruction stack. Normal Session/Match recording has compact accepted
+identity/status, one task heading immediately beside its existing form, and entered
+facts. The two redundant instruction panels are removed from markup, not hidden by
+CSS. Native Advanced disclosures hold
 specialist evidence, analysis parameters, corrections, source editing, and conflict
 choices. Native Technical disclosures hold IDs, revisions, raw Commands, exact
 machine values, and retained diagnostic data. Disclosures begin closed; an explicit
@@ -84,8 +87,12 @@ never translated.
 
 ## Session
 
-The active page starts with Current game state, Next required Skat action, Primary
-action, and Cards and Players already entered, with complete German equivalents.
+The active page starts with its accepted path, phase and perspective, then one
+task at `session-recording`: initial hand, declarer, declaration, known Skat,
+discards, required public hand, observed Card, or explicit Game End. An ended
+recording has one normal ended heading and a history/correction link, with no empty
+Next step panel. Detailed accepted ending/history remains. German and English use
+the same accepted facts and primary-action projection.
 Issue #233 supersedes During play / After the game with knowledge-based paths:
 Player-perspective recording (`live`) and complete-deal reconstruction (`retrospective`).
 The effective accepted mode is shown independently of timestamps and completeness,
@@ -115,14 +122,23 @@ forms. Corrections, strict-prefix Undo, Reload, accepted history, and raw payloa
 remain separate from normal recording. Existing expected-revision, replay,
 first-rejection suffix, and persistence semantics are reused.
 
-Analysis follows recording. Existing Position/Historical readiness provides the
-blocked prerequisites. Available actions remain explicit, with existing samples,
+Analysis follows recording. The named **Other analysis: current position and full
+Historical review** native disclosure contains those specialist controls and their
+capability-specific blockers. A valid retained Result is rendered outside it at
+`session-result`, independently of current Position/Historical readiness. Available
+actions remain explicit, with existing samples,
 seeds, methods, budgets, and review-family defaults inside Advanced disclosures.
 Information-set review is never the primary recording action. Results are retained
 only under the existing process-local publication rules.
 
 Issue #221 adds **Review recorded decisions** near the opened Game summary and a
-visible compact list after the primary recording action. Saved observed own
+visible compact list after the primary recording action. Issue #244 uses one
+source-consistent recorded-decision projection for both. Before an observed local
+Play, the ordinary invitation and numeric 0/0 panel are omitted; the existing
+destination remains a visible neutral region. Recorded Plays without eligible
+snapshots instead offer inspection, diagnostics and applicable corrections. No
+perspective, opponent-only Plays, pending, future, diverged and missing snapshots
+remain distinct. Saved observed own
 decisions have Player/Trick/Card-position/actual-Card labels and direct actions,
 including after all 30 Plays. Current-position analysis and full Historical review
 keep independent readiness. Exact source binding, variant selection, read-only
@@ -150,7 +166,9 @@ existing operations once after submission.
 After starting, declaration and observed Card play form the concise primary path.
 Known perspective-hand, original-Skat, and discard evidence remain available without
 trapping an observer in a duplicate wizard when evidence is unknown. Completed
-entries and the chronological trace are summarized. The palette uses the existing
+declaration/evidence and the chronological trace remain visible. Issue #244 removes
+the normal completed-steps bookkeeping list while retaining its projection data.
+The palette uses the existing
 exact legal Cards or bounded observation candidates and explains the distinction.
 Unknown and known-empty evidence remain different Product values.
 
@@ -200,6 +218,15 @@ are now 97 form definitions on the same 57 routes. Bilingual narrow/enlarged for
 wrap guidance without shrinking text; actual browser measurements are linked above.
 
 ## Explicit transfer and Learning
+
+Issue #244 makes the existing Match-side **Add this Match to Learning** shortcut a
+secondary native disclosure after recording/overview. Relevant retained transfer
+feedback opens it, including when the old exact form is no longer present; normal
+validation also opens the failed form's containing disclosures. The existing
+transfer notice opens its controls on the outcome render without changing that
+notice's lifetime. Learning's own page, discovery, direct-add semantics and source
+deletion rules are unchanged. Empty/partial Workspace imports remain valid; an
+empty selected Game says nothing about other Games in the Workspace.
 
 Transfer displays friendly source-Match and target-collection labels and whether
 the logical Match already exists. It uses the existing verified Workspace transfer.
@@ -314,6 +341,17 @@ Source, Editable, Wheel, and sdist. Distribution validation checks their byte pa
 and strict installed loading in clean Wheel and sdist environments.
 
 ## UAT and maintainer gate
+
+Issue #244 implements only R03's current-task/readiness composition. Observation,
+analysis availability and a retained execution Result are independent axes. Native
+submission remains explicit: no automatic metadata confirmation, promotion, Card
+save, End, Game switch, import or analysis. Exact source bindings, frozen options,
+Requests/Results/downloads, #238 navigation/transport and #239–#243 remain intact.
+The current registry is still 63 POST routes / 107 forms, with 98 scenarios and
+1,577 matching catalog keys. [Installed browser evidence](unified_workflow_visual_contract.md#r03-recording-task-composition)
+records matched counts/geometry. Generic operation-notice lifecycle, R05 and other
+backlog work remain open. #243 stays completed; both exact merged-commit CI jobs
+gate manual #244 closure. No maintainer UAT acceptance follows.
 
 ```text
 UAT-FINDING-001: task-first implementation through Issue #220;

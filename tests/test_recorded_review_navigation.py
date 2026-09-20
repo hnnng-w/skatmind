@@ -441,7 +441,8 @@ def test_duplicate_names_are_distinct_and_source_switch_clears_only_prior_result
     assert len(forms) == 2
     other = next(form for form in forms if form["values"]["handle"] != original.handle)
     page = follow(browser, browser.submit(other))
-    assert text("en", "recorded_review.no_snapshots") in page
+    assert text("en", "recorded_review.no_perspective") in page
+    assert text("en", "recorded_review.no_snapshots") not in page
     assert original.execution is None and original.recorded_review_source is None
     assert localized_server.app_context.managed_stateful.active_session is not original
     # Same fallback Player names on two distinct semantic IDs must remain separate.

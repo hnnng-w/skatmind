@@ -31,6 +31,7 @@ from skatmind.app_web.session_recorded_review import (
 )
 from skatmind.app_web.session_recorded_review_form import parse_recorded_review_selection_v1
 from skatmind.app_web.task_first_session_rendering import render_task_first_session_v1
+from skatmind.app_web.translation_catalog import translate_frontend_message_v1 as text
 from skatmind.session_commands import (
     PromoteSessionToRetrospectiveCommandV1,
     RecordSessionPlayCommandV1,
@@ -88,6 +89,12 @@ def test_projection_observation_statuses_are_distinct_and_read_only(tmp_path, st
     for locale in ("en", "de"):
         html = render_task_first_session_v1(context, locale=locale)
         assert 'id="recorded-decisions"' in html
+        if status != "observed":
+            assert text(locale, "recorded_review." + status, count=1) in html
+            assert 'action="/sessions/review-decision"' not in html
+        if not view.local_play_count:
+            assert text(locale, "recorded_review.coverage", available=0, recorded=0) not in html
+            assert 'href="#recorded-decisions"' not in html
     assert context.path.read_bytes() == before
     assert context.execution is None
 
@@ -98,6 +105,13 @@ def test_missing_and_partial_coverage_do_not_reconstruct_snapshots(tmp_path):
     view = project_recorded_session_decisions_v1(context)
     assert (view.local_play_count, view.missing_snapshot_count, view.decisions) == (1, 1, ())
     assert not context.decision_checkpoints
+    for locale in ("en", "de"):
+        html = render_task_first_session_v1(context, locale=locale)
+        assert text(locale, "recorded_review.no_snapshots") in html
+        assert text(locale, "recorded_review.inspect") in html
+        assert text(locale, "recorded_review.no_observations") not in html
+        assert 'action="/sessions/review-decision"' not in html
+        assert 'href="#session-history"' in html
     context.document = session_api.build_session_persistence_document(
         state, decision_checkpoints=(checkpoint,),
     ).value

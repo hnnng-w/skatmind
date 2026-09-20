@@ -2682,6 +2682,21 @@ Both exact merged-commit CI jobs gate manual #243 closure. #208 and other findin
 stay open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 This is scoped styling evidence, not maintainer UAT or release-readiness approval.
 
+Issue #244 implements only R03's Session/Match task/readiness composition. One
+existing primary task replaces the three-panel instruction stack; zero observations,
+insufficient evidence, prepared decisions and retained Results remain distinct.
+Saved decisions and visible Results remain independent of current/full-Historical
+readiness, including the ended 14/29 SJ case. Specialist controls and Match-side
+Learning transfer are secondary native disclosures with visible relevant feedback.
+Starting HEAD: `8f0211f76e59fbbb1026c147b4b0e99825c28943`. See the
+[task-first guide](task_first_bilingual_stateful_workflows.md) and
+[scoped browser evidence](unified_workflow_visual_contract.md#r03-recording-task-composition).
+#243 remains completed. Generic operation notices and other R03/UAT work remain
+open; exact merged-commit `check` and `v1-supported-platform-matrix` gate manual
+#244 closure. #208 stays open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open
+and B-06 closed. Package, dependencies, formats, 63 routes/107 forms and 98 scenarios
+remain; no release-readiness or whole-UAT claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

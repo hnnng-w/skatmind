@@ -121,7 +121,7 @@ def test_catalog_resources_are_strict_ordered_and_have_exact_parity() -> None:
     assert tuple(catalogs) == ("de", "en")
     assert tuple(catalogs["de"]) == tuple(catalogs["en"])
     assert tuple(catalogs["en"]) == tuple(sorted(catalogs["en"]))
-    assert len(catalogs["en"]) == 1569
+    assert len(catalogs["en"]) == 1577
     assert {key.removeprefix("result.immediate.") for key in catalogs["en"]
             if key.startswith("result.immediate.")} == {
         "actual_equal", "best", "best_cards", "equal_best", "equal_points", "equal_scope",

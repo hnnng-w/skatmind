@@ -27,6 +27,7 @@ from .result_presentation import build_result_presentation_v1
 from .result_rendering import render_result_presentation_v1
 from .session_card_entry import project_session_card_task
 from .session_frontend import GuidedSessionContextV1
+from .session_recorded_review import project_recorded_session_decisions_v1
 from .session_recorded_review_rendering import (
     render_recorded_review_source_v1,
     render_recorded_session_decisions_v1,
@@ -165,8 +166,8 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
         fields = hidden("managed_handle", context.handle) + hidden(
             "card_selection", session_card_binding(context, task))
         player = dict(_players(locale, facts)).get(task.player_id, text(locale, "task.skat"))
-        fields += paragraph(locale, "task.session.play_for" if play else "compact.for",
-                            player=player)
+        if not play:
+            fields += paragraph(locale, "compact.for", player=player)
         if kind == "record_dealt_card" and facts.phase in {"setup", "deal"}:
             if facts.capture_mode == "live":
                 fields += paragraph(locale, "session.knowledge.local_hand", player=player)
@@ -216,7 +217,7 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
     return form(locale, "/sessions/command", fields, f"task.command.{kind}", primary=normal)
 
 
-def _analysis(context, locale, view, game_label):
+def _analysis_controls(context, locale, view):
     base = hidden("managed_handle", context.handle) + hidden("expected_revision", context.state.revision)
     position_fields = (
         input_field(locale, "sample_count", "task.field.sample_count", 100, kind="number")
@@ -249,10 +250,15 @@ def _analysis(context, locale, view, game_label):
     controls += '<ul>' + ''.join('<li>' + translated(locale, "task.session.readiness."
         + ("historical" if item.blocks_historical_export else "position")
         + "." + item.path.strip("/")) + '</li>' for item in diagnostics) + '</ul>'
-    if context.execution is not None:
-        controls += '<div id="session-result" tabindex="-1">'
-        controls += render_recorded_review_source_v1(context, locale=locale, game_label=game_label)
-        controls += render_result_presentation_v1(
+    return disclosure(locale, "task.session.specialist_analysis", controls)
+
+
+def _analysis_result(context, locale, game_label):
+    if context.execution is None:
+        return ""
+    return ('<div id="session-result" tabindex="-1">'
+        + render_recorded_review_source_v1(context, locale=locale, game_label=game_label)
+        + render_result_presentation_v1(
             build_result_presentation_v1(context.execution.result, locale=locale),
             request_download_available=True, result_download_available=True,
             request_download_route="/sessions/downloads/request.json",
@@ -261,9 +267,19 @@ def _analysis(context, locale, view, game_label):
                 context.recorded_review_source, context.execution.result.result),
             recorded_context_locale=locale,
             locale=locale,
-        )
-        controls += '</div>'
-    return section(locale, "task.session.analysis", controls)
+        ) + '</div>')
+
+
+def _task_heading(locale, view):
+    action = view.workflow.primary_action
+    if action == "record_play":
+        return translated(locale, "task.record_next_card", player=dict(
+            _players(locale, view.facts))[view.entry_player_id])
+    if action == "record_dealt_card":
+        return translated(locale, "task.session.enter_skat" if view.deal_destination == "skat"
+                          else "task.session.enter_hand")
+    return translated(locale, "task.session.phase.ended" if action is None else
+                      "declaration.title" if action == "set_declaration" else f"task.command.{action}")
 
 
 def render_task_first_session_v1(
@@ -273,33 +289,36 @@ def render_task_first_session_v1(
 ) -> str:
     with context.lock:
         view = project_task_first_session_v1(context.state)
+        recorded = project_recorded_session_decisions_v1(context)
         facts = view.facts
         progress = project_session_trick_progress(facts)
         unplayed = project_unplayed_cards(progress, facts.declaration)
         mode = "perspective" if facts.capture_mode == "live" else "reconstruction"
         current = paragraph(locale, "session.knowledge.accepted_mode",
                             mode=text(locale, f"session.knowledge.{mode}"))
-        current += paragraph(locale, f"task.session.phase.{facts.phase}")
-        current += paragraph(locale, f"task.session.phase_help.{facts.phase}")
+        if facts.phase != "ended":
+            current += paragraph(locale, f"task.session.phase.{facts.phase}")
         current += paragraph(locale, "task.session.perspective",
                              player=player_name(locale, facts.players, facts.local_player_id))
-        current += '<p><a href="#recorded-decisions">' + translated(
-            locale, "recorded_review.title") + '</a></p>'
+        if recorded.local_play_count:
+            current += '<p><a href="#recorded-decisions">' + translated(
+                locale, "recorded_review.title" if recorded.decisions else "recorded_review.inspect") + '</a></p>'
         primary = view.workflow.primary_action
-        normal = section(locale, "task.session.state", current)
-        normal += section(locale, "task.session.next", paragraph(locale, view.workflow.next_task_key))
+        normal = current
         controls = (_command(context, locale, view, primary, normal=True, progress=progress, app=app_context)
-                    if primary else paragraph(locale, "task.session.next.complete"))
-        normal += '<div id="session-recording" tabindex="-1"><div id="session-card-feedback"></div>' + section(
-            locale, "declaration.title" if primary == "set_declaration" else "task.session.primary", '<div class="recording-progress-layout"><div>'
-            + controls + '</div>' + render_recorded_summary(progress, locale) + '</div>') + '</div>'
+                    if primary else '<p><a href="#session-history">' + translated(
+                        locale, "recorded_review.history") + '</a></p>')
+        normal += ('<div id="session-recording" tabindex="-1"><div id="session-card-feedback"></div>'
+            + '<section class="panel"><div class="recording-progress-layout"><div><h2>'
+            + _task_heading(locale, view) + '</h2>' + controls + '</div>'
+            + render_recorded_summary(progress, locale) + '</div></section></div>')
         if facts.declaration is not None:
             normal += accepted_declaration_summary(locale,
                 build_serializable_game_declaration(facts.declaration),
                 player_name(locale, facts.players, facts.declarer_player_id))
         normal += render_unplayed_cards(unplayed, locale,
             original_skat=facts.known_skat or None, discarded_cards=facts.discarded_cards or None)
-        normal += render_recorded_session_decisions_v1(context, locale=locale)
+        normal += render_recorded_session_decisions_v1(context, locale=locale, view=recorded)
         normal += render_recorded_history(progress, locale, anchor_prefix="session-play")
         entered = '<ul>' + ''.join('<li>' + escape(label) + '</li>' for _, label in _players(locale, facts)) + '</ul>'
         for number, player in enumerate(facts.players, 1):
@@ -334,7 +353,8 @@ def render_task_first_session_v1(
         optional = ''.join(disclosure(locale, "task.session.metadata_title" if kind == "set_game_metadata" else f"task.command.{kind}",
             _command(context, locale, view, kind, app=app_context)) for kind in view.workflow.secondary_actions)
         normal += disclosure(locale, "task.session.optional", optional)
-        normal += _analysis(context, locale, view, game_label or text(locale, "page.session_current.title"))
+        normal += _analysis_controls(context, locale, view)
+        normal += _analysis_result(context, locale, game_label or text(locale, "page.session_current.title"))
         corrections = paragraph(locale, "task.session.correction_help")
         corrections += ''.join(disclosure(locale, f"task.command.{kind}",
             _command(context, locale, view, kind, correction=True, app=app_context)) for kind in SESSION_COMMAND_KINDS)

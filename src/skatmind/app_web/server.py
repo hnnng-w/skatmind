@@ -1980,6 +1980,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         with self.server.app_context.lock:
             learning = self.server.app_context.managed_stateful.active_learning
             profile = self.server.app_context.frontend_profile.document
+            feedback = self.server.app_context.form_feedback.current(
+                "matches", active_identity=active)
         locale = self._frontend_state().locale
         title = managed_name(locale, profile, "matches", state["match"]["match_id"],
                              state["match"]["title"])
@@ -1996,6 +1998,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             target_label=None if learning is None else managed_name(
                 locale, profile, "corpora", learning_state["corpus"]["corpus_id"]),
             locale=locale,
+            show_feedback=(transfer_notice is not None or feedback is not None
+                and feedback.form_key in {"match.transfer_workspace", "match.transfer_report"}),
         )
         body = self._take_creation_notice("matches") + (render_match_review_v1(
             state, view, managed_handle=active.handle, locale=locale,

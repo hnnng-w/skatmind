@@ -35,10 +35,10 @@ def test_session_render_all_phases_and_all_commands(tmp_path: Path, locale):
                  mode=t(locale, f"session.knowledge.{mode}")) in html
         assert t(locale, "creation.session.after_help") not in html
         assert t(locale, "task.session.next.promote_to_retrospective") not in html
-        headings = [html.index('<h2>' + t(locale, key) + '</h2>') for key in (
-            "task.session.state", "task.session.next", "task.session.entered")]
-        assert headings == sorted(headings)
-        assert headings[1] < html.index('id="session-recording"') < headings[2]
+        for key in ("task.session.state", "task.session.next", "task.session.primary"):
+            assert '<h2>' + t(locale, key) + '</h2>' not in html
+        assert html.index('id="session-recording"') < html.index(
+            '<h2>' + t(locale, "task.session.entered") + '</h2>')
         assert all(f'name="kind" value="{kind}"' in html for kind in SESSION_COMMAND_KINDS
                    if kind != "set_declaration")
         # Declaration correction is rendered only for its actual accepted target.

@@ -125,6 +125,12 @@ remains accessible after 30 Plays without promotion, another Game End, or full
 Historical readiness. Missing snapshots are explained and never backfilled.
 This does not promise full three-Player coverage.
 
+Issue #244 quiets the zero-observation destination without removing it. The ordinary
+top invitation appears only after an observed local Play; missing snapshots offer
+inspection and diagnostics rather than an enabled review. One source-consistent
+projection supplies invitation and rows. Expired/rejected selections still reach
+visible feedback at `recorded-review-feedback`, even when no row is now eligible.
+
 The separate `/review` wizard still accepts unrecorded Games and supported strict
 JSON imports. Its draft, current step, imported Request, Result, downloads, and
 explicit reset are unchanged. Visiting Home, the chooser, or a recorded source
@@ -155,6 +161,17 @@ values. Normal review has one decision choice and one explicit action. Method,
 seed, sample, budget, and profile settings remain under Advanced with unchanged
 defaults. Full Historical review and materialization remain separately explained
 secondary actions, never prerequisites for eligible individual decisions.
+
+Issue #244 omits the recording-page review invitation at zero Plays, including
+empty, started-zero-Play and passed Games. Direct review remains supported with a
+named status and same-Game recording link. With Plays but zero prepared decisions,
+the link offers **Inspect recorded decisions and missing evidence**; existing skip
+reasons explain what is unavailable. Explicit hand evidence may prepare one decision
+without all three hands or full completion. The already captured selected-Game
+preparation summary determines the label; no extra preparation/materialization runs.
+Report display remains independent of another selected Game's counts or matching
+decision index. The Match-side transfer shortcut is secondary, with relevant
+feedback exposing its native controls; Learning's own page is unchanged.
 
 `match_review_rendering.py` owns this presentation; `match_report_rendering.py`
 renders retained validated report projections. Existing

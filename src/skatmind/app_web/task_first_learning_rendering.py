@@ -31,7 +31,7 @@ def transfer_choices(locale):
 
 def render_task_first_transfer_v1(
     state, *, source_handle, source_id, source_label, target_handle=None,
-    target_label=None, report_id=None, locale="en",
+    target_label=None, report_id=None, locale="en", show_feedback=False,
 ):
     content = paragraph(locale, "task.transfer.help")
     if state is None:
@@ -53,7 +53,8 @@ def render_task_first_transfer_v1(
                 + form(locale, "/matches/transfer-report", common + hidden("report_id", report_id)
                     + select_field(locale, "match_snapshot_id", "task.learning.used_version", options),
                     "task.transfer.report", disabled=not options))
-    return section(locale, "task.transfer.heading", content)
+    rendered = disclosure(locale, "task.transfer.heading", content)
+    return rendered.replace('<details ', '<details open ', 1) if show_feedback else rendered
 
 
 def _hidden(handle, operation):

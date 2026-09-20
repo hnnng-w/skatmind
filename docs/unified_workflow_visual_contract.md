@@ -4,6 +4,9 @@ Issue #243 adds the bounded unified action-state, Session Result-focus and Match
 peer-disclosure repair documented under [R08 evidence](#r08-action-focus-and-disclosure-repair).
 The earlier issue measurements below remain historical evidence.
 
+Issue #244's [R03 composition evidence](#r03-recording-task-composition) supersedes
+the three-panel normal recording hierarchy while retaining the #243 stylesheet.
+
 Issue #224 repairs one private presentation boundary: unified light presentation,
 readable Match/Learning content, responsive controls and all 36 Match entries.
 Recording, recovery, analysis, transfer, selection, preparation and persistence
@@ -451,3 +454,105 @@ guards. Package 0.17.0, Python >=3.13, AGPL-3.0-only, dependencies including
 Both `check` and `v1-supported-platform-matrix` must pass on the exact merged commit
 before manual #243 closure. #242 remains completed; #208/other findings remain open,
 UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
+## R03 recording task composition
+
+Issue #244 starts clean on `bug/244-recording-task-focus` at
+`8f0211f76e59fbbb1026c147b4b0e99825c28943`, after completed #243. The actual issue
+and R03 of #208's consolidated report were read. Four current returned-page
+regressions first failed on the redundant Session instruction headings and
+zero-Play Match invitation. The planning archive and maintainer installation remain
+historical evidence, not this source/browser baseline.
+
+Normal recording now pairs one accepted primary task heading with its form.
+Session identity/status is compact; Match keeps Game identity, seats, rotation,
+overview and explicit Pass. Zero-observation review destinations are quiet but
+addressable. Observations with insufficient evidence retain inspection and reasons;
+prepared decisions retain explicit analysis. Specialist Session controls and
+capability blockers are inside a named native disclosure; retained Results stay
+outside at `session-result`. Match transfer is secondary and opens for relevant
+feedback. Existing native forms, #243 focus styling, field-error priority, safe
+language restoration and independent source lifetimes remain authoritative.
+
+### Installed evidence
+
+`scripts/verify_recording_task_focus.py` reuses `_workflow_visual_browser.py` and
+the existing legal HTTP fixtures. Run with an independently installed Wheel:
+
+```powershell
+& PATH_TO_INSTALLED_PYTHON scripts/verify_recording_task_focus.py `
+    --browser PATH_TO_EDGE --output FRESH_SCRATCH_DIRECTORY `
+    --wheel PATH_TO_WHEEL --phase after
+```
+
+`--phase before` verifies the actual starting-HEAD installed files against Git;
+`after` verifies the changed installed modules/catalogs/assets against the tree.
+No branch switch or source rewrite simulates a baseline. Both completed runs used
+Windows CPython **3.13.7**, Package **0.17.0**, headless Edge **153.0.4234.32**,
+de/en, JavaScript on/off, **1365×900**, **390×844**, **320×800**, and doubled text at
+320 pixels. Each has **224 page measurements**. Document/client widths agree at
+1350/1350, 375/375 and 305/305. Representative screenshots were inspected for
+current task/control, zero review, declaration, eligible decisions, retained Result,
+secondary transfer, enlarged text, error-field focus and correction preview/Cancel.
+
+Matched German/no-script document coordinates, CSS pixels:
+
+| State / width | Recording anchor before → after | Current control before → after |
+| --- | --- | --- |
+| Session initial hand / 1365 | 925.5 → 492.3 | 2034.0 → 1600.8 |
+| Session choose declarer / 390 | 1028.9 → 594.5 | 1138.9 → 704.5 |
+| Session choose declarer / 320 | 1108.8 → 594.5 | 1218.8 → 732.1 |
+| Match empty / 390 | 538.2 → 538.2 | 914.6 → 872.0 |
+| Match declaration / 390 | 538.2 → 538.2 | 1076.7 → 986.3 |
+| Match three Plays, missing evidence / 320 | 602.9 → 602.9 | 2390.6 → 2270.6 |
+
+The Session's three generic normal instruction headings become one task-specific
+heading; its initial visible page heading count falls from eight to four, including
+the omitted empty review/analysis panels. Match retains its Game/overview headings.
+No one-screen or all-headings-removal target is claimed. Enlarged labels require
+vertical scrolling. Result composition uses the ordinary outer content width;
+the candidate table itself is unchanged and still has the known narrow/enlarged
+wrapping/clipping limitation. No new recording-control or feedback clipping was
+observed. This is headless synthetic evidence, not physical-device, screen-reader,
+whole-frontend accessibility or maintainer UAT acceptance.
+
+Each matched run has **24 native POSTs**, **41 Session saves**, **8 Match saves**,
+**2 Session review executions**, **1 Match decision execution**, and **63 explicit
+profile-language saves**, including fixture setup and measurement-language changes.
+The accepted counts and revisions match before/after. The extra after-only action
+opens the transfer disclosure and sends no request. Native input exercises partial
+and full hand saves, declarer/declaration, three Match Cards, explicit hand evidence,
+review, End, Pass, language, source-return, field focus and preview/Cancel. One real
+30-Play Session is shared across all Result locales/viewports. It ends at revision
+44 with ten Checkpoints and both current/Historical exports unavailable. Strict
+reopen requires the second explicit review; no process-local Result survives it.
+
+The real SJ Request and Result hashes are identical across installed before/after:
+
+```text
+Request  05dc65aa713fb37c7b40cd9a4027ce6926881e6bb0c98adaf4256b8a7f14ec94
+Result   76eb05221cab155ff59f734ec568bbead767c2f309d6823546d598412ac545c1
+Before Wheel  3d47962f375548730b55becd5dc841aade22534c87ace7a34ff22b47820d84f1
+After Wheel   c3176f80be4da75321fc7cc1d16354249197958fe464d7029b523a39ba806f7f
+```
+
+Completed evidence is under `<temporary-directory>/opencode/244-before-03/` and
+`244-after-01/`, with loaded/served hashes, headings, geometry, requests, operation
+counts and PNGs. Two earlier baseline harness attempts stopped on fixture-opener
+selection and multiline-link pointer targeting; they are not successful runs.
+`244-result-detail/` strictly reopens the prepared synthetic ended source and
+records eight additional de/en normal-score/context/tie/table measurements and
+screenshots, with one explicit review and zero Product saves. Visible 14/29 appears
+once, the pre-Card hand has seven Cards, and CJ/SJ remain equal-best at 6.00.
+Exact per-source saved bytes and retained downloads remain unchanged on passive
+viewing/language/navigation. A Report is still reachable after selecting another
+empty Game; adding hand evidence changes real Match availability from 0/3 to 1/3.
+The optional import copies the actual partial Workspace with Game 2 passed into a
+real disposable collection, without analysis or preparation.
+
+Only R03 task/readiness composition is implemented. Generic notice lifecycle,
+other R03 work and remaining UAT findings stay open. Package, dependencies,
+public/profile/persistence formats, 63 POST routes / 107 forms and 98 scenarios
+are unchanged. #243 stays completed; exact merged-commit `check` and
+`v1-supported-platform-matrix` gate manual #244 closure. #208 stays open, UAT-01
+unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.

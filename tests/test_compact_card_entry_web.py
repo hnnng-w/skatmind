@@ -141,7 +141,8 @@ def test_real_direct_start_eleven_commands_one_save_reopen_then_all_plays_and_re
                        "actual_card_played": plays[0]["card"]}
     assert text("en", "session.knowledge.accepted_mode",
                 mode=text("en", "session.knowledge.perspective")) in page
-    assert text("en", "task.session.next.complete") in page
+    assert '<h2>' + text("en", "task.session.phase.ended") + '</h2>' in page
+    assert text("en", "task.session.next.complete") not in page
     assert text("en", "task.session.next.promote_to_retrospective") not in page
     assert text("en", "task.session.readiness.historical.capture_mode") in page
     assert active.state.capture_mode == "live" and active.state.phase == "ended"

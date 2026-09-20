@@ -125,7 +125,8 @@ def test_real_match_normal_pre_card_context(localized_server, monkeypatch):
     # The minimized page snapshot also binds correctly if another Game was selected.
     with active.capture.lock:
         state = build_task_first_match_page_state_v1(active,
-            project_task_first_match_v1(source, selected_position=4), report_id=report.report_id)
+            project_task_first_match_v1(source, selected_position=2), report_id=report.report_id)
+    assert state["game"] is None and state["decision_preparation"]["source_play_count"] == 0
     assert_context(render_match_reports_v1(state, "en"), "en", hand=MATCH_HAND,
                    prefix=(("B", "CK"),), actor="C", trick=1, play=2, game=1)
     foreign_report = replace(report, value=replace(report.value, game_id="foreign"))

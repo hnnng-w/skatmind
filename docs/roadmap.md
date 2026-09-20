@@ -1761,3 +1761,13 @@ including the still-open #240 table limitation. #242 remains completed. Both exa
 merged-commit `check` and `v1-supported-platform-matrix` gate manual #243 closure;
 #208/other findings stay open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open
 and B-06 closed. No whole-UAT, accessibility or Release acceptance is claimed.
+
+Issue #244 implements only R03's current-task/readiness composition: one normal
+Session/Match recording task, quiet zero-observation review destinations, truthful
+missing-evidence inspection, independently visible retained Session Results, and
+secondary specialist/Match-transfer disclosures with relevant feedback exposed.
+Existing transitions, source bindings, frozen Requests/Results and #238–#243 remain.
+See the [task-first guide](task_first_bilingual_stateful_workflows.md). Generic notice
+lifecycle and other backlog work remain open. #243 stays completed; exact merged-
+commit `check` and `v1-supported-platform-matrix` gate manual #244 closure. #208
+remains open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.

@@ -266,10 +266,11 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
         locale, f"creation.seat.{seat}") + '</dt><dd>' + escape(_name(
             state, locale, getattr(view.selected, f"{seat}_player_id"))) + '</dd></div>'
         for seat in ("forehand", "middlehand", "rearhand")) + '</dl>'
-    task += '<div id="match-recovery-feedback"></div>' + ("" if recovery is None else recovery[0]) + paragraph(locale, view.workflow.next_task_key)
+    task += '<div id="match-recovery-feedback"></div>' + ("" if recovery is None else recovery[0])
     recorded = state.get("recorded_progress")
     task += '<div class="recording-progress-layout"><div>'
     if view.workflow.primary_action == "start_game":
+        task += '<h3>' + translated(locale, "task.match.action.start_game") + '</h3>'
         task += form(locale, "/matches/api/v1/operation", _hidden(state, handle, "start_game"),
                      "task.match.action.start_game", primary=True)
         task += form(locale, "/matches/api/v1/operation", _hidden(state, handle, "mark_passed_deal"),
@@ -279,13 +280,16 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
         task += operation_form(state, handle, locale, "set_declaration", primary=True)
         task += '</div>'
     elif view.workflow.primary_action == "append_plays":
+        task += '<h3>' + translated(locale, "task.record_next_card",
+            player=_named_seat(state, locale, view.selected.next_player_id)) + '</h3>'
         task += paragraph(locale, "task.match.scope." + view.selected.card_selection_scope)
-        task += paragraph(locale, "task.session.play_for", player=_named_seat(state, locale, view.selected.next_player_id))
         task += paragraph(locale, "recovery.trick", number=view.selected.completed_trick_count + 1)
         if recorded is not None:
             task += render_current_trick(recorded, locale)
         task += _card_form(state, handle, locale, "append_plays", card_bindings.get("append_plays", ""),
                            cards=view.selected.selectable_cards, play=True)
+    else:
+        task += paragraph(locale, view.workflow.next_task_key)
     task += '</div>' + ("" if recorded is None else render_recorded_summary(recorded, locale)) + '</div>'
     if view.next_position is None:
         task += paragraph(locale, "task.match.all_complete")
@@ -293,7 +297,11 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
         task += f'<p><a href="/matches/position/{view.next_position}#match-recording">' + translated(
             locale, "task.match.first_unfinished", number=view.next_position) + '</a></p>'
     task += '<p><a href="#match-games">' + translated(locale, "task.match.overview") + '</a>'
-    task += ' · <a href="/matches/review/' + str(view.selected_position) + '">' + translated(locale, "recordings.match.open") + '</a></p>'
+    if view.selected.play_count:
+        ready = state["decision_preparation"]["prepared_decision_count"] > 0
+        task += ' · <a href="/matches/review/' + str(view.selected_position) + '">' + translated(
+            locale, "recordings.match.open" if ready else "recordings.match.inspect") + '</a>'
+    task += '</p>'
     if game is not None:
         task += accepted_declaration_summary(locale, game["declaration"],
                                              _named_seat(state, locale, game["declarer_player_id"]))
@@ -302,8 +310,6 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
         task += disclosure(locale, "compact.optional_hand", _evidence(
             state, handle, locale, card_bindings, hand=True))
     if game is not None:
-        task += '<ul>' + ''.join('<li>' + translated(locale, f"task.match.action.{step}") + ' — '
-            + translated(locale, "task.recorded") + '</li>' for step in view.workflow.completed_steps) + '</ul>'
         task += (recovery[1] if recovery is not None else "" if recorded is None
                  else render_recorded_history(recorded, locale))
     body += '<section id="match-recording" class="panel" tabindex="-1" aria-labelledby="match-recording-heading">' + task + '</section>'

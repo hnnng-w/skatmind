@@ -3,7 +3,11 @@ from __future__ import annotations
 from html import escape
 
 from .session_frontend import GuidedSessionContextV1
-from .session_recorded_review import RecordedDecisionV1, project_recorded_session_decisions_v1
+from .session_recorded_review import (
+    RecordedDecisionV1,
+    RecordedReviewProjectionV1,
+    project_recorded_session_decisions_v1,
+)
 from .stateful_localization import player_name, translated
 from .task_first_rendering import hidden, paragraph
 
@@ -18,17 +22,24 @@ def _decision_label(locale: str, players, row: RecordedDecisionV1) -> str:
     )
 
 
-def render_recorded_session_decisions_v1(context: GuidedSessionContextV1, *, locale: str) -> str:
-    view = project_recorded_session_decisions_v1(context)
-    content = paragraph(locale, "recorded_review.coverage", available=len(view.decisions),
-                        recorded=view.local_play_count)
+def render_recorded_session_decisions_v1(
+    context: GuidedSessionContextV1, *, locale: str,
+    view: RecordedReviewProjectionV1 | None = None,
+) -> str:
+    view = project_recorded_session_decisions_v1(context) if view is None else view
+    content = ""
     if context.state.local_player_id is None:
         content += paragraph(locale, "recorded_review.no_perspective")
-    if not context.decision_checkpoints:
+    elif not view.local_play_count:
+        content += paragraph(locale, "recorded_review.no_observations")
+    else:
+        content += paragraph(locale, "recorded_review.coverage", available=len(view.decisions),
+                             recorded=view.local_play_count)
+    if view.local_play_count and not context.decision_checkpoints:
         content += paragraph(locale, "recorded_review.no_snapshots")
     elif view.missing_snapshot_count:
         content += paragraph(locale, "recorded_review.missing", count=view.missing_snapshot_count)
-    content += '<ul class="recorded-decisions">'
+    content += '<ul class="recorded-decisions">' if view.decisions else ""
     for row in view.decisions:
         index = row.checkpoint.decision_index
         label_id = f"recorded-decision-{index}"
@@ -41,18 +52,22 @@ def render_recorded_session_decisions_v1(context: GuidedSessionContextV1, *, loc
             + f'<button type="submit" class="secondary" aria-describedby="{label_id}">'
             + translated(locale, "recorded_review.action") + '</button></form></li>'
         )
-    content += '</ul>'
+    content += '</ul>' if view.decisions else ""
     for status, count in view.unavailable_counts:
         if count:
             content += paragraph(locale, f"recorded_review.{status}", count=count)
     if any(count for _, count in view.unavailable_counts) or view.missing_snapshot_count:
         content += '<p><a href="#session-history">' + translated(
             locale, "recorded_review.history") + '</a></p>'
-    return (
-        '<section id="recorded-decisions" class="panel" aria-labelledby="recorded-review-title">'
-        '<h2 id="recorded-review-title">' + translated(locale, "recorded_review.title")
-        + '</h2><div id="recorded-review-feedback"></div>' + content + '</section>'
-    )
+    if not view.local_play_count:
+        return ('<section id="recorded-decisions" tabindex="-1" aria-label="'
+                + translated(locale, "recorded_review.title")
+                + '"><div id="recorded-review-feedback"></div>' + content + '</section>')
+    return ('<section id="recorded-decisions" class="panel" tabindex="-1" '
+            'aria-labelledby="recorded-review-title"><h2 id="recorded-review-title">'
+            + translated(locale, "recorded_review.title" if view.decisions
+                         else "recorded_review.inspect")
+            + '</h2><div id="recorded-review-feedback"></div>' + content + '</section>')
 
 
 def render_recorded_review_source_v1(

@@ -12,8 +12,9 @@ B-06 remains closed, and Package `1.0.0` preparation is not ready.
 
 1. From Home, choose **Review recorded games** (`/review/recorded`) and explicitly
    open an individual recording. `/sessions` also remains its recording entry.
-2. Follow **Review recorded decisions** near its summary. The visible list follows
-   the primary recording action, including after all 30 Plays and after Game End.
+2. When an own Play has been observed, follow **Review recorded decisions**, or
+   **Inspect recorded decisions** if no saved snapshot is eligible. The list follows
+   the recording task, including after all 30 Plays and after Game End.
 3. Recognize an own decision by Player name, one-based Trick, Card position within
    the Trick, and actual Card. Select **Review decision** on that row.
 4. The page moves to the Result with the source Game/Player/Trick/Card label,
@@ -57,8 +58,14 @@ tuple. Persistence already defines that tuple's canonical order. Every variant
 remains unchanged in persistence. Rows are sorted by the existing one-based
 decision index; Requests and assessments are never merged or averaged.
 
-Coverage states show counts of usable snapshots versus accepted local Plays and
-explain missing snapshots explicitly. Separate unavailable snapshot counts are:
+Issue #244 reuses one recorded-decision projection inside the existing Session lock
+for the invitation, counts and rows. Before an observed local Play there is no top
+invitation or numeric 0/0 panel. `recorded-decisions` remains a visible, focusable
+neutral destination with `recorded-review-feedback`, so chooser, direct and rejected
+selection links remain meaningful. No perspective and no local Play are different
+messages; pending snapshot diagnostics remain separate. With observed Plays, coverage
+counts and missing-snapshot explanations remain explicit, without telling the user
+to record a Card already present. Separate unavailable snapshot counts are:
 
 | State | Meaning and action |
 | --- | --- |
@@ -254,7 +261,17 @@ The three actions have distinct labels and readiness:
 * **Review recorded decisions** uses saved own-perspective snapshots and accepted
   actual Cards, including in an ended Live recording.
 * **Full Historical review** uses the existing completed Retrospective export and
-  its required original evidence. Its unavailability does not hide recorded rows.
+   its required original evidence. Its unavailability does not hide recorded rows.
+
+Issue #244 places current-position/full-Historical controls and detailed blockers
+inside one named secondary native disclosure. Retained execution is composed
+separately outside that disclosure at the unchanged `session-result` focus target.
+Observation, available analysis and retained execution do not imply one another.
+In particular, an ended perspective recording can have ten eligible saved decisions
+while both exports are unavailable. Its real Trick-4/SJ review retains 14/29, seven
+historical hand Cards and equal-best CJ/SJ. The existing HTTP regression exercises
+that returned form, passive/language/source-return byte retention and strict reopen
+followed by explicit re-execution. Results remain process-local, not restart-persisted.
 
 Shared Result presentation uses only retained public Result fields, with their
 supported metrics and units. Method/sample/budget limits and the recorded source
