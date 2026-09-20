@@ -34,16 +34,10 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-button.secondary,
-details button {
-  color: var(--green-dark);
-  background: var(--surface);
-  border: 1px solid var(--green);
-}
-
 .technical-details,
 #session-app > details,
 #task-first-match > details,
+#task-first-match > #match-metadata > details,
 #task-first-learning > details {
   margin-block: 1rem;
   padding: 0.8rem;
@@ -137,7 +131,9 @@ footer a {
   color: #f9f4e8;
 }
 
-footer a:focus-visible {
+footer a:focus-visible,
+.site-header a:focus-visible,
+.skip-link:focus-visible {
   outline-color: #ffd477;
 }
 
@@ -163,6 +159,21 @@ footer a:focus-visible {
 .recorded-review-source,
 .recorded-decisions button {
   overflow-wrap: anywhere;
+}
+
+#session-result {
+  padding-block: 0.25rem;
+  scroll-margin-block: 1rem;
+}
+
+#session-result > p {
+  padding-inline: 0.25rem;
+}
+
+/* Native review redirects need an indicator even without :focus-visible. */
+#session-result:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
 }
 
 #match-recording,
@@ -593,7 +604,8 @@ h1 {
   text-decoration: none;
 }
 
-.button-link:hover {
+.button-link:is(:hover, :active) {
+  color: white;
   background: var(--green-dark);
 }
 
@@ -701,16 +713,40 @@ input[type="radio"] {
 }
 
 button {
+  --action-ink: #fff;
+  --action-surface: var(--green);
+  --action-border: var(--green-dark);
+  --action-hover-ink: #fff;
+  --action-hover-surface: var(--green-dark);
   width: max-content;
   max-width: 100%;
-  color: white;
-  background: var(--green);
-  border-color: var(--green-dark);
+  color: var(--action-ink);
+  background: var(--action-surface);
+  border-color: var(--action-border);
   cursor: pointer;
 }
 
-button:hover {
-  background: var(--green-dark);
+/* Variants own complete pairs; native details must not change primary semantics. */
+button.secondary,
+:where(details) button:not(.primary),
+:where(main:is([data-workflow="matches"], [data-workflow="learning"])) button:not(.primary) {
+  --action-ink: var(--green-dark);
+  --action-surface: var(--surface);
+  --action-border: var(--green);
+  --action-hover-ink: var(--green-dark);
+  --action-hover-surface: #dcebe3;
+}
+
+button:where(:enabled):is(:hover, :active) {
+  color: var(--action-hover-ink);
+  background: var(--action-hover-surface);
+}
+
+button:disabled {
+  color: var(--muted);
+  background: #eee9dd;
+  border-color: #847d70;
+  cursor: not-allowed;
 }
 
 textarea {
@@ -1309,9 +1345,17 @@ main[data-workflow="sessions"] { overflow-wrap: anywhere; }
 }
 
 .remove-player-form button,
-.reset-form button {
-  background: #7e2119;
-  border-color: #5f1711;
+.reset-form button,
+main:is([data-workflow="matches"], [data-workflow="learning"]) form:has(
+  [name="operation"]:is([value="clear_position"], [value="truncate_plays"], [value="remove_commentary"],
+    [value="remove_response_link"], [value="clear_player_statistics_snapshot"],
+    [value="remove_strategy_teacher_report"], [value="clear_strategy_teacher_reports"])
+) button {
+  --action-ink: #fff;
+  --action-surface: #7e2119;
+  --action-border: #5f1711;
+  --action-hover-ink: #fff;
+  --action-hover-surface: #5f1711;
 }
 
 .storage-disclosure {
@@ -1415,40 +1459,6 @@ main:is([data-workflow="matches"], [data-workflow="learning"]) :where(.panel, .a
 
 main:is([data-workflow="matches"], [data-workflow="learning"]) :where(h2, h3, h4) {
   margin-top: 0;
-}
-
-main:is([data-workflow="matches"], [data-workflow="learning"]) button {
-  color: var(--green-dark);
-  background: var(--surface);
-  border: 1px solid var(--green);
-}
-
-main:is([data-workflow="matches"], [data-workflow="learning"]) button.primary {
-  color: #fff;
-  background: var(--green);
-  border-color: var(--green-dark);
-}
-
-main:is([data-workflow="matches"], [data-workflow="learning"]) button:hover:enabled {
-  color: #fff;
-  background: var(--green-dark);
-}
-
-main:is([data-workflow="matches"], [data-workflow="learning"]) form:has(
-  [name="operation"]:is([value="clear_position"], [value="truncate_plays"], [value="remove_commentary"],
-    [value="remove_response_link"], [value="clear_player_statistics_snapshot"],
-    [value="remove_strategy_teacher_report"], [value="clear_strategy_teacher_reports"])
-) button {
-  color: #fff;
-  background: #7e2119;
-  border-color: #5f1711;
-}
-
-main:is([data-workflow="matches"], [data-workflow="learning"]) button:disabled {
-  color: var(--muted);
-  background: #eee9dd;
-  border-color: #847d70;
-  cursor: not-allowed;
 }
 
 main:is([data-workflow="matches"], [data-workflow="learning"]) .card-grid {

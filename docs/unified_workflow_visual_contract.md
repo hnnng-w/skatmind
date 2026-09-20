@@ -1,5 +1,9 @@
 # Unified Match and Learning visual contract
 
+Issue #243 adds the bounded unified action-state, Session Result-focus and Match
+peer-disclosure repair documented under [R08 evidence](#r08-action-focus-and-disclosure-repair).
+The earlier issue measurements below remain historical evidence.
+
 Issue #224 repairs one private presentation boundary: unified light presentation,
 readable Match/Learning content, responsive controls and all 36 Match entries.
 Recording, recovery, analysis, transfer, selection, preparation and persistence
@@ -296,3 +300,154 @@ must be green before #224 closure. Issue #208 and unresolved findings remain ope
 UAT-01 remains failed, UAT-02 through UAT-12 remain paused, B-09/B-07 remain open,
 B-06 remains closed, and v1.0.0 preparation remains unready. No new complete
 maintainer walkthrough or acceptance claim is made.
+
+## R08 action, focus and disclosure repair
+
+Issue #243 starts on clean `bug/243-hover-focus-disclosures` at
+`2af0e7af73980862140b1bc46cab9b099feedaf4`, after completed #242. The actual #243
+issue and R08 in #208's consolidated report were read. The earlier archive
+`aecd151aafff1601b0366bb024e65a98006f4240` and maintainer UAT installation
+`483e51269d0206d29d9f73001dfadf8f0e7b2f32` are distinct baselines.
+
+### Styling ownership
+
+Only `app_web/assets/app.css` changes Product code. Button variants now own complete
+normal and enabled hover/active foreground/background pairs via local CSS properties.
+Secondary actions, including native-details callers, stay light; primary actions stay
+filled green; existing destructive operations and Settings resets stay red. Explicit
+`.primary` semantics take priority over incidental placement inside details. Disabled
+buttons retain their native attribute, muted palette and disabled hover appearance.
+Selected-language borders, underline and `aria-pressed` remain authoritative. Ordinary
+links retain their colors; header/skip-link focus uses the existing gold dark-surface
+indicator, matching the footer rather than low-contrast blue on dark green.
+
+`#session-result:focus` uses a **2 CSS-pixel solid** `--focus` outline with **3px offset**,
+including redirected focus without `:focus-visible`. Constant 0.25rem block padding
+and direct-paragraph inline inset separate its source caption from the ring. The
+Result sections retain their original width, including the comparison table. Focus
+changes no box dimensions. The existing ID, `tabindex=-1`, labels, next Tab order,
+native fragments, error autofocus, recovery destinations and language-return logic
+are unchanged. There is no outline reset, timer, focus-script change or forced-color
+opt-out; an outline, rather than a shadow alone, survives forced colors.
+
+The existing direct-child peer rule also includes
+`#task-first-match > #match-metadata > details`. This preserves the wrapper anchor,
+native markers, summary typography, open spacing, DOM order, forms and nested levels
+while giving the wrapped peer the same 0.8rem padding. Long translated captions wrap.
+The repeated Technical details hierarchy remains a separate concern.
+
+### Installed before/after measurements
+
+Both baseline and final Wheels were independently installed outside the checkout;
+Python **3.13.7**, Package **0.17.0**, headless Microsoft Edge **153.0.4234.32** on
+Windows, device scale 1. Real emitted pages reuse a legal 12-Play Session with its
+collected Trick-4/Card-3 decision, a normal six-Play Match, and an empty Learning
+collection for disabled controls. Setup follows returned HTTP forms. Review Results,
+analysis, saves and recovery are genuine, not injected success markup or mocked work.
+Counters wrap and call the real functions.
+
+| Computed measurement | Installed baseline | Installed repair |
+| --- | --- | --- |
+| Saved review and nested Session secondary, rest / keyboard focus | `#0b3f2d` on `#fffdf8`, 11.716458:1 | Same |
+| Same secondary, hover / hover-focus / pressed | `#0b3f2d` on `#0b3f2d`, **1:1** | `#0b3f2d` on `#dcebe3`, **9.662205:1** |
+| Primary and button link, rest / hover | White on green, 7.949569 / 11.910673:1 | Same pairs; active explicitly paired |
+| Destructive Match and Settings, rest / hover | White on `#7e2119`, 9.911720:1 | 9.911720 / 12.985151:1; hover stays dark red |
+| Native disabled, rest / hover | `#58655e` on `#eee9dd`, 5.042136:1 | Same, still disabled |
+| Selected / unselected language | Opposite white / `#173b2c` pairs, 12.364670:1 | Same, with non-color selection cues |
+| Result outline after genuine review return | UA `auto`, computed 1px `#101010`, 0px offset | Solid 2px `#005fcc`, 3px offset, **5.887344:1** adjacent contrast |
+| Source-caption left text inset | 0px | 4px, plus the external ring separation |
+| Header link focus adjacent contrast | 1.990109:1 | Gold `#ffd477`, **8.471197:1** |
+| Direct / wrapped Match disclosure padding, 1365px | 12.8 / 20px | 12.8 / 12.8px |
+| Direct / wrapped padding, 390/320px | 12.8 / 10.4px | 12.8 / 12.8px |
+
+Both summaries were already **16px / 700 / 24.8px line-height**, with native inside
+disclosure markers; at 200% text they are **32px / 700 / 49.6px**. The proven mismatch
+was spacing, not font size. Open-summary bottom spacing remains 16px. Match/Learning
+secondary hover was already readable; consolidation retains contrast while making
+the secondary state visually distinct from primary. Ordinary link text measures
+11.716458:1; dark header/footer text measures 10.852019:1. Measured opacity is 1 for
+each tested control and its ancestors; ratios use computed colors and composed solid
+backgrounds, not selector presence. Thresholds use unrounded values.
+
+There are **32 responsive page measurements and 67 representative control-state
+measurements**, covering de/en, script on/off, 1365/390/320px and representative 200%
+text at 320px. The harness doubles captured font sizes once on a fresh document;
+device scale is not presented as text zoom. Native input dispatch covers mouse hover
+and press, actual Tab/Shift+Tab traversal, Enter/Space disclosure toggles, and four
+review returns: German pointer and English keyboard, each with script on/off. Each
+review sends one POST and executes once. All four focus `session-result`; next Tab
+reaches the existing `#recorded-decision-12` source-return link. Bringing the headless
+tab to the foreground is recorded separately from element focus; no `element.focus()`
+is used to manufacture these results. Early inactive-tab samples were superseded.
+
+A real whitespace-title rejection opens Match metadata, autofocuses its error summary,
+retains that priority after language switching, and its field link focuses
+`validation-field-1-title` inside the open disclosure. Native preview focuses
+`match-recovery`; Cancel returns to `match-recording`, with no Apply/rewind/delete.
+Same-source language switching preserves safe unsent metadata and disclosure state.
+The retained Session scores, equal-best content and pre-Card context remain #239–#241's
+output, with unchanged Request/Result download hashes before/after and across passive
+views. Existing #242 seat/conflict selectors and #238 transport are intact.
+
+After setup, the run observes **4 review POSTs / 4 executions**, **15 explicit language
+POSTs / 15 profile saves**, one rejected metadata POST and one each recovery Select,
+Preview and Cancel. Session/Match saves after setup are **zero**. Hover, focus,
+disclosure toggles and a passive interval cause zero requests, Product saves or
+executions. Setup separately records 17 Session saves, 9 Match saves, 3 profile saves
+and one real empty-Corpus creation. The registry remains **63 POST routes / 107 forms**.
+
+Document/client widths agree at **1350/1350**, **375/375**, **305/305**. Reviewed
+screenshots show wrapping controls, source captions and unclipped focus rings, including
+320px/200% text. The **#240 comparison-table limitation remains open**, visibly including
+very narrow wrapped columns and a clipped/scrolling table presentation. Its measured
+section/wrapper/table geometry is exactly equal before/after at every matched viewport;
+for German 320px/200%, the wrapper is 202px and table 228.328125px. This is neither a
+table repair nor a table-usability pass.
+
+Forced-colors **emulation** retains a solid 2px/3px cyan indicator at **14.371255:1**
+against black, with readable source text and unchanged focus. It is not real-system
+high-contrast, physical-device, screen-reader or whole-application accessibility UAT.
+The historical user's exact Edge outline was not measured by this work.
+
+### Reproduction and retained evidence
+
+Use an independently installed Wheel interpreter with the existing dev fixture
+environment and the caller's already installed browser. From the checkout:
+
+```powershell
+& "PATH_TO_DISPOSABLE_WHEEL_ENV\Scripts\python.exe" scripts/verify_action_visuals.py `
+    --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" `
+    --output "$env:TEMP\opencode\unique-action-evidence" --phase after
+```
+
+The output must be a new directory under an existing disposable parent. The script
+rejects loading Product modules from the checkout and verifies installed module/CSS
+hashes and served CSS bytes. `--phase before` uses a separately retained baseline
+Wheel, permits its different CSS hash and records failing visual states without
+pretending they pass. It never rewrites Product assets to simulate a baseline.
+This tooling reuses `_workflow_visual_browser.py` and is not a full-check dependency.
+
+Evidence is retained under `<temporary-directory>/opencode/`:
+
+* `243-before-final-tree/evidence.json` and matched PNGs;
+* `243-after-spaced/evidence.json` and matched PNGs, both `completed: true`;
+* baseline installed CSS SHA-256
+  `63f7645e346e46e7a1d8522494234149ef5b2db3d7b1a07630f6d80332bc80e5`;
+* final installed CSS SHA-256
+  `e94bee2b4967c25607109bafb58b9fbe5d75927cf8c93a0d0b978ab32060bd12`.
+
+Evidence includes actual request paths/counts, outlines, geometry, focus targets,
+computed colors/opacity, retained download and unchanged module hashes. Matched hover,
+Result, metadata, narrow/enlarged, contextual-error, recovery and forced-color PNGs
+were inspected. Earlier incomplete verifier attempts remain retained, superseded by
+these completed runs. All data is disposable synthetic data; the maintainer's UAT
+installation and files were untouched.
+
+The focused HTTP tests protect anchors/tabindex, review button variants and payloads,
+native disabled state, disclosure order, same-source returns and refreshed profile
+bindings. Existing language/validation/recovery/#238–#242 suites remain the behavioral
+guards. Package 0.17.0, Python >=3.13, AGPL-3.0-only, dependencies including
+`tzdata>=2026.4`, public/profile/persistence formats and 98 scenarios remain unchanged.
+Both `check` and `v1-supported-platform-matrix` must pass on the exact merged commit
+before manual #243 closure. #242 remains completed; #208/other findings remain open,
+UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.

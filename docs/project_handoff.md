@@ -2672,6 +2672,16 @@ completed. R08 and residual R11 remain separate. Both `check` and
 before manual #242 closure. #208/other findings remain open, UAT-01 unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release-readiness claim follows.
 
+Issue #243 repairs only R08 through app-owned CSS: coherent action-state pairs,
+explicit spaced Session Result focus and wrapper-independent Match peer disclosures.
+Installed before/after evidence, native review/error/preview-cancel focus, exact
+retained bytes and the unchanged narrow-table limitation are documented in the
+[unified visual contract](unified_workflow_visual_contract.md#r08-action-focus-and-disclosure-repair).
+Starting HEAD is `2af0e7af73980862140b1bc46cab9b099feedaf4`; #242 remains completed.
+Both exact merged-commit CI jobs gate manual #243 closure. #208 and other findings
+stay open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+This is scoped styling evidence, not maintainer UAT or release-readiness approval.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

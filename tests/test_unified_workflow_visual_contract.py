@@ -35,12 +35,20 @@ class Markup(HTMLParser):
         self.classes = []
         self.ids = []
         self.rounds = 0
+        self.details = []
+        self.buttons = []
+        self.targets = {}
         self.feed(html)
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
         if "id" in attrs:
             self.ids.append(attrs["id"])
+            self.targets[attrs["id"]] = (tag, attrs)
+        if tag == "details":
+            self.details.append(attrs)
+        if tag == "button":
+            self.buttons.append(attrs)
         if tag == "link" and attrs.get("rel") == "stylesheet":
             self.styles.append(attrs["href"])
         classes = attrs.get("class", "").split()
@@ -224,3 +232,64 @@ def test_executed_report_table_is_named_focusable_and_keeps_exact_download(local
         assert f'href="{download}" download' in page
         assert browser.request("GET", download)[2] == retained
         assert_app_assets(browser, page)
+
+
+def test_review_secondary_form_and_native_result_focus_contract(localized_server):
+    from test_session_recorded_review_web import record_live_game, review_first
+
+    browser = Browser(localized_server)
+    record_live_game(browser, play_count=1)
+    page, submitted = review_first(browser)
+    active = localized_server.app_context.managed_stateful.active_session
+    source, execution = active.recorded_review_source, active.execution
+    saved = active.path.read_bytes()
+    markup = Markup(page)
+    assert markup.targets["session-result"] == (
+        "div", {"id": "session-result", "tabindex": "-1"})
+    button, = [b for b in markup.buttons if b.get("aria-describedby") == "recorded-decision-1"]
+    assert button == {"type": "submit", "class": "secondary",
+                      "aria-describedby": "recorded-decision-1"}
+    assert set(submitted["values"]) == {
+        "managed_handle", "expected_revision", "decision_selection", "_frontend_form_instance"}
+    retained = {name: browser.request("GET", f"/sessions/downloads/{name}.json")[2]
+                for name in ("request", "result")}
+    for locale in ("de", "en"):
+        response = browser.submit(Forms(page).find("/actions/profile/language"), language=locale)
+        assert response[1]["location"] == "/sessions/current#session-result"
+        page = follow(browser, response)
+        translated = Markup(page)
+        assert translated.targets["session-result"] == markup.targets["session-result"]
+        assert translated.details == markup.details
+        assert Forms(page).find("/sessions/review-decision") == submitted
+        assert 'href="#recorded-decision-1"' in page
+        assert active.recorded_review_source is source and active.execution is execution
+        assert active.path.read_bytes() == saved
+        for name, raw in retained.items():
+            assert browser.request("GET", f"/sessions/downloads/{name}.json")[2] == raw
+
+
+def test_match_peer_disclosures_keep_wrapper_order_fields_and_disabled_actions(localized_server):
+    browser = Browser(localized_server)
+    page = start_match(browser)
+    markup = Markup(page)
+    assert markup.targets["match-metadata"] == (
+        "div", {"id": "match-metadata", "tabindex": "-1"})
+    assert '<div id="match-metadata" tabindex="-1"><details class="advanced-settings">' in page
+    keys = ("task.match.evidence", "task.match.annotations", "task.match.metadata",
+            "task.match.statistics", "task.match.analysis", "task.match.corrections")
+    positions = [page.index(f'<summary>{text("en", key)}</summary>') for key in keys]
+    assert positions == sorted(positions)
+    fields = operation_form(page, "update_match_metadata")
+    source = localized_server.app_context.managed_stateful.active_match.path.read_bytes()
+    translated = follow(browser, browser.submit(Forms(page).find("/actions/profile/language"),
+                                                language="de"))
+    assert Markup(translated).details == markup.details
+    refreshed = operation_form(translated, "update_match_metadata")
+    assert refreshed == {**fields, "values": {**fields["values"],
+        "profile_generation": str(int(fields["values"]["profile_generation"]) + 1)}}
+    assert localized_server.app_context.managed_stateful.active_match.path.read_bytes() == source
+    # Empty Learning genuinely disables unavailable work; CSS must not replace this attribute.
+    page = follow(browser, browser.submit(Forms(browser.page("/learning")).find("/learning/create"),
+                                         collection_name="Synthetic visual contract"))
+    disabled = [button for button in Markup(page).buttons if "disabled" in button]
+    assert disabled and all(button["type"] == "submit" for button in disabled)

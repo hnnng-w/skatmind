@@ -25,6 +25,15 @@ buttons, disclosures, and downloads work without JavaScript and with a keyboard.
 Normal Card recording remains primary during play. No manual Review draft or
 re-entry of the Game is required.
 
+Issue #243 styles the existing `#session-result` focus destination with a solid 2px
+blue outline and 3px offset, including native redirected focus. Constant block
+padding and a small source-paragraph inset separate the caption without reducing
+Result/table width or changing layout on focus. The secondary review action now
+retains readable text through hover, pressed and keyboard-focus states. The existing
+`tabindex=-1`, source-return link, error priority, Request/Result bytes and execution
+lifecycle remain unchanged. Installed before/after measurements and forced-colors
+emulation are in the [R08 visual evidence](unified_workflow_visual_contract.md#r08-action-focus-and-disclosure-repair).
+
 ## Coverage and deterministic variant selection
 
 Issue #229 adds chooser opening directly to `/sessions/current#recorded-decisions`.

@@ -1752,3 +1752,12 @@ exact one-use creation and canonical bundle/rotation semantics remain. See
 `check` and `v1-supported-platform-matrix` gate manual closure. #208 and other findings
 remain open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 Package 0.17.0, dependencies, formats, 98 scenarios and Release gates are unchanged.
+
+Issue #243 implements R08's bounded hover, Result-focus and peer-disclosure repair
+in the shared app stylesheet. Native focus routing/forms and #238–#242 behavior
+remain intact. Independent-Wheel measurements and inspected screenshots are in the
+[unified visual contract](unified_workflow_visual_contract.md#r08-action-focus-and-disclosure-repair),
+including the still-open #240 table limitation. #242 remains completed. Both exact
+merged-commit `check` and `v1-supported-platform-matrix` gate manual #243 closure;
+#208/other findings stay open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open
+and B-06 closed. No whole-UAT, accessibility or Release acceptance is claimed.
