@@ -1771,3 +1771,13 @@ See the [task-first guide](task_first_bilingual_stateful_workflows.md). Generic 
 lifecycle and other backlog work remain open. #243 stays completed; exact merged-
 commit `check` and `v1-supported-platform-matrix` gate manual #244 closure. #208
 remains open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
+Issue #245 implements R03's bounded contextual operation-feedback slice: exact
+accepted-action messages, one source-bound 60-second pending receipt per family,
+once-per-final-response delivery, untimed native fallback and optional eight-second
+idle display. Retained outcomes/downloads, warning priority, #244 composition and
+#238–#243 repairs remain intact. See the [feedback contract](frontend_validation_state_and_localized_feedback.md#completed-operation-receipts-issue-245)
+and [browser evidence](unified_workflow_visual_contract.md#r03-contextual-operation-feedback).
+#244 remains completed. Both exact merged-commit CI jobs gate manual #245 closure;
+#208 and other findings stay open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07
+open and B-06 closed. No release-readiness or whole-UAT claim follows.

@@ -90,7 +90,7 @@ def render_match_recovery(context, locale, selections, *, progress=None):
     if game is None:
         return "", ""
     feedback = ''
-    if state.notice:
+    if state.notice and not state.routine_confirmation:
         feedback += '<p role="status">' + translated(locale, f"recovery.{state.notice}") + '</p>'
     diagnostic = state.diagnostic if state.diagnostic_source == context.workspace else None
     if diagnostic is not None:

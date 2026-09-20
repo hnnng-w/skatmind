@@ -96,7 +96,9 @@ def test_real_record_warning_or_late_replay_recover_complete_reopen(localized_se
     response = browser.submit(apply, confirm_apply="on")
     assert response[1]["location"] == "/matches/position/1#match-recording"
     page = follow(browser, response)
-    assert text(locale, "recovery.saved") in page
+    assert text(locale, "recovery.saved" if late else "feedback.correction") in page
+    if late:
+        assert 'data-operation-feedback' not in page
     assert active.workspace.revision == accepted.revision + 1
     assert len(active.workspace.slots[0].observed_game.plays) == (29 if late else 5)
     assert browser.submit(apply, confirm_apply="on")[0] == 409

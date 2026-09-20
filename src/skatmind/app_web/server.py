@@ -165,6 +165,11 @@ from .match_recovery_http import dispatch_match_recovery
 from .match_recovery_rendering import render_match_recovery
 from .match_review_context import match_review_binding_v1, require_match_review_binding_v1
 from .match_review_rendering import render_match_review_v1
+from .operation_feedback import (
+    deliver_operation_feedback,
+    feedback_lock,
+    feedback_source,
+)
 from .player_seat_setup import current_seat_setup_v1, submit_seat_setup_v1
 from .profile_driven_creation import (
     PROFILE_DRIVEN_LEARNING_CREATE_FIELDS,
@@ -608,6 +613,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 '<span class="language-buttons">',
                 f'<input type="hidden" name="_frontend_language_context" value="{token}">'
                 '<span class="language-buttons">', 1)
+            content = deliver_operation_feedback(self, content, status=status)
         self._send_bytes(
             status,
             content.encode("utf-8"),
@@ -1295,6 +1301,15 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     return
         family = definition.active_context_requirement or "profile"
         active_identity = self._feedback_identity(definition)
+        if family in {"sessions", "matches", "learning"}:
+            with self.server.app_context.lock:
+                attribute = {"sessions": "active_session", "matches": "active_match",
+                             "learning": "active_learning"}[family]
+                target = active_identity or getattr(self.server.app_context.managed_stateful,
+                                                     attribute)
+            if target is not None:
+                with feedback_lock(target):
+                    target.operation_feedback.begin()
         with self.server.app_context.lock:
             if definition.form_key in {"profile.player_add", "profile.player_update"}:
                 safe = getattr(self, "_current_safe_values", FormValuesV1())
@@ -1875,6 +1890,11 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         locale = self._frontend_state().locale
         self._rendered_language_source = capture_language_source_v1(
             self.server.app_context, "/sessions/current")
+        with active.lock:
+            self._operation_feedback_delivery = (active, "session", feedback_source(active),
+                bool(notice) or active.last_operation is not None
+                and active.last_operation.status in {
+                    "partial", "rejected", "unavailable", "conflict", "stale"})
         self._content_page(
             "/sessions",
             return_to="/sessions/current",
@@ -1953,16 +1973,22 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 self.server.app_context, active, "match-metadata")
             result = active.last_result
             transfer_notice = active.transfer_notice
+            transfer_feedback_key = active.transfer_feedback_key
             active.transfer_notice = None
             recovery = None if review else render_match_recovery(
                 active, self._frontend_state().locale,
                                               recording_selections(active),
-                                              progress=state["recorded_progress"])
+                                               progress=state["recorded_progress"])
+            self._operation_feedback_delivery = (active, "match", feedback_source(active),
+                review or transfer_notice is not None or operation_notice is not None
+                or error_notice is not None or active.recovery.diagnostic is not None
+                or state["recorded_progress"] is not None
+                and state["recorded_progress"].warning is not None)
         notice = (
             operation_notice
-            or transfer_notice
             or error_notice
-            or (None if result is None else result.message)
+            or (result.message if result is not None and result.status in {
+                "revision_conflict", "persistence_conflict", "reloaded"} else None)
         )
         if status >= HTTPStatus.BAD_REQUEST:
             notice = None
@@ -2000,8 +2026,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             locale=locale,
             show_feedback=(transfer_notice is not None or feedback is not None
                 and feedback.form_key in {"match.transfer_workspace", "match.transfer_report"}),
+            feedback_key=transfer_feedback_key if transfer_notice is not None else None,
         )
-        body = self._take_creation_notice("matches") + (render_match_review_v1(
+        creation_notice = self._take_creation_notice("matches")
+        if creation_notice:
+            with active.capture.lock:
+                active.operation_feedback.begin()
+        body = creation_notice + (render_match_review_v1(
             state, view, managed_handle=active.handle, locale=locale,
             transfer=transfer) if review else render_task_first_match_v1(
             state, view,
@@ -2013,10 +2044,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         ))
         if notice is not None:
             key = ("task.operation.conflict" if notice_kind in {"warning", "error"}
-                   else "task.operation.saved")
-            body += (
-                '<p role="status">' + escape(translate_frontend_message_v1(locale, key)) + '</p>'
-            )
+                   else "task.operation.reloaded" if result is not None
+                   and result.status == "reloaded" else "task.operation.rejected")
+            message = ('<p role="status">'
+                       + escape(translate_frontend_message_v1(locale, key)) + '</p>')
+            body = body.replace('<!-- operation-feedback -->',
+                                message + '<!-- operation-feedback -->', 1)
+            if '<!-- operation-feedback -->' not in body:
+                body = message + body
         self._content_page(
             "/matches",
             return_to=return_to,
@@ -2070,7 +2105,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             self.server.app_context, "/learning/current")
         state = build_unified_learning_state_v1(active)
         result = active.last_result
-        notice = error_notice or (None if result is None else result.message)
+        notice = error_notice or (result.message if result is not None and result.status in {
+            "revision_conflict", "persistence_conflict", "resolution_required",
+            "source_changed", "reloaded"} else None)
         if status >= HTTPStatus.BAD_REQUEST:
             notice = None
         notice_kind = (
@@ -2090,7 +2127,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         with active.corpus.lock:
             selection = (None if discovery is None else
                          learning_selection_v1(active, discovery, source_generation))
-        body = self._take_creation_notice("corpora") + render_task_first_learning_v1(
+            self._operation_feedback_delivery = (active, "learning", feedback_source(active),
+                                                  notice is not None)
+        creation_notice = self._take_creation_notice("corpora")
+        if creation_notice:
+            with active.corpus.lock:
+                active.operation_feedback.begin()
+        body = creation_notice + render_task_first_learning_v1(
             state,
             managed_handle=active.handle,
             locale=locale,
@@ -2108,10 +2151,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if notice is not None and not (active.entry_outcome is not None
                                       and active.entry_outcome[0] is result):
             key = ("task.operation.conflict" if notice_kind in {"warning", "error"}
-                   else "task.operation.saved")
-            body += (
-                '<p role="status">' + escape(translate_frontend_message_v1(locale, key)) + '</p>'
-            )
+                   else "task.operation.reloaded" if result is not None
+                   and result.status == "reloaded" else "feedback.transfer_resolution")
+            body = ('<p role="status">' + escape(translate_frontend_message_v1(locale, key))
+                    + '</p>') + body
         self._content_page(
             "/learning",
             return_to="/learning/current",
@@ -2346,13 +2389,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 raise InvalidFrontendProfileResetRequiredError
             return state.document, generation
 
-    def _save_creation_profile(self, prepared, *, family: str) -> None:
+    def _save_creation_profile(self, prepared, *, family: str) -> bool:
         if prepared.profile_document is None:
             with self.server.app_context.lock:
                 self.server.app_context.stateful_creation_notices[family] = (
                     "creation.profile_capacity_warning"
                 )
-            return
+            return False
         try:
             save_prepared_frontend_profile_v1(
                 self.server.app_context,
@@ -2380,6 +2423,20 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         else:
             with self.server.app_context.lock:
                 self.server.app_context.stateful_creation_notices.pop(family, None)
+            return True
+        return False
+
+    def _publish_creation_feedback(self, active, family, profile_saved):
+        if not profile_saved:
+            return
+        with feedback_lock(active):
+            with self.server.app_context.lock:
+                current = getattr(self.server.app_context.managed_stateful, "active_" + family)
+                if current is not active:
+                    return
+            attempt = active.operation_feedback.begin()
+            active.operation_feedback.publish(attempt, feedback_source(active),
+                                               (family + "_created", ()))
 
     def _create_session(self, values: dict[str, str]) -> None:
         profile, generation = self._profile_creation_snapshot(
@@ -2419,8 +2476,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             capture_mode=prepared.capture_mode,
             local_player_id=prepared.local_player_id,
         )
-        self._save_creation_profile(prepared, family="sessions")
+        profile_saved = self._save_creation_profile(prepared, family="sessions")
         self._activate_session(active)
+        self._publish_creation_feedback(active, "session", profile_saved)
         self._refresh_category("sessions")
         self._redirect("/sessions/current")
 
@@ -2577,8 +2635,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             ),
             values=prepared.product_values,
         )
-        self._save_creation_profile(prepared, family="matches")
+        profile_saved = self._save_creation_profile(prepared, family="matches")
         self._activate_match(active)
+        self._publish_creation_feedback(active, "match", profile_saved)
         self._refresh_category("matches")
         self._redirect("/matches/position/1#match-recording")
 
@@ -2722,6 +2781,16 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if status == HTTPStatus.OK:
             with source.capture.lock:
                 source.transfer_notice = result.message
+                source.transfer_feedback_key = {
+                    "applied": ("feedback.transfer_report" if report_id is not None
+                                else "feedback.transfer_version"),
+                    "unchanged": "feedback.transfer_unchanged",
+                    "resolution_required": "feedback.transfer_resolution",
+                }.get(result.status)
+                if (result.status == "applied" and report_id is None
+                        and target_result is not None
+                        and target_result.state.get("relation") == "duplicate_snapshot"):
+                    source.transfer_feedback_key = "feedback.version_selected"
             location = (
                 f"/matches/position/{source.selected_position}"
                 if report_id is None
@@ -2778,8 +2847,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             ),
             corpus_id=corpus_id,
         )
-        self._save_creation_profile(prepared, family="corpora")
+        profile_saved = self._save_creation_profile(prepared, family="corpora")
         self._activate_learning(active)
+        self._publish_creation_feedback(active, "learning", profile_saved)
         self._refresh_category("corpora")
         self._redirect("/learning/current")
 
@@ -3001,6 +3071,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         self._request_frontend = None
+        self._operation_feedback_delivery = None
         self._rendered_language_source = None
         self._language_return = None
         self._language_profile_saved = False
@@ -3084,6 +3155,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         self._request_frontend = None
+        self._operation_feedback_delivery = None
         self._rendered_language_source = None
         self._language_return = None
         self._language_profile_saved = False

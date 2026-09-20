@@ -32,6 +32,7 @@ def dispatch_match_recovery(app, active, path, values):
                 raise ValueError("Correction requires explicit confirmation.")
             apply_match_recovery(active, values["recovery_selection"])
         else:
+            active.operation_feedback.begin()
             active.recovery.clear()
         fragment = "match-recovery" if action in {"select", "preview"} else "match-recording"
         return f"/matches/position/{active.selected_position}#{fragment}"

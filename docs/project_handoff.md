@@ -2697,6 +2697,20 @@ open; exact merged-commit `check` and `v1-supported-platform-matrix` gate manual
 and B-06 closed. Package, dependencies, formats, 63 routes/107 forms and 98 scenarios
 remain; no release-readiness or whole-UAT claim follows.
 
+Issue #245 implements only R03's contextual operation-feedback lifecycle, starting
+clean on `bug/245-operation-feedback` at `018237c100f99b766e146bfd424feb49beb28018`.
+One immutable source-bound receipt per active family is separate from retained
+outcomes, expires after 60 monotonic seconds and is delivered once at final matching
+HTML. Native feedback is untimed; the optional eight-second idle display pauses for
+hover/focus/hidden documents. Errors, partial correction, profile-unsaved creation,
+transfer and retained-version/preparation warnings stay explicit. See the
+[validation guide](frontend_validation_state_and_localized_feedback.md#completed-operation-receipts-issue-245)
+and [independent-Wheel evidence](unified_workflow_visual_contract.md#r03-contextual-operation-feedback).
+#244 remains completed. Both exact merged-commit `check` and
+`v1-supported-platform-matrix` gate manual #245 closure. #208/other findings remain
+open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed. No
+release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

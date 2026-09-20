@@ -259,7 +259,7 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
         locale, "task.match.progress_value", observed=progress["observed_game_count"],
         complete=progress["complete_play_trace_count"], passed=progress["passed_deal_count"]) + '</p>'
     game = state["game"]
-    task = '<h2 id="match-recording-heading">' + translated(
+    task = '<!-- operation-feedback --><h2 id="match-recording-heading">' + translated(
         locale, "task.match.game_heading", number=view.selected_position) + '</h2>'
     task += paragraph(locale, "task.match.round", number=view.selected.round_number)
     task += '<dl class="match-game-seats">' + ''.join('<div><dt>' + translated(
@@ -323,7 +323,7 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     for index, player in enumerate(state["participants"], 1):
         metadata[f"player_{index}_label"] = player["player_label"]
         metadata[f"player_{index}_platform_id"] = player["platform_player_id"]
-    body += '<div id="match-metadata" tabindex="-1">' + disclosure(locale, "task.match.metadata", render_fixed_match_format_v1(locale) + paragraph(locale, "task.match.metadata_help")
+    body += '<div id="match-metadata" tabindex="-1"><!-- metadata-operation-feedback -->' + disclosure(locale, "task.match.metadata", render_fixed_match_format_v1(locale) + paragraph(locale, "task.match.metadata_help")
         + operation_form(state, handle, locale, "update_match_metadata", values=metadata)) + '</div>'
     body += disclosure(locale, "task.match.statistics", _statistics(state, handle, locale))
     from .match_review_rendering import render_match_analysis_v1

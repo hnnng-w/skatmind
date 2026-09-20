@@ -122,7 +122,7 @@ def test_returned_partial_add_build_versions_downloads_and_independent_recording
     assert form["values"]["source_handle"] == ""
     assert set(form["values"]) == entry.LEARNING_ENTRY_FIELDS | {"_frontend_form_instance"}
     page = follow(browser, browser.submit(form, source_handle=source_handle(source_path)))
-    assert "Added and selected" in page and len(imports) == 1 and not builds
+    assert "Match version added." in page and len(imports) == 1 and not builds
     assert imports[0][1]["selection_mode"] == "keep_current"
     assert target.corpus.prepared_artifacts is None
     store = load_learning_corpus_directory_v1(target.path)

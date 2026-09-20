@@ -51,6 +51,8 @@ from .managed_item_storage import (
     validate_managed_direct_child_path_v1,
 )
 from .match_recovery import MatchRecoveryState, retain_recording_error
+from .operation_feedback import PendingOperationFeedback, feedback_source
+from .operation_feedback_mapping import match_operation_message
 
 _SAFE_WORKSPACE_FILENAME = "managed-match.json"
 UNIFIED_MATCH_EXPORT_KINDS = (
@@ -74,7 +76,10 @@ class UnifiedMatchContextV1:
     retired: bool = field(default=False, repr=False)
     position_generation: int = field(default=0, repr=False)
     last_result: MatchCaptureWebResultV1 | None = field(default=None, repr=False)
+    operation_feedback: PendingOperationFeedback = field(
+        default_factory=PendingOperationFeedback, repr=False)
     transfer_notice: str | None = field(default=None, repr=False)
+    transfer_feedback_key: str | None = field(default=None, repr=False)
     recovery: MatchRecoveryState = field(default_factory=MatchRecoveryState, repr=False)
     card_entry_key: bytes = field(default_factory=lambda: secrets.token_bytes(32), repr=False)
 
@@ -212,6 +217,7 @@ def reload_unified_match_v1(
 ) -> MatchCaptureWebResultV1:
     with context.capture.lock:
         context.require_attached()
+        context.operation_feedback.begin()
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
@@ -234,6 +240,7 @@ def apply_unified_match_operation_v1(
 ) -> MatchCaptureWebResultV1:
     with context.capture.lock:
         context.require_attached()
+        attempt = context.operation_feedback.begin()
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
@@ -241,6 +248,9 @@ def apply_unified_match_operation_v1(
         )
         position = int(values.get("match_position", context.selected_position))
         select_unified_match_position_v1(context, position)
+        # Selection can invalidate a pending receipt; start on this exact Game.
+        attempt = context.operation_feedback.begin()
+        previous_game = context.workspace.slots[position - 1].observed_game
         context.recovery.diagnostic = None
         try:
             result = apply_match_capture_web_operation_v1(context.capture, values)
@@ -255,6 +265,8 @@ def apply_unified_match_operation_v1(
         if result.status == "applied":
             context.recovery.clear()
             context.transfer_notice = None
+            context.operation_feedback.publish(attempt, feedback_source(context),
+                match_operation_message(context, values.get("operation"), previous_game))
     selected = result.state.get("selected_position")
     if type(selected) is int and 1 <= selected <= 36:
         select_unified_match_position_v1(context, selected)
@@ -268,6 +280,7 @@ def execute_unified_match_analysis_v1(
 ) -> MatchCaptureWebResultV1:
     with context.capture.lock:
         context.require_attached()
+        context.operation_feedback.begin()
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
@@ -295,6 +308,7 @@ def select_unified_match_position_v1(
         raise ValueError("position must be an integer from 1 through 36.")
     if context.selected_position != position:
         context.recovery.clear()
+        context.operation_feedback.begin()
         context.position_generation += 1
     context.selected_position = position
 

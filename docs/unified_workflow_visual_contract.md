@@ -556,3 +556,141 @@ public/profile/persistence formats, 63 POST routes / 107 forms and 98 scenarios
 are unchanged. #243 stays completed; exact merged-commit `check` and
 `v1-supported-platform-matrix` gate manual #244 closure. #208 stays open, UAT-01
 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
+## R03 contextual operation feedback
+
+Issue #245 starts clean on `bug/245-operation-feedback` at
+`018237c100f99b766e146bfd424feb49beb28018`, after completed #244. The actual issue
+and R03 consolidated retest were read. Three new current-code regressions first
+failed: retained `created`, `applied` and same-revision `unchanged` each regenerated
+the generic completion sentence during pure Session rendering. This is current-code
+evidence, separate from the archive-only planning probe.
+
+One small immutable presentation receipt replaces routine generic-success tails.
+Its bounded message parameters, exact source identity and monotonic 60-second
+delivery lifetime are independent of retained operation Results and warnings. Final
+HTML delivery is best-effort across same-source tabs; a lost response can lose the
+acknowledgement. New operations/source changes supersede it. The normal-flow notice
+is at the existing recording/outcome return area, including Match metadata's existing
+return target. No new focus or scroll destination is introduced. See the
+[validation contract](frontend_validation_state_and_localized_feedback.md#completed-operation-receipts-issue-245)
+for warning priority and delivery limits.
+
+### Independent installed evidence
+
+`scripts/verify_operation_feedback.py` uses the existing dependency-free Chromium
+transport and real returned forms. It verifies baseline installed modules/resources
+against starting HEAD, and repaired installed files against the working tree:
+
+```powershell
+& PATH_TO_INSTALLED_PYTHON scripts/verify_operation_feedback.py `
+    --browser PATH_TO_EDGE --output FRESH_SCRATCH_DIRECTORY `
+    --wheel PATH_TO_WHEEL --phase before
+```
+
+Use `--phase after` with the independently installed repaired Wheel. Completed final
+runs are `<temporary-directory>/opencode/245-before-05/` and `245-after-05/`, each
+with per-source/download SHA-256 and byte counts, loaded Python/resource hashes,
+served asset parity, native request/operation counters, DOM geometry/focus and PNGs.
+Earlier incomplete harness runs remain unsuccessful: baseline probes corrected
+the error-summary selector and explicit declaration selections; the first repaired
+probe corrected the observer to include CSS `visibility` in `checkVisibility`.
+Those were evidence-harness corrections, not simulated product successes. A later
+real multipart regression exposed `applied` plus `duplicate_snapshot`: importing
+an already-retained non-Current version can change selection without adding a
+version. The final mapping and Match transfer say only that the version was selected.
+Both actual upload and transfer paths now have focused regressions; the final
+repaired Wheel above includes this correction.
+The unchanged guarded-import/activation regression also verifies that receipt
+supersession stays inside existing operation/rejection boundaries; there is no
+extra pre-dispatch Product-lock wait before collection activation.
+
+Both completed runs used **Windows CPython 3.13.7**, **Package 0.17.0**, and
+**headless Edge 153.0.4234.32**. Session creation, actual eleven-Card validation
+failure, ten-Card save, declarer/declaration, and Play returns run in **de/en with
+JavaScript on/off**, at **1365×900**, **390×844**, **320×800**, and representative
+**200% text**. Native Match creation/start/three Plays/preview/actual correction/
+same-Card Apply and Learning creation/first Add/identical Add/Build are also exercised.
+The broader HTTP fixtures cover Pass, evidence, selection, stale sources, partial
+correction, genuine Product saves followed by injected profile failure, transfer
+and failed/obsolete preparation. Match/Learning browser operation returns are the
+bounded English enhanced/native samples, not an all-family Cartesian matrix.
+
+The baseline repeats the generic success on ordinary refresh/language views. The
+repair delivers one contextual acknowledgement and does not reconstruct it later.
+Ten initial Cards produce one count-based message and one save, despite eleven
+accepted startup Commands. CK names accepted actor Alex while the next task names
+Boris. A same-Card correction sends its existing Apply but performs no new save.
+The new receipt is absent on errors and review Results. Existing error focus remains
+`session-card-error`; recording and Result focus remain `session-recording`,
+`match-recording` and `session-result`. The rejected eleven selections survive the
+real error; ordinary no-script forms still work.
+
+Measured page/client widths agree at **1350/1350**, **375/375**, and **305/305**.
+Notice text contrast is **15.93:1**; tested dismiss-control pairs are **7.95:1** and
+**11.72:1**. Notices wrap in normal flow without covering Cards, buttons or errors.
+Screenshots were inspected for native/enhanced creation, narrow batch/Play/correction,
+enlarged text, error focus, Learning Add/Build, actual timeout, forced colors and
+the retained SJ Result. The narrow/enlarged comparison-table limitation remains;
+this issue does not change its layout or claim all-page accessibility.
+
+The optional display timer was observed with real elapsed time, not injected clocks:
+the message remained through **8.3 seconds each** of hover, focused dismissal control
+and an actual second-tab `document.visibilityState == "hidden"` interval. After
+returning, its remaining idle budget expired in **7.467 seconds** (earlier visible
+idle time had already been consumed). The unsent SJ selection, active element and
+next control geometry were identical before/after; **zero requests** occurred during
+display/hide. Keyboard dismissal kept the focused control usable until Tab moved to
+Cards, again with zero requests. Native no-script confirmation remained visible
+after **8.3 seconds**, with no dismiss control. Actual browser history returned the
+expired enhanced page with its notice hidden, live semantics off and unsent selection
+retained. This is scoped observed history behavior, not an ability to erase native
+cached responses or guarantee delivery to every tab.
+
+Accessibility-tree inspection found a non-ignored `status` with polite/atomic
+properties, plus its one text and optional button; no duplicate announcement node
+was introduced. Forced-colors/reduced-motion emulation retained readable controls,
+`forced-color-adjust: auto` and `animation-name: none`. There was **no actual
+assistive-technology or screen-reader testing**. Full-page PRG plus ARIA status alone
+does not prove an announcement. The design references are
+[Status Messages](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html) and
+[Timing Adjustable](https://www.w3.org/WAI/WCAG22/Understanding/timing-adjustable.html),
+not a certification claim.
+
+### Exact operations and data
+
+Each matched run has **45 native POSTs**. Native operations invoke **20 Session
+saves**, **7 Match saves**, **1 collection creation**, **2 Workspace imports**
+(including one identical no-op), **1 preparation**, **1 Session review execution**
+and **10 profile saves**. Separately labelled HTTP fixture/setup work adds **36
+Session saves** and **5 profile saves**: totals **56/7** Session/Match saves and
+**15** profile saves. No operation is mocked successful. Viewing, timing, dismissal,
+language presentation and downloads add no analysis or recording save.
+
+Four native partial Session files are **10,570 bytes each**, and the corrected Match
+is **11,096 bytes** in each run. Each source's exact bytes are compared through
+passive viewing/language/downloads; random generated identities mean independently
+created recordings have different hashes across runs. The ten prepared downloads
+are **471,869 bytes total**, with all individual hashes/counts retained in evidence.
+Real HTTP tests additionally compare every retained download before/after identical
+import and failed preparation.
+
+One real 30-Play ended Session fixture is shared across the Result checks. It has
+**revision 44**, **ten Checkpoints**, pre-decision score **14/29**, equal-best **CJ/SJ
+at 6.00**, and seven historical hand Cards. Review creates no toast and preserves
+the existing source link. Exact deterministic downloads match baseline, repair and
+#244:
+
+```text
+Request (1,534 bytes) 05dc65aa713fb37c7b40cd9a4027ce6926881e6bb0c98adaf4256b8a7f14ec94
+Result  (9,640 bytes) 76eb05221cab155ff59f734ec568bbead767c2f309d6823546d598412ac545c1
+Before Wheel          6f34da8a54860c83284b2d461a0eaa631401e09ef6b2ac52d864a2a3bbc2c49d
+After Wheel           1c577b610a42c40d13b4c4e7b89c351619f6411bc95b18530a59be1e897757c3
+```
+
+Package/Python/license/dependencies (including `tzdata>=2026.4`), **63 POST routes /
+107 forms**, and **98 scenarios** are preserved. #244 remains completed. Only this
+R03 feedback slice is implemented; #208/other findings remain open, UAT-01 unaccepted,
+UAT-02–12 paused, B-09/B-07 open and B-06 closed. Both exact merged-commit `check`
+and `v1-supported-platform-matrix` are required before manual #245 closure. This is
+synthetic engineering evidence, not maintainer UAT or release readiness.

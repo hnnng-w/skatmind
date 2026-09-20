@@ -22,6 +22,17 @@ algorithm changes.
 
 ## Private contracts
 
+Issue #245 adds only a private transient presentation receipt, separate from retained
+Session operation and Match/Learning result data. One pending source-bound receipt
+per active family expires after 60 monotonic seconds and is consumed at the matching
+final HTML response. Contextual de/en creation, Card/batch, declaration/evidence,
+correction and Learning add/select/build messages replace generic-success replay.
+Warnings, partial outcomes and exact downloads keep their existing lifetimes.
+The optional eight-second display and untimed no-script fallback are documented in
+[task-first workflows](task_first_bilingual_stateful_workflows.md#contextual-completion-feedback)
+and [validation feedback](frontend_validation_state_and_localized_feedback.md#completed-operation-receipts-issue-245).
+This adds no Product operation, route, posted field or persistence contract.
+
 The private versions are exactly:
 
 ```text

@@ -28,6 +28,8 @@ from .managed_item_storage import (
     build_managed_item_storage_path_v1,
     validate_managed_direct_child_path_v1,
 )
+from .operation_feedback import PendingOperationFeedback, feedback_source
+from .operation_feedback_mapping import session_command_message
 
 if TYPE_CHECKING:
     from .session_recorded_review import RecordedReviewSourceV1
@@ -115,6 +117,8 @@ class GuidedSessionContextV1:
     execution: GuidedFrontendExecutionV1 | None = field(default=None, repr=False)
     recorded_review_source: RecordedReviewSourceV1 | None = field(default=None, repr=False)
     execution_attempt: object | None = field(default=None, repr=False)
+    operation_feedback: PendingOperationFeedback = field(
+        default_factory=PendingOperationFeedback, repr=False)
     review_selection_key: bytes = field(default_factory=lambda: secrets.token_bytes(32), repr=False)
     lock: threading.RLock = field(default_factory=threading.RLock, repr=False)
 
@@ -137,6 +141,7 @@ class GuidedSessionContextV1:
     def begin_execution(self) -> object:
         """Caller owns the Session lock; a newer attempt supersedes older work."""
         self.require_attached()
+        self.operation_feedback.begin()
         self.execution_attempt = object()
         return self.execution_attempt
 
@@ -285,6 +290,7 @@ def open_guided_session_v1(
 def reload_guided_session_v1(context: GuidedSessionContextV1) -> GuidedSessionOperationResultV1:
     with context.lock:
         context.require_attached()
+        context.operation_feedback.begin()
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
@@ -366,6 +372,7 @@ def apply_guided_session_command_v1(
     options = export_options or default_session_position_export_options_v1()
     with context.lock:
         context.require_attached()
+        attempt = context.operation_feedback.begin()
         checkpoints = _collect_current_checkpoint(
             state=context.state,
             checkpoints=context.decision_checkpoints,
@@ -387,13 +394,17 @@ def apply_guided_session_command_v1(
             checkpoints=checkpoints,
             export_options=options,
         )
-        return _persist_session_mutation(
+        operation = _persist_session_mutation(
             context,
             state=result.value.state,
             checkpoints=checkpoints,
             result_status="applied",
             diagnostics=diagnostics,
         )
+        if operation.status == "applied" and not diagnostics:
+            context.operation_feedback.publish(attempt, feedback_source(context),
+                                                session_command_message(context, command))
+        return operation
 
 
 def apply_guided_session_edit_v1(
@@ -414,6 +425,7 @@ def rewind_guided_session_v1(
     options = export_options or default_session_position_export_options_v1()
     with context.lock:
         context.require_attached()
+        context.operation_feedback.begin()
         result = session_api.rewind_session(
             context.state,
             expected_revision=context.state.revision,
@@ -458,6 +470,7 @@ def correct_guided_session_command_v1(
     options = export_options or default_session_position_export_options_v1()
     with context.lock:
         context.require_attached()
+        attempt = context.operation_feedback.begin()
         checkpoints = context.decision_checkpoints
         source = session_api.rewind_session(
             context.state,
@@ -493,13 +506,19 @@ def correct_guided_session_command_v1(
             checkpoints=checkpoints,
             export_options=options,
         )
-        return _persist_session_mutation(
+        operation = _persist_session_mutation(
             context,
             state=result.value.state,
             checkpoints=checkpoints,
             result_status=result.value.status,
             diagnostics=diagnostics,
         )
+        if operation.status == "applied" and not diagnostics:
+            command = correction.replacement_command
+            message = (("correction", ()) if command.kind == "record_play"
+                       else session_command_message(context, command))
+            context.operation_feedback.publish(attempt, feedback_source(context), message)
+        return operation
 
 
 def execute_guided_session_position_v1(

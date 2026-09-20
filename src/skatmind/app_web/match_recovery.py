@@ -16,6 +16,7 @@ from skatmind.match_workspace_persistence import load_match_workspace_file_v1
 from skatmind.observed_trace_diagnostics import ObservedTraceDiagnostic, ObservedTraceError
 
 from .managed_item_storage import validate_managed_direct_child_path_v1
+from .operation_feedback import feedback_source
 from .workflow_state import StaleFrontendWorkflowRevisionError
 
 if TYPE_CHECKING:
@@ -64,6 +65,7 @@ class MatchRecoveryState:
     proposed_cards: tuple[str, ...] = ()
     proposed_index: int | None = None
     notice: str | None = None
+    routine_confirmation: bool = False
 
     def clear(self) -> None:
         self.selections.clear()
@@ -74,6 +76,7 @@ class MatchRecoveryState:
         self.proposed_cards = ()
         self.proposed_index = None
         self.notice = None
+        self.routine_confirmation = False
 
 
 def recording_selections(context: UnifiedMatchContextV1) -> tuple[MatchRecoverySelection, ...]:
@@ -130,6 +133,7 @@ def _resolve(context: UnifiedMatchContextV1, token: str) -> MatchRecoverySelecti
 
 def select_match_recovery(context: UnifiedMatchContextV1, token: str) -> None:
     with context.capture.lock:
+        context.operation_feedback.begin()
         selection = _resolve(context, token)
         context.recovery.selected = selection
         context.recovery.preview = None
@@ -141,6 +145,7 @@ def preview_match_recovery(
     context: UnifiedMatchContextV1, token: str, *, card: str | None = None,
 ) -> None:
     with context.capture.lock:
+        context.operation_feedback.begin()
         selection = _resolve(context, token)
         state = context.recovery
         state.preview = None
@@ -162,6 +167,7 @@ def preview_match_recovery(
 def apply_match_recovery(context: UnifiedMatchContextV1, token: str) -> str:
     """Rebuild at Apply; one CAS Save; failed saves never publish the candidate."""
     with context.capture.lock:
+        attempt = context.operation_feedback.begin()
         state = context.recovery
         preview = state.preview
         if preview is None or not secrets.compare_digest(preview.apply_token, token):
@@ -186,8 +192,13 @@ def apply_match_recovery(context: UnifiedMatchContextV1, token: str) -> str:
         context.capture.report_store.clear()
         context.last_result = None
         context.transfer_notice = None
+        actionable = bool(state.proposed_cards) or selection.action == "rewind"
         state.clear()
         state.notice = "saved"
+        if not actionable and candidate.warning is None:
+            state.routine_confirmation = True
+            context.operation_feedback.publish(attempt, feedback_source(context),
+                                               ("correction", ()))
         return "saved"
 
 

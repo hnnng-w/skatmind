@@ -37,6 +37,8 @@ from .managed_item_storage import (
     build_managed_item_storage_path_v1,
     validate_managed_direct_child_path_v1,
 )
+from .operation_feedback import PendingOperationFeedback, feedback_source
+from .operation_feedback_mapping import learning_import_message
 
 
 @dataclass(slots=True, kw_only=True)
@@ -48,6 +50,8 @@ class UnifiedLearningContextV1:
     handle: str
     corpus: LearningCorpusWebContextV1 = field(repr=False)
     last_result: LearningCorpusWebResultV1 | None = field(default=None, repr=False)
+    operation_feedback: PendingOperationFeedback = field(
+        default_factory=PendingOperationFeedback, repr=False)
     entry_key: bytes = field(default_factory=lambda: secrets.token_bytes(32), repr=False)
     entry_outcome: tuple[LearningCorpusWebResultV1, str, int, bool] | None = field(
         default=None, repr=False)
@@ -119,6 +123,7 @@ def reload_unified_learning_corpus_v1(
     context: UnifiedLearningContextV1,
 ) -> LearningCorpusWebResultV1:
     with context.corpus.lock:
+        context.operation_feedback.begin()
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
@@ -156,6 +161,7 @@ def import_workspace_bytes_into_unified_learning_v1(
     )
     with upload.temporary_file() as raw_path:
         with context.corpus.lock:
+            attempt = context.operation_feedback.begin()
             validate_managed_direct_child_path_v1(
                 context.category_root,
                 context.path,
@@ -168,6 +174,9 @@ def import_workspace_bytes_into_unified_learning_v1(
                 same_revision_resolution=same_revision_resolution,
                 expected_catalog_revision=expected_catalog_revision,
             )
+            context.operation_feedback.publish(attempt, feedback_source(context),
+                learning_import_message(result.status, result.state.get("relation"),
+                                        selection_mode))
     context.last_result = result
     return result
 
@@ -180,6 +189,7 @@ def select_unified_learning_current_snapshot_v1(
     expected_catalog_revision: int,
 ) -> LearningCorpusWebResultV1:
     with context.corpus.lock:
+        attempt = context.operation_feedback.begin()
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
@@ -191,6 +201,9 @@ def select_unified_learning_current_snapshot_v1(
             match_snapshot_id=match_snapshot_id,
             expected_catalog_revision=expected_catalog_revision,
         )
+        if result.status == "applied":
+            context.operation_feedback.publish(attempt, feedback_source(context),
+                                                ("version_selected", ()))
     context.last_result = result
     return result
 
@@ -200,6 +213,7 @@ def import_report_source_into_unified_learning_v1(
     source: LearningCorpusStrategyTeacherReportSourceV1,
 ) -> LearningCorpusWebResultV1:
     with context.corpus.lock:
+        context.operation_feedback.begin()
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
@@ -234,6 +248,7 @@ def remove_unified_learning_report_source_v1(
     source_binding_id: str,
 ) -> LearningCorpusWebResultV1:
     with context.corpus.lock:
+        context.operation_feedback.begin()
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
@@ -251,6 +266,7 @@ def clear_unified_learning_report_sources_v1(
     context: UnifiedLearningContextV1,
 ) -> LearningCorpusWebResultV1:
     with context.corpus.lock:
+        context.operation_feedback.begin()
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
@@ -274,6 +290,10 @@ def prepare_unified_learning_artifacts_v1(
     test_weight: int,
 ) -> LearningCorpusWebResultV1:
     with context.corpus.lock:
+        attempt = context.operation_feedback.begin()
+        store = context.corpus.store
+        generation = context.corpus.generation
+        source_revision = context.corpus.strategy_source_store.revision
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
@@ -288,6 +308,12 @@ def prepare_unified_learning_artifacts_v1(
         validation_weight=validation_weight,
         test_weight=test_weight,
     )
+    with context.corpus.lock:
+        if (result.status == "prepared" and context.corpus.store is store
+                and context.corpus.generation == generation
+                and context.corpus.strategy_source_store.revision == source_revision
+                and context.corpus.prepared_artifacts is not None):
+            context.operation_feedback.publish(attempt, feedback_source(context), ("prepared", ()))
     context.last_result = result
     return result
 

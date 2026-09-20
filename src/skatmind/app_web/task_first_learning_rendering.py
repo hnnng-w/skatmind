@@ -32,8 +32,11 @@ def transfer_choices(locale):
 def render_task_first_transfer_v1(
     state, *, source_handle, source_id, source_label, target_handle=None,
     target_label=None, report_id=None, locale="en", show_feedback=False,
+    feedback_key=None,
 ):
     content = paragraph(locale, "task.transfer.help")
+    if feedback_key is not None:
+        content += '<p role="status">' + translated(locale, feedback_key) + '</p>'
     if state is None:
         content += paragraph(locale, "task.transfer.open_collection")
         content += '<p><a href="/learning">' + translated(locale, "navigation.learning") + '</a></p>'
@@ -89,7 +92,7 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
         guidance += '<p><a class="button-link" href="#learning-results">' + translated(locale, "task.learning.view_results") + '</a></p>'
     else:
         guidance += '<p><a href="#learning-build">' + translated(locale, "task.learning.build") + '</a></p>'
-    body = section(locale, "task.learning.next", guidance)
+    body = '<!-- operation-feedback -->' + section(locale, "task.learning.next", guidance)
     available = paragraph(locale, "task.learning.recorded_help")
     options = [("", text(locale, "task.learning.choose_recorded"))]
     for number, item in enumerate(recorded, 1):
@@ -121,14 +124,14 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
         result, match_id, copied_revision, selected = entry_outcome
         outcome = {"unchanged": "unchanged", "resolution_required": "resolution",
                    "revision_conflict": "conflict", "persistence_conflict": "conflict"}.get(result.status)
-        if result.status == "applied":
-            outcome = "selected" if result.state["relation"] == "new_match" and selected else "retained"
+        if result.status == "applied" and not selected:
+            outcome = "retained"
         if outcome is not None:
             available += '<div role="status">' + paragraph(locale, "task.learning.import." + outcome,
                 name=_match_label(locale, profile, match_id, recorded), revision=copied_revision) + '</div>'
     available += '<p><a href="/learning/recorded-matches/refresh">' + translated(locale, "task.learning.refresh_recorded") + '</a></p>'
     available += '<p><a href="/matches">' + translated(locale, "task.learning.open_matches") + '</a></p>'
-    body += '<div id="learning-recorded-matches" tabindex="-1">' + section(locale, "task.learning.recorded", available) + '</div>'
+    body += '<div id="learning-recorded-matches" tabindex="-1"><!-- entry-operation-feedback -->' + section(locale, "task.learning.recorded", available) + '</div>'
     selections = paragraph(locale, "task.learning.versions_help")
     alternatives = ''
     for match in state["matches"]:

@@ -1,5 +1,61 @@
 "use strict";
 
+// Redundant accepted-outcome feedback only. No requests, storage, focus or scrolling.
+for (const notice of document.querySelectorAll("[data-operation-feedback]")) {
+  if (notice.dataset.enhanced) continue;
+  notice.dataset.enhanced = "true";
+  let remaining = 8000, started = null, timer = null, finished = false;
+  const dismiss = document.createElement("button");
+  dismiss.type = "button";
+  dismiss.className = "operation-dismiss";
+  dismiss.textContent = notice.dataset.dismissLabel;
+  notice.append(dismiss);
+  const paused = () => document.hidden || notice.matches(":hover, :focus-within");
+  const stop = () => {
+    clearTimeout(timer);
+    timer = null;
+    if (started !== null) remaining -= performance.now() - started;
+    started = null;
+  };
+  const hide = () => {
+    stop();
+    finished = true;
+    notice.setAttribute("aria-live", "off");
+    // Preserve normal-flow geometry so the next input never jumps on disappearance.
+    notice.style.visibility = "hidden";
+  };
+  const update = () => {
+    stop();
+    if (finished || paused()) return;
+    if (remaining <= 0) { hide(); return; }
+    started = performance.now();
+    timer = setTimeout(update, remaining);
+  };
+  dismiss.addEventListener("click", () => {
+    stop();
+    finished = true;
+    notice.setAttribute("aria-live", "off");
+    notice.querySelector("span").style.visibility = "hidden";
+    if (document.activeElement === dismiss) {
+      // An explicit dismissal leaves its focused control usable until focus leaves.
+      dismiss.textContent = notice.dataset.dismissedLabel;
+      dismiss.setAttribute("aria-disabled", "true");
+    } else hide();
+  });
+  notice.addEventListener("pointerenter", update);
+  notice.addEventListener("pointerleave", update);
+  notice.addEventListener("focusin", update);
+  notice.addEventListener("focusout", () => setTimeout(() => {
+    if (finished && !notice.contains(document.activeElement)) hide();
+    else update();
+  }, 0));
+  document.addEventListener("visibilitychange", update);
+  // A restored cached document must not mint a fresh announcement or timer.
+  window.addEventListener("pagehide", hide);
+  window.addEventListener("pageshow", event => { if (event.persisted) hide(); });
+  update();
+}
+
 // Presentation-only count; native controls and the explicit submit work without this.
 function updateCardSelection(fieldset) {
   const cards = Array.from(fieldset.querySelectorAll('input[name="cards"]:checked'),

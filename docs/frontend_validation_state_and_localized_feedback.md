@@ -196,6 +196,56 @@ Closing the process discards all feedback.
 
 ## HTTP And Rendering
 
+### Completed-operation receipts (Issue #245)
+
+Routine success is separate from both rejected-form state and retained operation
+results. `operation_feedback.py` holds one pending immutable receipt per active
+Session, Match or Learning context. Its finite message key and validated arguments
+contain only accepted Card codes, roster ordinals and small counts. Full accepted
+Player labels are resolved against the exact bound source and escaped at delivery;
+raw exception messages, paths and identifiers never become confirmation text.
+
+Publication follows the existing successful save/publication boundary. Normal
+creation additionally waits for the profile-enrichment outcome. The receipt binds
+the owning context, immutable content references, existing fingerprint/generation,
+selected Match Game/report-store generation or Learning Catalog/prepared artifacts,
+and the latest operation attempt. Computing it performs no file read or Session
+replay. A new relevant attempt, source/selection change, retirement, replacement or
+60-second monotonic delivery expiry prevents stale success. An older preparation
+that loses its existing publication guard cannot publish a receipt.
+
+Only the matching final HTML response, after existing source/language validation,
+can consume the receipt. Pure rendering, discovery, unrelated pages, assets,
+downloads and HEAD do not consume it. Refresh and language changes do not rebuild
+success from `last_operation`, `last_result`, or recovery data. Those retained values,
+diagnostics, executions and exact downloads keep their existing meanings and bytes.
+Two tabs showing the identical source compete for one best-effort acknowledgement;
+the first eligible response may consume it, and a lost response may lose it. There
+is no per-tab exactly-once guarantee, acknowledgement route, cookie, storage or queue.
+
+Warnings remain separate and untimed. In particular, `_take_creation_notice` still
+delivers Product-created/profile-unsaved warnings; creation is neither retried nor
+rolled back. Partial Session corrections, actual Card-rule witnesses, retained-version
+imports, transfer/resolution feedback, failed preparation with old Results, explicit
+Reload and post-deletion refresh warnings retain their actionable presentation.
+They suppress redundant clean success. Field links, disclosure opening, safe values,
+error focus and existing return fragments are unchanged. Same-Card correction and
+identical imports do not announce another save or new version.
+An already-retained version imported with `select_imported` can genuinely change
+Current selection: its accepted `applied`/`duplicate_snapshot` outcome says only
+that the version was selected, never that another version was added.
+
+The short native fallback is a polite status at the task/outcome return area, with
+no focus transfer. The optional existing script can hide only these redundant
+confirmations after eight seconds of document-visible idle time, paused by hover,
+focus or a hidden document. It preserves layout and the next input, and a focused
+dismiss button stays usable until focus leaves. Unique actionable information never
+uses this timer. Without JavaScript the message is untimed in that response, with
+no dead dismiss control. Enhanced history restoration does not restart the timer;
+the server cannot erase an already cached native page. A full-page PRG and
+`role="status"` are not evidence of an actual screen-reader announcement. See the
+[scoped browser evidence](unified_workflow_visual_contract.md#r03-contextual-operation-feedback).
+
 Successful browser actions retain POST/Redirect/GET and HTTP `303`. Normal
 validation and unsupported-workflow failures return contextual HTML with HTTP
 `400`. Stale form, optimistic persistence, duplicate identity, and Product

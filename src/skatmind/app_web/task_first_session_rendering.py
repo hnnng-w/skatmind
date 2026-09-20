@@ -309,6 +309,7 @@ def render_task_first_session_v1(
                     if primary else '<p><a href="#session-history">' + translated(
                         locale, "recorded_review.history") + '</a></p>')
         normal += ('<div id="session-recording" tabindex="-1"><div id="session-card-feedback"></div>'
+            + '<!-- operation-feedback -->'
             + '<section class="panel"><div class="recording-progress-layout"><div><h2>'
             + _task_heading(locale, view) + '</h2>' + controls + '</div>'
             + render_recorded_summary(progress, locale) + '</div></section></div>')
@@ -345,11 +346,12 @@ def render_task_first_session_v1(
             entered += paragraph(locale, f"task.value.{facts.game_end_reason}")
         normal += section(locale, "task.session.entered", entered)
         if (show_operation_notice and context.last_operation is not None
-                and context.recorded_review_source is None):
+                and context.recorded_review_source is None and context.last_operation.status in {
+                    "conflict", "stale", "partial", "rejected", "unavailable", "reloaded"}):
             normal += paragraph(locale, "task.operation." + (
                 "conflict" if context.last_operation.status in {"conflict", "stale"} else
                 "partial" if context.last_operation.status == "partial" else
-                "rejected" if context.last_operation.status in {"rejected", "unavailable"} else "saved"))
+                "reloaded" if context.last_operation.status == "reloaded" else "rejected"))
         optional = ''.join(disclosure(locale, "task.session.metadata_title" if kind == "set_game_metadata" else f"task.command.{kind}",
             _command(context, locale, view, kind, app=app_context)) for kind in view.workflow.secondary_actions)
         normal += disclosure(locale, "task.session.optional", optional)

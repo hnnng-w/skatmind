@@ -12,6 +12,8 @@ from skatmind.errors import SkatMindValidationError
 from skatmind.match_workspace_persistence import load_match_workspace_file_v1
 
 from .managed_item_storage import validate_managed_direct_child_path_v1
+from .operation_feedback import feedback_source
+from .operation_feedback_mapping import session_batch_message
 from .session_card_entry import (
     CardEntryError,
     prepare_session_card_candidate,
@@ -103,6 +105,8 @@ def dispatch_card_entry(app, route, values):
 
 def _session_entry(active, route, values):
     active.require_attached()
+    attempt = active.operation_feedback.begin()
+    previous_revision = active.state.revision
     if set(values) - {"managed_handle", "card_selection", "cards"}:
         raise CardEntryError("fields", "cards")
     task = project_session_card_task(active.state)
@@ -128,6 +132,9 @@ def _session_entry(active, route, values):
         raise CardEntryConflict("save_failed") from error
     if result.status == "conflict":
         raise CardEntryConflict("file_changed")
+    commands = tuple(record.command for record in active.state.command_log[previous_revision:])
+    active.operation_feedback.publish(attempt, feedback_source(active),
+                                      session_batch_message(active, task, commands))
     return "/sessions/current#session-recording"
 
 

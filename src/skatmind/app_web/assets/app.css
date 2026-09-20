@@ -12,6 +12,30 @@
   font-family: Georgia, "Times New Roman", serif;
 }
 
+.operation-feedback {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-block: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  border-inline-start: 0.2rem solid var(--green);
+  color: var(--ink);
+  background: var(--surface);
+  overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.operation-feedback .operation-dismiss {
+  font: inherit;
+  padding: 0.25rem 0.5rem;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 #session-app > .panel,
 #task-first-match > .panel,
 #task-first-learning > div > .panel,

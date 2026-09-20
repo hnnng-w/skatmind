@@ -163,6 +163,7 @@ def dispatch_local_metadata(app, route, values):
                     raise LocalTimeConflict("file_changed")
                 if result.http_status != 200:
                     raise LocalTimeError("rejected")
+                active.operation_feedback.place_at_metadata()
                 return f"/matches/position/{active.selected_position}#match-metadata"
             except OSError as error:
                 raise LocalTimeConflict("save_failed") from error

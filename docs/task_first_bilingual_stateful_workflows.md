@@ -269,6 +269,51 @@ changing Learning prerequisites, operations or the failed maintainer UAT result.
 
 ## Localization, validation, and language changes
 
+### Contextual completion feedback
+
+Issue #245 replaces the retained generic-success tails with a small source-bound
+presentation receipt. It leaves #244's one-current-task hierarchy and the existing
+recording, recovery, error and Result destinations intact. Normal acknowledgements
+use the following finite de/en outcome mapping:
+
+| Accepted action | Routine feedback |
+| --- | --- |
+| Normal Session / Match / Learning creation | Game / Match / learning collection created |
+| Initial Session Card batch | Accepted Card count and Player, excluding any implicit identity Command |
+| Observed Play | Localized accepted Card and its actor, not the next Player |
+| Declaration / declarer / metadata / ending | Specific saved fact |
+| Initial-hand, public-hand, original-Skat or discard evidence | Specific evidence, with Card count where applicable |
+| Match start / pass | Actual Game number started / marked as passed |
+| Actual Card correction | Card correction saved |
+| New Learning version / explicit Current selection | Version added / version selected |
+| Published Learning artifacts | Collection evaluation prepared |
+
+No-op, same-Card Apply, navigation, preview, Cancel, opening and unallowlisted
+advanced operations mint no save receipt. A genuine review returns its Result
+without a second confirmation. An identical import keeps its neutral explanation;
+`keep_current` retaining another version keeps its untimed selection/rebuild guidance
+and receives no clean-success toast. Preparation does not train a model or improve
+future recommendations. The selected versions, accepted recording and prepared
+Result remain inspectable without a timer.
+An identical-version import that actually changes Current selection uses the
+selection message, not the added-version message, including the Match-side transfer.
+
+Delivery lasts at most 60 monotonic seconds after publication and is consumed only
+by one matching final HTML response. New operations supersede it. Native HTML is
+untimed; the optional script uses eight seconds of visible idle time, paused on
+hover/focus/hidden documents, and retains normal-flow space when hidden to avoid an
+input jump. It makes no request. Full Player names are source-resolved and escaped.
+Language changes do not mint or renew a recording acknowledgement. Receipt delivery
+is best-effort across identical-source tabs and lost responses, not per-tab exactly
+once; native cached history may still contain the old response. See the
+[validation boundary](frontend_validation_state_and_localized_feedback.md#completed-operation-receipts-issue-245)
+and [installed evidence](unified_workflow_visual_contract.md#r03-contextual-operation-feedback).
+
+The current registry remains **63 POST routes / 107 forms**, with **98** generated
+scenarios and **1,604** matching locale keys. No engine, retained Request/Result/Report,
+Checkpoint, profile or persistence shape changes. #244 remains completed. Only this
+R03 operation-feedback slice is implemented; #208 and the other findings stay open.
+
 The unified frontend uses exactly German and English. The catalogs have exact key
 order and placeholder parity and strict deterministic lookup. Fixed Analyze,
 Review, and shared Result presentation use catalog messages; their workflow
