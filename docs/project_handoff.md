@@ -2711,6 +2711,21 @@ and [independent-Wheel evidence](unified_workflow_visual_contract.md#r03-context
 open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed. No
 release-readiness claim follows.
 
+Issue #246 implements only R05's recorded-history/party-score presentation, from
+clean HEAD `24a20d7a03729b365078e827610336170259d487`. One shared Game score reads
+existing party prefixes; one accepted chronology omits individual cumulative grids.
+Selected Match review exposes its Cards even with zero prepared decisions. Null
+states recorded declarer-Trick facts without points or an invented outcome. Exact
+anchors, recovery actions, #238–#245 and historical analysis context remain intact.
+The synthetic ended Session's 42/78 coexists with its saved SJ Result's 14/29, seven
+Cards and equal-best Jacks; exact downloads are unchanged. See the
+[recorded-Trick guide](recorded_trick_progress.md) and
+[independent installed evidence](unified_workflow_visual_contract.md#r05-recorded-history-and-party-score).
+#245 stays completed; remaining R05 wording and other findings stay open. Both
+exact merged-commit CI jobs gate manual #246 closure. #208 stays open, UAT-01
+unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release-readiness
+claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

@@ -128,7 +128,22 @@ def test_real_match_normal_pre_card_context(localized_server, monkeypatch):
             project_task_first_match_v1(source, selected_position=2), report_id=report.report_id)
     assert state["game"] is None and state["decision_preparation"]["source_play_count"] == 0
     assert_context(render_match_reports_v1(state, "en"), "en", hand=MATCH_HAND,
-                   prefix=(("B", "CK"),), actor="C", trick=1, play=2, game=1)
+                    prefix=(("B", "CK"),), actor="C", trick=1, play=2, game=1)
+    # The normal history belongs to the selected Game, even with an earlier
+    # retained Report having the same decision index in another Game.
+    from test_recorded_party_presentation import assert_party_score, history_rows
+
+    from skatmind.app_web.match_review_rendering import render_match_review_v1
+    with active.capture.lock:
+        view = project_task_first_match_v1(source, selected_position=4)
+        state = build_task_first_match_page_state_v1(active, view, report_id=report.report_id)
+    page = render_match_review_v1(state, view, managed_handle=active.handle, locale="en")
+    assert_party_score(page, (0, 0), (15, 1))
+    assert [re.search(r'\(([A-Z0-9]+)\)', row["text"])[1]
+            for row in history_rows(page)] == ["H7", "HK", "HA"]
+    assert_context(page, "en", hand=MATCH_HAND, prefix=(("B", "CK"),), actor="C",
+                   trick=1, play=2, game=1)
+    assert 'href="/matches/position/4#match-play-2"' in page
     foreign_report = replace(report, value=replace(report.value, game_id="foreign"))
     unbound = match_decision_context(foreign_report, source)
     assert unbound.actor is unbound.declarer is None and unbound.hand == MATCH_HAND

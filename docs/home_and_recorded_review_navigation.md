@@ -173,6 +173,15 @@ Report display remains independent of another selected Game's counts or matching
 decision index. The Match-side transfer shortcut is secondary, with relevant
 feedback exposing its native controls; Learning's own page is unchanged.
 
+Issue #246 adds the selected Game's normal read-only chronology independently of
+this preparation summary. Every accepted Card/actor/local position is visible,
+including when all decisions are skipped. One separate Game score reads the
+existing declarer/combined-defender prefix, with recorded-Trick facts instead of
+points for Null. Warning links reach visible history rows; correction links reach
+the exact recording target without issuing recovery selections. A retained Report
+still owns its original Game/decision and historical context. See
+[Recorded Trick progress](recorded_trick_progress.md).
+
 `match_review_rendering.py` owns this presentation; `match_report_rendering.py`
 renders retained validated report projections. Existing
 `execute_unified_match_analysis_v1` and the maximum-eight revision-scoped Report

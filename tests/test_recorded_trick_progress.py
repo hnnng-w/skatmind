@@ -130,6 +130,15 @@ def test_rules_rotation_and_party_identity(
             (1, points) if won else (0, 0))
         assert (view.latest.defenders.tricks, view.latest.defenders.points) == (
             (0, 0) if won else (1, points))
+        from test_recorded_party_presentation import assert_party_score
+
+        from skatmind.app_web.recorded_trick_rendering import render_recorded_summary
+        for locale in ("de", "en"):
+            rendered = render_recorded_summary(view, locale)
+            if game_type != "null":
+                assert_party_score(rendered, (points, 1) if won else (0, 0),
+                                   (0, 0) if won else (points, 1))
+            assert not any(player_id in rendered for player_id in order)
 
 
 def test_session_adapter_consumes_existing_replay_without_rules_or_replay(monkeypatch):
@@ -155,8 +164,10 @@ def test_session_adapter_consumes_existing_replay_without_rules_or_replay(monkey
 @pytest.mark.parametrize("declarer", ("player-a", "player-b", "player-c"))
 @pytest.mark.parametrize("perspective", ("player-a", "player-b", "player-c"))
 def test_session_every_accepted_boundary_and_independent_party_prefix(declarer, perspective):
+    from test_recorded_party_presentation import assert_party_score
     from test_session_transitions import _apply
 
+    from skatmind.app_web.recorded_trick_rendering import render_recorded_summary
     from skatmind.session_commands import RecordSessionPlayCommandV1
     from skatmind.session_transitions import replay_session_state_v1
     data = progress_data()
@@ -172,6 +183,8 @@ def test_session_every_accepted_boundary_and_independent_party_prefix(declarer, 
         assert (view.latest.declarer.tricks, view.latest.declarer.points) == own
         assert view.latest.defenders.tricks == count // 3 - own[0]
         assert view.latest.defenders.points == sum(v[1] for v in expected) - own[1]
+        assert_party_score(render_recorded_summary(view, "en"), (own[1], own[0]),
+                           (sum(v[1] for v in expected) - own[1], count // 3 - own[0]))
         assert sum(v.tricks for _, v in view.latest.players) == count // 3
         for index, trick in enumerate(view.tricks[:count // 3], 1):
             assert totals(trick.prefix) == GRAND_PREFIXES[index]
@@ -209,9 +222,13 @@ def test_known_skat_and_authorized_hands_do_not_change_public_totals(count):
 
 @pytest.mark.parametrize("count", (0, 1, 2, 3, 5, 29))
 def test_shortened_end_counts_only_observed_complete_tricks(count):
+    from test_recorded_party_presentation import assert_party_score
     from test_session_transitions import _complete_retrospective_session
 
-    from skatmind.app_web.recorded_trick_rendering import render_recorded_history
+    from skatmind.app_web.recorded_trick_rendering import (
+        render_recorded_history,
+        render_recorded_summary,
+    )
     from skatmind.session_transitions import replay_session_state_v1
     data = progress_data()
     data["tricks"] = data["tricks"][:(count + 2) // 3]
@@ -223,14 +240,19 @@ def test_shortened_end_counts_only_observed_complete_tricks(count):
     view = project_session_trick_progress(
         replay_session_state_v1(_complete_retrospective_session(data)))
     assert view.status == "ended" and totals(view.latest) == GRAND_PREFIXES[count // 3]
+    expected = GRAND_PREFIXES[count // 3]
+    assert_party_score(render_recorded_summary(view, "en"), expected[0][::-1],
+                       (sum(v[1] for v in expected[1:]), sum(v[0] for v in expected[1:])))
     if count % 3:
         assert view.tricks[-1].prefix is None
         assert "Recording ended with an incomplete trick" in render_recorded_history(view, "en")
 
 
 def test_partial_session_correction_uses_actual_retained_suffix_and_undo():
+    from test_recorded_party_presentation import assert_party_score
     from test_session_transitions import _apply
 
+    from skatmind.app_web.recorded_trick_rendering import render_recorded_summary
     from skatmind.session_commands import RecordSessionPlayCommandV1
     from skatmind.session_history import correct_session_command_v1, rewind_session_state_v1
     from skatmind.session_history_contracts import SessionCommandCorrectionV1
@@ -249,11 +271,13 @@ def test_partial_session_correction_uses_actual_retained_suffix_and_undo():
     assert facts.played_card_count == 3
     view = project_session_trick_progress(facts)
     assert totals(view.latest) == ((0, 0), (1, 13), (0, 0))
+    assert_party_score(render_recorded_summary(view, "en"), (0, 0), (13, 1))
     assert view.tricks[0].winner_player_id == "player-b"
     undone = rewind_session_state_v1(result.state, expected_revision=result.state.revision,
                                      target_revision=start + 2)
     view = project_session_trick_progress(replay_session_state_v1(undone.state))
     assert totals(view.latest) == GRAND_PREFIXES[0] and len(view.tricks[0].plays) == 2
+    assert_party_score(render_recorded_summary(view, "en"), (0, 0), (0, 0))
 
 
 def test_warning_and_unknown_party_and_unplayed_slot_statuses():
@@ -298,8 +322,8 @@ def test_null_render_omits_point_metrics_and_escapes_names(locale):
     view = replace(view, players=tuple(replace(p, player_label='<script>Long & name</script>')
                                       for p in view.players))
     rendered = render_recorded_summary(view, locale) + render_recorded_history(view, locale)
-    assert 'data-trick-metric="points"' not in rendered and 'data-trick-metric="tricks"' in rendered
+    assert 'data-trick-metric=' not in rendered
     assert '<script>' not in rendered and '&lt;script&gt;Long &amp; name' in rendered
-    assert text(locale, "trick_progress.null_scope") in rendered
+    assert text(locale, "trick_progress.null.zero") in rendered
     assert card_name(locale, "CJ") in rendered and '(CJ)' in rendered
     assert view.tricks[0].points == 15

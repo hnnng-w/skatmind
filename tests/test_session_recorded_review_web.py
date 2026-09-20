@@ -11,7 +11,7 @@ import pytest
 from test_equal_best_immediate import assert_visible_equal_best
 from test_frontend_language_switching import localized_server as _localized_server
 from test_guided_frontend_result_presentation import assert_summary_points, score_review_request
-from test_historical_game import build_historical_input, rebuild_historical_suffix
+from test_historical_game import build_historical_input
 from test_recorded_decision_context import SESSION_HAND, assert_context, context_html
 
 import skatmind.api.v1.session.files as session_files
@@ -168,7 +168,7 @@ def review_first(browser):
 
 
 def record_score_review_game(browser, *, play_count=12, names=("B", "C", "A")):
-    """Legally record R09, using the existing full-game generator for the suffix.
+    """Legally record R09 with a fixed independently counted 42/78 synthetic suffix.
 
     Fixture IDs follow the generator's seat order; visible Players are B, C, A.
     Only A's hand and observed Plays are submitted to the perspective recording.
@@ -184,13 +184,20 @@ def record_score_review_game(browser, *, play_count=12, names=("B", "C", "A")):
         (("player-c", "SK"), ("player-a", "S7"), ("player-b", "S10")),
         (("player-b", "HK"), ("player-c", "H9"), ("player-a", "H10")),
         (("player-a", "HJ"), ("player-b", "DJ"), ("player-c", "SJ")),
+        # A wins 14 and 11; B wins 11; A wins 10; B wins 17; A wins 8.
+        # B's complete recorded total is 14 + 11 + 17 = 42 (three Tricks).
+        (("player-c", "HA"), ("player-a", "HQ"), ("player-b", "H8")),
+        (("player-c", "SA"), ("player-a", "D8"), ("player-b", "S8")),
+        (("player-c", "D7"), ("player-a", "DA"), ("player-b", "D9")),
+        (("player-a", "C9"), ("player-b", "C8"), ("player-c", "C10")),
+        (("player-c", "DK"), ("player-a", "D10"), ("player-b", "DQ")),
+        (("player-a", "CQ"), ("player-b", "SQ"), ("player-c", "CJ")),
     )
-    data["tricks"][:4] = [
+    data["tricks"] = [
         {"trick_number": index, "leader_player_id": trick[0][0],
          "plays": [{"player_id": player, "card": card} for player, card in trick]}
         for index, trick in enumerate(prefix, 1)
     ]
-    data = rebuild_historical_suffix(data, 4)
     assert build_historical_game_summary_from_input(data)["status"] == "complete"
     form = Forms(browser.page("/sessions")).find("/sessions/create")
     assert browser.submit(form, game_name="Synthetic score review", capture_mode="live",
@@ -240,6 +247,7 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
     assert context.execution is None
 
     def review_and_check():
+        from test_recorded_party_presentation import assert_party_score, history_rows
         from test_recording_task_focus import Hierarchy
 
         form = score_review_form(browser)
@@ -259,6 +267,10 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
         assert "Synthetic score review" in source and "Trick 4 · Card position 3" in source
         assert "SJ" in source
         assert_summary_points(page, "en", 14, 29)
+        ended = context.state.phase == "ended"
+        assert_party_score(page, (42, 3) if ended else (14, 1),
+                           (78, 7) if ended else (35, 3))
+        assert len(history_rows(page)) == (30 if ended else 12)
         assert_visible_equal_best(page, "en")
         assert_context(page, "en", hand=SESSION_HAND, prefix=(("B", "HJ"), ("C", "DJ")),
                        actor="A", trick=4, play=3)
@@ -299,6 +311,9 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
             status, headers, _ = browser.submit(language, language=locale)
             assert status == 303 and headers["location"] == "/sessions/current#session-result"
             assert_summary_points(browser.page(), locale, 14, 29)
+            assert_party_score(browser.page(), (42, 3) if ended else (14, 1),
+                               (78, 7) if ended else (35, 3))
+            assert 'data-operation-feedback ' not in browser.page()
             assert_visible_equal_best(browser.page(), locale)
             assert_context(browser.page(), locale, hand=SESSION_HAND,
                            prefix=(("B", "HJ"), ("C", "DJ")), actor="A", trick=4, play=3)

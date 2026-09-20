@@ -7,6 +7,9 @@ The earlier issue measurements below remain historical evidence.
 Issue #244's [R03 composition evidence](#r03-recording-task-composition) supersedes
 the three-panel normal recording hierarchy while retaining the #243 stylesheet.
 
+Issue #246's [R05 presentation evidence](#r05-recorded-history-and-party-score)
+supersedes normal individual cumulative grids with one party score and chronology.
+
 Issue #224 repairs one private presentation boundary: unified light presentation,
 readable Match/Learning content, responsive controls and all 36 Match entries.
 Recording, recovery, analysis, transfer, selection, preparation and persistence
@@ -694,3 +697,117 @@ R03 feedback slice is implemented; #208/other findings remain open, UAT-01 unacc
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. Both exact merged-commit `check`
 and `v1-supported-platform-matrix` are required before manual #245 closure. This is
 synthetic engineering evidence, not maintainer UAT or release readiness.
+
+## R05 recorded history and party score
+
+Issue #246 starts on clean `bug/246-trick-history-party-score` at
+`24a20d7a03729b365078e827610336170259d487`, after completed #245. The actual issue
+and R05 in #208 were read. Current pre-fix HTTP/rendering regressions reproduced
+the duplicate headings, repeated individual prefix grids and absent normal Match
+review chronology. The archive probe remains separate historical evidence.
+
+`recorded_trick_rendering.py` owns the shared score/history presentation;
+`match_review_rendering.py` exposes the existing snapshot's chronology with native
+recording-target links. Only their scoped score CSS and de/en labels change Product
+presentation. Existing immutable progress, locked snapshot assembly, recovery's
+action-bearing recording history, #244 composition and #245 final-response delivery
+remain authoritative. No CSS hides duplicate data; the unwanted grids are no longer
+rendered. Points are first and bold, won Tricks secondary, and names use the recorded
+roster. Null has a short recorded declarer-Trick fact, no ordinary point metrics or
+automatic outcome. Full history stays open after the active recording controls.
+
+### Independent installed verification
+
+The optional `scripts/verify_recorded_party_history.py` reuses the dependency-free
+DevTools harness and caller-installed Edge. Run from the checkout with a separate
+Wheel environment:
+
+```powershell
+& PATH_TO_INSTALLED_PYTHON scripts/verify_recorded_party_history.py `
+    --browser PATH_TO_EDGE --output FRESH_SCRATCH_DIRECTORY `
+    --wheel PATH_TO_WHEEL --phase after
+```
+
+`before` verifies installed files against starting HEAD; `after` verifies them
+against the changed tree. Fourteen loaded module/resource hashes and actual served
+CSS/JavaScript bytes are checked. All roots contain disposable synthetic data;
+neither the installed UAT version nor maintainer files are touched. An initial
+nonisolated Wheel attempt lacked the local Setuptools backend; ordinary isolated
+builds succeeded. An initial verifier import needed the repository's test-support
+namespace on `sys.path`; it stopped before browser setup, not a Product failure.
+
+Completed matched evidence is outside the repository:
+
+* `<temporary-directory>/opencode/246-before-02/evidence.json` and PNGs;
+* `<temporary-directory>/opencode/246-after-02/evidence.json` and PNGs;
+* `before-01` and `after-01` are earlier successful, smaller interaction/screenshot
+  coverage, not the final evidence authority.
+
+Both installations are **Package 0.17.0**, **Windows Python 3.13.7**, with headless
+**Edge 153.0.4234.32**. Each has **54 scoped page measurements**: Session partial
+recording/ended review, corrected Match recording, Match review with zero/one ready
+decision, and Null. Nine representative cells per state cover German/English,
+JavaScript on/off, **1365×900**, **390×844**, **320×800**, and **200% text at 320px**.
+The harness doubles computed font sizes once on a fresh document; device scale and
+browser zoom remain unchanged. This is a bounded matrix, not every combination.
+
+Matched German measurements (CSS pixels):
+
+| Component / width | Baseline | Repair |
+| --- | --- | --- |
+| Ended Session summary height / 1365 | 551.75 | 320.4375 |
+| Ended Session summary height / 320 | 650.9375 | 320.4375 |
+| Ended Session full history height / 320 | 7401.25 | 3108.28125 |
+| Ended Session individual cumulative cards / all widths | 33 | 0 |
+| Ended Session accepted chronological Card rows | 30 | 30 |
+| Match recording history height / 320 | 1151.140625 | 721.84375 |
+| Match zero-ready review normal chronological rows | 0 | 3 |
+
+Document/client widths agree at **1350/1350**, **375/375**, **305/305**, including
+enlarged text. Screenshots were inspected for distinct headings, two-party values,
+all first/last Trick rows, native correction controls, warning targets, Null, and
+historical review. At 320px/200% the long German party label breaks across lines;
+values and controls remain readable through ordinary vertical scrolling. There is
+no one-viewport claim or font reduction. No new score/history clipping or horizontal
+overflow was observed. The pre-existing narrow/enlarged analysis comparison-table
+limitation remains open and is neither repaired nor counted as passed here.
+
+Both runs perform **18 native POSTs**, **36 Session saves**, **22 Match saves**,
+**2 Session review executions**, **1 Match decision execution**, and **50 actual
+profile saves**, including real returned-form setup. Native input covers SJ recording,
+explicit End, review, strict reopen/review, Match Select/Preview/Cancel/confirmed Apply,
+same-Card no-op, continuing SK, language and source navigation, and warning targets.
+Game-2 Pass and strict Match reopen also use real returned forms. The repaired-only
+history correction link and review warning link add navigation, not writes/execution.
+Match page-preparation counts are **156 before / 159 after**, explained by three
+additional GETs for those links. Matched passive capture sets each perform exactly
+the same **27 existing selected-Game page preparations**, with **zero additional
+Product saves or executions**; explicit language preference saves remain separate.
+Pure-history HTTP regressions additionally forbid selection issuance and verify
+unchanged recovery tokens/creation times. No receipt reappears on passive views.
+
+The current ended Session shows **42 points/3 Tricks versus 78/7**. Its retained SJ
+Result still shows **14/29**, the seven historical Cards, B HJ/C DJ and equal-best
+CJ/SJ. Corrected Match CK/C7/C10 shows B **0/0**, defenders **14/1**, winner A; the
+earlier real C7 Report retains only CK and historical 0/0. Downloads match their
+retained bytes through passive/language/source navigation and Session reopen/review.
+The deterministic SJ downloads also match both installations and prior #239–#245:
+
+```text
+Request (1,534 bytes) 05dc65aa713fb37c7b40cd9a4027ce6926881e6bb0c98adaf4256b8a7f14ec94
+Result  (9,640 bytes) 76eb05221cab155ff59f734ec568bbead767c2f309d6823546d598412ac545c1
+Baseline Wheel       4bcdca871c8d7f8112266d8a893cc697f66fd63560d51abe38f4b682489c21c6
+Repaired Wheel       273901b2badce5d08f508283eeaa91bb54cf63143de04bb3a3f4fa7810283e36
+Repaired app.css     067defbc11aaf7e11dcda80f5c917294b549ecf3f36da5570c9857ae079bbc90
+```
+
+Actual per-source hashes, requests, headings, geometry and Match download hashes
+are retained in the evidence JSON. Other browsers, physical devices and assistive
+technology were not tested. Null is synthetic implementation evidence, not prior
+maintainer Null UAT. Package/Python/license/dependencies (including tzdata>=2026.4),
+public/profile/persistence formats, **63 POST routes / 107 forms** and **98 scenarios**
+remain unchanged. Only this R05 slice is implemented. #245 stays completed; #208,
+remaining R05 and other findings stay open, UAT-01 unaccepted, UAT-02–12 paused,
+B-09/B-07 open and B-06 closed. Both exact merged-commit `check` and
+`v1-supported-platform-matrix` must pass before manual closure. No release-readiness
+or maintainer-acceptance claim follows.

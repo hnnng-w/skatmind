@@ -16,45 +16,43 @@ def _name(progress, locale, player_id):
     return player.player_label or text(locale, "task.player", number=player.fallback_number)
 
 
-def _totals(progress: RecordedTrickProgress, locale: str, prefix: RecordedPrefix) -> str:
-    content = '<div class="trick-totals">'
-    for player, (player_id, value) in zip(progress.players, prefix.players, strict=True):
-        content += f'<div class="trick-total" data-seat="{player.seat}"><p class="trick-player">'
-        content += escape(_name(progress, locale, player_id)) + ' <span>— '
-        content += translated(locale, f"creation.seat.{player.seat}") + '</span></p><dl>'
-        metrics = (("tricks", value.tricks),) if progress.game_type == "null" else (
-            ("tricks", value.tricks), ("points", value.points))
-        for metric, number in metrics:
+def _party_score(progress: RecordedTrickProgress, locale: str, prefix: RecordedPrefix) -> str:
+    if prefix.declarer is None:
+        return (paragraph(locale, "trick_progress.completed", count=progress.completed_count)
+                + paragraph(locale, "trick_progress.party_unknown"))
+    if progress.game_type == "null":
+        content = '<p>' + translated(locale, "trick_progress.declarer") + ': '
+        content += escape(_name(progress, locale, progress.declarer_player_id)) + '</p>'
+        key = ("none_completed" if not progress.completed_count else
+               "zero" if not prefix.declarer.tricks else
+               "one" if prefix.declarer.tricks == 1 else "many")
+        values = {"count": prefix.declarer.tricks} if key == "many" else {}
+        return content + paragraph(locale, f"trick_progress.null.{key}", **values)
+    content = '<div class="trick-parties">'
+    for side, value in (("declarer", prefix.declarer), ("defenders", prefix.defenders)):
+        names = ', '.join(_name(progress, locale, p.player_id) for p in progress.players
+                         if (p.player_id == progress.declarer_player_id) == (side == "declarer"))
+        content += f'<div class="recorded-party" data-recorded-party="{side}"><h4>'
+        content += translated(locale, f"trick_progress.{side}") + '</h4><p>'
+        content += escape(names) + '</p><dl>'
+        for metric, number in (("points", value.points), ("tricks", value.tricks)):
             content += '<div><dt>' + translated(locale, f"trick_progress.{metric}")
             content += f'</dt><dd data-trick-metric="{metric}">{number}</dd></div>'
         content += '</dl></div>'
-    content += '</div>'
-    if prefix.declarer is None:
-        return content + paragraph(locale, "trick_progress.party_unknown")
-    content += '<div class="trick-parties">'
-    for side, value in (("declarer", prefix.declarer), ("defenders", prefix.defenders)):
-        content += '<p>' + translated(locale, f"trick_progress.{side}") + ': '
-        content += translated(locale, "trick_progress.party_tricks", tricks=value.tricks)
-        if progress.game_type != "null":
-            content += ' · ' + translated(locale, "trick_progress.party_points",
-                                          points=value.points)
-        content += '</p>'
     return content + '</div>'
 
 
 def render_recorded_summary(progress: RecordedTrickProgress, locale: str) -> str:
     body = '<aside class="recorded-summary" data-recorded-summary><h3>'
-    body += translated(locale, "trick_progress.title") + '</h3>'
-    if progress.latest is None:
+    body += translated(locale, "trick_progress.score") + '</h3>'
+    latest = progress.latest
+    if latest is None:
         return body + paragraph(locale, f"trick_progress.status.{progress.status}") + '</aside>'
-    body += paragraph(locale, "trick_progress.completed", count=progress.completed_count)
     if progress.warning is not None:
         body += '<p class="trick-warning">' + translated(locale, "trick_progress.warning")
         body += f' <a href="#match-play-{progress.warning.play_index}">'
         body += translated(locale, "trick_progress.inspect") + '</a></p>'
-    body += _totals(progress, locale, progress.latest)
-    body += paragraph(locale, "trick_progress.null_scope" if progress.game_type == "null"
-                      else "trick_progress.scope")
+    body += _party_score(progress, locale, latest)
     return body + '</aside>'
 
 
@@ -102,8 +100,5 @@ def render_recorded_history(
                               player=_name(progress, locale, trick.winner_player_id))
             if progress.game_type != "null":
                 body += paragraph(locale, "trick_progress.value", points=trick.points)
-            body += '<p class="trick-prefix-heading">' + translated(
-                locale, "trick_progress.after", number=trick.number) + '</p>'
-            body += _totals(progress, locale, trick.prefix)
         body += '</section>'
     return body + '</section>'

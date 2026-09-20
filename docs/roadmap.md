@@ -1781,3 +1781,13 @@ and [browser evidence](unified_workflow_visual_contract.md#r03-contextual-operat
 #244 remains completed. Both exact merged-commit CI jobs gate manual #245 closure;
 #208 and other findings stay open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07
 open and B-06 closed. No release-readiness or whole-UAT claim follows.
+
+Issue #246 implements only R05's shared accepted chronology and party-score slice:
+distinct Game score/Recorded tricks, points-first declarer versus combined defenders,
+no normal individual prefix grids, read-only Match-review history independent of
+readiness, and bounded Null recorded-Trick facts. Existing accounting, recovery,
+anchors, source-bound historical Results and #238–#245 remain. See
+[Recorded Trick progress](recorded_trick_progress.md). Remaining-hand and evidence
+attribution are later work. #245 stays completed; #208 and remaining findings stay
+open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed. Both
+exact merged-commit CI jobs gate manual closure; no release-readiness claim follows.

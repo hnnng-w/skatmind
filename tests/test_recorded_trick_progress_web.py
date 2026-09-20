@@ -29,11 +29,23 @@ def html_totals(block):
     return tuple(zip(tricks, points, strict=True)) if points else tuple(tricks)
 
 
-def assert_progress(page, expected, prefixes=()):
-    assert html_totals(summary_html(page)) == expected
+def assert_progress(page, expected, prefixes=(), *, declarer_index=None):
+    # Keep the independently counted individual expectations as the accounting oracle;
+    # normal HTML now presents the declarer and the two defenders together.
+    if declarer_index is None:
+        # These existing fixtures declare Session Forehand and Match Game-1 Rearhand.
+        declarer_index = 2 if 'id="task-first-match"' in page else 0
+    parties = (expected[declarer_index], tuple(sum(value[metric] for index, value in
+        enumerate(expected) if index != declarer_index) for metric in (0, 1)))
+    assert html_totals(summary_html(page)) == parties
     rows = re.findall(r'<section class="recorded-trick".*?</section>', page, re.S)
-    for row, prefix in zip(rows, prefixes, strict=False):
-        assert html_totals(row) == prefix
+    for row in rows:
+        assert html_totals(row) == ()
+        assert 'data-seat=' not in row
+    for row, before, after in zip(rows, (((0, 0),) * 3, *prefixes), prefixes, strict=False):
+        points = sum(v[1] for v in after) - sum(v[1] for v in before)
+        locale = "de" if '<html lang="de">' in page else "en"
+        assert text(locale, "trick_progress.value", points=points) in row
     assert 'data-trick-number="11"' not in page
 
 
@@ -209,7 +221,7 @@ def test_rejected_thirtieth_witness_excluded_and_accepted_warning_is_distinct(lo
         game_type="grand", hand_game="true"))
     for card in "SA H7 S7 CA S8".split():
         page = follow(browser, browser.submit(operation_form(page, "append_plays"), cards=card))
-    assert_progress(page, ((1, 11), (0, 0), (0, 0)))
+    assert_progress(page, ((1, 11), (0, 0), (0, 0)), declarer_index=1)
     assert "trick-warning" in summary_html(page)
     assert 'href="#match-play-2"' in page and 'href="#match-play-5"' in page
 
@@ -225,7 +237,8 @@ def test_match_declaration_edit_null_and_faulted_apply_keep_accepted_progress(
     assert_progress(page, ((0, 0), (1, 15), (0, 0)))
     page = follow(browser, browser.submit(operation_form(page, "set_declaration"),
                                           game_type="null"))
-    assert html_totals(summary_html(page)) == (0, 0, 1)
+    assert html_totals(summary_html(page)) == ()
+    assert text("en", "trick_progress.null.one") in summary_html(page)
     assert 'data-trick-metric="points"' not in summary_html(page)
     assert "/matches/cards" in page  # No automatic Null capture stop.
     page = follow(browser, browser.submit(entry_action(page, 3)))

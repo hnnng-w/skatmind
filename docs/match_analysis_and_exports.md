@@ -282,6 +282,13 @@ ordered named current-Trick prefix, contract/Declarer, next Player and known
 decision or its current progress score. The Game-1/decision-2 fixture shows B CK,
 C next, ten C Cards including C7 and 0/0; later A C10 is excluded from this context.
 
+Issue #246 separately displays the selected Game's complete accepted chronology
+on unified review, including before any decision is ready. The current corrected
+CK/C7/C10 recording shows 0 declarer points and 14 defender points, while that
+earlier retained decision still shows 0/0 and only B's CK. No producer, Report,
+Request/Result, download or preparation boundary changes. Read-only correction
+links target existing recording rows; recovery owns all mutation controls.
+
 This intentionally allowlists the legitimate analyzed acting hand in normal HTML.
 It adds no opponent/public-hand/Skat details, Request, profile data or execution
 internals. Standalone Capture state JSON, Reports, producers, canonical downloads,

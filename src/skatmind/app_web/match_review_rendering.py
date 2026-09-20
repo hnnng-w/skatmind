@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .compact_declaration_rendering import accepted_declaration_summary
-from .recorded_trick_rendering import render_recorded_summary
+from .recorded_trick_rendering import render_recorded_history, render_recorded_summary
 from .stateful_localization import text, translated
 from .task_first_match_rendering import _named_seat, _reports, operation_form
 from .task_first_rendering import disclosure, hidden, paragraph, section, select_field
@@ -72,7 +72,13 @@ def render_match_review_v1(state, view, *, managed_handle, locale, transfer=""):
         body += render_recorded_summary(state["recorded_progress"], locale)
     body += section(locale, "task.match.action.analyze_decision" if state[
         "decision_preparation"]["prepared_decision_count"] else "recordings.match.inspect",
-                     render_match_analysis_v1(state, view, managed_handle, locale))
+                      render_match_analysis_v1(state, view, managed_handle, locale))
+    recorded = state["recorded_progress"]
+    body += render_recorded_history(recorded, locale, anchor_prefix="match-play", actions={
+        play.decision_index: '<p><a href="/matches/position/' + str(position)
+        + '#match-play-' + str(play.decision_index) + '">' + translated(
+            locale, "recovery.correct") + '</a></p>'
+        for trick in recorded.tricks for play in trick.plays})
     if state["selected_report"] is None:
         body += section(locale, "recordings.match.result", _reports(state, managed_handle, locale, secondary=False))
     body += disclosure(locale, "task.match.action.prepare_materialization",

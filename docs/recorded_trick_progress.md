@@ -1,4 +1,10 @@
-# Recorded Trick history and captured Card points
+# Recorded Trick history and party scores
+
+Issue #246 supersedes the normal individual/prefix grids with one **Game score**
+and one **Recorded tricks** chronology. It also exposes the selected Match Game's
+chronology in read-only review, independently of decision readiness. Only this R05
+presentation slice is implemented; remaining-hand and evidence-attribution wording
+remain separate. Earlier #227 measurements below are historical evidence.
 
 Issue #227 adds a private read-only Session and selected-Match-Game presentation:
 **record a Card → recognize the Trick → inspect each Player's captured totals →
@@ -51,7 +57,8 @@ At every prefix:
 * absent declarer identity yields unknown party assignment, never a perspective-
   or seat-derived default.
 
-The scope note excludes Skat, discards, unplayed remainder and final settlement.
+The short **Points from tricks** field label replaces the permanent exclusion
+paragraph. Accounting still excludes Skat, discards, unplayed remainder and final settlement.
 Neither contributed Card values nor `120 - recorded` are assigned to Players.
 Nothing calculates Game value, settlement, Match standings, quality, probability,
 or an automatic winner of the Game. Existing final Results are unchanged.
@@ -85,6 +92,24 @@ display and #221 recorded-decision actions remain. Match enhances its existing
 #222 history with exactly one `match-play-{decision_index}` target per accepted
 Play. Local Card positions restart at 1/2/3 and never replace those global indexes.
 
+The current score reads `latest.declarer` and `latest.defenders` directly. Suit and
+Grand show exactly two named parties, points first/bold and won Tricks second.
+Complete names/fallbacks come from the same recorded roster and are escaped. The
+normal history shows each accepted Card/actor/local position, one winner and one
+Trick value, without an after-Trick cumulative grid or repeated initial seats.
+Immutable individual totals and every prefix remain available internally, including
+for recovery comparisons. Initial roster facts and authoritative next-player behavior
+are unchanged; actual chronology shows the preceding winner's subsequent lead.
+
+Match review uses the same progress already captured under the Capture lock. Its
+history is outside disclosures even with zero prepared decisions. It has native
+links to `/matches/position/N#match-play-I`, not recovery forms or newly minted
+selections. Its visible local `match-play-I` anchors also resolve warning links.
+Recording still composes only recovery's action-bearing history. Session retains
+`session-play-I`, hand/Skat/discard evidence targets, recorded-decision anchors and
+Result source-return links. No server snapshot or #245 receipt-delivery change is
+needed; pure rendering neither creates nor consumes receipts.
+
 The compact running summary is beside recording controls on wide screens and
 immediately after them on narrow screens. Full history follows recording, never
 precedes the next-Card controls. All ten Tricks and correction targets stay open
@@ -102,9 +127,11 @@ codes; numeric values have definition-list labels and units.
 * Supported shortened Session endings count only completed observed Tricks. A
   terminal incomplete Trick is explicitly not credited; concession/exposure/other
   awards do not distribute a remainder here.
-* Null displays **Tricks won** and omits ordinary point metrics in running and
-  cumulative rows. A short scope explanation distinguishes its objective. Internal
-  rule values and Result outputs remain intact, with no automatic capture stop.
+* Null omits ordinary point metrics and per-Trick point values. A concise fact
+  distinguishes no completed Trick, completed play with zero declarer Tricks, one
+  declarer Trick, and multiple declarer Tricks. Missing assignment stays unknown.
+  Cards, winners and warnings remain. This never declares a contract won/lost,
+  credits a remainder or ends capture, including partial and early-ended records.
 * An accepted partial contradiction retains #222 diagnostics and links. The running
   summary explicitly marks its unresolved recording basis. A proposed thirtieth
   Card can reveal a conflict while the accepted summary remains at 29 Plays.
@@ -129,6 +156,52 @@ separate. JavaScript preserves an unsent Card across language changes; without i
 unsent input in another browser form cannot be recovered, as documented by #223.
 
 ## Focused automated and installed-browser verification
+
+### Issue #246 current verification
+
+Starting clean HEAD: `24a20d7a03729b365078e827610336170259d487` on
+`bug/246-trick-history-party-score`, after completed #245. The actual issue and R05
+consolidated #208 retest were read. Four new pre-fix regressions failed on the two
+identical headings, individual prefix grids and absent normal Match-review history.
+This is current-source HTTP/rendering evidence, distinct from the planning archive.
+
+`tests/test_recorded_party_presentation.py` adds independent UAT-prefix expectations:
+defenders **15/1**, then **29/2**; declarer **14/1** versus **29/2**, then **35/3**.
+The genuine saved-SJ review regression ends at **42/3 versus 78/7** and retains
+historical **14/29**, seven hand Cards, equal-best CJ/SJ and byte-identical downloads
+after completion/reopen. The old fixture's generated suffix actually ended at 27/93;
+it is replaced by an explicitly enumerated legal synthetic suffix that supplies the
+issue's 42/78 expectation without changing the first twelve Plays or saved SJ Request.
+This is synthetic evidence, not a copy of the maintainer's recording.
+
+The independent corrected Match starts CK/C7/CA, previews and cancels C10, then
+applies it: B/C/A remain ordered, A wins, declarer B has **0/0**, defenders **14/1**.
+Real no-op, rewind into two Cards, continuation, C-hand entry (0/3 to 1/3 ready),
+Game-2 Pass, return and strict reopen preserve the expected accepted state. Read-only
+review preserves recovery selections/expiry and adds no tokens; warnings reach visible
+rows. A retained Game-1 Report and selected Game-4 history remain independently bound
+even with equal decision indexes. Existing numerical projection assertions remain,
+including all declarer/perspective identities and rotation, zero-point Tricks,
+partial/29/30 boundaries, unknown assignment, shortened ends, partial correction and
+the known-Skat **99 observed + 21 outside play** fixture.
+
+The focused compatibility run passed **369 tests in 242.36s**. An earlier invocation
+hit its 240-second tool limit and is not counted as a pass; no worker remained before
+the completed rerun. Fault injection remains separately labelled (storage failure,
+stale/interleaved sources); successful saves and analysis use their real operations.
+Independent installed baseline/repaired browser evidence and limitations are in the
+[R05 visual guide](unified_workflow_visual_contract.md#r05-recorded-history-and-party-score).
+The final unchanged-tree complete-check outcome belongs to the implementation report.
+
+The first complete #246 check passed Ruff, schema parity, input/generated validation
+and Wheel/sdist clean-install validation, then finished with **9,466 passed, 3 skipped,
+1 failed in 1970.31s**, actual child exit **1**. Its sole failure was the exact
+translation inventory assertion (1,604 expected versus 1,609 actual). The assertion
+now counts the five intentionally added labels and explicitly checks the closed Null
+vocabulary and score heading. No Product/browser artifact changed in that correction.
+A complete corrected-tree run is required; the failed run is not success.
+
+### Historical Issue #227 verification
 
 `tests/test_recorded_trick_progress.py` uses legal existing source builders with
 independent prefix expectations: Suit/Grand/Null, Jacks/trumps, changing leaders,

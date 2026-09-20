@@ -140,13 +140,21 @@ Snapshots and sources, Sessions, profiles, and other Matches are not mutated.
 There is no automatic analysis, materialization, transfer, or Snapshot selection.
 
 Issue #227 enhances this same accepted history with
-[Recorded Trick progress](recorded_trick_progress.md). Completed rows retain
-their own cumulative Player totals, with separate known-party totals; incomplete
+[Recorded Trick progress](recorded_trick_progress.md). Issue #246 supersedes its
+normal cumulative Player/prefix grids with one two-party score and one chronology.
+Completed prefixes retain all internal individual/party values for comparisons;
+normal rows show actual Card order, winner and Trick value. Incomplete
 rows receive no winner/point credit. Summary and diagnostics share the accepted
 warning. Preview effects remain separate until a real applied Save; no-op,
 cancel, rejection and failure preserve the accepted prefix. Existing
 `match-play-{decision_index}` targets, selection fields and confirmations remain.
 The shared renderer receives recovery action markup separately and adds no route.
+Read-only selected-Game review now shows that same accepted chronology without
+issuing selections or rendering an editor. Its warning links reach visible local
+rows, with correction links to the existing recording `match-play-N` targets.
+Preview, Cancel, Apply consent, same-Card no-op, expiry, source/CAS checks and Save
+ownership are unchanged. #245 receipts remain owned by final HTTP delivery, not
+these renderers. Only the bounded R05 history/party-score slice is implemented.
 
 ## Private HTTP forms and focus
 
