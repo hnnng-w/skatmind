@@ -1801,3 +1801,12 @@ table is documented in the [unplayed-card guide](unplayed_card_summary.md#issue-
 #246 remains completed. Exact merged-commit `check` and `v1-supported-platform-matrix`
 gate #247 closure. #208 and other findings remain open; UAT-01 is unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release-readiness claim follows.
+
+Issue #248 implements bounded R04 Card consistency: four printed suits with Jacks
+first, explicit set-only display ordering, uniform native tiles, red Heart/Diamond
+faces and no duplicate single-Play pending row. Canonical/chronological/ranked order
+and #238–#247 remain intact. See [installed Card evidence](compact_card_entry.md#issue-248-current-installed-evidence).
+#247 stays completed. Both exact merged-commit `check` and
+`v1-supported-platform-matrix` gate manual #248 closure; #208, R06 and other findings
+remain open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+No release-readiness claim follows.

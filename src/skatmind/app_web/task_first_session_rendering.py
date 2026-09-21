@@ -38,7 +38,7 @@ from .task_first_projections import project_task_first_session_v1
 from .task_first_rendering import (
     boolean_field,
     card_select,
-    cards_summary,
+    card_set_summary,
     disclosure,
     form,
     hidden,
@@ -62,7 +62,7 @@ def _hand_summary(locale, facts, player_id, *, public=False):
     """Label retained membership; an empty partial observation is not an exhausted hand."""
     cards = facts.public_hand_for(player_id) if public else facts.remaining_hand_for(player_id)
     if cards:
-        return cards_summary(locale, cards)
+        return card_set_summary(locale, cards)
     exact = facts.declaration is not None and (public or (
         len(facts.initial_hand_for(player_id) or ()) == 10 and (
             player_id != facts.declarer_player_id or facts.declaration.hand_game
@@ -193,7 +193,7 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
             fields += paragraph(locale, "task.match.scope." + task.scope)
         else:
             fields += paragraph(locale, "compact.append") + paragraph(locale, "compact.accepted")
-            fields += '<p>' + cards_summary(locale, task.accepted_cards) + '</p>'
+            fields += '<p>' + card_set_summary(locale, task.accepted_cards) + '</p>'
         fields += compact_card_selector(locale, mode="play" if play else "set",
             cards=task.selectable_cards, capacity=task.capacity,
             game_type=None if facts.declaration is None else facts.declaration.game_type)

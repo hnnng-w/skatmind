@@ -17,7 +17,7 @@ from .recorded_trick_rendering import (
 from .stateful_localization import text, translated
 from .task_first_rendering import (
     card_palette,
-    cards_summary,
+    card_set_summary,
     disclosure,
     form,
     hidden,
@@ -158,7 +158,7 @@ def _evidence(state, handle, locale, bindings, *, hand=False):
             continue
         cards = game[name]
         mode = "unknown" if cards is None else "known_empty" if not cards else "exact"
-        content += section(locale, f"task.match.action.{operation}", cards_summary(locale, cards)
+        content += section(locale, f"task.match.action.{operation}", card_set_summary(locale, cards)
             + _card_form(state, handle, locale, operation, bindings.get(operation, ""),
                          cards=cards, mode=mode), level=3)
     return content

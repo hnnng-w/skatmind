@@ -6,6 +6,7 @@ from html import escape
 
 from skatmind.deck import get_full_deck
 
+from .compact_card_rendering import card_set_display_order
 from .stateful_localization import card_name, translated
 
 
@@ -79,6 +80,11 @@ def cards_summary(locale: str, cards) -> str:
     if not cards:
         return translated(locale, "task.known_empty")
     return escape(', '.join(f"{card_name(locale, code)} ({code})" for code in cards))
+
+
+def card_set_summary(locale: str, cards) -> str:
+    """Opt-in display ordering; the generic summary preserves its caller's sequence."""
+    return cards_summary(locale, None if cards is None else card_set_display_order(cards))
 
 
 def form(

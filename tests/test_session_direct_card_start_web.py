@@ -97,7 +97,7 @@ def test_first_rejection_and_native_language_then_save_publish_only_once(localiz
         status, _, body = browser.submit(form, cards=cards)
         assert status == 400
         page = switch(browser, body.decode(), "de")
-        assert selected(page) == (["SJ", "CA"] if cards else [])
+        assert selected(page) == (["CA", "SJ"] if cards else [])
         assert save.call_count == 0 and active.path.read_bytes() == before
         assert active.state.revision == 0 and replay_session_state_v1(active.state).game_id is None
         follow(browser, browser.submit(Forms(page).find("/sessions/cards"), cards=["SJ", "CA"]))
@@ -113,7 +113,8 @@ def test_enhanced_language_preserves_exact_unsent_initial_selection(localized_se
     page = browser.page()
     raw = envelope(page, "/sessions/cards", {"cards": cards})
     page = follow(browser, enhanced_switch(browser, page, raw))
-    assert selected(page) == cards
+    # Restoration is by Card identity; returned DOM order follows printed suits.
+    assert selected(page) == (["CA", "SJ"] if cards else [])
     assert active.path.read_bytes() == before and active.state.revision == 0
     assert entry.project_session_card_task(active.state).kind == "record_dealt_card"
 

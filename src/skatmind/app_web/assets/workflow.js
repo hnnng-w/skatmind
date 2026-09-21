@@ -61,6 +61,7 @@ function updateCardSelection(fieldset) {
   const cards = Array.from(fieldset.querySelectorAll('input[name="cards"]:checked'),
     input => input.value);
   const summary = fieldset.querySelector(".compact-selection");
+  if (!summary) return;
   summary.querySelector(".compact-count").textContent =
     summary.dataset.countTemplate.replace("{count}", String(cards.length));
   summary.querySelector(".compact-selected").textContent = cards.join(", ");

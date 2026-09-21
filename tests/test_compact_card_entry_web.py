@@ -263,7 +263,7 @@ def test_native_rejected_selection_language_and_forged_fields(localized_server):
     before = active.path.read_bytes()
     page = follow(browser, browser.submit(Forms(body.decode()).find("/actions/profile/language"),
                                           language="de"))
-    assert selected(page) == ["SJ", "CA"]
+    assert selected(page) == ["CA", "SJ"]
     assert text("de", "validation.card_entry.duplicate") in page
     assert active.path.read_bytes() == before
     for extra in ({"player_id": "forged"}, {"destination": "skat"}, {"command": "forged"},
@@ -322,14 +322,12 @@ def test_match_evidence_after_play_noop_modes_stale_position_and_real_recovery(l
     assert active.selected_position == 2 and active.path.read_bytes() == before
 
 
-def test_shared_display_order_is_rules_aware_but_not_command_order():
+def test_shared_display_order_is_printed_suits_not_strength_or_command_order():
     deck = get_full_deck()
-    assert card_display_groups(deck)[0] == ("compact.jacks", ("CJ", "SJ", "HJ", "DJ"))
-    assert card_display_groups(deck, "grand")[0][0] == "compact.trumps"
-    assert card_display_groups(deck, "hearts")[0][1][:4] == ("CJ", "SJ", "HJ", "DJ")
-    null = card_display_groups(deck, "null")
-    assert null[0][1] == ("CA", "CK", "CQ", "CJ", "C10", "C9", "C8", "C7")
-    assert all(key.startswith("task.card.suit.") for key, _ in null)
+    for game in (None, "clubs", "spades", "hearts", "diamonds", "grand", "null"):
+        groups = card_display_groups(deck, game)
+        assert groups[0] == ("task.card.suit.C", ("CJ", "CA", "C10", "CK", "CQ", "C9", "C8", "C7"))
+        assert [key for key, _ in groups] == ["task.card.suit." + suit for suit in "CSHD"]
 
 
 def test_direct_batch_adapter_does_not_accept_arbitrary_target(localized_server):

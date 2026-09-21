@@ -59,8 +59,11 @@ is not a whole Report/Result serialized into browser script state.
 
 Cards use the app-owned read-only symbol primitive with full localized accessible
 names. Its optional `show_code=False` applies only here; existing callers keep
-their defaults. The complete normalized Result hand retains its order and includes
-the actual played Card. The prefix remains chronological and contains neither the
+their defaults. Issue #248 displays a **copy** of the complete normalized hand in
+C/S/H/D, J/A/10/K/Q/9/8/7 order, including the actual played Card. The normalized
+Result hand itself retains its exact original order. Shared Heart/Diamond glyphs
+and ranks are red, with system-color override in forced colors. The prefix remains
+chronological and contains neither the
 actual Card nor the following Player's later Card. An empty Trick gets one short
 sentence. Missing/malformed display facts are unavailable, not fabricated empty
 hands, zero scores or identities; valid siblings remain visible. These are defensive
@@ -132,3 +135,9 @@ these checks are not a whole-page accessibility or whole-R11 pass. No maintainer
 UAT is claimed. Both `check` and `v1-supported-platform-matrix` remain required on
 the exact merged commit before manual closure. UAT-01 remains unaccepted, UAT-02–12
 paused, B-09/B-07 open and B-06 closed; no release-readiness claim follows.
+
+Issue #248's [independent installed comparison](compact_card_entry.md#issue-248-current-installed-evidence)
+reuses the real saved SJ execution and the unchanged #246/#247 fixture. Only the
+seven-Card hand's visual order changes to CJ/C10/SJ/SA/HA/DK/D7. Its serialized
+C10/CJ/SA/SJ/HA/DK/D7, HJ/DJ prefix, 14/29, CJ/SJ candidates and exact Request/Result
+download bytes remain unchanged. Earlier #241 measurements above remain historical.

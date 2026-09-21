@@ -44,12 +44,20 @@ An exact recorded pair appears once with **Recorded**, including when it agrees 
 the conclusion. A derived-only pair appears once with **Derived from recorded play**,
 without an additional unqualified absent-input line. Partial supplied membership
 is marked **Recorded** beside its Card; only the other Card is marked derived, in
-the unchanged pair order. Conflicting defensive input is retained separately with
+the pair's display order. Conflicting defensive input is retained separately with
 an explicit difference message; existing accepted-recording warnings remain visible.
 Neither source is silently preferred or certified. Hand uses its no-discard
 explanation. Before completion, Session's existing source targets show **Not recorded**
 or supplied Cards marked **Recorded**; its empty observation tuples still mean absence.
 This does not reinterpret Match's distinct None and known-empty discard modes.
+
+Issue #248 uses the shared printed-suit **C/S/H/D, J/A/10/K/Q/9/8/7** display copy
+for these explicitly set-like summaries and accepted/remaining/public hands. This
+supersedes previous display order, including Null, but leaves the canonical complement
+and source tuples above untouched. Card-level recorded/derived attribution follows
+identity, not visual position. Existing read-only symbols share red Heart/Diamond
+faces; full names, optional codes and source links remain. See
+[Card presentation evidence](compact_card_entry.md#issue-248-current-installed-evidence).
 
 Specialist Match editors remain exact source views: absent evidence still selects
 Unknown with no checked Cards; valid known-empty Hand discards remain empty. There

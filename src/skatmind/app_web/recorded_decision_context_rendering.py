@@ -2,7 +2,7 @@
 
 from html import escape
 
-from .compact_card_rendering import compact_recorded_card
+from .compact_card_rendering import card_set_display_order, compact_recorded_card
 from .recorded_decision_context import RecordedDecisionContext
 from .stateful_localization import text, translated
 
@@ -49,7 +49,7 @@ def render_recorded_decision_context(context: RecordedDecisionContext, locale, *
     else:
         content += '<ul class="decision-context-hand">' + ''.join(
             '<li>' + compact_recorded_card(locale, card, show_code=False) + '</li>'
-            for card in context.hand) + '</ul>'
+            for card in card_set_display_order(context.hand)) + '</ul>'
     if scores:
         content += '<dl>' + ''.join('<dt>' + translated(locale, key) + '</dt><dd>'
             + (unknown if value is None else str(value)) + '</dd>' for key, value in (

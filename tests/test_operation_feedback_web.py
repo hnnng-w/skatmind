@@ -258,7 +258,7 @@ def test_real_card_validation_preserves_safe_values_and_warning_priority(localiz
     assert status == 400 and not notices(page)
     assert 'role="alert"' in page and 'autofocus' in page
     assert 'aria-invalid="true"' in page
-    assert Forms(page).find("/sessions/cards")["values"]["cards"] == ["SJ", "CA"]
+    assert Forms(page).find("/sessions/cards")["values"]["cards"] == ["CA", "SJ"]
     assert active.path.read_bytes() == before
     page = follow(browser, browser.submit(Forms(page).find("/actions/profile/language"),
                                           language="de"))

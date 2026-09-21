@@ -12,19 +12,41 @@ modifier-key requirement, drag operation, image, external font, or new dependenc
 Suit symbols and ranks have localized full accessible Card names. Submitted
 values remain exact canonical codes. Selection is presentation only.
 
-Display order is independent of accepted chronology:
+Issue #248 supersedes the former undeclared-Jacks/trump-first and Null-specific
+**display** ordering. Every compact selector now uses four printed suits, **C/S/H/D**,
+each in **J/A/10/K/Q/9/8/7** order. Filtered palettes omit empty suits and contain
+only the already authorized subset. Printed-suit headings do not assert follow-suit
+legality. DOM and keyboard order agree; `game_type` remains callable-compatible.
+Canonical deck order, trump/Null strengths and legal membership are independent.
 
-* Before declaration, Jacks appear first in Clubs/Spades/Hearts/Diamonds order,
-  labelled as undeclared Jacks, followed by the four suits.
-* Suit/Grand uses existing `is_trump` and Jack strengths. Trumps appear first,
-  with Jacks first; remaining suit Cards retain deck rank order.
-* Null has four printed-suit groups in existing `A K Q J 10 9 8 7` order.
+One shared **5em** interactive width accommodates the native control, suit and
+two-digit rank; tiles wrap without stretching per suit. The shared read-only face
+has no input or checkbox-sized padding. Validated suit markers color Heart/Diamond
+symbols **and ranks** red, Club/Spade dark. Full localized accessible names, optional
+raw codes, native checked states and existing focus remain. Forced colors use system
+colors instead of literal red.
 
-Capacity guidance and a compact code summary accompany the selector. Without
+Multi-select capacity guidance and a compact code/count summary remain. Without
 JavaScript, the summary explicitly describes selection on page load; native checks
-still show unsent selection. `assets/workflow.js` updates the pending count and
-summary when available. It sends no Card request. App-owned CSS retains native
-checked/focus states and reflows without hiding horizontal overflow.
+still show unsent selection. `assets/workflow.js` updates this optional summary.
+Single Play has **no duplicate pending-code/count row**: the checked required radio,
+actor/current Trick, validation and explicit Save provide feedback. There is no
+default Play, change-submit or selection request. The updater tolerates the absent row.
+
+### Set and ordered callers
+
+| Caller | Display boundary |
+| --- | --- |
+| Session accepted batch and remaining/public hands | `card_set_summary`, display copy only |
+| Match initial-hand/original-Skat/discard evidence | `card_set_summary`, separate source sets |
+| Recorded decision context hand | `card_set_display_order` over the retained historical hand |
+| Unplayed pair and recorded/conflicting pair evidence | Display copy, preserving per-Card attribution |
+| `cards_summary`, including Match actual/recommended/ranked candidates | Original supplied sequence |
+| Current/completed Tricks, history, correction before/after traces | Chronological order, never set-sorted |
+
+Only existing read-only symbol consumers share face styling. Plain-text summaries,
+legacy/guided/standalone editors and correction dropdowns keep their presentation
+kind. No producer, source array, Report, Request, Result or download is sorted.
 
 Normal active Session deal, known Skat, discard, and Play use the component.
 Normal Match perspective-hand, original-Skat, discard evidence, and single Play
@@ -251,11 +273,96 @@ checkout imports or differing resources. This optional tooling is separate from
 the full check and introduces no runtime/browser dependency. Measurements are
 implementation evidence, not all-device/assistive-technology coverage or maintainer UAT.
 
+### Issue #248 current installed evidence
+
+The clean starting HEAD was `340c251b8000c4aa07091b0a3763854f486b29e9` on
+`bug/248-card-presentation`, after completed #247. The actual issue and R04 in
+#208 were retrieved. Current pre-fix tests reproduced separate Jacks/trumps,
+Null's former visual order, the duplicate Play row and unsorted historical hand.
+The earlier archive probe is not the current installed baseline.
+
+`scripts/verify_card_presentation.py` uses the existing dependency-free DevTools
+transport, independent baseline/repaired Wheels, real loopback returned forms,
+and disposable synthetic roots. Run using the respective installed interpreter:
+
+```powershell
+& PATH_TO_INSTALLED_PYTHON scripts/verify_card_presentation.py `
+    --browser PATH_TO_EDGE --output FRESH_SCRATCH_DIRECTORY `
+    --wheel PATH_TO_WHEEL --phase before
+```
+
+Use `--phase after` for the repaired Wheel. The script verifies installed Python,
+catalog and resource bytes against HEAD/the working tree, plus served CSS/JavaScript.
+Completed authorities under `<temporary-directory>/opencode/` are
+`248-before-final/` and `248-after-verified/`, with `evidence.json`, exact downloads
+and PNGs. Each records **53 scoped measurements**, Windows **Python 3.13.7**,
+Package **0.17.0**, headless **Edge 153.0.4234.48**, **de/en and script on/off**.
+Each of five primary surfaces has desktop/390/320/200%-text German native checks
+and 390px checks for the other language/script cells: Session hand, Session Play,
+Match Play, Match initial evidence and saved Session context. Additional states
+cover selected red faces, keyboard focus, validation/language and forced colors.
+This is a bounded matrix, not a Cartesian workflow replay.
+
+| Computed measurement | Current baseline | Repair |
+| --- | --- | --- |
+| Interactive widths, 16px face text | 20 widths, 62.6875–73.921875px | **80px**, every suit/rank/state |
+| Interactive widths, 32px face text | 20 widths, 103.40625–125.875px | **160px** |
+| Red suit and rank | `#18231d` | **`#a31524`** |
+| Red contrast, white / selected | Monochrome | **7.806555 / 6.332852:1** |
+| Red read-only contrast, shell / panel | Monochrome | **6.864028 / 7.679261:1** |
+| Dark contrast, selected / white | 13.134750 / 16.191305:1 | Same |
+| Forced-color face contrast | System white/black | **21:1**, `forced-color-adjust: auto` |
+
+Computed ancestor opacity is 1. Complete faces fit their tiles and immediate groups;
+targets remain at least 44px high. The existing focused tile outline is 3.2px with
+1.6px offset, surrounded by 5.6px group padding and 11.2px gaps; checking does not
+resize tiles. Document/client widths agree at **1350/1350, 375/375, 305/305**.
+Inspection of matched selection/Play/enlarged-hand/context screenshots, selected
+H10/HJ/HA, native rejection, history, keyboard and forced-color screenshots confirms
+readable faces and state cues. Long enlarged prose still requires vertical scrolling.
+The existing narrow comparison-table limitation remains separate.
+
+Native label clicks, Space, radio arrows, Tab, empty required Play and explicit
+Save are exercised. Selection alone sends zero POSTs. Each matched run records
+**45 native POSTs**, **20 native Session saves**, **8 native Match saves**, **8 native
+profile saves**, and **one native SJ review/execution**. Including returned-form
+fixture work, totals are **68 Session saves / 28 Match saves / 21 profile saves**
+and **79 existing Match page preparations**. Passive views add no Product saves or
+executions. The batch is submitted in actual DOM order, containing Jacks/Aces/Tens;
+`CJ/CA/C10/D7` still saves **CA/C10/CJ/D7** with one save. Partial reopen, Skat/discard
+append, Match initial membership after CA, evidence replacement/no-op, exact-count
+failure and native/enhanced language preservation retain their semantics.
+
+The unchanged #246/#247 sequence has canonical **C10/CJ/DK/D7 after six Tricks**,
+**CJ after nine**, ten frozen Checkpoints, and the real retained SJ review. Its
+serialized seven-Card hand stays **C10/CJ/SA/SJ/HA/DK/D7**, while display is
+**CJ/C10/SJ/SA/HA/DK/D7**; chronological HJ/DJ, candidate order CJ/SJ and 14/29 remain.
+Exact deterministic bytes match both installations and previous issues:
+
+```text
+Request (1,534 bytes) 05dc65aa713fb37c7b40cd9a4027ce6926881e6bb0c98adaf4256b8a7f14ec94
+Result  (9,640 bytes) 76eb05221cab155ff59f734ec568bbead767c2f309d6823546d598412ac545c1
+Baseline Wheel       aefc44481fe7bae6381aaf0dab9585cad76a6c536fe27c3f8d991466d22c97f9
+Repaired Wheel       1dd87760371b0abf3a53b02aa82b0f9ea85b54f1ebd222dcc101d0e8b84e498d
+```
+
+Per-source files/Checkpoints are byte-preserved through passive views and downloads;
+independent recordings have different generated identities and therefore different
+source hashes. Those exact hashes are retained in evidence. Early incomplete harness
+runs corrected opener selection and Result-envelope access. The tighter geometry
+probe then exposed a too-wide 5.5em trial in nested enlarged Match evidence; 5em and
+the smaller input gap repair it. Earlier runs do not replace the completed authorities.
+There was no screen-reader, physical-device or maintainer UAT acceptance.
+
 ## Compatibility and gates
 
 Package **0.17.0**, Python **>=3.13**, dependencies, license, public APIs, Command
 kinds, Schemas, seven Root workflows, persistence, examples, and generated outputs
 remain unchanged. Final full-check results belong to the implementation report.
+The #248 baseline and repair retain **63 POST routes / 107 forms**, **1,617 keys per
+catalog**, and **98 generated scenarios**; no catalog keys were added or pruned.
+R06 correction dropdown/consent and remaining R04/other findings remain open.
+#247 stays completed. This is bounded presentation implementation, not whole-UAT acceptance.
 Both `check` and `v1-supported-platform-matrix` must pass on the exact merged commit
 before closure. #221–#225 remain bounded completed slices. #208 and unresolved
 findings remain open; UAT-01 failed, UAT-02–12 paused, B-09/B-07 open, B-06 closed.

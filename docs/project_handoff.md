@@ -2740,6 +2740,17 @@ and [installed evidence](unified_workflow_visual_contract.md#r05-remaining-hands
 other findings stay open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and
 B-06 closed. No release-readiness claim follows.
 
+Issue #248 implements the bounded R04 Card-presentation slice from clean
+`340c251b8000c4aa07091b0a3763854f486b29e9`: four fixed printed suits with each Jack
+first, opt-in set display copies, uniform native tile width, shared red/dark faces,
+and quiet single-Play feedback. Canonical batches, legal subsets, ordered history,
+ranked/retained Results and #238–#247 stay intact. Independent Wheels and real
+de/en native/enhanced forms preserve exact SJ downloads; see
+[compact Card evidence](compact_card_entry.md#issue-248-current-installed-evidence).
+#247 stays completed; both exact merged-commit CI jobs gate manual #248 closure.
+#208, R06 and other findings remain open, UAT-01 unaccepted, UAT-02–12 paused,
+B-09/B-07 open and B-06 closed. No release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

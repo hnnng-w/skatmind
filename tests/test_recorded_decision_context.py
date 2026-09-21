@@ -17,6 +17,11 @@ from skatmind.app_web.translation_catalog import translate_frontend_message_v1 a
 
 SESSION_HAND = ("C10", "CJ", "SA", "SJ", "HA", "DK", "D7")
 MATCH_HAND = ("C9", "C8", "C7", "S10", "S8", "HK", "H8", "DQ", "DJ", "D9")
+# Display-only expectations; retained source/Result tuples above stay canonical.
+DISPLAY_HANDS = {
+    SESSION_HAND: ("CJ", "C10", "SJ", "SA", "HA", "DK", "D7"),
+    MATCH_HAND: ("C9", "C8", "C7", "S10", "S8", "HK", "H8", "DJ", "DQ", "D9"),
+}
 
 
 def context_html(page):
@@ -37,7 +42,7 @@ def assert_context(page, locale, *, hand, prefix, actor, trick, play, game=None)
     assert escape(text(locale, "decision_context.next", player=actor)) in context
     hand_html = re.search(r'<ul class="decision-context-hand"[^>]*>(.*?)</ul>', context, re.S)[1]
     assert re.findall(r'role="img" aria-label="([^"]+)"', hand_html) == [
-        escape(card_name(locale, card), quote=True) for card in hand]
+        escape(card_name(locale, card), quote=True) for card in DISPLAY_HANDS[tuple(hand)]]
     if prefix:
         trick_html = re.search(
             r'<ol class="decision-context-trick"[^>]*>(.*?)</ol>', context, re.S)[1]

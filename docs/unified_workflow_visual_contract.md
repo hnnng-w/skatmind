@@ -10,6 +10,18 @@ the three-panel normal recording hierarchy while retaining the #243 stylesheet.
 Issue #246's [R05 presentation evidence](#r05-recorded-history-and-party-score)
 supersedes normal individual cumulative grids with one party score and chronology.
 
+Issue #248's [current Card evidence](compact_card_entry.md#issue-248-current-installed-evidence)
+supersedes compact selector widths, monochrome faces, and trump/Null display grouping.
+Four printed suits use J/A/10/K/Q/9/8/7, with 5em native tiles and shared read-only
+red/dark faces. Actual installed widths are 80px at 16px text and 160px at 32px;
+minimum measured red contrast is 6.332852:1. System colors take precedence in
+forced-colors emulation. The focused tile ring remains 3.2px/1.6px, with sufficient
+group padding/gaps. Single Play omits duplicate pending text; multi-select retains
+snapshot/enhanced counts. Set display copies are distinct from ordered history,
+ranked alternatives and canonical data. The linked evidence covers real de/en
+Session/Match forms, script on/off, narrow/enlarged views and exact retained SJ bytes.
+R06, the existing comparison-table limitation and broader R04/UAT acceptance remain open.
+
 Issue #224 repairs one private presentation boundary: unified light presentation,
 readable Match/Learning content, responsive controls and all 36 Match entries.
 Recording, recovery, analysis, transfer, selection, preparation and persistence

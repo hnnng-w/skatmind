@@ -42,7 +42,8 @@ def test_remaining_hand_overview_has_explicit_time_scope(localized_server, count
     assert "<h3>Remaining hand Cards</h3>" in overview
     assert "A — Rearhand" in overview
     assert overview.count("Hand Cards unknown") == 2
-    assert re.findall(r'\(([A-Z0-9]+)\)', hand_row(overview, 3)) == list(remaining)
+    displayed = ("CJ", "C10", "DK", "D7") if count == 18 else remaining
+    assert re.findall(r'\(([A-Z0-9]+)\)', hand_row(overview, 3)) == list(displayed)
     active = localized_server.app_context.managed_stateful.active_session
     facts = replay_session_state_v1(active.state)
     assert facts.remaining_hand_for(facts.local_player_id) == remaining

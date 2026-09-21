@@ -1,8 +1,8 @@
 """Compact full-recording conclusion, separate from recorded input and Results."""
 
-from .compact_card_rendering import compact_recorded_card
+from .compact_card_rendering import card_set_display_order, compact_recorded_card
 from .stateful_localization import translated
-from .task_first_rendering import cards_summary, paragraph
+from .task_first_rendering import card_set_summary, paragraph
 from .unplayed_card_summary import UnplayedCardSummary
 
 
@@ -10,7 +10,7 @@ def recorded_cards_summary(locale, cards):
     """Keep source absence distinct from a supplied set, including known-empty discards."""
     if cards is None:
         return translated(locale, "unplayed.not_recorded")
-    return cards_summary(locale, cards) + ' — ' + translated(locale, "unplayed.recorded")
+    return card_set_summary(locale, cards) + ' — ' + translated(locale, "unplayed.recorded")
 
 
 def render_unplayed_cards(
@@ -30,15 +30,16 @@ def render_unplayed_cards(
     if partial:
         body += '; '.join(compact_recorded_card(locale, card) + ' — ' + translated(
             locale, "unplayed.recorded" if card in recorded else "unplayed.derived")
-            for card in summary.cards)
+            for card in card_set_display_order(summary.cards))
     else:
-        body += ' '.join(compact_recorded_card(locale, card) for card in summary.cards)
+        body += ' '.join(compact_recorded_card(locale, card)
+                         for card in card_set_display_order(summary.cards))
         body += ' — ' + translated(locale, "unplayed.recorded" if exact else "unplayed.derived")
     body += '</p>'
     if conflict:
         body += paragraph(locale, "unplayed.conflict")
         body += '<p>' + translated(locale, "unplayed.recorded_input") + ': '
-        body += cards_summary(locale, recorded) + '</p>'
+        body += card_set_summary(locale, recorded) + '</p>'
     if summary.hand_game:
         body += paragraph(locale, "unplayed.no_discards")
         if discarded_cards:
@@ -46,7 +47,7 @@ def render_unplayed_cards(
             body += paragraph(locale, "unplayed.conflict")
             body += '<p>' + translated(locale, "unplayed.discards") + ' — '
             body += translated(locale, "unplayed.recorded_input") + ': '
-            body += cards_summary(locale, discarded_cards) + '</p>'
+            body += card_set_summary(locale, discarded_cards) + '</p>'
     else:
         body += '<p><strong>' + translated(locale, "unplayed.original_skat") + '</strong>: '
         body += recorded_cards_summary(locale, original_skat) + '</p>'

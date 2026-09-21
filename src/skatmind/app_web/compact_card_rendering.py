@@ -5,41 +5,45 @@ from __future__ import annotations
 from html import escape
 
 from skatmind.deck import get_full_deck
-from skatmind.rules import JACK_STRENGTH, NULL_RANK_STRENGTH, is_trump
 
 from .stateful_localization import card_name, translated
 
 _SYMBOLS = {"C": "♣", "S": "♠", "H": "♥", "D": "♦"}
+_DISPLAY_RANKS = ("J", "A", "10", "K", "Q", "9", "8", "7")
+
+
+def _card_face(card):
+    """Validated printed identity, shared by native choices and read-only labels."""
+    if card not in get_full_deck():
+        raise ValueError("Card face requires a canonical Card code.")
+    return (f'<span class="card-face" data-card-suit="{card[0]}" aria-hidden="true">'
+            f'<span class="card-suit">{_SYMBOLS[card[0]]}</span> '
+            f'<span class="card-rank">{card[1:]}</span></span>')
 
 
 def compact_recorded_card(locale, card, *, show_code=True):
     """Read-only Card label with the same symbols, exact code and full accessible name."""
+    face = _card_face(card)
     suffix = f" ({card})" if show_code else ""
     return ('<span class="recorded-card" role="img" aria-label="'
             + escape(f"{card_name(locale, card)}{suffix}", quote=True) + '">'
-            + f'<span aria-hidden="true">{_SYMBOLS[card[0]]} {card[1:]}{suffix}</span></span>')
+            + face
+            + (f'<span aria-hidden="true">{suffix}</span>' if suffix else '') + '</span>')
 
 
 def card_display_groups(cards, game_type=None):
-    """Display order is independent of canonical set input and chronological Plays."""
-    remaining = [card for card in get_full_deck() if card in cards]
+    """Printed suits, not effective suits; game_type is retained for caller compatibility."""
     groups = []
-    if game_type != "null":
-        prominent = [card for card in remaining if (
-            card.endswith("J") if game_type is None else is_trump(card, game_type))]
-        prominent.sort(key=lambda card: (-JACK_STRENGTH.get(card, 0),
-                                        get_full_deck().index(card)))
-        if prominent:
-            groups.append(("compact.jacks" if game_type is None else "compact.trumps",
-                           tuple(prominent)))
-        remaining = [card for card in remaining if card not in prominent]
     for suit in "CSHD":
-        group = [card for card in remaining if card[0] == suit]
-        if game_type == "null":
-            group.sort(key=lambda card: -NULL_RANK_STRENGTH[card[1:]])
+        group = tuple(suit + rank for rank in _DISPLAY_RANKS if suit + rank in cards)
         if group:
-            groups.append((f"task.card.suit.{suit}", tuple(group)))
+            groups.append((f"task.card.suit.{suit}", group))
     return tuple(groups)
+
+
+def card_set_display_order(cards):
+    """A display copy for explicitly set-like hands/evidence, never ordered Plays or ranks."""
+    return tuple(card for _, group in card_display_groups(cards) for card in group)
 
 
 def compact_card_selector(locale, *, mode, cards=None, selected=(), game_type=None, capacity=1):
@@ -58,19 +62,22 @@ def compact_card_selector(locale, *, mode, cards=None, selected=(), game_type=No
                 + f'" name="cards" value="{card}" aria-label="{label}"'
                 + (' checked' if card in selected else '')
                 + (' required' if mode == "play" else '')
-                + f'><span aria-hidden="true">{_SYMBOLS[card[0]]} {card[1:]}</span></label>')
+                + '>' + _card_face(card) + '</label>')
         groups.append('<div class="compact-card-group"><h4>' + translated(locale, key)
                       + '</h4><div class="compact-card-choices">'
                       + ''.join(choices) + '</div></div>')
-    summary = escape(', '.join(card for card in cards if card in selected))
+    summary = ''
+    if mode == "set":
+        codes = escape(', '.join(card for card in card_set_display_order(cards)
+                                 if card in selected))
+        summary = ('<p class="compact-selection" data-count-template="'
+            + translated(locale, "compact.pending", count="{count}") + '">'
+            '<span class="compact-count">' + translated(locale, "compact.snapshot") + '</span> '
+            '<span class="compact-selected">' + codes + '</span></p>')
     return (
         f'<fieldset class="compact-cards" data-card-mode="{mode}" data-card-locale="{locale}">'
         '<legend>' + translated(locale, "compact.choose_" + mode) + '</legend>'
         '<p class="compact-guidance">' + translated(locale, "compact.capacity_" + mode,
                                                      capacity=capacity) + '</p>'
         '<div class="compact-card-groups">' + ''.join(groups) + '</div>'
-        '<p class="compact-selection" data-count-template="'
-        + translated(locale, "compact.pending", count="{count}") + '">'
-        '<span class="compact-count">' + translated(locale, "compact.snapshot") + '</span> '
-        '<span class="compact-selected">' + summary + '</span></p>'
-        '<p class="compact-rejected"></p></fieldset>')
+        + summary + '<p class="compact-rejected"></p></fieldset>')
