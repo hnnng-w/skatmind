@@ -30,6 +30,7 @@ from .managed_item_storage import (
 )
 from .operation_feedback import PendingOperationFeedback, feedback_source
 from .operation_feedback_mapping import session_command_message
+from .session_declaration_correction import SessionDeclarationCorrectionState
 
 if TYPE_CHECKING:
     from .session_recorded_review import RecordedReviewSourceV1
@@ -120,6 +121,8 @@ class GuidedSessionContextV1:
     operation_feedback: PendingOperationFeedback = field(
         default_factory=PendingOperationFeedback, repr=False)
     review_selection_key: bytes = field(default_factory=lambda: secrets.token_bytes(32), repr=False)
+    declaration_correction: SessionDeclarationCorrectionState = field(
+        default_factory=SessionDeclarationCorrectionState, repr=False)
     lock: threading.RLock = field(default_factory=threading.RLock, repr=False)
 
     def __post_init__(self) -> None:
@@ -151,10 +154,11 @@ class GuidedSessionContextV1:
             raise StaleFrontendWorkflowRevisionError()
 
     def clear_execution(self) -> None:
-        """Clear retained bytes and their label together; invalidate in-flight work."""
+        """Discard source-scoped execution and correction work on lifecycle invalidation."""
         self.execution = None
         self.recorded_review_source = None
         self.execution_attempt = None
+        self.declaration_correction.clear()
 
     @property
     def decision_checkpoints(

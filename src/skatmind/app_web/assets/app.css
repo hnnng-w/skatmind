@@ -203,6 +203,7 @@ footer a:focus-visible,
 #match-recording,
 #match-games,
 #match-recovery,
+#session-declaration-correction,
 .match-history li {
   scroll-margin-block: 1rem;
   overflow-wrap: anywhere;
@@ -254,7 +255,8 @@ footer a:focus-visible,
   min-width: 0;
 }
 
-#match-recovery .recovery-primary-actions {
+#match-recovery .recovery-primary-actions,
+#session-declaration-correction .recovery-primary-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
@@ -263,7 +265,8 @@ footer a:focus-visible,
 }
 
 /* Separate native forms, with their primary and Cancel submitters as wrapping peers. */
-#match-recovery .recovery-primary-actions > form:has(button.primary) {
+#match-recovery .recovery-primary-actions > form:has(button.primary),
+#session-declaration-correction .recovery-primary-actions > form:has(button.primary) {
   display: contents;
 }
 
@@ -273,7 +276,23 @@ footer a:focus-visible,
   min-width: 0;
 }
 
-#match-recovery .recovery-primary-actions > form {
+#session-declaration-correction .recovery-primary-actions > form > :is(label, select, .compact-declaration),
+#session-declaration-correction .recovery-primary-actions > .error-summary {
+  flex-basis: 100%;
+  min-width: 0;
+}
+
+.session-correction-warning {
+  border-inline-start: 0.25rem solid var(--gold);
+  padding-inline: 1rem;
+}
+
+#session-declaration-correction .declaration-checks {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9em), 1fr));
+}
+
+#match-recovery .recovery-primary-actions > form,
+#session-declaration-correction .recovery-primary-actions > form {
   margin: 0;
   min-width: 0;
 }
@@ -307,6 +326,7 @@ footer a:focus-visible,
 #match-recording:focus,
 #match-games:focus,
 #match-recovery:focus,
+#session-declaration-correction:focus,
 .match-history li:focus {
   outline: 0.2rem solid var(--focus);
   outline-offset: 0.2rem;

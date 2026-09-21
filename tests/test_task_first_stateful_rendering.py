@@ -40,10 +40,12 @@ def test_session_render_all_phases_and_all_commands(tmp_path: Path, locale):
         assert html.index('id="session-recording"') < html.index(
             '<h2>' + t(locale, "task.session.entered") + '</h2>')
         assert all(f'name="kind" value="{kind}"' in html for kind in SESSION_COMMAND_KINDS
-                   if kind != "set_declaration")
-        # Declaration correction is rendered only for its actual accepted target.
-        accepted = any(record.command.kind == "set_declaration" for record in state.command_log)
-        assert ('value="session-correction"' in html) is accepted
+                   if kind not in {"set_declarer", "set_declaration"})
+        # Normal corrections now select exact accepted facts for staged review.
+        for kind in ("set_declarer", "set_declaration"):
+            accepted = any(record.command.kind == kind for record in state.command_log)
+            assert (t(locale, "session.correction." + kind) in html) is accepted
+        assert 'value="session-correction"' not in html
         assert context.document is original
         assert '<script' not in html
 

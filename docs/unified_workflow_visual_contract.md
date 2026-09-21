@@ -1,5 +1,18 @@
 # Unified Match and Learning visual contract
 
+Issue #250 adds the bounded Session declarer/declaration correction surface described
+in [Session correction](session_undo_and_correction.md#normal-browser-declarerdeclaration-correction-issue-250).
+Actions sit beside accepted facts; the editor and verified Apply are separate views
+at `#session-declaration-correction`. Primary Preview/Apply and secondary Cancel
+remain native separate forms. Critical partial-removal counts, boundary and warning
+stay outside disclosures, with every removed record available in a named disclosure.
+Only partial removal needs checkbox consent. A scoped 9em minimum checkbox column
+avoids fragmented labels in the new declaration editor; #248 Card faces and #249
+Match consent remain unchanged. Representative independent-Wheel de/en, script/
+no-script, desktop/390/320/200%-text evidence includes inspected action/focus and
+removed-record screenshots. The current approved inventory is 67 POST routes / 112
+forms, not the historical 63/107 counts in earlier evidence below.
+
 Issue #243 adds the bounded unified action-state, Session Result-focus and Match
 peer-disclosure repair documented under [R08 evidence](#r08-action-focus-and-disclosure-repair).
 The earlier issue measurements below remain historical evidence.

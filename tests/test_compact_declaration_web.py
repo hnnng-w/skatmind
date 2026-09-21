@@ -10,6 +10,8 @@ from test_session_recorded_review_web import Browser, Forms, record_live_game, r
 import skatmind.api.v1.session as api
 import skatmind.api.v1.session.files as session_files
 import skatmind.session_persistence as persistence
+from skatmind.app_web.compact_declaration_form import explicit_declaration_values
+from skatmind.app_web.compact_declaration_http import declaration_binding
 from skatmind.app_web.session_frontend import apply_guided_session_command_v1
 from skatmind.app_web.translation_catalog import translate_frontend_message_v1 as text
 from skatmind.capture_web.context import MatchCaptureWebContextV1
@@ -25,7 +27,21 @@ def localized_server(tmp_path):
 
 def declaration_form(page, marker="session-declaration"):
     return next(form for form in Forms(page).forms
-                if form["values"].get("declaration_form") == marker)
+                 if form["values"].get("declaration_form") == marker)
+
+
+def legacy_correction_form(browser):
+    """Compatibility client: #250 no longer emits this direct-save normal form."""
+    active = browser.server.app_context.managed_stateful.active_session
+    record = next(r for r in active.state.command_log if r.command.kind == "set_declaration")
+    values = explicit_declaration_values(record.command.declaration)
+    values = {k: v for k, v in values.items() if v != "false"}
+    values.update(managed_handle=active.handle, expected_revision=str(active.state.revision),
+        kind="set_declaration", declaration_form="session-correction",
+        target_revision=str(record.revision),
+        declaration_selection=declaration_binding(
+            active, "session-correction", str(record.revision)))
+    return {"action": "/sessions/command", "values": values}
 
 
 def before_declaration(browser, *, defender=True, hand=None):
@@ -73,7 +89,10 @@ def test_real_native_session_visible_bid_one_save_exact_command_next_task_and_re
     assert text("en", "declaration.not_entered") in accepted
     page = follow(browser, browser.submit(Forms(browser.page("/sessions")).find("/sessions/open")))
     reopened = localized_server.app_context.managed_stateful.active_session
-    assert reopened.document == active.document and summary(page) == accepted and len(saves) == 1
+    assert reopened.document == active.document and len(saves) == 1
+    # Reopen deliberately issues different source-context correction entry tokens.
+    assert re.sub(r'<form.*?</form>', '', summary(page), flags=re.S) == re.sub(
+        r'<form.*?</form>', '', accepted, flags=re.S)
 
 
 def test_dependency_retains_every_choice_through_both_native_languages_then_explicit_save(
@@ -142,17 +161,16 @@ def test_live_defender_blank_count_and_null_correction_requires_explicit_clearin
     assert response[0] == 400
     assert text("en", "validation.declaration.count_unverifiable") in response[2].decode()
     page = follow(browser, browser.submit(declaration_form(response[2].decode()), matadors=""))
-    form = declaration_form(page, "session-correction")
+    form = legacy_correction_form(browser)
     response = browser.submit(form, game_type="null", matadors="2", schneider_announced="true")
     assert response[0] == 400
     page = response[2].decode()
     assert text("en", "validation.declaration.null_matadors") in page
-    form = declaration_form(page, "session-correction")
-    assert form["values"]["matadors"] == "2" and form["values"]["schneider_announced"] == "true"
+    form["values"].update(game_type="null", matadors="2", schneider_announced="true")
     response = browser.submit(form, matadors="")
     assert response[0] == 400
     assert text("en", "validation.declaration.null_announcement") in response[2].decode()
-    form = declaration_form(response[2].decode(), "session-correction")
+    form["values"]["matadors"] = ""
     del form["values"]["schneider_announced"]
     page = follow(browser, browser.submit(form, ouvert="true"))
     declaration = replay_session_state_v1(active.state).declaration
@@ -232,7 +250,7 @@ def test_session_stale_reopen_failed_save_and_real_result_lifetime(localized_ser
     execution, before = active.execution, active.path.read_bytes()
     downloads = tuple(browser.request("GET", "/sessions/downloads/" + name + ".json")[2]
                       for name in ("request", "result"))
-    form = declaration_form(page, "session-correction")
+    form = legacy_correction_form(browser)
     for locale in ("de", "en"):
         page = follow(browser, browser.submit(Forms(page).find("/actions/profile/language"),
                                                language=locale))
@@ -245,11 +263,11 @@ def test_session_stale_reopen_failed_save_and_real_result_lifetime(localized_ser
         patch.setattr(persistence.os, "replace", fail)
         assert browser.submit(form, bid_value="19")[0] == 409
     assert active.execution is execution and active.path.read_bytes() == before
-    page = follow(browser, browser.submit(declaration_form(browser.page(), "session-correction"),
+    page = follow(browser, browser.submit(legacy_correction_form(browser),
                                            bid_value="19"))
     assert active.execution is None and active.path.read_bytes() != before
     assert browser.submit(form, bid_value="20")[0] == 409
-    current = declaration_form(browser.page(), "session-correction")
+    current = legacy_correction_form(browser)
     page = follow(browser, browser.submit(Forms(browser.page("/sessions")).find("/sessions/open")))
     assert browser.submit(current, bid_value="20")[0] == 409
 
@@ -385,7 +403,7 @@ def test_session_correction_target_cannot_be_changed_or_used_as_initial_submissi
     browser = Browser(localized_server)
     record_live_game(browser, play_count=3)
     active = localized_server.app_context.managed_stateful.active_session
-    form = declaration_form(browser.page(), "session-correction")
+    form = legacy_correction_form(browser)
     before = active.path.read_bytes()
     assert browser.submit(form, target_revision="1")[0] == 409
     assert browser.submit(form, declaration_form="session-declaration")[0] == 400

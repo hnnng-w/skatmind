@@ -526,10 +526,12 @@ def test_managed_session_http_lifecycle_command_and_download(
     assert status == 200
     assert "web-game" in html
     assert all(f'name="kind" value="{kind}"' in html for kind in (
-        "set_game_metadata", "record_dealt_card", "set_declarer",
+        "set_game_metadata", "record_dealt_card",
         "record_discard", "record_play", "set_game_event", "set_game_end",
         "promote_to_retrospective", "set_public_hand"))
     assert 'value="session-correction"' not in html  # No accepted declaration target yet.
+    assert 'name="kind" value="set_declarer"' not in html  # Complete the deal first.
+    assert '/sessions/declaration-correction/select' not in html
 
     status, headers, body = _request(
         server,
@@ -649,7 +651,11 @@ def test_shared_route_parse_failure_targets_submitted_session_command(
         body=body,
     )
     assert status == 400
-    assert b"Save declaration</summary>" in response
+    # The expert parse error is still bound to its submitted kind, but #250 does
+    # not emit a competing ordinary declaration form before the deal exists.
+    assert b"Check the submitted form" in response
+    assert b'action="/sessions/cards"' in response
+    assert b"Save declaration</summary>" not in response
     with server.app_context.lock:
         feedback = server.app_context.form_feedback.current(
             "sessions",

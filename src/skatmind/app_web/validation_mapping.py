@@ -17,6 +17,7 @@ from .match_recovery import MatchRecoveryConflict
 from .player_seat_setup import SeatSetupError
 from .profile_driven_creation import ProfileDrivenCreationFieldError
 from .session_card_entry import CardEntryError
+from .session_declaration_correction import SessionCorrectionConflict
 from .time_zone_preferences import TimeZonePreferenceSaveError
 from .time_zone_provider import TimeZoneUnavailable
 from .validation_contracts import FrontendValidationIssueV1
@@ -109,12 +110,15 @@ def map_frontend_exception_v1(
     if isinstance(error, TimeZonePreferenceSaveError):
         return (_issue("time_zone", "validation.local_time.preference_save_failed"),)
     if isinstance(error, DeclarationValueError) and (
-            definition.discriminator_field == "declaration_form" or definition.form_key in {
+            definition.discriminator_field in {"declaration_form", "correction_kind"}
+            or definition.form_key.startswith("session.correction.") or definition.form_key in {
                 "session.command.set_declaration", "match.operation.set_declaration"}):
         return (_issue(_known_field(definition, error.field_key),
                        f"validation.declaration.{error.reason}"),)
     if isinstance(error, DeclarationConflict):
         return (_issue(None, f"validation.declaration.{error.reason}"),)
+    if isinstance(error, SessionCorrectionConflict):
+        return (_issue(None, f"validation.session.correction_{error.reason}"),)
     if isinstance(error, CardEntryError):
         return (FrontendValidationIssueV1(
             field_key=_known_field(definition, error.field_key),

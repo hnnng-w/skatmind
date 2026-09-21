@@ -82,6 +82,17 @@ current turn, phase, Live-to-Retrospective promotion, or Historical readiness.
 
 ## Immutable information cutoff and execution
 
+Issue #250's normal declarer/declaration correction preview retains the exact
+Session source, Checkpoint tuple, execution/source label and Request/Result bytes.
+Cancel and no-op Apply retain them too. Real full or partial Apply uses the existing
+guided correction boundary: it preserves historical Checkpoint variants, collects
+only according to the existing rules, and invalidates the Session Result even if
+numeric revision is unchanged. It does not backfill future hand/Skat knowledge or
+re-analyze to keep old decisions eligible. Unrelated Match Reports remain intact.
+A partial corrected prefix may no longer be ended or reviewable; its removal
+warning remains explicit and untimed. Frozen Checkpoints are not an Undo/Redo log.
+See [staged correction and evidence](session_undo_and_correction.md#normal-browser-declarerdeclaration-correction-issue-250).
+
 Issue #234's [Unplayed Card summary](unplayed_card_summary.md) is a separate current
 full-recording conclusion. It never enters these frozen Requests or retained Results.
 Passive display preserves downloads; accepted corrections retain normal invalidation.

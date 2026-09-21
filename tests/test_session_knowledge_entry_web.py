@@ -129,9 +129,15 @@ def test_complete_reconstruction_requires_all_named_hands_and_original_skat(
         assert active.state.phase == "deal"
         view = project_task_first_session_v1(active.state)
         assert view.workflow.primary_action == "record_dealt_card"
-        # An emitted specialist form cannot bypass the canonical phase/evidence check.
+        # #250 emits declarer entry only at its valid first-entry phase, and
+        # correction only for an accepted target. Expert transport still rejects
+        # a premature declarer without bypassing the complete-deal requirement.
         before = active.path.read_bytes()
-        response = browser.submit(Forms(page).find("/sessions/command", kind="set_declarer"))
+        assert not any(form["values"].get("kind") == "set_declarer"
+                       for form in Forms(page).forms)
+        response = browser.request("POST", "/sessions/command", {
+            "managed_handle": active.handle, "expected_revision": active.state.revision,
+            "kind": "set_declarer", "player_id": active.state.players[0].player_id})
         assert response[0] == 400 and active.path.read_bytes() == before
     assert project_session_card_task(active.state).destination == "skat"
     page = follow(browser, browser.submit(Forms(page).find("/sessions/cards"),

@@ -140,9 +140,14 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
         if session is None:
             raise LanguageContextConflict
         with session.lock:
+            from .session_declaration_correction import current_selection
+            pending = session.declaration_correction
+            selected = pending.selected if current_selection(session, pending.selected) else None
             references.extend((session, session.document, session.execution,
-                               session.recorded_review_source, session.execution_attempt,
-                               session.last_operation))
+                                session.recorded_review_source, session.execution_attempt,
+                                session.last_operation, selected,
+                                pending.preview if selected is not None else None,
+                                pending.proposal if selected is not None else None))
             values.append(session.generation)
     if route == "/review/recorded" and match is not None:
         with match.capture.lock:
@@ -282,6 +287,11 @@ def language_return_location_v1(context: AppWebContextV1, route: str) -> str:
             if feedback is not None and feedback.originating_route in {
                     "/sessions/cards", "/sessions/play"}:
                 return route + "#session-card-error"
+            if feedback is not None and feedback.form_key.startswith("session.correction."):
+                return route
+            from .session_declaration_correction import current_selection
+            if current_selection(session, session.declaration_correction.selected):
+                return route + "#session-declaration-correction"
             if session.recorded_review_source is not None:
                 return route + "#session-result"
             return route + "#session-recording"

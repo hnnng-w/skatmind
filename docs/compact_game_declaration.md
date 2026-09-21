@@ -4,6 +4,16 @@ Issue #228 implements one private unified-browser interaction:
 **choose the actual Game → enter the known bid → select announced options →
 save explicitly → recognize the accepted declaration and continue recording**.
 
+Issue #250 supersedes only normal **Session correction** entry below: accepted
+declarer/declaration facts now lead to a source-bound prefilled editor, explicit
+Check change, immutable verified preview and Apply/Cancel. Lossless/no-op Apply
+uses a named submitter; partial first-rejection suffix removal requires a fresh
+unchecked checkbox. Initial entry and legacy expert direct correction keep their
+existing contracts. See [Session correction](session_undo_and_correction.md#normal-browser-declarerdeclaration-correction-issue-250).
+The new private inventory is 67 POST routes / 112 forms and 1,657 paired catalog
+keys. Source Command Matadors, explicit Boolean flags and blank-number semantics
+remain authoritative; inferred analysis counts never prefill corrections.
+
 ## Shared fields and accepted summary
 
 `app_web/compact_declaration_rendering.py` supplies the same fields to active

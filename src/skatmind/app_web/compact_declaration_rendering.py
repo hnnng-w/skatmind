@@ -38,11 +38,13 @@ def compact_declaration_fields(locale, values=None, *, session=False):
         + details + '</details></div>')
 
 
-def accepted_declaration_summary(locale, values, declarer):
+def accepted_declaration_summary(locale, values, declarer, *, actions=None):
     if values is None:
         return ""
-    rows = [("task.field.declarer_player_id", escape(declarer)),
-            ("declaration.game_type", translated(locale, "task.value." + values["game_type"]))]
+    actions = actions or {}
+    rows = [("task.field.declarer_player_id", escape(declarer) + actions.get("set_declarer", "")),
+            ("declaration.game_type", translated(locale, "task.value." + values["game_type"])
+             + actions.get("set_declaration", ""))]
     for name in BOOLEAN_DECLARATION_FIELDS:
         rows.append(("declaration." + name, translated(locale,
             "common.answer.yes" if values[name] else "common.answer.no")))

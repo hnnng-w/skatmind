@@ -434,6 +434,8 @@ def apply_validation_feedback_to_html_v1(
         if definition.form_key == "match.transfer_report"
         else ("recovery_selection",)
         if definition.form_key.startswith("match.recovery.")
+        else ("correction_selection",)
+        if definition.form_key.startswith("session.correction.")
         else ("card_selection",)
         if definition.action_route in {"/sessions/cards", "/sessions/play", "/matches/cards"}
         else ("declaration_selection",)
@@ -451,9 +453,18 @@ def apply_validation_feedback_to_html_v1(
     time_entry = definition.discriminator_field == "time_form"
     # A missing/malformed source token cannot qualify an attempted selection for
     # today's actor merely because its old form happened to have the same ordinal.
-    bounds = (None if (card_entry or declaration_entry or time_entry) and not form_identity else
+    correction_entry = definition.form_key.startswith("session.correction.")
+    source_bound = card_entry or declaration_entry or time_entry or correction_entry
+    bounds = (None if source_bound and not form_identity else
               _find_form_bounds(html, definition, form_instance, form_identity))
     if bounds is None:
+        if correction_entry:
+            summary = _render_summary(
+                state, translated, field_definitions, rendered_fields, locale=locale,
+                fallback_anchor="session-recording",
+                last_valid_result_retained=last_valid_result_retained)
+            return html.replace('<div id="session-correction-feedback"></div>',
+                '<div id="session-correction-feedback">' + summary + '</div>', 1)
         if declaration_entry:
             session = definition.active_context_requirement == "sessions"
             target = 'session-card-feedback' if session else 'match-recovery-feedback'

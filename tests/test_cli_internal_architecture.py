@@ -648,6 +648,7 @@ def test_app_web_layering_and_startup_execution_boundaries() -> None:
         "recording_deletion.py",  # Private removal uses the public strict Session loader.
         "result_presentation.py",
         "session_card_entry.py",
+        "session_declaration_correction.py",  # Private preview uses the immutable public wrapper.
         "session_form_translation.py",
         "session_frontend.py",
         "session_recorded_review.py",

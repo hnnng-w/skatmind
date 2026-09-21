@@ -26,6 +26,10 @@ from .recorded_trick_rendering import (
 from .result_presentation import build_result_presentation_v1
 from .result_rendering import render_result_presentation_v1
 from .session_card_entry import project_session_card_task
+from .session_declaration_correction_rendering import (
+    correction_actions,
+    render_session_correction,
+)
 from .session_frontend import GuidedSessionContextV1
 from .session_recorded_review import project_recorded_session_decisions_v1
 from .session_recorded_review_rendering import (
@@ -302,6 +306,7 @@ def render_task_first_session_v1(
 ) -> str:
     with context.lock:
         view = project_task_first_session_v1(context.state)
+        correction_links = correction_actions(context, locale)
         recorded = project_recorded_session_decisions_v1(context)
         facts = view.facts
         progress = project_session_trick_progress(facts)
@@ -329,7 +334,13 @@ def render_task_first_session_v1(
         if facts.declaration is not None:
             normal += accepted_declaration_summary(locale,
                 build_serializable_game_declaration(facts.declaration),
-                player_name(locale, facts.players, facts.declarer_player_id))
+                player_name(locale, facts.players, facts.declarer_player_id),
+                actions=correction_links)
+        elif facts.declarer_player_id is not None:
+            normal += '<div id="session-declarer">' + paragraph(locale, "task.session.declarer",
+                player=player_name(locale, facts.players, facts.declarer_player_id))
+            normal += correction_links.get("set_declarer", "") + '</div>'
+        normal += render_session_correction(context, locale)
         normal += render_unplayed_cards(unplayed, locale,
             original_skat=facts.known_skat or None, discarded_cards=facts.discarded_cards or None)
         normal += render_recorded_session_decisions_v1(context, locale=locale, view=recorded)
@@ -372,13 +383,15 @@ def render_task_first_session_v1(
                 "partial" if context.last_operation.status == "partial" else
                 "reloaded" if context.last_operation.status == "reloaded" else "rejected"))
         optional = ''.join(disclosure(locale, "task.session.metadata_title" if kind == "set_game_metadata" else f"task.command.{kind}",
-            _command(context, locale, view, kind, app=app_context)) for kind in view.workflow.secondary_actions)
+            _command(context, locale, view, kind, app=app_context)) for kind in view.workflow.secondary_actions
+            if kind not in correction_links)
         normal += disclosure(locale, "task.session.optional", optional)
         normal += _analysis_controls(context, locale, view)
         normal += _analysis_result(context, locale, game_label or text(locale, "page.session_current.title"))
         corrections = paragraph(locale, "task.session.correction_help")
         corrections += ''.join(disclosure(locale, f"task.command.{kind}",
-            _command(context, locale, view, kind, correction=True, app=app_context)) for kind in SESSION_COMMAND_KINDS)
+            _command(context, locale, view, kind, correction=True, app=app_context))
+            for kind in SESSION_COMMAND_KINDS if kind not in {"set_declarer", "set_declaration"})
         corrections += form(locale, "/sessions/undo", hidden("managed_handle", context.handle)
             + hidden("expected_revision", context.state.revision)
             + input_field(locale, "target_revision", "task.field.target_revision", kind="number", required=True),

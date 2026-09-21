@@ -124,7 +124,23 @@ it. The named replacement Apply submitter supplies literal `confirm_apply=on` on
 when activated; it is excluded from both safe fields and language manifests. Rewind
 still uses a required initially unchecked checkbox, cleared on language change.
 No parser/registry/JavaScript change or missing-confirmation default is introduced.
-Current inventory remains 63 POST routes / 107 forms, with 1,625 paired catalog keys.
+That #249 inventory was 63 POST routes / 107 forms, with 1,625 paired catalog keys.
+
+Issue #250 adds exactly four Session declaration-correction POST routes and five
+definitions (two typed Preview forms), bringing the current inventory to **67 / 112**
+and **1,657** paired catalog keys. Every new route enforces an actual 8,192-byte
+read bound. A private retained selection, not a client revision, targets the unique
+accepted declarer/declaration Command. Kind/Player membership, exact field sets and
+cardinality are checked under the Session lifecycle lock. The renderer restores
+safe fields only into the same selection; stale feedback has a recording fallback.
+Invalid re-preview revokes prior Apply, including duplicate-field failures.
+
+Lossless/no-op Apply has only a named `confirm_apply=on` submitter; partial removal
+has only an initially unchecked required checkbox and unnamed removal-labelled
+button. Neither destructive consent nor named submitters enter language overlays.
+Language preserves submitted safe fields and enhanced unsent values by exact
+source/form, but neither applies nor renews a correction. See
+[normal staged Session correction](session_undo_and_correction.md#normal-browser-declarerdeclaration-correction-issue-250).
 
 When one definition has several rendered instances, the unified renderer adds a
 bounded process-local ordinal hidden field. It identifies only the rendered form

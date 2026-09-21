@@ -45,6 +45,7 @@ from .profile_driven_creation import (
 )
 from .recorded_review_opening import OPEN_RECORDING_ROUTE, RECORDED_REVIEW_ROUTE
 from .recording_deletion import DELETION_BODY_LIMIT, DELETION_PAGE, DELETION_POST_ROUTES
+from .session_declaration_correction import CORRECTION_BODY_LIMIT, CORRECTION_ROUTES
 
 _DEFAULT_BODY_LIMIT = FRONTEND_JSON_MAX_FILE_BYTES + 4_096
 _MANAGED_IMPORT_BODY_LIMIT = MANAGED_ITEM_MAX_IMPORT_BYTES + 4_096
@@ -293,7 +294,8 @@ def _field(
                 "forehand_name", "middlehand_name", "rearhand_name"}
             else 64
             if name in {"decision_selection", "recovery_selection", "report_id",
-                        "card_selection", "declaration_selection", "time_selection"}
+                        "card_selection", "declaration_selection", "time_selection",
+                        "correction_selection"}
             else 4
             if control == "card"
             else 8192
@@ -1192,6 +1194,27 @@ for action, fields in (
         body_limit=MATCH_CAPTURE_WEB_MAX_REQUEST_BYTES,
     ))
 
+for action, kind, fields in (
+    ("select", None, ()),
+    ("preview", "set_declarer", ("player_id",)),
+    ("preview", "set_declaration", DECLARATION_FIELDS),
+    ("apply", None, ("confirm_apply",)),
+    ("cancel", None, ()),
+):
+    _FORMS.append(_definition(
+        f"session.correction.{action}" + ("." + kind if kind else ""),
+        f"/sessions/declaration-correction/{action}", ("correction_selection", *fields),
+        page="/sessions/current", active="sessions", body_limit=CORRECTION_BODY_LIMIT,
+        success="/sessions/current#" + ("session-declaration-correction"
+            if action in {"select", "preview"} else "session-recording"),
+        discriminator=("correction_kind", kind) if kind else None,
+        control_overrides={"player_id": "select"},
+        label_overrides={**{name: "validation.field.declaration_" + name
+            for name in DECLARATION_FIELDS}, "player_id": "validation.field.declaration_declarer"},
+        choice_overrides={name: ("true", "") for name in (
+            "hand_game", "ouvert", "schneider_announced", "schwarz_announced")},
+    ))
+
 for kind in SESSION_COMMAND_KINDS:
     session_controls: dict[str, str] = {}
     session_choices: dict[str, tuple[str, ...]] = {}
@@ -1437,6 +1460,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             *GUIDED_ACTION_ROUTE_PATHS,
             *FRONTEND_PROFILE_ACTION_ROUTES,
             *CARD_ENTRY_ROUTES,
+            *CORRECTION_ROUTES,
             OPEN_RECORDING_ROUTE,
             *DELETION_POST_ROUTES,
             "/sessions/create",

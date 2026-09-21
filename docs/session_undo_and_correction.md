@@ -9,7 +9,192 @@ caller-supplied Checkpoints, without changing this history layer. Issue #156 add
 stable `rewind_session()`, `correct_session_command()`, and
 `classify_session_decision_checkpoint()` wrappers over the existing operations.
 
-## Contract identity
+## Normal browser declarer/declaration correction (Issue #250)
+
+The unified Session page now offers **Change declarer** and **Change declaration**
+beside their accepted facts, including during play and after End. Each action binds
+the unique accepted Command of that kind. The normal path is:
+
+**Select accepted fact → edit its prefilled value → Check change → Apply or Cancel.**
+
+There is no normal revision or Command-JSON input. The other fact is read-only context.
+The named Player selector uses the source roster. Declaration input comes from the
+accepted Command, including its supplied or absent Matadors; later inferred counts
+never prefill it. Compact declaration flags remain explicit true/false, and blank
+bid/count remain absent. Missing or ambiguous targets issue no entry selection.
+
+`app_web/session_declaration_correction.py`, its HTTP adapter and renderer retain one
+private editor/preview and at most two current-source entry tokens per Session.
+Selections expire after 30 monotonic minutes. Selecting again or **Change proposal**
+rotates the editor identity and revokes old Apply without extending that deadline.
+Invalid re-preview also revokes old Apply. Cancel must match the current editor;
+stale Cancel cannot discard newer work. Drafts and discarded suffixes are not saved.
+
+Preview invokes the existing public immutable `correct_session_command()` once. It
+does not call the guided saving adapter, collect Checkpoints, change accepted bytes,
+publish `last_operation`, execute analysis, or clear a valid Result. Rendering uses
+the retained typed result; it does not build another correction candidate. Ordinary
+preview text distinguishes Plays from other Commands and shows:
+
+* **Applied/full replay:** the changed fact and retained continuation; deliberate
+  named Apply sends `confirm_apply=on`, without a checkbox.
+* **Unchanged:** the original full continuation remains. The canonical empty replay
+  tuple means no replay was necessary, not missing or discarded history. Apply saves
+  nothing and retains the valid Result.
+* **Partial:** visible removal counts, the first failed entry (itself removed), the
+  actual conflict, all removed records in an inspectable disclosure, and the next
+  recording task. Plays, public-hand/deal/Skat/discard evidence, events and End are
+  accounted for. A fresh unchecked required removal checkbox supplies
+  `confirm_apply=on`; its separate unnamed Apply button explicitly mentions removal.
+* **Rejected:** actual validation feedback and no usable Apply. The editor retains
+  applicable safe values; Matador verification failures identify the count field.
+
+A verified preview has no editable proposal alongside its Apply. Language switching
+preserves the selected source and appropriate editor/preview, clears destructive
+consent, and never extends expiry. Enhanced unsent fields remain bound to the exact
+form/source; native no-script switching preserves submitted values only. Named
+submitters never enter language overlays. Native selection alone sends no POST.
+
+Apply holds the existing Session lifecycle gate and Session lock, checks exact
+context/generation/persistence content and the current file, rebuilds the canonical
+correction, and compares the complete result including retained/discarded records
+and diagnostics. It then delegates to `correct_guided_session_command_v1()` under
+that same lock. Its repeated calculation deliberately preserves the existing
+Checkpoint/CAS boundary. A real full or partial change saves once; a no-op saves
+nothing. External CAS conflicts and pre-save failures retain accepted in-memory
+data and valid Results; there is no hidden retry.
+
+Existing frozen Checkpoint variants are retained, with normal collection and
+current/ancestor/future/diverged lineage. No future knowledge is backfilled to
+recover review eligibility. Equal numeric revision after a real edit still
+invalidates the Session Result. Another family's Match Report is independent.
+Partial warnings remain untimed and are not clean success receipts. Preview does
+not consume an earlier operation receipt.
+
+**Removal is destructive to the active linear recording.** There is no automatic
+in-app Undo/Redo, backup, suffix salvage, inferred replacement evidence, automatic
+promotion, or second correction. An ended Game can become incomplete. The normal
+recording controls and strict reopen work with the saved valid prefix.
+
+### Private transport
+
+Exactly four POST routes and five registered definitions are added. Each reads at
+most **8,192 bytes**, retains existing Host/Origin/authentication enforcement and
+optional `_frontend_form_instance`, and rejects extra or repeated fields.
+
+| Route suffix under `/sessions/declaration-correction/` | Fields besides `managed_handle` |
+| --- | --- |
+| `select` | `correction_selection` |
+| `preview` (declarer) | `correction_selection`, `correction_kind=set_declarer`, `player_id` |
+| `preview` (declaration) | `correction_selection`, `correction_kind=set_declaration`, the seven compact declaration fields |
+| `apply` | `correction_selection`, literal `confirm_apply=on` |
+| `cancel` | `correction_selection` |
+
+No client revision, replacement Command, suffix, actor mapping or removal count is
+accepted. Preview kind and Player membership are checked against the retained source.
+Success uses 303 PRG: Select/Preview to `#session-declaration-correction`, Apply/Cancel
+to `#session-recording`. Contextual 400/409 feedback retains usable controls and
+error focus. Reload/reopen, mutation, foreign/equal-revision content, retirement and
+expiry invalidate old work. Global app-lock sections do no file I/O.
+
+The intentional private inventory changes from **63 POST routes / 107 forms** to
+**67 / 112**. Catalogs change from **1,625** to **1,657** ordered paired keys.
+Public APIs, schemas, persistence contracts, Package 0.17.0, Python >=3.13,
+AGPL-3.0-only, dependencies including `tzdata>=2026.4`, and 98 generated scenarios
+are preserved.
+
+### Legacy direct operation
+
+Expert `/sessions/command` correction, including old compact declaration clients,
+metadata/time correction and Undo retain their direct transport and canonical
+semantics. They are not silently made staged. Competing ordinary direct declarer/
+declaration forms are no longer emitted beside the staged path; other advanced
+tools and `session-history` remain. The immutable engine behavior documented below
+is unchanged.
+
+### Focused and installed evidence
+
+Starting clean branch: `bug/250-session-declaration-correction`, HEAD
+`6134c3dd72588b56799a6f96dea581b601355a30`. Actual #250 and R06 in #208 were read.
+The first added real-HTTP regression failed because no staged entry forms existed.
+The independently installed baseline confirmed numeric declarer targeting and
+immediate declaration saves; canonical partial replay was not a scoring defect.
+
+The literal B/C/A nine-Play fixture confirms full B→C and bid 18→20 replay,
+unchanged original suffix, rejected unverifiable Matadors=2, Grand→Null with exactly
+six retained/three removed Plays, and B→local A with nine removed Plays and return
+to Skat/discard entry. Additional existing Hand/public-hand/event/ending fixtures
+check retained and removed evidence without a new rules matrix. Tests exercise
+real saves, continuation/reopen, submitted language values, exact tokens, duplicates,
+source mismatch, supersession, expiry, competing Apply and actual external CAS.
+Clock and pre-save-failure injections are explicitly labelled. A focused 18-module
+run passed **513 tests**, no skips, in **370.59 seconds**.
+After the receipt guard and its focused regression, the final correction/catalog/
+validation run passed **86 tests**, no skips, in **103.25 seconds**; repository Ruff
+also passed. Catalog key, placeholder and lexical-order checks ran before the full check.
+The first complete full-check attempt passed all pre-pytest stages, then reported
+six failures in older knowledge-entry/general-HTTP tests that expected the removed
+invalid-stage declarer/declaration forms (9,568 passed, three platform skips;
+actual child exit 1). Their assertions now check the intended source-bound UI and
+retain real legacy expert phase/parse rejection coverage. This unsuccessful run is
+retained as `250-full-check-20260921T180312Z.{log,json}`; the corrected tree requires
+a new complete full check, not a filtered retry.
+The focused correction of those expectations, neighboring file-boundary checks and
+catalog/validation gates then passed **154 tests**, with the three existing Windows
+symlink-permission skips, in **72.75 seconds**. Ruff passed again. No product code,
+installed browser surface, dependency, skip condition or check configuration changed
+in this test/documentation correction.
+
+The optional `scripts/verify_session_declaration_correction.py` uses independent
+Wheels, synthetic managed roots and the existing dependency-free Edge harness.
+It validates installed module/resource hashes, HTTP asset bytes, emitted payloads,
+native pointer/Enter actions and zero selection-only POSTs. Both editors, full/
+partial/no-op/rejection, Cancel, de/en and script on/off are exercised. Representative
+desktop 1365, 390, 320 and doubled-text 320 views include warnings, removal details,
+actions and focus. The first repaired screenshot inspection led to a scoped wider
+checkbox-column rule; no global Card/Result-table redesign was made.
+
+The real SJ review keeps 14/29, its seven historical Cards and equal-best Jacks
+through Preview/Cancel/no-op. The approved fixture retains C10/CJ/DK/D7 after six
+Tricks and CJ after nine. Exact source and Request/Result download files and hashes
+are retained beside browser evidence, including an unrelated actual Match Report
+that survives Session mutation. Strict reopen still needs explicit analysis.
+
+Final browser artifacts are under the disposable temporary `opencode` directory:
+`250-before-browser-5/evidence.json` and `250-after-browser-4/evidence.json`, with
+their inspected PNGs, exact initial/before-partial/partial Session files, SJ
+downloads and unrelated Match Report. Windows used Python **3.13.7** and headless
+Edge **153.0.4234.48**. Baseline/repaired runs retain 18/41 representative page
+measurements and 34/129 recorded browser actions (not an acceptance quota). Each
+run includes 109 real Session saves across fixture creation, normal recording,
+and deliberate mutations; the repaired run records 63 canonical correction calls,
+63 existing Checkpoint-collection calls and one explicit Session review execution.
+Per-action counts demonstrate zero Save/collection/execution during Preview and
+one Save for a real Apply. The unrelated executed Match Report is retained separately.
+
+Installed Wheel SHA-256:
+
+```text
+baseline 36d95f17708b5801a954d7590ae210bfa53784f6e94e2b6598a65e551fc012b7
+repaired cc66166c05c4375bb738959f9dade5ea4567799cf6c178183e13ffe8d9829060
+```
+
+The final repaired SJ Request/Result are 1,534/9,640 bytes with hashes
+`05dc65aa713fb37c7b40cd9a4027ce6926881e6bb0c98adaf4256b8a7f14ec94` /
+`76eb05221cab155ff59f734ec568bbead767c2f309d6823546d598412ac545c1`.
+The unrelated Match Report is 8,739 bytes,
+`34a33fe4259847afa164387b438e6e0df5cb4dce62370f89eed8e7f802843b94`.
+Earlier interrupted/failed probe attempts remain retained; none is counted as a
+successful final browser run. Failures included harness import/navigation/closed-
+disclosure handling and a locale assertion, followed by inspected script corrections.
+
+This is headless Edge technical evidence, not physical-device, assistive-technology
+or maintainer UAT acceptance. Full-check results belong to the final unchanged-tree
+execution report. Both `check` and `v1-supported-platform-matrix` must pass on the
+exact merged commit before manual closure. #249 stays completed; #208/other findings
+remain open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
+## Engine contract identity
 
 The independent constants are:
 

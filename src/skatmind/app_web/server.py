@@ -222,6 +222,8 @@ from .security import (
     validate_app_web_host_v1,
     validate_app_web_origin_v1,
 )
+from .session_declaration_correction import CORRECTION_BODY_LIMIT, CORRECTION_ROUTES
+from .session_declaration_correction_http import handle_session_correction
 from .session_form_translation import (
     build_session_edit_from_form_v1,
     build_session_historical_execution_options_from_form_v1,
@@ -359,6 +361,7 @@ _SESSION_DOWNLOAD_ROUTES = {
     "/sessions/downloads/result.json",
 }
 _STATEFUL_POST_ROUTES = {
+    *CORRECTION_ROUTES,
     *DELETION_POST_ROUTES,
     OPEN_RECORDING_ROUTE,
     "/sessions/create",
@@ -1301,7 +1304,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     return
         family = definition.active_context_requirement or "profile"
         active_identity = self._feedback_identity(definition)
-        if family in {"sessions", "matches", "learning"}:
+        if family in {"sessions", "matches", "learning"} and not definition.form_key.startswith(
+                "session.correction."):
             with self.server.app_context.lock:
                 attribute = {"sessions": "active_session", "matches": "active_match",
                              "learning": "active_learning"}[family]
@@ -1875,6 +1879,18 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self._session_page_return = True
         active = self._active_session()
         with active.lock:
+            if active.declaration_correction.selected is not None:
+                from .card_entry_http import CardEntryConflict, _fresh
+                try:
+                    _fresh(active, session=True)
+                except CardEntryConflict:
+                    active.declaration_correction.clear()
+                    status = HTTPStatus.CONFLICT
+                    self._retain_form_feedback(
+                        get_frontend_form_by_key_v1("session.correction.select"),
+                        issues=(FrontendValidationIssueV1(field_key=None,
+                            message_key="validation.session.correction_file_changed"),),
+                        status=status)
             if active.recorded_review_source is not None:
                 try:
                     require_recorded_review_file_fresh_v1(active)
@@ -1895,6 +1911,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 bool(notice) or active.last_operation is not None
                 and active.last_operation.status in {
                     "partial", "rejected", "unavailable", "conflict", "stale"})
+            if active.declaration_correction.selected is not None:
+                self._operation_feedback_delivery = None
         self._content_page(
             "/sessions",
             return_to="/sessions/current",
@@ -3195,6 +3213,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     max_bytes = DELETION_BODY_LIMIT
                 elif parsed.path == LEARNING_ADD_ROUTE:
                     max_bytes = LEARNING_ENTRY_BODY_LIMIT
+                elif parsed.path in CORRECTION_ROUTES:
+                    max_bytes = CORRECTION_BODY_LIMIT
                 elif parsed.path in {"/sessions/import", "/matches/import"}:
                     max_bytes = _MANAGED_IMPORT_MAX_REQUEST_BYTES
                 elif parsed.path in {"/sessions/cards", "/sessions/play"}:
@@ -3207,6 +3227,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 else:
                     max_bytes = APP_WEB_MAX_REQUEST_BYTES
                 body, content_type = self._read_body(max_bytes=max_bytes)
+                if parsed.path in CORRECTION_ROUTES:
+                    handle_session_correction(self, parsed.path, body, content_type)
+                    return
                 self._prepare_form_submission(parsed.path, body, content_type)
                 self._stateful_post(parsed.path, body, content_type)
                 return

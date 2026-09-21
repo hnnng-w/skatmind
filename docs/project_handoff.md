@@ -2764,6 +2764,17 @@ Reports and unrelated real SJ 14/29/equal-best downloads. See
 other findings remain open. UAT-01 is unaccepted, UAT-02–12 paused, B-09/B-07 open,
 B-06 closed. No release-readiness claim follows.
 
+Issue #250 adds private staged Session declarer/declaration correction from clean
+`6134c3dd72588b56799a6f96dea581b601355a30`: accepted-fact entry, source-Command
+prefill, canonical immutable Preview, full/no-op named Apply and fresh partial-
+removal consent. Existing replay/Checkpoint/CAS semantics and legacy expert direct
+transport remain. Four routes/five definitions intentionally bring the private
+inventory to 67/112, with 1,657 paired catalog keys. See
+[Session correction](session_undo_and_correction.md#normal-browser-declarerdeclaration-correction-issue-250)
+for synthetic HTTP/installed-browser evidence. #249 stays completed; both exact
+merged-commit CI jobs gate manual #250 closure. #208/other findings remain open,
+UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

@@ -1802,6 +1802,15 @@ table is documented in the [unplayed-card guide](unplayed_card_summary.md#issue-
 gate #247 closure. #208 and other findings remain open; UAT-01 is unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release-readiness claim follows.
 
+Issue #250 adds the bounded R06 normal Session declarer/declaration path: accepted-
+fact selection, immutable canonical Preview and explicit Apply/Cancel, with fresh
+consent for partial suffix removal. Public replay, Checkpoints and persistence are
+unchanged; the authorized private route/form inventory becomes 67/112. See
+[Session correction](session_undo_and_correction.md#normal-browser-declarerdeclaration-correction-issue-250).
+#249 remains completed. Exact merged-commit `check` and
+`v1-supported-platform-matrix` gate closure; #208/other findings remain open,
+UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
 Issue #249 implements the bounded R06 unified Match correction editor: shared
 singular full-deck radios, immutable verified-preview presentation, concise effects,
 named replacement Apply and separate unchanged destructive rewind consent. Existing
