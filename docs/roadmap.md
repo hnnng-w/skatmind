@@ -1802,6 +1802,15 @@ table is documented in the [unplayed-card guide](unplayed_card_summary.md#issue-
 gate #247 closure. #208 and other findings remain open; UAT-01 is unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release-readiness claim follows.
 
+Issue #249 implements the bounded R06 unified Match correction editor: shared
+singular full-deck radios, immutable verified-preview presentation, concise effects,
+named replacement Apply and separate unchanged destructive rewind consent. Existing
+source/token/lifetime/full-suffix/CAS semantics and #238–#248 remain intact. See
+[current recovery evidence](match_recording_error_recovery.md#issue-249-current-evidence).
+#248 stays completed. Both exact merged-commit CI jobs gate manual #249 closure;
+#208, remaining R06 and other findings remain open, UAT-01 unaccepted, UAT-02–12
+paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
+
 Issue #248 implements bounded R04 Card consistency: four printed suits with Jacks
 first, explicit set-only display ordering, uniform native tiles, red Heart/Diamond
 faces and no duplicate single-Play pending row. Canonical/chronological/ranked order

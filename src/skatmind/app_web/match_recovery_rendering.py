@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from html import escape
 
+from .compact_card_rendering import compact_card_selector, compact_recorded_card
 from .recorded_trick_progress import project_match_trick_progress
 from .recorded_trick_rendering import render_recorded_history
 from .stateful_localization import card_name, text, translated
-from .task_first_rendering import card_select, disclosure, form, hidden, paragraph
+from .task_first_rendering import disclosure, form, hidden, paragraph
 
 
 def _name(context, locale, player_id):
@@ -84,6 +85,33 @@ def _removed_annotations(context, locale, game, candidate):
     return content + '</ul>'
 
 
+def _replacement_effects(context, locale, game, old, preview):
+    candidate = preview.candidate
+    pair = ' → '.join(compact_recorded_card(locale, card, show_code=False) + ' '
+                      + escape(card_name(locale, card)) for card in (old.card, preview.card))
+    body = '<p class="recovery-card-change">' + pair + '</p>'
+    if candidate.change.status == "unchanged":
+        return body + paragraph(locale, "recovery.unchanged")
+    following = len(game.plays) - old.decision_index
+    if following:
+        body += paragraph(locale, "recovery.following", count=following)
+    for before, after in candidate.changed_tricks:
+        if before.winner_player_id == after.winner_player_id:
+            effect = translated(locale, "recovery.winner_same", trick=before.number,
+                                player=_name(context, locale, after.winner_player_id))
+        else:
+            effect = translated(locale, "recovery.winner_changed", trick=before.number,
+                before=_name(context, locale, before.winner_player_id),
+                after=_name(context, locale, after.winner_player_id))
+        if game.declaration.game_type != "null" and before.points != after.points:
+            effect += ' ' + translated(locale, "recovery.points",
+                                      before=before.points, after=after.points)
+        body += '<p>' + effect + '</p>'
+    if game.commentaries or game.response_links:
+        body += paragraph(locale, "recovery.annotations_unchanged")
+    return body
+
+
 def render_match_recovery(context, locale, selections, *, progress=None):
     state = context.recovery
     game = context.workspace.slots[context.selected_position - 1].observed_game
@@ -111,31 +139,26 @@ def render_match_recovery(context, locale, selections, *, progress=None):
         feedback += '<section id="match-recovery" tabindex="-1"><h3>' + translated(
             locale, "recovery.preview_title") + '</h3>'
         feedback += paragraph(locale, "recovery.selected",
+                              game=text(locale, "task.match.position",
+                                        number=context.selected_position),
                               location=_location(locale, old.decision_index),
                               player=_name(context, locale, old.player_id),
                               card=card_name(locale, old.card))
         fields = hidden("managed_handle", context.handle)
-        if selection.action == "replace":
-            feedback += form(locale, "/matches/recovery/preview", fields
-                + hidden("recovery_selection", selection.token)
-                + card_select(locale, current=(state.preview.card if state.preview else old.card)),
-                "recovery.preview_card")
         preview = state.preview
-        if preview is not None and preview.selection == selection:
+        if preview is not None and preview.selection != selection:
+            preview = None
+        main_action = ''
+        if selection.action == "replace" and preview is None:
+            main_action = form(locale, "/matches/recovery/preview", fields
+                + hidden("recovery_selection", selection.token)
+                + compact_card_selector(locale, mode="play", selected=(old.card,), name="card",
+                    legend_key="recovery.choose_card", guidance_key="recovery.choice_guidance"),
+                "recovery.preview_card", primary=True)
+        if preview is not None:
             candidate = preview.candidate
             if selection.action == "replace":
-                feedback += paragraph(locale, "recovery.replacement",
-                                      old=card_name(locale, old.card),
-                                      new=card_name(locale, preview.card),
-                                      count=len(game.plays) - selection.play_index)
-                feedback += paragraph(locale, "recovery.annotations_unchanged")
-                for before, after in candidate.changed_tricks:
-                    feedback += paragraph(locale, "recovery.trick_changed", trick=before.number,
-                        before=_name(context, locale, before.winner_player_id),
-                        after=_name(context, locale, after.winner_player_id),
-                        old_points=before.points, new_points=after.points)
-                if candidate.change.status == "unchanged":
-                    feedback += paragraph(locale, "recovery.unchanged")
+                feedback += _replacement_effects(context, locale, game, old, preview)
             else:
                 feedback += paragraph(locale, "recovery.removal",
                     retained=candidate.retained_play_count, removed=candidate.removed_play_count,
@@ -150,20 +173,29 @@ def render_match_recovery(context, locale, selections, *, progress=None):
                     feedback += disclosure(locale, "recovery.removed_annotations",
                         _removed_annotations(context, locale, game, candidate.game))
                 feedback += paragraph(locale, "recovery.removal_final")
-            feedback += paragraph(locale, "recovery.metadata_unchanged")
+                feedback += paragraph(locale, "recovery.metadata_unchanged")
             if candidate.warning is not None:
                 feedback += paragraph(locale, "recovery.candidate_warning")
                 feedback += render_match_diagnostic(context, locale, candidate.warning,
                                                     proposed_index=selection.play_index)
-            feedback += form(locale, "/matches/recovery/apply", fields
+            confirmation = ('' if selection.action == "replace" else
+                '<label><input type="checkbox" name="confirm_apply" required>'
+                + translated(locale, "recovery.confirm") + '</label>')
+            main_action = form(locale, "/matches/recovery/apply", fields
                 + hidden("recovery_selection", preview.apply_token)
-                + '<label><input type="checkbox" name="confirm_apply" required>'
-                + translated(locale, "recovery.confirm") + '</label>', "recovery.apply")
-        feedback += form(locale, "/matches/recovery/cancel", fields, "recovery.cancel")
+                + confirmation, "recovery.apply", primary=True,
+                submitter=("confirm_apply", "on") if selection.action == "replace" else None)
+        feedback += '<div class="recovery-primary-actions">' + main_action
+        feedback += form(locale, "/matches/recovery/cancel", fields, "recovery.cancel") + '</div>'
         rewind = next(item for item in selections if item.play_index == old.decision_index
                       and item.action == "rewind")
         if selection.action == "replace":
+            if preview is not None:
+                feedback += _action(context, locale, selection, "recovery.choose_another")
+            feedback += '<div class="recovery-danger">'
+            feedback += paragraph(locale, "recovery.rewind_prepare")
             feedback += _action(context, locale, rewind, "recovery.rewind")
+            feedback += '</div>'
         feedback += '</section>'
     history = ''
     if game.plays:

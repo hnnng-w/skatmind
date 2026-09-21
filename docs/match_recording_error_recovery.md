@@ -82,12 +82,45 @@ Invalid retained suffixes report the actual conflict, save nothing, and offer
 explicit rewind. Actors are never reassigned, Plays reordered, extra Cards
 swapped, or declarations changed automatically.
 
-Replacement preview shows old/new Cards, retained continuation count, changed
-Trick summaries, and unchanged free-text annotations. Rewind preview shows
+Issue #249 replaces only the unified Match single-Card dropdown with #248's
+native graphical radios: four printed suits in C/S/H/D order, J/A/10/K/Q/9/8/7
+within each, equal-width red/dark faces and full accessible names. Its unchanged
+domain is all 32 Cards, not today's next actor's palette. The singular field is
+`card`; the accepted old Card is initially selected as a legitimate no-op. Drawing
+the palette performs no candidate replay. Whole-suffix validation remains authoritative.
+
+Selection shows the accepted Game/Trick/Card/Player, palette, Preview and Cancel.
+A verified preview replaces the editable palette with the exact old/new faces and
+names, actual changed-Trick effects, Apply and Cancel. Unchanged winners are named
+once; ordinary point changes are omitted for Null without inferring an outcome.
+Only positive following-Play counts are shown. The ordinary unchanged-metadata
+inventory is omitted; a short annotation-wording caution appears only when comments
+or response links exist. Their exact content remains untouched. Accepted and candidate
+warnings keep their diagnostics and evidence links. Same-Card preview says No change.
+
+**Choose another Card** reuses select on the same accepted Play, clearing the preview
+and invalidating its Apply token without renewing selection creation time. Rejection
+has diagnostics and a usable palette, with no valid Apply. Submitted choices retain
+their exact source-safe value through rejection and language return. Enhanced unsent
+choices additionally require JavaScript; no obsolete overlay can recreate a palette
+beside a different verified preview.
+
+Rewind preview shows
 retained/removed counts, the first removed Trick/Card position, inspectable exact
 Play lists, and removed commentary and response links. Metadata and evidence
-retention are explicit. Every Apply requires a fresh explicit confirmation;
-confirmation is excluded from safe-value and language preservation.
+retention are explicit. Rewind preparation is separated below the main action row
+and explains that it opens a removal preview. It removes the **selected Play and
+its continuation**, including undo-last-Card.
+
+Issue #249 supersedes the blanket extra-checkbox UI rule **only for full-suffix
+replacement**. Its deliberately activated native Apply submitter is
+`<button type="submit" name="confirm_apply" value="on">Apply correction</button>`
+(with the existing primary class). The exact Apply token and common fields remain.
+There is no hidden/default consent. Rewind keeps the initially unchecked required
+checkbox and an unnamed submit button. Confirmation is excluded from safe-value and
+language preservation in both cases; language clears checked destructive consent.
+Missing, wrong or duplicate confirmation and invalid/expired/foreign tokens remain
+rejected. These gestures do not replace source verification, revalidation or CAS.
 
 A same-Card choice is unchanged: no revision increment, Save, or Report
 invalidation. Cancel only discards process-local recovery state. Navigation and
@@ -169,8 +202,9 @@ The four added URL-encoded POST routes have exact fields after the common
 | `/matches/recovery/cancel` | none | Discard process-local recovery selection/preview |
 
 The browser never submits a replacement Game or Workspace, target index, actor,
-timecode, or action override. The registry now contains 49 POST routes and 82
-definitions. Recovery requests use the existing Capture request-size limit.
+timecode, or action override. The Issue-#249 baseline and repair contain 63 POST
+routes and 107 definitions (the original #222 inventory was 49/82). Recovery
+requests use the existing Capture request-size limit.
 Validation returns contextual `400`; freshness, selection, CAS, and recovery Save
 conflicts return contextual `409`; successful forms use `303`.
 
@@ -186,6 +220,85 @@ request bounds, and packaged-only assets remain unchanged. Standalone Capture
 routes and behavior remain supported. No dependency or Node toolchain is added.
 
 ## Verification and compatibility
+
+### Issue #249 current evidence
+
+Clean starting HEAD: `33929aa4352006bf3ace1910d023677bebef532d`, on
+`bug/249-match-card-correction`, after completed #248. Live #249 and the consolidated
+R06 report in #208 were retrieved. Failing current-code UI regressions reproduced
+the dropdown, redundant checkbox, missing choose-another action and irrelevant
+annotation inventory before implementation; the archived probe is not current evidence.
+
+`tests/test_match_card_correction_ui.py` reuses genuine returned-form creation and
+recording fixtures. B/C/A, Grand declarer B, CK/C7/CA previews C10 with accepted
+CA/15 untouched, Cancel retains it, and named-submitter Apply saves C10/14 once,
+with A next. Game-2 Pass, return, strict reopen and normal review chronology pass.
+Tests also cover exact radio options, submitted selection, malformed fields, absent/
+wrong/duplicate confirmation, stale Apply after choose-another, invalid suffix without
+truncation, a nonempty preserved suffix, actual timecodes/hand evidence, comments and
+response links, Null winner changes, accepted/candidate warnings, no-op and genuine
+Report/download retention. Existing expiry/equal-revision/foreign/CAS/failure and
+concurrent-Apply tests retain their boundaries; their fault injections are separate
+from successful real saves and analysis.
+
+`scripts/verify_match_card_correction.py` uses independently installed baseline and
+repaired Wheels, the existing dependency-free DevTools harness, and disposable
+synthetic roots. Windows Python **3.13.7**, Package **0.17.0**, headless Edge
+**153.0.4234.48** completed de/en and JavaScript on/off correction and rewind flows.
+Authorities are `<temporary-directory>/opencode/249-before-02/` and
+`249-after-final/`; each `evidence.json` records loaded/served hashes, actual POST
+fields, counts, geometry and exact per-source fingerprints. The initial baseline
+attempt exceeded its 120-second tool window and is unsuccessful; inspection found
+no surviving Python worker before the longer completed run.
+
+The final **29 measurements** cover selection, verified preview, rejection, keyboard
+focus and rewind: representative desktop **1365×900**, **390×844**, **320×844** and
+**200% computed text**. Document/client widths agree at **1350/1350**, **375/375**,
+**305/305**; tiles remain **80px / 160px**, at least 44px high, with full faces and
+accessible names. Inspected screenshots show peer primary/Cancel actions wrapping,
+separate rewind preparation and visible focus. An error-summary insertion initially
+separated Preview/Cancel; the final scoped layout also handles that rejected state.
+Vertical scrolling and wrapped enlarged prose remain necessary.
+
+Native labels, radio arrows/Space, explicit Preview, pointer/Enter/Space Apply,
+Cancel, choose-another, real duplicate rejection and language return were exercised.
+Choice alone sends zero POSTs. Captured preview fields contain singular `card`;
+`confirm_apply=on` occurs only on Apply. No language overlay contains the named
+submitter. Rewind's required unchecked submission sends zero POSTs, and switching
+language after checking it clears consent. Each installation records **80 native
+POSTs**, **12 native Match saves**, **20 native profile saves**, and no native analysis.
+Including real fixture setup: **40 Match saves**, **36 Session saves**, **28 profile
+saves**, **4 Match analyses**, **1 Session review**, **197 existing page preparations**.
+Passive phases add zero Product saves/analyses; those preparation counts match baseline.
+
+Every passive Match source (**11,267 bytes**) and genuine Report download (**8,739
+bytes**) stays exactly equal through select/preview/cancel/language/rejection/no-op.
+A real change normally invalidates that Report. The unrelated ended Session and ten
+Checkpoints remain exact within each run. Its real SJ review retains historical
+14/29, the seven-Card hand, equal-best CJ/SJ, and identical deterministic downloads:
+
+```text
+Request (1,534 bytes) 05dc65aa713fb37c7b40cd9a4027ce6926881e6bb0c98adaf4256b8a7f14ec94
+Result  (9,640 bytes) 76eb05221cab155ff59f734ec568bbead767c2f309d6823546d598412ac545c1
+Baseline Wheel       00675c0dc21d67c8ac1114115f1714446d1fbc973cd9b31753aeed25b92090b6
+Repaired Wheel       900d8e00b8e0d4ffab17a1bd3125ffd2cae7a93b4239cada1870215a7e0a80b1
+Repaired app.css     8b3938888a6e7cf93463e0ea7e2b5fdb7c35f51d27fc04e014715550a75336ec
+Unchanged workflow.js aa3871d9880326fc27590d80f7f0bf9ebc0a7cf31fd64fc2fd04a1e3932efce1
+```
+
+Independent recordings have generated identities, so their Workspace/Session/Report
+hashes differ across runs; evidence retains each exact hash. No equality across an
+actual saved correction is claimed. No new scorer, recovery operation, wire field,
+schema, persistence format or dependency is added. Catalogs change from **1,617** to
+**1,625** matching keys; 63 routes / 107 forms and 98 generated scenarios remain.
+The known narrow analysis-table limit, untested AT/physical devices, full Cartesian
+viewport coverage and maintainer UAT remain outside this implementation evidence.
+Final full-check stage/exit/skip evidence belongs to the implementation report.
+#248 remains completed; both exact merged-commit CI jobs gate manual #249 closure.
+Remaining R06 (including Session correction/discoverability), #208 and other findings
+stay open. UAT-01 is unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
+
+### Original recovery verification
 
 Focused modules are `tests/test_match_recording_diagnostics.py`,
 `tests/test_match_recording_recovery.py`, and

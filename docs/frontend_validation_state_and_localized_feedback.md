@@ -116,6 +116,16 @@ Typed authoritative trace diagnostics are captured before generic mapping, and
 stale recovery feedback stays beside the selected Game's recording controls.
 See [Match recording error recovery](match_recording_error_recovery.md).
 
+Issue #249 keeps those exact registered fields and source semantics. Replacement
+`card` is a native single-selection radio group, restored by value under its exact
+`recovery_selection`, with field messages after the shared compact fieldset. A ready
+preview omits the editable form, so stale submitted/enhanced overlays cannot restore
+it. The named replacement Apply submitter supplies literal `confirm_apply=on` only
+when activated; it is excluded from both safe fields and language manifests. Rewind
+still uses a required initially unchecked checkbox, cleared on language change.
+No parser/registry/JavaScript change or missing-confirmation default is introduced.
+Current inventory remains 63 POST routes / 107 forms, with 1,625 paired catalog keys.
+
 When one definition has several rendered instances, the unified renderer adds a
 bounded process-local ordinal hidden field. It identifies only the rendered form
 instance and contains no Product identity. Multipart forms are not instrumented.

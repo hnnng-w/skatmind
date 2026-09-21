@@ -90,10 +90,13 @@ def card_set_summary(locale: str, cards) -> str:
 def form(
     locale: str, action: str, fields: str, label_key: str, *, primary: bool = False,
     disabled: bool = False, multipart: bool = False, confirm_key: str | None = None,
+    submitter: tuple[str, str] | None = None,
 ) -> str:
     return (f'<form method="post" action="{action}" class="form-grid"'
             + (f' data-confirm="{translated(locale, confirm_key)}"' if confirm_key else "")
             +
             f'{" enctype=\"multipart/form-data\"" if multipart else ""}>{fields}'
-            f'<button type="submit" class="{"primary" if primary else "secondary"}"'
+             f'<button type="submit" class="{"primary" if primary else "secondary"}"'
+            + (f' name="{escape(submitter[0], quote=True)}" value="{escape(submitter[1], quote=True)}"'
+               if submitter else '') +
             f'{" disabled" if disabled else ""}>{translated(locale, label_key)}</button></form>')

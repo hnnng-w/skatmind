@@ -45,16 +45,25 @@ default Play, change-submit or selection request. The updater tolerates the abse
 | Current/completed Tricks, history, correction before/after traces | Chronological order, never set-sorted |
 
 Only existing read-only symbol consumers share face styling. Plain-text summaries,
-legacy/guided/standalone editors and correction dropdowns keep their presentation
+legacy/guided/standalone editors keep their presentation
 kind. No producer, source array, Report, Request, Result or download is sorted.
 
 Normal active Session deal, known Skat, discard, and Play use the component.
 Normal Match perspective-hand, original-Skat, discard evidence, and single Play
 use it. The optional initial-hand editor is beside recording, before history;
 other evidence remains secondary. Unknown evidence does not block observed Plays.
-Corrections, public hands, events, advanced ordered Play, guided Analyze/Review,
+Session corrections, public hands, events, advanced ordered Play, guided Analyze/Review,
 and standalone surfaces retain their meanings. Shared legacy `card_select` and
 `card_palette` were not globally replaced.
+
+Issue #249 reuses this component for unified Match replacement only, with narrow
+optional field/legend/guidance parameters. It submits singular `card`, offers the
+unchanged full 32-Card correction domain, and initially selects the accepted old
+Card. It does not use the next actor's palette or replay possible choices on render.
+Selection is an unsaved proposal; verified preview has no editable palette. Native
+Apply alone supplies the existing `confirm_apply=on` for replacement; destructive
+rewind retains its required fresh checkbox. See [Match recovery](match_recording_error_recovery.md)
+for exact source, effects, validation, installed-Wheel and native browser evidence.
 
 ## Session append: candidate first, save last
 
@@ -361,7 +370,8 @@ kinds, Schemas, seven Root workflows, persistence, examples, and generated outpu
 remain unchanged. Final full-check results belong to the implementation report.
 The #248 baseline and repair retain **63 POST routes / 107 forms**, **1,617 keys per
 catalog**, and **98 generated scenarios**; no catalog keys were added or pruned.
-R06 correction dropdown/consent and remaining R04/other findings remain open.
+Issue #249 subsequently implements the bounded R06 Match dropdown/preview/consent
+slice; its catalogs have 1,625 keys. Remaining R06 and R04/other findings remain open.
 #247 stays completed. This is bounded presentation implementation, not whole-UAT acceptance.
 Both `check` and `v1-supported-platform-matrix` must pass on the exact merged commit
 before closure. #221–#225 remain bounded completed slices. #208 and unresolved

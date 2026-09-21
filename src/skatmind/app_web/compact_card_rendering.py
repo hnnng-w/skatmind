@@ -46,7 +46,8 @@ def card_set_display_order(cards):
     return tuple(card for _, group in card_display_groups(cards) for card in group)
 
 
-def compact_card_selector(locale, *, mode, cards=None, selected=(), game_type=None, capacity=1):
+def compact_card_selector(locale, *, mode, cards=None, selected=(), game_type=None, capacity=1,
+                          name="cards", legend_key=None, guidance_key=None):
     if mode not in {"set", "play"}:
         raise ValueError("Card selector mode must be set or play.")
     cards = tuple(get_full_deck() if cards is None else cards)
@@ -59,7 +60,7 @@ def compact_card_selector(locale, *, mode, cards=None, selected=(), game_type=No
             choices.append(
                 '<label class="compact-card"><input type="'
                 + ("checkbox" if mode == "set" else "radio")
-                + f'" name="cards" value="{card}" aria-label="{label}"'
+                + f'" name="{escape(name, quote=True)}" value="{card}" aria-label="{label}"'
                 + (' checked' if card in selected else '')
                 + (' required' if mode == "play" else '')
                 + '>' + _card_face(card) + '</label>')
@@ -76,8 +77,9 @@ def compact_card_selector(locale, *, mode, cards=None, selected=(), game_type=No
             '<span class="compact-selected">' + codes + '</span></p>')
     return (
         f'<fieldset class="compact-cards" data-card-mode="{mode}" data-card-locale="{locale}">'
-        '<legend>' + translated(locale, "compact.choose_" + mode) + '</legend>'
-        '<p class="compact-guidance">' + translated(locale, "compact.capacity_" + mode,
-                                                     capacity=capacity) + '</p>'
+        '<legend>' + translated(locale, legend_key or "compact.choose_" + mode) + '</legend>'
+        '<p class="compact-guidance">' + translated(
+            locale, guidance_key or "compact.capacity_" + mode,
+            **({} if guidance_key else {"capacity": capacity})) + '</p>'
         '<div class="compact-card-groups">' + ''.join(groups) + '</div>'
         + summary + '<p class="compact-rejected"></p></fieldset>')

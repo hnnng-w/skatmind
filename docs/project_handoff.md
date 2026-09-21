@@ -2751,6 +2751,19 @@ de/en native/enhanced forms preserve exact SJ downloads; see
 #208, R06 and other findings remain open, UAT-01 unaccepted, UAT-02–12 paused,
 B-09/B-07 open and B-06 closed. No release-readiness claim follows.
 
+Issue #249 implements bounded R06 Match single-Card correction from clean
+`33929aa4352006bf3ace1910d023677bebef532d`: shared full-deck singular radios,
+separate verified preview, concise actual effects, named replacement Apply and
+separate unchanged rewind checkbox consent. Existing select clears superseded
+preview tokens without renewing expiry; core recovery, wire/source/CAS and Report
+semantics remain intact. Independent installed Wheels retain exact passive Match
+Reports and unrelated real SJ 14/29/equal-best downloads. See
+[current recovery evidence](match_recording_error_recovery.md#issue-249-current-evidence).
+#248 stays completed. Both exact merged-commit `check` and
+`v1-supported-platform-matrix` gate manual #249 closure; #208, remaining R06 and
+other findings remain open. UAT-01 is unaccepted, UAT-02–12 paused, B-09/B-07 open,
+B-06 closed. No release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

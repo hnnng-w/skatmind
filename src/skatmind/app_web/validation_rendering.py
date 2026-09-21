@@ -144,7 +144,7 @@ def _open_field_details(block: str, field: str) -> str:
 
 
 def _insert_field_messages(block: str, field: str, messages: str) -> str:
-    if field == "cards" and 'class="compact-cards"' in block:
+    if field in {"card", "cards"} and 'class="compact-cards"' in block:
         return block.replace('</fieldset>', '</fieldset>' + messages, 1)
     field_pattern = re.escape(field)
     control = re.search(

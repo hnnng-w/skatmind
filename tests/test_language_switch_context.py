@@ -164,14 +164,18 @@ def test_real_recovery_preview_language_overlay_does_not_apply_or_renew(localize
     for card in synthetic_cards()[:6]:
         page = follow(browser, browser.submit(operation_form(page, "append_plays"), cards=card))
     page = follow(browser, browser.submit(entry_action(page, 2)))
+    old_overlay = envelope(page, "/matches/recovery/preview", {"card": ["SQ"]})
     page = follow(browser, browser.submit(Forms(page).find("/matches/recovery/preview"), card="SK"))
     active = localized_server.app_context.managed_stateful.active_match
     preview = active.recovery.preview
     original = active.path.read_bytes()
     for locale in ("de", "en"):
-        raw = envelope(page, "/matches/recovery/preview", {"card": ["SQ"]})
-        page = follow(browser, enhanced_switch(browser, page, raw, locale))
-        assert Forms(page).find("/matches/recovery/preview")["values"]["card"] == "SQ"
+        # A verified preview no longer has an independently editable Card palette.
+        # Its former selection overlay must not recreate one beside a stale Apply.
+        assert enhanced_switch(browser, page, old_overlay, locale)[0] == 400
+        page = switch(browser, browser.page("/matches/current"), locale)
+        assert not any(form["action"] == "/matches/recovery/preview"
+                       for form in Forms(page).forms)
         assert active.recovery.preview is preview
         assert active.path.read_bytes() == original
         apply = Forms(page).find("/matches/recovery/apply")

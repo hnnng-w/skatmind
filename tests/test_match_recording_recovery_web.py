@@ -89,7 +89,7 @@ def test_real_record_warning_or_late_replay_recover_complete_reopen(localized_se
     page = follow(browser, browser.submit(entry_action(page, 2)))
     assert text(locale, "recovery.preview_title") in page
     page = follow(browser, browser.submit(Forms(page).find("/matches/recovery/preview"), card="S9"))
-    assert text(locale, "recovery.annotations_unchanged") in page
+    assert text(locale, "recovery.annotations_unchanged") not in page
     assert active.path.read_bytes() == original and active.workspace is accepted
     apply = Forms(page).find("/matches/recovery/apply")
     assert "confirm_apply" not in apply["values"]
@@ -138,7 +138,7 @@ def test_native_language_invalid_suffix_rewind_cancel_and_security(localized_ser
     assert language["values"]["return_to"] == "/matches/position/1"
     page = follow(browser, browser.submit(language, language="de"))
     assert text("de", "recovery.reason.wrong_actor") in page
-    assert '<option value="CJ" selected' in page
+    assert Forms(page).find("/matches/recovery/preview")["values"]["card"] == "CJ"
     assert active.path.read_bytes() == original
     page = follow(browser, browser.submit(entry_action(page, 2, rewind=True)))
     assert text("de", "recovery.removal_final") in page
@@ -213,7 +213,8 @@ def test_invalid_then_valid_preview_does_not_restore_rejected_replacement(locali
     preview = Forms(page).find("/matches/recovery/preview")
     assert browser.submit(preview, card="CJ")[0] == 400
     page = follow(browser, browser.submit(preview, card="SK"))
-    assert Forms(page).find("/matches/recovery/preview")["values"]["card"] == "SK"
+    assert not any(f["action"] == "/matches/recovery/preview" for f in Forms(page).forms)
+    assert localized_server.app_context.managed_stateful.active_match.recovery.preview.card == "SK"
     assert 'class="error-summary"' not in page
 
 

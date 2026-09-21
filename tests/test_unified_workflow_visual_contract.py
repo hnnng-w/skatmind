@@ -192,7 +192,9 @@ def test_recovery_transfer_fields_and_language_identities_survive_rendering(loca
     assert instrument_language_forms_v1(translated)[1] == manifest
     assert Forms(translated).find("/matches/recovery/apply")["values"] == forms.find(
         "/matches/recovery/apply")["values"]
-    assert 'name="confirm_apply" required' in translated
+    apply = re.search(r'<form[^>]*action="/matches/recovery/apply".*?</form>', translated, re.S)[0]
+    assert re.search(r'<button[^>]*name="confirm_apply" value="on"', apply)
+    assert not re.search(r'<input[^>]*name="confirm_apply"', apply)
     assert re.search(r'<section id="match-recovery" tabindex="-1">', translated)
     assert localized_server.app_context.managed_stateful.active_match.recovery.preview is preview
     assert_app_assets(browser, translated)

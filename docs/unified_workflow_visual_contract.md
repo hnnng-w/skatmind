@@ -22,6 +22,19 @@ ranked alternatives and canonical data. The linked evidence covers real de/en
 Session/Match forms, script on/off, narrow/enlarged views and exact retained SJ bytes.
 R06, the existing comparison-table limitation and broader R04/UAT acceptance remain open.
 
+Issue #249 implements only R06's unified Match Card replacement editor. Its
+[current recovery evidence](match_recording_error_recovery.md#issue-249-current-evidence)
+supersedes the dropdown and extra replacement checkbox: #248 native single-Card
+tiles, a distinct verified preview, primary Preview/Apply beside secondary Cancel,
+and separate rewind preparation. Scoped wrapping actions use valid separate forms
+in DOM order, also after error-summary insertion. Required destructive consent is
+unchanged. Independent Wheels, real de/en script/no-script forms and 29 final
+measurements include desktop/390/320/200%-text selection, effects, rejection and
+rewind; inspected actions, full faces and focus remain readable without page overflow.
+Native pointer/Enter/Space Apply supplies the existing confirmation field. No global
+palette or focus rewrite follows. Remaining R06, known narrow analysis-table limits,
+untested assistive technologies and maintainer UAT remain separate.
+
 Issue #224 repairs one private presentation boundary: unified light presentation,
 readable Match/Learning content, responsive controls and all 36 Match entries.
 Recording, recovery, analysis, transfer, selection, preparation and persistence
