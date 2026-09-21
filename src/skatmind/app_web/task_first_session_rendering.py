@@ -48,7 +48,7 @@ from .task_first_rendering import (
     select_field,
     technical_details,
 )
-from .unplayed_card_rendering import render_unplayed_cards
+from .unplayed_card_rendering import recorded_cards_summary, render_unplayed_cards
 from .unplayed_card_summary import project_unplayed_cards
 
 
@@ -56,6 +56,19 @@ def _players(locale, facts):
     return tuple((player.player_id, player_name(locale, facts.players, player.player_id)
                   + " — " + text(locale, f"creation.seat.{player.seat}"))
                  for player in facts.players)
+
+
+def _hand_summary(locale, facts, player_id, *, public=False):
+    """Label retained membership; an empty partial observation is not an exhausted hand."""
+    cards = facts.public_hand_for(player_id) if public else facts.remaining_hand_for(player_id)
+    if cards:
+        return cards_summary(locale, cards)
+    exact = facts.declaration is not None and (public or (
+        len(facts.initial_hand_for(player_id) or ()) == 10 and (
+            player_id != facts.declarer_player_id or facts.declaration.hand_game
+            or len(facts.known_skat) == len(facts.discarded_cards) == 2)))
+    exhausted = cards == () and exact and facts.phase in {"play", "ended"}
+    return translated(locale, "task.session.hand_empty" if exhausted else "task.session.hand_unknown")
 
 
 def _choice(locale, name, values, current=None):
@@ -321,23 +334,29 @@ def render_task_first_session_v1(
             original_skat=facts.known_skat or None, discarded_cards=facts.discarded_cards or None)
         normal += render_recorded_session_decisions_v1(context, locale=locale, view=recorded)
         normal += render_recorded_history(progress, locale, anchor_prefix="session-play")
-        entered = '<ul>' + ''.join('<li>' + escape(label) + '</li>' for _, label in _players(locale, facts)) + '</ul>'
+        entered = '<h3>' + translated(locale, "task.session.initial_seating") + '</h3>'
+        entered += '<ul>' + ''.join('<li>' + escape(label) + '</li>' for _, label in _players(locale, facts)) + '</ul>'
+        hand_scope = ("initial_so_far" if facts.phase in {"setup", "deal"} else
+                      "initial_hands" if facts.phase == "declaration" else
+                      "current_hands" if facts.phase == "skat_and_discard" else "remaining_hands")
+        entered += '<h3>' + translated(locale, "task.session." + hand_scope) + '</h3>'
         for number, player in enumerate(facts.players, 1):
-            hand = facts.remaining_hand_for(player.player_id)
             entered += f'<p id="session-hand-{number}" tabindex="-1"><strong>' + escape(player_name(locale, facts.players, player.player_id))
-            entered += '</strong>: ' + cards_summary(locale, hand) + '</p>'
+            entered += '</strong>: ' + _hand_summary(locale, facts, player.player_id) + '</p>'
             public = facts.public_hand_for(player.player_id)
             if public is not None:
                 entered += f'<div id="session-public-hand-{number}" tabindex="-1">'
-                entered += paragraph(locale, "task.session.public_hand") + cards_summary(locale, public)
+                entered += paragraph(locale, "task.session.public_hand") + _hand_summary(locale, facts, player.player_id, public=True)
                 entered += '</div>'
         if facts.declaration is None:
             entered += paragraph(locale, "task.session.declarer",
                 player=player_name(locale, facts.players, facts.declarer_player_id))
         if unplayed is None:
-            entered += '<div id="session-skat" tabindex="-1">' + paragraph(locale, "task.skat") + cards_summary(locale, facts.known_skat or None) + '</div>'
-            discards = facts.discarded_cards or (() if facts.declaration and facts.declaration.hand_game else None)
-            entered += '<div id="session-discards" tabindex="-1">' + paragraph(locale, "task.discards") + cards_summary(locale, discards) + '</div>'
+            entered += '<div id="session-skat" tabindex="-1">' + paragraph(locale, "unplayed.original_skat") + recorded_cards_summary(locale, facts.known_skat or None) + '</div>'
+            discards = (translated(locale, "unplayed.no_discards")
+                        if facts.declaration and facts.declaration.hand_game else
+                        recorded_cards_summary(locale, facts.discarded_cards or None))
+            entered += '<div id="session-discards" tabindex="-1">' + paragraph(locale, "unplayed.discards") + discards + '</div>'
         entered += paragraph(locale, "task.session.play_progress", plays=facts.played_card_count,
                              tricks=len(facts.completed_tricks))
         if facts.continuation_event is not None:

@@ -2726,6 +2726,20 @@ exact merged-commit CI jobs gate manual #246 closure. #208 stays open, UAT-01
 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release-readiness
 claim follows.
 
+Issue #247 implements R05's bounded remaining-hand and Skat/discard wording, from
+clean `e9e1fc0ec2bb5bf474307804f8d90b62a9d51ecd`. Session distinguishes initial
+seating, partial initial entry, pickup/discard knowledge and remaining hands;
+unknown, exhausted exact and public-hand evidence retain their source meanings.
+The shared final pair has concise recorded/derived attribution with separate
+non-Hand original Skat. Editors, #234 eligibility, source/retained data and #238–#246
+remain intact. The maintainer approved actual #246 intermediate hands (C10/CJ/DK/D7
+after six Tricks; CJ after nine), rather than the conflicting #247 planning table.
+See the [wording contract](unplayed_card_summary.md#issue-247-wording-verification)
+and [installed evidence](unified_workflow_visual_contract.md#r05-remaining-hands-and-evidence-labels).
+#246 stays completed. Both exact merged-commit CI jobs gate #247 closure; #208 and
+other findings stay open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and
+B-06 closed. No release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

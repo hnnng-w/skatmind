@@ -292,6 +292,9 @@ def test_match_evidence_after_play_noop_modes_stale_position_and_real_recovery(l
     assert card in active.workspace.slots[0].observed_game.perspective_initial_hand
     saved, revision = active.path.read_bytes(), active.workspace.revision
     form = operation_form(page, "set_perspective_hand")
+    assert set(form["values"]["cards"]) == set(hand)
+    assert form["values"]["card_evidence_mode"] == "exact"
+    assert card in form["values"]["cards"]  # INITIAL evidence still includes the played Card.
     page = follow(browser, browser.submit(form, card_evidence_mode="exact",
                                           cards=list(reversed(hand))))
     assert active.path.read_bytes() == saved and active.workspace.revision == revision
@@ -303,6 +306,7 @@ def test_match_evidence_after_play_noop_modes_stale_position_and_real_recovery(l
                                           confirm_apply="on"))
     page = follow(browser, browser.submit(operation_form(page, "append_plays"), cards=card))
     assert len(active.workspace.slots[0].observed_game.plays) == 1
+    assert set(operation_form(page, "set_perspective_hand")["values"]["cards"]) == set(hand)
     # Evidence clear is explicit; merely unchecking an Exact hand fails.
     form = operation_form(page, "set_perspective_hand")
     assert browser.submit(form, cards=[], card_evidence_mode="exact")[0] == 400

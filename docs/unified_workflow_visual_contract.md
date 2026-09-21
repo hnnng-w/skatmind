@@ -811,3 +811,113 @@ remaining R05 and other findings stay open, UAT-01 unaccepted, UAT-02–12 pause
 B-09/B-07 open and B-06 closed. Both exact merged-commit `check` and
 `v1-supported-platform-matrix` must pass before manual closure. No release-readiness
 or maintainer-acceptance claim follows.
+
+## R05 remaining hands and evidence labels
+
+Issue #247 starts on clean `bug/247-hand-evidence-labels` at
+`e9e1fc0ec2bb5bf474307804f8d90b62a9d51ecd`, after completed #246. Current issue
+and #208 consolidated R05 were retrieved. Four genuine pre-fix HTTP regressions
+reproduced the misleading overview heading, generic exhausted-hand label and
+redundant absent-discard line. The maintainer explicitly chose actual unchanged
+#246 fixture prefixes after inspection found different intermediate hands from the
+planning table; see [the evidence clarification](unplayed_card_summary.md#issue-247-wording-verification).
+
+Production changes are confined to `task_first_session_rendering.py`,
+`unplayed_card_rendering.py` and the two catalogs. The existing Session overview
+uses compact initial-seating and phase-scoped hand subheadings. Local hand labels
+distinguish missing knowledge from an exhausted exact playable hand; public evidence
+retains its separate current membership. Shared pair attribution is inline and
+preserves supplied/derived distinctions, partial membership and conflicts. The
+Match Skat/discard disclosure names its actual contents. No new panel or CSS-hidden
+duplicate, Card-style/order change, editor relocation or source mutation is used.
+
+### Independent installed verification
+
+`scripts/verify_hand_evidence_labels.py` uses the existing dependency-free DevTools
+harness and disposable synthetic roots. Its `--phase before` mode compares fourteen
+installed module/resource hashes with starting HEAD; `after` compares with the
+changed tree. Both verify served CSS/JavaScript bytes and reject checkout imports.
+Invoke the selected independently installed environment's Python with `--browser`,
+`--output` (fresh scratch directory), `--wheel` and `--phase`.
+
+Final matched evidence:
+
+```text
+<temporary-directory>/opencode/247-before-03/evidence.json and PNGs
+<temporary-directory>/opencode/247-after-final/evidence.json and PNGs
+```
+
+Each run completed **100 scoped page measurements** using **Windows CPython 3.13.7**,
+**Package 0.17.0** and headless **Edge 153.0.4234.32**, revision
+`@9aab8632678bdbd60c393455e1394ee523ba682d`. The same prepared sources are reused
+across widths. Actual coverage, rather than a screenshot quota:
+
+| Surface/state | de/en, JS on/off coverage |
+| --- | --- |
+| Session thirty accepted Plays before End, ended with real SJ Result, partial initial entry with retained error/long escaped name | All four combinations at 1365×900, 390×844, 320×800 and 320×800/200% text |
+| Non-Hand Match recording and selected review pair | Same complete sixteen-cell set per surface; recording also inspects original-Skat/discard editors |
+| Session six/nine Tricks and rewind to 29 Plays | All four combinations at 390×844 |
+| Separate Hand Match recording and review | All four combinations at 390×844; recorded discard mode remains known-empty |
+
+Computed font sizes are doubled once on fresh pages; device scale and browser zoom
+remain unchanged. Document/client widths are **1350/1350**, **375/375** and **305/305**.
+Scoped headings, names, Card names, attribution paragraphs and hand rows wrap without
+new clipping or horizontal overflow. Enlarged long German labels and full Player
+names require ordinary vertical scrolling; tail screenshots inspect the content
+below the first viewport. No one-viewport or blanket accessibility claim is made.
+The existing narrow/enlarged analysis comparison-table limitation remains open.
+
+Inspected final screenshots include `session-ended-de-0-320-2-hand-tail.png`,
+`session-six-en-1-390-1-hands.png`, `session-initial-error-en-1-320-2-hand-tail.png`,
+`match-recording-de-1-390-1-discard-editor.png`, `match-review-de-0-320-2-pair.png`,
+`match-hand-review-de-0-390-1-pair.png` and `keyboard-evidence-link-0.png`.
+Original names are complete and escaped. Native Tab/Enter reaches the accepted
+hand target without a request; native language submission restores error focus.
+Mouse/native Card submission records the final Session CJ and Match D9, with
+ordinary source-return focus. End and SJ review are explicit native submissions.
+Real returned-form HTTP also exercises correction Preview/Cancel/Apply, same-Card
+no-op, Session Undo and Match rewind 30→29, continuation and strict reopen. Match's
+initial-hand editor still contains the original Cards after recorded play. Unknown
+original-Skat/discard editors remain unchecked beside the derived-only pair.
+
+Both matched runs record **40 Session saves**, **72 Match saves**, **one Session
+execution**, **one Match execution**, **213 existing selected-Game page preparations**
+and **25 actual profile saves**, including fixture setup. They issue **103 explicit
+language POSTs** (unchanged preference submissions do not all save the profile).
+Passive measurement sets introduce zero Product saves/executions; Match recording
+and review each use the same **48** existing page preparations, Hand surfaces **12**
+each. Card selection and keyboard evidence navigation issue no POST/save/execution.
+No receipt reappears during passive viewing. Exact per-route requests, action deltas,
+source hashes, scoped geometry and installed hashes remain in the JSON evidence.
+
+Source and Checkpoint bytes/values remain exact through passive steps, as do the
+executed Request/Result and retained Match Report download. The current empty hand
+and S9/H7 conclusion coexist with the earlier SJ Result's **14/29**, seven Cards and
+equal-best Jacks. The SJ bytes match both installations and the established baseline:
+
+```text
+Request (1,534 bytes) 05dc65aa713fb37c7b40cd9a4027ce6926881e6bb0c98adaf4256b8a7f14ec94
+Result  (9,640 bytes) 76eb05221cab155ff59f734ec568bbead767c2f309d6823546d598412ac545c1
+Baseline Wheel       dc06499f58015d2469ff539c6a7e65a06c316d95865b5c6ee3982bf7786c34eb
+Repaired Wheel       e85125ba6a6d83bb24f922ab645fa76bdbe40d4c78bbebe23140ba9526a035a4
+```
+
+Earlier `before-01`/`after-01` runs completed a smaller 84-measurement set.
+`before-02` stopped on an invalid nested `:has()` screenshot selector in the optional
+verifier, not a Product failure; the corrected selector and expanded coverage passed
+in the final runs. `after-03` preceded the final defensive missing-declaration guard;
+the final repaired Wheel and run above supersede it. No UAT/default data or maintainer
+installation was used. Other browsers, physical devices and assistive technology
+were not tested.
+
+Focused runs passed **249** affected-path tests and **257** additional preservation
+tests, with no skips. The final helper/catalog subset passed **39 tests**, including
+exact **1,617-key** de/en ordering/placeholder parity, before the full gate. The
+prescribed complete check follows all edits and browser evidence; its retained log,
+actual child exit and test/skip totals belong to the implementation report.
+Package/Python/license/dependencies (including tzdata>=2026.4), public/profile/
+persistence formats, **63 POST routes / 107 forms** and **98 scenarios** retain their
+contracts. #246 stays completed; both exact merged-commit `check` and
+`v1-supported-platform-matrix` gate manual #247 closure. #208 and other findings
+remain open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+This does not resolve all R07 ergonomics or establish release readiness.

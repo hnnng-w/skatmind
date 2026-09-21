@@ -247,6 +247,7 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
     assert context.execution is None
 
     def review_and_check():
+        from test_hand_evidence_labels import hand_row, overview_html
         from test_recorded_party_presentation import assert_party_score, history_rows
         from test_recording_task_focus import Hierarchy
 
@@ -316,7 +317,12 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
             assert 'data-operation-feedback ' not in browser.page()
             assert_visible_equal_best(browser.page(), locale)
             assert_context(browser.page(), locale, hand=SESSION_HAND,
-                           prefix=(("B", "HJ"), ("C", "DJ")), actor="A", trick=4, play=3)
+                            prefix=(("B", "HJ"), ("C", "DJ")), actor="A", trick=4, play=3)
+            overview = overview_html(browser.page())
+            assert text(locale, "task.session.remaining_hands") in overview
+            assert overview.count(text(locale, "task.session.hand_unknown")) == 2
+            if ended:
+                assert text(locale, "task.session.hand_empty") in hand_row(overview, 3)
             assert browser.request("GET", "/sessions/downloads/request.json")[2] == request_bytes
             assert browser.request("GET", "/sessions/downloads/result.json")[2] == result_bytes
         assert len(calls) == count + 1 and len(saves) == save_count

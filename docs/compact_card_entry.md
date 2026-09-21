@@ -95,6 +95,14 @@ declaration validation. Empty checkboxes never implicitly select a mode. Changin
 mode alone saves nothing; explicit Save applies that mode's existing semantics.
 Rejected saves retain useful safe input.
 
+Issue #247 corrects the adjacent disclosure caption to **Original Skat and discard
+evidence**, matching its actual controls. The separate perspective **initial-hand**
+editor stays in place and retains played Cards in its original set. The concise
+[read-only pair summary](unplayed_card_summary.md) never checks derived Cards in an
+editor, changes Unknown to Exact, or offers a save-inference action. No evidence
+mode, binding, disclosure identity, native language/error restoration or Card
+presentation/order changes with these labels.
+
 Initial evidence offers the full deck. Its owner's already played Cards can belong
 in that initial hand, and original Skat/discards can overlap where validation permits.
 Evidence editors never reuse Play exclusions. Normal Match Play submits one Card;

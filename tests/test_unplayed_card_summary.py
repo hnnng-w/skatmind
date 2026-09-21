@@ -105,8 +105,11 @@ def test_source_sets_remain_separate_and_partial_input_is_not_exact(complete, re
     assert summary.cards == ("SK", "SQ")
     assert "Original Skat" in html and "Discarded Cards" in html
     assert visible.count("(SQ)") == 1
-    assert visible.count("(SK)") == (2 if recorded == ("SK",) else 1)
-    assert ("Recorded input" not in html) == (recorded == ("SQ", "SK"))
+    assert visible.count("(SK)") == 1
+    assert "Recorded input" not in html
+    assert (text("en", "unplayed.derived") in html) == (recorded != ("SQ", "SK"))
+    if recorded:
+        assert text("en", "unplayed.recorded") in html
     if original is None:
         assert '<strong>Original Skat</strong>: Not recorded' in html
     else:
@@ -119,7 +122,33 @@ def test_known_empty_hand_discards_and_exact_skat_display_once():
     html = render_unplayed_cards(summary, "en", original_skat=("D7", "D8"), discarded_cards=())
     visible = re.sub(r"<[^>]+>", "", html)
     assert visible.count("(D8)") == visible.count("(D7)") == 1
-    assert "<p>Recorded</p>" in html and "No discards in a Hand game" in html
+    assert " — Recorded</p>" in html and "No discards in a Hand game" in html
+
+
+@pytest.mark.parametrize("recorded", ((), ("CA",), ("CA", "SK")))
+def test_defensive_conflicting_pair_keeps_both_evidence_sources(complete, recorded):
+    # These inconsistent display inputs are not presented as successful canonical entry.
+    summary = project_unplayed_cards(project_session_trick_progress(complete), complete.declaration)
+    html = render_unplayed_cards(summary, "en", original_skat=None, discarded_cards=recorded)
+    assert text("en", "unplayed.conflict") in html
+    assert text("en", "unplayed.recorded_input") in html
+    assert text("en", "unplayed.derived") in html
+    assert all(f"({card})" in html for card in (*recorded, *summary.cards))
+    assert (text("en", "task.known_empty") in html) == (recorded == ())
+
+
+def test_accepted_original_skat_may_overlap_discards_without_merging_sources():
+    from test_observed_game_contracts import build_observed_record, observed_plays_from_historical
+    facts = complete_facts()
+    record = build_observed_record(declarer_player_id="player-b", declaration=facts.declaration,
+        original_skat=("SK", "D8"), discarded_cards=("SK", "SQ"),
+        plays=observed_plays_from_historical(build_historical_input()))
+    summary = project_unplayed_cards(project_session_trick_progress(facts), facts.declaration)
+    html = render_unplayed_cards(summary, "en", original_skat=record.original_skat,
+                                discarded_cards=record.discarded_cards)
+    assert re.sub(r'<[^>]+>', '', html).count("(SK)") == 2  # Two different recorded facts.
+    assert text("en", "unplayed.conflict") not in html
+    assert text("en", "unplayed.derived") not in html
 
 
 def test_different_legitimate_original_skat_same_plays_and_readonly_no_rules(complete, monkeypatch):

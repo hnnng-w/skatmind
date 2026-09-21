@@ -6,6 +6,13 @@ from .task_first_rendering import cards_summary, paragraph
 from .unplayed_card_summary import UnplayedCardSummary
 
 
+def recorded_cards_summary(locale, cards):
+    """Keep source absence distinct from a supplied set, including known-empty discards."""
+    if cards is None:
+        return translated(locale, "unplayed.not_recorded")
+    return cards_summary(locale, cards) + ' — ' + translated(locale, "unplayed.recorded")
+
+
 def render_unplayed_cards(
     summary: UnplayedCardSummary | None, locale: str, *,
     original_skat, discarded_cards, review: bool = False,
@@ -16,21 +23,33 @@ def render_unplayed_cards(
     exact = recorded is not None and set(recorded) == set(summary.cards)
     body = '<div class="accepted-declaration" data-unplayed-cards><h3>'
     body += translated(locale, "unplayed.title") + '</h3>'
-    body += paragraph(locale, "unplayed.derived")
     key = "unplayed.hand_skat" if summary.hand_game else "unplayed.discards"
     body += '<p><strong>' + translated(locale, key) + '</strong>: '
-    body += ' '.join(compact_recorded_card(locale, card) for card in summary.cards)
-    body += '</p><p>' + (translated(locale, "unplayed.recorded") if exact else
-        translated(locale, "unplayed.recorded_input") + ': ' + (
-            translated(locale, "unplayed.not_recorded") if recorded is None else
-            cards_summary(locale, recorded))) + '</p>'
+    partial = bool(recorded) and set(recorded) < set(summary.cards)
+    conflict = recorded is not None and not exact and not partial
+    if partial:
+        body += '; '.join(compact_recorded_card(locale, card) + ' — ' + translated(
+            locale, "unplayed.recorded" if card in recorded else "unplayed.derived")
+            for card in summary.cards)
+    else:
+        body += ' '.join(compact_recorded_card(locale, card) for card in summary.cards)
+        body += ' — ' + translated(locale, "unplayed.recorded" if exact else "unplayed.derived")
+    body += '</p>'
+    if conflict:
+        body += paragraph(locale, "unplayed.conflict")
+        body += '<p>' + translated(locale, "unplayed.recorded_input") + ': '
+        body += cards_summary(locale, recorded) + '</p>'
     if summary.hand_game:
         body += paragraph(locale, "unplayed.no_discards")
+        if discarded_cards:
+            # Defensive presentation: retain contradictory supplied input, never certify it.
+            body += paragraph(locale, "unplayed.conflict")
+            body += '<p>' + translated(locale, "unplayed.discards") + ' — '
+            body += translated(locale, "unplayed.recorded_input") + ': '
+            body += cards_summary(locale, discarded_cards) + '</p>'
     else:
         body += '<p><strong>' + translated(locale, "unplayed.original_skat") + '</strong>: '
-        body += (translated(locale, "unplayed.not_recorded") if original_skat is None else
-                 translated(locale, "unplayed.recorded") + ' — '
-                 + cards_summary(locale, original_skat)) + '</p>'
+        body += recorded_cards_summary(locale, original_skat) + '</p>'
     if review:
         body += paragraph(locale, "unplayed.review_scope")
     return body + '</div>'

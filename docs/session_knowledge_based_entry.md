@@ -47,6 +47,27 @@ A promoted record displays reconstruction even if its initial mode was `live`.
 Passive viewing, radio selection and disclosures cause no Product write, promotion,
 analysis or preparation. Language saving retains its separate profile operation.
 
+### Accepted seating and hand scope (Issue #247)
+
+The existing overview separates **Initial seating** from hand membership with compact
+subheadings. Original seats remain source facts even when a winner leads a later
+Trick. The overview reads each accepted Player's projected hand, not legal choices
+or the profile's own identity. Full labels are escaped and existing hand/public-hand/
+Skat/discard evidence targets stay reachable.
+
+* Setup/deal: **Initial Cards entered so far**, without claiming a partial set is complete.
+* Declaration: **Recorded initial hand Cards**.
+* Pickup/discard: **Current known hand Cards**, including the accepted transformation.
+* Play/ended: **Remaining hand Cards**. An absent hand says **Hand Cards unknown**;
+  an exhausted retained exact hand says **No hand Cards left**. An empty partial or
+  missing observation is not promoted to exhaustion. Public evidence keeps its own
+  current membership and source caption.
+
+The generic Card-summary empty/unknown defaults remain unchanged for non-hand uses.
+Ending or ten observed Plays does not populate unknown opponents' source hands.
+An empty current hand can legitimately coexist with the saved SJ Result's earlier
+seven-Card hand. See [unplayed-card wording and fixture clarification](unplayed_card_summary.md#issue-247-wording-verification).
+
 ## Three independent analysis capabilities
 
 * **Analyze current position** uses its existing current-turn and playable-hand gate.

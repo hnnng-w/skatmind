@@ -1788,6 +1788,16 @@ no normal individual prefix grids, read-only Match-review history independent of
 readiness, and bounded Null recorded-Trick facts. Existing accounting, recovery,
 anchors, source-bound historical Results and #238–#245 remain. See
 [Recorded Trick progress](recorded_trick_progress.md). Remaining-hand and evidence
-attribution are later work. #245 stays completed; #208 and remaining findings stay
+attribution are addressed separately by #247 below. #245 stays completed; #208 and remaining findings stay
 open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed. Both
 exact merged-commit CI jobs gate manual closure; no release-readiness claim follows.
+
+Issue #247 clarifies Session initial seating versus remaining/initial/pickup hand
+knowledge, contextual unknown/exhausted/public states, and compact recorded/derived
+Skat/discard attribution. Existing source evidence, editors, final-pair eligibility,
+earlier decision knowledge and #238–#246 behavior remain. The approved regression
+expectations use the actual unchanged #246 legal suffix; the conflicting planning
+table is documented in the [unplayed-card guide](unplayed_card_summary.md#issue-247-wording-verification).
+#246 remains completed. Exact merged-commit `check` and `v1-supported-platform-matrix`
+gate #247 closure. #208 and other findings remain open; UAT-01 is unaccepted,
+UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release-readiness claim follows.

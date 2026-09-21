@@ -121,7 +121,7 @@ def test_catalog_resources_are_strict_ordered_and_have_exact_parity() -> None:
     assert tuple(catalogs) == ("de", "en")
     assert tuple(catalogs["de"]) == tuple(catalogs["en"])
     assert tuple(catalogs["en"]) == tuple(sorted(catalogs["en"]))
-    assert len(catalogs["en"]) == 1609
+    assert len(catalogs["en"]) == 1617
     assert {key.removeprefix("trick_progress.null.") for key in catalogs["en"]
             if key.startswith("trick_progress.null.")} == {
         "many", "none_completed", "one", "zero",

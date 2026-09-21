@@ -36,12 +36,20 @@ Selected, rejected, failed-save and preview Cards never enter this conclusion.
 ## Presentation and evidence boundary
 
 `unplayed_card_rendering.py` uses existing accessible Card labels and local
-accepted-declaration styling, with ten matching English/German catalog keys. It adds
+accepted-declaration styling. Issue #247 supersedes the original attribution prose
+with concise inline English/German source labels. It adds
 no form or large panel above recording. A source-labelled pair replaces contradictory
 normal Session unknown-discard wording. Original Skat remains separately labelled.
-An exact recorded pair appears once with **Recorded**; partial recorded input is
-listed separately and never described as a complete entered pair. Hand uses its
-no-discard explanation. Before completion, existing known-fact presentation remains.
+An exact recorded pair appears once with **Recorded**, including when it agrees with
+the conclusion. A derived-only pair appears once with **Derived from recorded play**,
+without an additional unqualified absent-input line. Partial supplied membership
+is marked **Recorded** beside its Card; only the other Card is marked derived, in
+the unchanged pair order. Conflicting defensive input is retained separately with
+an explicit difference message; existing accepted-recording warnings remain visible.
+Neither source is silently preferred or certified. Hand uses its no-discard
+explanation. Before completion, Session's existing source targets show **Not recorded**
+or supplied Cards marked **Recorded**; its empty observation tuples still mean absence.
+This does not reinterpret Match's distinct None and known-empty discard modes.
 
 Specialist Match editors remain exact source views: absent evidence still selects
 Unknown with no checked Cards; valid known-empty Hand discards remain empty. There
@@ -65,7 +73,36 @@ language/navigation preserves Results and #222 previews; real edits retain norma
 invalidation. No cache, reload, analysis, Checkpoint collection or Product save is
 introduced by this component.
 
-## Automated and installed-browser evidence
+## Issue #247 wording verification
+
+The implementation began clean at `e9e1fc0ec2bb5bf474307804f8d90b62a9d51ecd`
+on `bug/247-hand-evidence-labels`, after completed #246. Four current-code regressions
+reproduced the misleading Session heading, generic exhausted-hand label and redundant
+absent-discard line. The guarded `unplayed_card_summary.py` remains unchanged.
+
+The current #246 legal suffix differs from #247's supplied intermediate-hand table:
+it plays A's HA in Trick 5, SA in Trick 6 and D7 in Trick 7. The maintainer explicitly
+selected **Actual #246 prefixes** during implementation. Tests therefore retain that
+fixture unchanged: **C10/CJ/DK/D7 after six Tricks, CJ after nine, and known-empty
+after thirty**, before or after End. They do not relabel it as the archived UAT trace.
+The final derived pair remains **S9/H7**; B/C source hands remain absent. The earlier
+SJ context remains seven Cards, **14/29**, with equal-best Jacks and exact downloads.
+
+Focused HTTP coverage reuses #234 corrections/rewind, #237 evidence targets, #241
+retained context and #246 chronology/party-score fixtures. Real source saves,
+strict reopen, Cancel/no-op, language/error feedback and explicit executions remain
+covered; fault-injection cases are identified separately. Match's initial-hand
+editor retains all original Cards after Play, even Cards no longer selectable for Play.
+Passive views preserve exact source/Checkpoint/Request/Result/Report values and
+receipt/recovery lifetimes. No additional replay, preparation, save or execution is
+introduced to select a label.
+
+See [installed browser measurements](unified_workflow_visual_contract.md#r05-remaining-hands-and-evidence-labels)
+for the independent Wheels, scoped coverage and limits. The final full-check log and
+actual child exit accompany the implementation report. Both exact merged-commit CI
+jobs remain required before #247 closure; #246 remains completed and #208 stays open.
+
+## Historical Issue #234 automated and installed-browser evidence
 
 Preflight started clean on `feature/234-unplayed-card-summary` at
 `fc81206ae09bc5abbeab05bfd1754248bc63ad38`. The six requested files (`deck.py`,
