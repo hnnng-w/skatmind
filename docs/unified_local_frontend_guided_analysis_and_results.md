@@ -289,8 +289,63 @@ candidate/method/order preservation and Historical regressions. The
 records genuine Session execution, exact downloads and installed-browser evidence.
 Issue #240 supplies the bounded R10 implementation below. Issue #241 adds only
 R11's recorded context slice. Issue #251 repairs the candidate layout described
-below; Issue #252 addresses download/detail organization below. Remaining method
-explanation and other R11 findings stay open.
+below; Issue #252 addresses download/detail organization below. Issue #253 adds the
+single-decision method/information explanation below; other R11 findings stay open.
+
+### Single-decision method and information scope (Issue #253)
+
+`analysis_explanation.py` provides one private frozen scalar projection. It reads
+the retained Result, never a current draft, final recording hand, sampled World,
+Profile, or file. `result_presentation.py` composes its localized detail rows into
+Recommendation and Evidence and limits. `result_localization.py` registers those
+private labels. The five section identities, #240 ties, #251 columns/precision/order,
+and #252 renderer/download ownership remain. No model/version, route, form, option,
+method default, producer text, Request/Result or persistence format changes.
+
+| Retained facts | Normal meaning / technical owner |
+| --- | --- |
+| `recommendation_method_summary.effective_method`, matching recommendation/Search facts | Actual method, not the requested method or diagnostic baseline |
+| Existing `result_immediate._effective_immediate` rule | Supports legacy Immediate only when summary and explicit method setting are absent and no Search result exists; consistent explicit Immediate and Auto fallback also qualify |
+| `compatible_world_minimax_v1` | Bounded continuations; each selected possible unseen-Card distribution is fully known within that solver |
+| `bounded_information_set_policy_search_v1` | Controlled Player's consistent choices at equal visible information against fixed other-Player policies; not joint-defender or unrestricted perfect strategy |
+| `effective_method=none` and no Card | No recommendation; diagnostic comparisons do not supply a replacement |
+| Unsupported/contradictory method metadata | Neutral missing/unclear explanation; no repair, rejection or success inferred from settings/prose |
+| `settings.sample_count` | Per-Card Immediate setting, not a measured unique-world or full-Game count; strict nonnegative integers only in normal explanation, with missing/bool/malformed data unavailable and actual zero retained |
+| Matching Search `status`, `stop_reason`, `world_coverage` | Visible bounded completion, fallback or incomplete/stop consequence; complete does not guarantee the real Game |
+| `consumed_budget.selected_world_count`, `completed_world_count` | Selected and completed distribution evaluations, retained separately in Technical analysis details; no per-candidate summation |
+| `sampled_world_count`, `unique_sampled_world_count` | Draws including repeats versus distinct sampled distributions; multiplicity retains its weight |
+| `requested_budget.max_*`, `minimum_comparable_worlds`, timeout | Requested caps/thresholds, distinct from completed work; existing technical rows |
+| `settings.sample_count` beside Search | Explicitly named **Immediate sample setting** in technical scope, never Search completion |
+| Immediate `win_rate`, `expected_point_swing` | Current-Trick local-side win fraction and points won minus points lost; Null ranks by its role-dependent objective instead of point fields |
+| Search contract-success values | Selected modeled cases, not calibrated forecasts of human play |
+
+The normal **Information cutoff mode** row and unconditional Position limitation
+list are superseded by **Information used**, concrete known-Skat use, metric scope
+and relevant sampling/coverage. The accepted `analysis_mode` remains inspectable once
+in Technical analysis details, with visibility and exact method/budget facts. Existing
+warning count and original warning text remain under #252's authority. Whole-Historical
+aggregates retain their original presentation and limitations.
+
+| Caller / binding | Information statement |
+| --- | --- |
+| Guided/manual/imported Position | Supplied facts and accepted policy; `post_game_review` alone establishes no saved historical checkpoint or absence of hindsight |
+| Current Session Position | Position retained for that execution, not today's form or recording |
+| `task_first_session_rendering._analysis_result` with matching `RecordedReviewSourceV1` | Frozen before-Play situation; the review attaches the accepted actual Card without later Plays/final derived Skat |
+| Selected typed Match Report through `task_first_match_state` and `recorded_decision_context_sources.match_analysis_explanation` | Reconstructed before-Card view from accepted evidence for that exact Report/Game, without claiming contemporaneous hand entry |
+
+Skat explanation combines `position.skat` in the **local retained Result** with
+`skat_visibility`, accepted allowance and role. An unknown empty pair, known visibility
+without concrete local Cards, supplied declarer-known Cards and explicit post-game
+knowledge are distinct. Permission alone is not use. A defender's privileged input
+can already have been removed by the existing local-information producer; the normal
+text says no concrete Cards in this analysis rather than denying that the input ever
+contained them. No Card identities are added by this explanation.
+
+The narrow source adapters run inside existing page snapshots/locks. They add no
+replay, preparation, sampling, Checkpoint collection, token generation, file access,
+analysis or Product save. A failed newer attempt does not relabel an otherwise valid
+retained source. Existing invalidation, strict reopen, receipt delivery and exact
+download bytes remain. See [installed evidence](unified_workflow_visual_contract.md#analysis-explanations-issue-253).
 
 ### Artifact and technical-content ownership (Issue #252)
 
@@ -317,9 +372,10 @@ policy consistency, controlled decisions, requested Trick/depth/world/minimum/ti
 budgets, consumed depth/nodes/states/information sets, deterministic representative,
 declaration flags/Matadors/bid, ending, requested/simulated Multi-Step decisions,
 stop/Card policy, Policy Comparison request/recommendation, and public artifact names.
-Requested/effective method, fallback, selected/completed/sampled/unique world counts,
-samples and information cutoff remain normal Evidence details under their original
-identities. Equal numbers or strings never merge these fields.
+Issue #253 moves requested/effective method, fallback, selected/completed/sampled/unique
+world counts, the explicitly named Immediate sample setting and accepted information
+mode to this same technical owner. Relevant plain-language interpretation is normal
+Recommendation/Evidence content. Equal numbers or strings never merge these fields.
 
 Historical's original technical section retains API/schema versions, Player IDs,
 played-at and Game ID, Result/Schneider/Schwarz status, game/effective/required values,
@@ -358,7 +414,7 @@ visual labels are real HTML marked `aria-hidden`, so each value remains one acce
 cell. No metric gains a Tab stop. Existing focus/source-return and download behavior
 are unchanged. [Installed visual evidence](unified_workflow_visual_contract.md#responsive-candidate-comparisons-issue-251)
 supersedes the earlier candidate-table limitation on these tested surfaces. Broader
-full-Historical table layouts and R11 method explanations remain separate. Issue #252
+full-Historical table layouts remain separate. Issue #253 supplies R11 method explanations. Issue #252
 adds wrapping analysis-download/technical composition without changing this comparison.
 
 ### Optional recorded pre-Card context

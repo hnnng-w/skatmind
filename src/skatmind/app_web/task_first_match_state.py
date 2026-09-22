@@ -12,7 +12,7 @@ from skatmind.match_player_statistics_preparation import (
     build_match_player_statistics_preparation_v1,
 )
 
-from .recorded_decision_context_sources import match_decision_context
+from .recorded_decision_context_sources import match_analysis_explanation, match_decision_context
 from .recorded_trick_progress import project_match_trick_progress
 from .unplayed_card_summary import project_unplayed_cards
 
@@ -58,6 +58,7 @@ def build_task_first_match_page_state_v1(context, view, *, report_id=None):
                     for report in reports],
         "selected_report": None if selected is None else _selected_report_details(selected),
         "decision_context": match_decision_context(selected, workspace),
+        "analysis_explanation": match_analysis_explanation(selected, workspace),
         "download_availability": {
             "report_result": selected is not None and selected.report_kind != "materialization"
                              and selected.value.status == "executed",

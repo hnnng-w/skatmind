@@ -70,6 +70,25 @@ existing values and executes no Root workflow.
 
 ## One-Decision Position analysis
 
+Issue #253 adds unified selected-Report explanations through the exact typed Report
+already captured by `build_task_first_match_page_state_v1`. Its narrow app-owned
+`match_analysis_explanation` adapter projects only safe explanation scalars from the
+retained Result, including the Immediate sample setting and concrete local Skat
+presence absent from the curated Capture details. No full dictionary is passed to
+HTML, no standalone Capture JSON is extended, and no preparation or execution is
+added. `match_report_rendering.py` places method/objective beside the recommendation
+and relevant Evidence and limits before #252's visible download/technical region.
+
+The source statement is a **reconstructed** before-Card view from accepted Match
+evidence, not a claim that the hand was entered at the time. Another selected Game
+cannot lend its hand, final Skat or history to that Report. Real early-Game strict
+Search/Information-set unavailability says no recommendation; Auto names its actual
+Immediate fallback and retained reason. Diagnostic baselines never acquire the
+primary method's meaning. Existing counters/caps remain distinct technical facts,
+and producer text and canonical downloads are unchanged. See
+[method/count/source mapping](unified_local_frontend_guided_analysis_and_results.md#single-decision-method-and-information-scope-issue-253)
+and [installed coverage](unified_workflow_visual_contract.md#analysis-explanations-issue-253).
+
 `analyze_decision` selects exactly one retained prepared Decision by Match
 position and one-based Decision index. It can execute from a partial observed
 trace when Issue #167 can reconstruct the acting Player's exact current hand; it

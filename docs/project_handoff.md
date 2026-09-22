@@ -2801,6 +2801,18 @@ from 1,657 to 1,666 keys. Both exact merged-commit CI jobs remain closure gates.
 #208, remaining R11/other findings stay open; UAT-01 unaccepted, UAT-02–12 paused,
 B-09/B-07 open, B-06 closed. No release-readiness claim follows.
 
+Issue #253 adds private single-decision explanations from clean
+`9b0e01e4395448c8e5d535b6f772f877907bbcbf`: effective method, distinct sample/Search
+units, bound history versus accepted information mode, and actual concrete Skat use.
+Shared Position and selected unified Match compose one frozen scalar projection;
+engine semantics, defaults, exact bytes, #240/#241/#251/#252 and source lifetimes remain.
+Inventory stays 67 POST routes / 112 forms; 62 paired catalog entries bring 1,666 to
+1,728. See [mapping](unified_local_frontend_guided_analysis_and_results.md#single-decision-method-and-information-scope-issue-253)
+and [browser evidence](unified_workflow_visual_contract.md#analysis-explanations-issue-253).
+#252 remains completed. Both exact merged-commit CI jobs gate manual #253 closure;
+#208/other findings remain open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open
+and B-06 closed. No release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

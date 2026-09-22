@@ -16,7 +16,7 @@ from .compact_declaration_rendering import (
 )
 from .local_time_http import local_time_context
 from .local_time_rendering import render_local_time_editor
-from .recorded_decision_context_sources import session_decision_context
+from .recorded_decision_context_sources import session_decision_context, session_information_source
 from .recorded_trick_progress import project_session_trick_progress
 from .recorded_trick_rendering import (
     render_current_trick,
@@ -276,7 +276,8 @@ def _analysis_result(context, locale, game_label):
     return ('<div id="session-result" tabindex="-1">'
         + render_recorded_review_source_v1(context, locale=locale, game_label=game_label)
         + render_result_presentation_v1(
-            build_result_presentation_v1(context.execution.result, locale=locale),
+            build_result_presentation_v1(context.execution.result, locale=locale,
+                information_source=session_information_source(context)),
             request_download_available=True, result_download_available=True,
             request_download_route="/sessions/downloads/request.json",
             result_download_route="/sessions/downloads/result.json",

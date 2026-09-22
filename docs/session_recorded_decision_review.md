@@ -40,6 +40,23 @@ retention and normal invalidation on accepted changes remain authoritative.
 See the [shared ownership inventory](unified_local_frontend_guided_analysis_and_results.md#artifact-and-technical-content-ownership-issue-252)
 and [independent-Wheel evidence](unified_workflow_visual_contract.md#analysis-downloads-and-technical-details-issue-252).
 
+Issue #253 explains the effective method beside the recommendation and replaces the
+generic Position limitations with relevant sampling, metric and information rows.
+The saved-SJ example says current-Trick evaluation, **100 samples per Card**, saved
+before-Card situation and no concrete known Skat used. Hypothetical assignments may
+repeat/share, and identical third-Card outcomes do not establish whole-Game certainty.
+The actual Card is attached to the frozen Request; `post_game_review` itself is not
+the source-history guarantee. Running that same Request through manual/imported Review
+instead identifies supplied facts. Current-position analysis identifies its retained
+execution, not a later active hand. Raw mode/method/count facts remain technical.
+
+The existing exact source binding, not filenames, later hand inference or current
+form values, authorizes the frozen wording. #250 Preview/Cancel/no-op preserves it;
+strict Reload clears the execution until explicit re-execution; an accepted Play
+invalidates it normally. HTTP tests retain exact bytes and #245 delivery behavior.
+See [field/caller mapping](unified_local_frontend_guided_analysis_and_results.md#single-decision-method-and-information-scope-issue-253)
+and [scoped installed evidence](unified_workflow_visual_contract.md#analysis-explanations-issue-253).
+
 Issue #243 styles the existing `#session-result` focus destination with a solid 2px
 blue outline and 3px offset, including native redirected focus. Constant block
 padding and a small source-paragraph inset separate the caption without reducing

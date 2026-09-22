@@ -479,10 +479,11 @@ def test_position_renderer_has_exact_semantic_sections_escaping_and_downloads() 
     assert REVIEW_REQUEST_DOWNLOAD_ROUTE_PATH not in html
     assert REVIEW_RESULT_DOWNLOAD_ROUTE_PATH not in html
     assert text("en", "result.value.partial") in html
-    assert "not a perfect-play claim" in html
-    assert "not calibrated probability" in html
-    assert "analysis cutoff" in html
-    assert "fixed public policy" in html
+    # This deliberately incomplete scalar metadata cannot establish a method.
+    assert "effective method is missing or unclear" in html
+    assert "Search-node limit was reached; coverage is incomplete" in html
+    assert "Review mode alone establishes neither a saved checkpoint" in html
+    assert "Search is not a perfect-play claim" not in html
     for forbidden in (
         "private_world",
         "private_hand",

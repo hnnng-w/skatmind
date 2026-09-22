@@ -1,5 +1,10 @@
 # Unified Match and Learning visual contract
 
+Issue #253 supersedes the normal single-decision cutoff-mode label and generic
+limitation list with effective-method, sampling and source-supported information
+explanations. Its [installed evidence](#analysis-explanations-issue-253) preserves
+#251 comparisons and #252's directly visible downloads and single technical owner.
+
 Issue #252 supersedes the historical downloads-inside-Technical and shared raw-mirror
 organization. Its [current download/detail evidence](#analysis-downloads-and-technical-details-issue-252)
 preserves #251's repaired candidate readability and the earlier source/focus contracts.
@@ -204,6 +209,121 @@ Native single-line edit fields retain browser caret scrolling; native selects
 retain their complete option lists and keyboard selection. This is distinct from
 authored clipping or document overflow. No document overflow is hidden and zoom
 is not disabled.
+
+## Analysis explanations (Issue #253)
+
+Clean starting branch `bug/253-analysis-explanations`, HEAD
+`9b0e01e4395448c8e5d535b6f772f877907bbcbf`. Actual #253 and #208 consolidated R11 were
+retrieved. Four pre-fix regressions failed against current source, reproducing the
+unexplained method/sample/cutoff labels and six unconditional Position limitation
+items in de/en. Independent baseline-Wheel screenshots confirm those normal labels;
+this is separate from the archived planning probe and maintainer UAT.
+
+One frozen private scalar projection supplies the existing Recommendation and Evidence
+and limits interpretation points. The [field/caller inventory](unified_local_frontend_guided_analysis_and_results.md#single-decision-method-and-information-scope-issue-253)
+documents effective versus requested method, diagnostic baselines, Immediate setting,
+Search counts/caps, accepted policy, bound history and actual local known-Skat use.
+No CSS, workflow JavaScript, candidate layout, scoring, producer metadata or export
+bytes change. Relevant fallback/stop outcomes remain visible; exact facts and warnings
+retain #252's technical ownership.
+
+### Independent installed coverage
+
+`scripts/verify_analysis_explanations.py` is optional, using the established dependency-
+free DevTools transport and genuine returned-form fixtures. It is not part of mandatory
+pytest or a new runtime/browser dependency. Completed evidence and inspected PNGs are
+under `<temporary-directory>/opencode/253-before-01/` and `253-after-complete/`.
+Windows CPython **3.13.7**, Package **0.17.0**, Edge **153.0.4234.48**, DevTools **1.3**,
+V8 **15.3.12.7** were actually used.
+
+| Renderer / real retained execution | Native browser locales and script coverage |
+| --- | --- |
+| Shared saved Session SJ, recognized legacy Immediate | de/en, JavaScript off/on |
+| Selected unified Match Game 1/decision 2, explicit Immediate | de/en, JavaScript off/on |
+| Shared imported available compatible-world Minimax | de/en, JavaScript off/on |
+| Shared imported available Information-set Search, with diagnostic comparisons | de/en, JavaScript off/on |
+
+Each installation records **28 page measurements**. German no-script covers 1365x900,
+390x844, 320x844 and 320px/200% computed text; the other locale/script combinations use
+390px. This is a representative matrix, not every method at every width. Auto fallback
+and strict unavailable have real focused public/HTTP execution tests; defensive timeout,
+contradictory metadata, malformed counts and Null roles have separately labelled scalar
+tests. Concrete declarer knowledge, declarer-private input redacted for a defender,
+known visibility without Cards and explicit post-game knowledge also have real execution
+tests. Those branches are not claimed as native browser coverage.
+
+Screenshots and their visible sentences were inspected in both languages. A redundant
+Search completion caveat was removed from coverage wording after inspection; bounded
+completion remains stated once in Search outcome. Normal labels/prose wrap without
+horizontal clipping in measured scopes. Candidate cell tokens and full labels fit;
+all 28 before/after candidate matrices are identical. At 320px/200% text, expanded
+Card blocks remain readable by vertical scrolling, including long split German labels.
+#251's repaired layout is not an open exception. The native Session review still focuses
+`session-result`; next Tab reaches the original recorded-decision link. Native language
+submissions and accessible download names were checked with the browser accessibility
+tree. No full AT, physical-device, whole-page accessibility or maintainer UAT is claimed.
+
+Each run records **36 Session saves / 7 Match saves** during HTTP fixture setup, then
+**one native Session review, one native Match review and two native imported executions**.
+The 16 native language POSTs cause eight actual preference saves; two creation profile
+saves make **10 profile saves** total. Match preparation remains **24 per run**, including
+seven during setup and 15 during its view/language matrix. These existing preparations
+are distinct from pure explanation work. Passive views/language/downloads cause **zero
+additional Product saves or executions**. All **28 native downloads** match their own
+retained bytes, totaling **216,540 bytes** per run, with no disclosure ancestor.
+
+The approved trace retains C10/CJ/DK/D7 after six Tricks and CJ after nine. SJ retains
+14/29, HJ/DJ, seven historical Cards, equal-best CJ/SJ and exact 100.00% / 6.00 / 6.
+Match retains C7/C9/C8 order, 11.32/10.83/9.98 swings and 0.9/0.88/0.87 fractions. HTTP
+regressions additionally verify another Game's selected Report, bound Session versus
+the same imported review Request, #250 Preview/Cancel/no-op preservation, source faults,
+normal accepted-mutation invalidation and strict reopen with explicit re-execution.
+No successful save or analysis is mocked; operation counters delegate to real functions.
+
+### Final installed identities and exact passive bytes
+
+```text
+Baseline Wheel       5fef245298f17067f3698eb614e3327a5b3919ce3ad5e396f1c412246e069edb
+Repaired Wheel       cc3b981f5e2815b600b28ea84b5c1d2da163ac3f9819104de6d6e7d6c1300f66
+Explanation module   b1778f57c15597c3cca0f4a637f27e9a924cb9a7825d56c37df1492252d54dcf
+Result projection    1b37ea4a5726e80bdff4d4a8bb1293c2499b3009ad1138f61a144cb9a0795a01
+Match renderer       2265b1ca829ff329a37ff6cb0377eb56a6941fc546dcee26ca740ed6a1848f07
+```
+
+Other installed module/resource hashes are in `evidence.json`, including unchanged
+shared HTML renderer, candidate helper, CSS, workflow script and download helper.
+
+| Final run source/artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Session source | 53,588 | `b220f9a82de5ae03b93bded86f8b215754bf934cdd28634f72faae67fd8d1847` |
+| Checkpoints | 33,308 | `b0aa1fc42240141fc7dbc04d5e52ef7b8731d088bf8d7c8cc25f32ce8ae63951` |
+| Match Workspace | 11,284 | `006e1ec4ae12570c2f84ac2846250c2231577b325beb77f75791e0987cf8c625` |
+| Full selected Report | 13,744 | `c7fbe7a9b9f0d61fb670be82a276ae5a96db10539180cf75d17751d682541eb3` |
+| SJ Request | 1,534 | `05dc65aa713fb37c7b40cd9a4027ce6926881e6bb0c98adaf4256b8a7f14ec94` |
+| SJ Result | 9,640 | `76eb05221cab155ff59f734ec568bbead767c2f309d6823546d598412ac545c1` |
+| Match Result | 8,737 | `43e5eaa8615e4e495bf044f939e5f402666506aa63b1c3159f6e61520faca672` |
+| Minimax Request | 2,991 | `d225db3ed60ec6b6bde0474897553d648e11ab238dd41f792e5284aebbb862e4` |
+| Minimax Result | 12,886 | `0c4afc9eeadee4063ea92e7826e2e63020d63cd17d5934bd2497c54b81c6208a` |
+| Information-set Request | 2,981 | `6f62f88cb66da492f9755888d4f8bb458c0739c3c1fc047dbeb78f088916d2d3` |
+| Information-set Result | 15,366 | `44d7dddf56da83fc5074182f5b95406afff71ce7d4761e7346f47e9b3d3604ae` |
+
+Search comparisons preserve the same retained timed execution, without removing elapsed
+fields or changing clocks. Independently created identities may differ between runs;
+each passive interval preserves its own complete bytes. Original UAT data/exports and
+the default root were not used. An initial probe syntax error preceded browser work;
+`253-after-01` retains the failed Match screenshot-selector attempt. Intermediate
+`253-after-final` / `253-after-verified` evidence predates the final wording/technical
+sample-label refinements; `253-after-complete` verifies the final Product tree.
+
+Focused checks cover catalog order/key/placeholder parity: **67 POST routes / 112 forms**
+remain, **1,666 → 1,728** paired keys add only the finite explanation vocabulary.
+Package 0.17.0, Python >=3.13, AGPL-3.0-only, dependency floors including tzdata>=2026.4,
+public/persistence contracts and 98 generated scenarios remain. The established detached
+native-output logger was proven with stdout/stderr and actual exit **23** before the
+final full check; actual full-check outcome belongs to the final implementation report.
+Both exact merged-commit `check` and `v1-supported-platform-matrix` gate closure. #252
+stays completed; #208/other findings stay open, UAT-01 unaccepted, UAT-02–12 paused,
+B-09/B-07 open, B-06 closed. No release-readiness claim follows.
 
 ## Analysis downloads and technical details (Issue #252)
 

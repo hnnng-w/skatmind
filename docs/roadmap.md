@@ -1820,6 +1820,17 @@ The route/form inventory stays 67/112; paired catalog keys become 1,666. #251 re
 completed; `check` and `v1-supported-platform-matrix` on the exact merged commit gate
 #252 closure. Remaining R11/other #208 findings stay open with the same UAT/blocker state.
 
+Issue #253 explains actual single-decision methods and information scope in shared
+Position Results and selected unified Match Reports. Per-Card Immediate settings,
+Search work/caps, frozen/reconstructed sources, supplied review facts and actual known
+Skat use retain distinct meanings. Generic Position boilerplate and misleading normal
+cutoff-mode wording are superseded; technical facts and downloads retain #252 ownership.
+See [mapping](unified_local_frontend_guided_analysis_and_results.md#single-decision-method-and-information-scope-issue-253)
+and [installed evidence](unified_workflow_visual_contract.md#analysis-explanations-issue-253).
+Inventory remains 67/112 with 1,728 paired keys. #252 stays completed; exact merged-commit
+`check` and `v1-supported-platform-matrix` gate closure. #208 and other findings stay
+open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
+
 Issue #250 adds the bounded R06 normal Session declarer/declaration path: accepted-
 fact selection, immutable canonical Preview and explicit Apply/Cancel, with fresh
 consent for partial suffix removal. Public replay, Checkpoints and persistence are

@@ -9,6 +9,7 @@ from skatmind.information_set_search_workflow import (
 )
 from skatmind.recommendation_workflow import COMPATIBLE_WORLD_MINIMAX_METHOD
 
+from .analysis_explanation import explanation_rows, project_analysis_explanation
 from .render_locale import localized_card_name, localized_render, message
 from .result_immediate import retained_immediate_best_cards
 
@@ -350,6 +351,7 @@ def _fixed_policy_details(document: Mapping[str, object]) -> list[ResultDetailV1
 def _build_position_presentation(
     execution: ExecutionResultV1,
     document: Mapping[str, object],
+    information_source: str,
 ) -> BrowserSafeResultPresentationV1:
     position = _object(document.get("position"))
     declaration = _object(document.get("game_declaration"))
@@ -360,7 +362,6 @@ def _build_position_presentation(
     score = _object(document.get("score_summary"))
 
     summary_details = [
-        _detail("Analysis mode", information.get("analysis_mode")),
         _detail("Contract", declaration.get("game_type", position.get("game_type"))),
         _detail("Player role", position.get("player_role")),
         _detail("Player seat", position.get("player_position")),
@@ -376,7 +377,6 @@ def _build_position_presentation(
         total = score.get(key)
         summary_details.append(_detail(label, total if type(total) is int else None))
 
-    method = _object(document.get("recommendation_method_summary"))
     search_result = _object(document.get("information_set_search_result")) or _object(
         document.get("bounded_search_result")
     )
@@ -386,15 +386,10 @@ def _build_position_presentation(
          if len(best_cards) > 1 else _detail(
              "Recommended Card", localized_card_name(best_cards[0])
              if best_cards else recommendation.get("card"))),
-        _detail(
-            "Method",
-            method.get(
-                "effective_method",
-                settings.get("recommendation_method", "immediate_expected_value"),
-            ),
-        ),
     ]
-    _optional_detail(recommendation_details, "Fallback used", method, "fallback_used")
+    explanation = project_analysis_explanation(document, source=information_source)
+    method_rows, evidence_rows = explanation_rows(explanation)
+    recommendation_details.extend(_detail(label, value) for label, value in method_rows)
     if best_cards and review.get("actual_card_played") in tuple(
         row["card"] for row in _objects(document.get("analysis_report"))
     ):
@@ -423,14 +418,16 @@ def _build_position_presentation(
     if type(recommendation_paragraph) is not str or not recommendation_paragraph:
         recommendation_paragraph = message("result.no_recommendation")
 
-    evidence_details, technical_details = _search_evidence(document)
+    search_details, technical_details = _search_evidence(document)
+    technical_details = search_details + technical_details
+    evidence_details = [_detail(label, value) for label, value in evidence_rows]
     if len(best_cards) > 1:
         technical_details.append(_detail(
             "Deterministic representative", recommendation.get("card")))
-    _optional_detail(evidence_details, "Samples", settings, "sample_count")
-    _optional_detail(evidence_details, "Information cutoff mode", information, "analysis_mode")
-    _optional_detail(evidence_details, "Skat visibility", information, "skat_visibility")
-    evidence_details.extend(_fixed_policy_details(document))
+    _optional_detail(technical_details, "Immediate sample setting", settings, "sample_count")
+    _optional_detail(technical_details, "Analysis mode", information, "analysis_mode")
+    _optional_detail(technical_details, "Skat visibility", information, "skat_visibility")
+    technical_details.extend(_fixed_policy_details(document))
 
     for label, key in (
         ("Hand game", "hand_game"),
@@ -467,16 +464,6 @@ def _build_position_presentation(
             )
         )
 
-    limits = [
-        message("result.limit.budget"),
-        message("result.limit.cutoff"),
-        message("result.limit.policy"),
-        message("result.limit.search"),
-        message("result.limit.probability"),
-    ]
-    if review.get("actual_card_played") is not None:
-        limits.append(message("result.limit.observed"))
-
     return BrowserSafeResultPresentationV1(
         workflow=_POSITION_WORKFLOW,
         warnings=execution.result.warnings,
@@ -497,7 +484,6 @@ def _build_position_presentation(
             ResultSectionV1(
                 title="Evidence and limits",
                 details=tuple(evidence_details),
-                items=tuple(limits),
             ),
             ResultSectionV1(
                 title="Technical details",
@@ -943,6 +929,8 @@ def _build_historical_presentation(
 @localized_render
 def build_result_presentation_v1(
     execution: ExecutionResultV1,
+    *,
+    information_source: str = "supplied",
 ) -> BrowserSafeResultPresentationV1:
     """Projects one retained public Result into minimized browser-safe values."""
 
@@ -951,7 +939,7 @@ def build_result_presentation_v1(
     workflow = execution.result.workflow.value
     document = execution.result.document
     if workflow == _POSITION_WORKFLOW:
-        return _build_position_presentation(execution, document)
+        return _build_position_presentation(execution, document, information_source)
     if workflow == _HISTORICAL_WORKFLOW:
         return _build_historical_presentation(execution, document)
     raise ValueError("Only Position Analysis and Historical Game Results can be presented.")

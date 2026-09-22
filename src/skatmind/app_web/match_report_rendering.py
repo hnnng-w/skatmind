@@ -4,8 +4,11 @@ from __future__ import annotations
 from html import escape
 
 from .analysis_download_rendering import analysis_downloads
+from .analysis_explanation import explanation_rows
 from .candidate_table_rendering import candidate_table_html
 from .recorded_decision_context_rendering import render_recorded_decision_context
+from .render_locale import localized_render
+from .result_localization import result_label
 from .stateful_localization import translated
 from .task_first_rendering import cards_summary, paragraph, technical_details
 
@@ -40,6 +43,10 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
             content += paragraph(locale, "task.recommendation") + cards_summary(locale, (recommendation["card"],))
         elif report["report_kind"] == "decision_analysis":
             content += paragraph(locale, "result.no_recommendation")
+        explanation = state.get("analysis_explanation")
+        if explanation is not None:
+            method_rows, evidence_rows = explanation_rows(explanation, locale=locale)
+            content += _explanation_details(method_rows, locale)
         candidates = details.get("immediate_candidate_values", [])
         if candidates:
             content += ('<div class="workflow-table-scroll candidate-comparison" role="region" tabindex="0" aria-label="'
@@ -60,6 +67,9 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
             score = details["settlement"].get("settlement_score")
             content += '<p>' + translated(locale, "result.settlement") + ': ' + (
                 translated(locale, "task.unknown") if score is None else escape(str(score))) + '</p>'
+        if explanation is not None:
+            content += '<h3>' + translated(locale, "result.evidence") + '</h3>'
+            content += _explanation_details(evidence_rows, locale)
         if state["download_availability"]["report_result"]:
             content += analysis_downloads(
                 result_href=f'/matches/api/v1/reports/{report["report_id"]}.json', locale=locale)
@@ -71,3 +81,9 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
                 content += f'<p><a href="/matches/api/v1/exports/{kind.replace("_", "-")}.json" download>' + translated(
                     locale, f"task.download.{kind}") + '</a></p>'
     return content
+
+
+def _explanation_details(rows, locale):
+    return '<dl class="result-details">' + ''.join(
+        '<dt>' + escape(localized_render(result_label)(label, locale=locale)) + '</dt><dd>'
+        + escape(value) + '</dd>' for label, value in rows) + '</dl>'
