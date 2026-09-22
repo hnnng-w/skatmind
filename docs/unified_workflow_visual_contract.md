@@ -1,5 +1,12 @@
 # Unified Match and Learning visual contract
 
+Issue #251 supersedes the **single-decision candidate comparison** limitation retained
+in the historical observations below. Shared Position Alternatives and unified selected
+Match comparisons now use one responsive native table: aligned wide, expanded labelled
+rows narrow. The former Match 32em scrolling strategy is historical for this caller.
+Full-Historical chronological, technical, Learning and correction tables retain their
+existing behavior. See [current measured evidence](#responsive-candidate-comparisons-issue-251).
+
 Issue #250 adds the bounded Session declarer/declaration correction surface described
 in [Session correction](session_undo_and_correction.md#normal-browser-declarerdeclaration-correction-issue-250).
 Actions sit beside accepted facts; the editor and verified Apply are separate views
@@ -184,15 +191,179 @@ solid surfaces. The shell's existing decorative body background is outside the
 opaque workflow main. No workflow root palette, color-scheme override, CSS build
 pipeline, remote asset or broad `!important` patch is introduced.
 
-Only the genuinely two-dimensional candidate comparison table may scroll
-horizontally, inside its labelled `role="region"`, `tabindex="0"` wrapper. Its
-32-em minimum preserves readable columns at enlarged text sizes. The wrapper is
-keyboard-scrollable and has an unclipped focus outline. The 36-entry overview,
+The historical #224 candidate strategy allowed horizontal scrolling inside its
+labelled `role="region"`, `tabindex="0"` wrapper, with a 32em table minimum. Issue #251
+supersedes that strategy for single-decision comparisons with the labelled reflow
+below, retaining the named wrapper and its unclipped focus outline. The 36-entry overview,
 forms, buttons, paragraphs and technical text do not use horizontal-scroll regions.
 Native single-line edit fields retain browser caret scrolling; native selects
 retain their complete option lists and keyboard selection. This is distinct from
 authored clipping or document overflow. No document overflow is hidden and zoom
 is not disabled.
+
+## Responsive candidate comparisons (Issue #251)
+
+Starting clean branch `bug/251-responsive-card-comparisons`, actual HEAD:
+`9ea3ec887f03d668f68dbbacf93309fce7be1ca7`. The current #251 acceptance and #208's
+consolidated R11 findings were read. The planner archive remains separate evidence.
+
+### Ownership and semantics
+
+`candidate_table_rendering.py` accepts only trusted escaped cells from two callers:
+
+| Caller | Opted-in content | Other content |
+| --- | --- | --- |
+| `result_rendering.py` | `position_analysis`, canonical Alternatives section: five-column Immediate or seven-column effective Search | Historical chronological Immediate/Search/Information-set tables and all other sections keep `_table`'s original path |
+| `match_report_rendering.py` | Existing selected Report's three-column curated Immediate comparison | Report selection, other summaries and technical disclosure are unchanged |
+
+`ResultTableV1`, `result_presentation.py`, `result_localization.py`, #240's tie logic,
+#241's source-bound context and #248's Card faces are unchanged. Match keeps its own
+fraction formatting; shared Results keep percentages and existing decimal formatting.
+No producer, method routing, unavailable state, candidate order, rank or source identity
+is recalculated. Current Match recording/review pages link to Reports; the explicit
+Report route selects and displays the comparison. Direct renderer callers retain the
+same layout when supplied that selected snapshot.
+
+The opt-in wrapper is an inline-size query container. The **56em** threshold uses its
+local width and inherited text size, not device width. The measured original German
+seven-column minimum was about **840px at 16px text**; 56em gives a conservative
+896px transition. At 32px text the threshold is 1792px. Adequate width keeps the native
+aligned table; below the threshold each original row is a block with Card first and
+one labelled full-width value per metric. All alternatives remain expanded. There is
+no second dataset, resize script, preference, request, new Card control or per-cell
+Tab stop. Vertical height intentionally increases. Captions/labels support automatic
+hyphenation and full-width long-word wrapping when a dictionary is absent; numeric
+cells use normal word boundaries and preserve signs, decimal points and percent signs.
+
+Caption, column headers and Card row headers retain native tags and scopes. Explicit
+static table/rowgroup/row/header/cell roles protect their meaning after CSS display
+changes; indexed page-local IDs and `headers` attributes bind each metric to its Card
+and column. The visually collapsed header remains accessible. Real local visual labels
+are `aria-hidden`, leaving one accessible value per cell. No interactive grid is added.
+The Match wrapper keeps its original name/focusability. Generic overflow-hidden Result
+sections and other table callers are not globally restyled to make width checks pass.
+
+### Independent installed evidence
+
+`scripts/verify_candidate_comparisons.py` reuses `_workflow_visual_browser.py` and the
+existing legal returned-form fixtures. It is optional, outside the full-check/runtime
+dependency set. Run using an independently installed scratch Wheel interpreter:
+
+```powershell
+& PATH_TO_INSTALLED_PYTHON scripts/verify_candidate_comparisons.py `
+    --browser PATH_TO_EDGE --output FRESH_SCRATCH_DIRECTORY `
+    --wheel PATH_TO_WHEEL --phase after --baseline PATH_TO_BEFORE_EVIDENCE_JSON
+```
+
+`before` verifies installed Product modules against starting HEAD; `after` verifies
+them against the edited tree and compares all displayed matrices with the baseline.
+It never changes installed assets to simulate before/after. Current completed evidence:
+
+* `<temporary-directory>/opencode/251-before-04/evidence.json` and adjacent captures;
+* `<temporary-directory>/opencode/251-after-final/evidence.json` and adjacent captures.
+
+Both use **Windows CPython 3.13.7**, **Package 0.17.0**, **Edge 153.0.4234.48**,
+DevTools 1.3 / V8 15.3.12.7, with **39 measurements each**. Each of Session Immediate,
+real available shared Search and selected Match has de/en and JavaScript on/off
+coverage. The bounded matrix includes **1365x900**, **390x844**, **320x844**, **200%
+computed text at 320px**, a wide-viewport 200%-text case, a constrained parent at
+1365px, and forced-colors emulation. CSS viewport emulation uses device scale 1;
+doubling captured fonts is explicitly text enlargement, not actual browser page zoom.
+No physical-device, real-system high-contrast, screen-reader or maintainer UAT was run.
+
+Matched German geometry (CSS pixels; native vertical scrollbar remains):
+
+| Surface / condition | Baseline | Repaired |
+| --- | --- | --- |
+| Session, 320 / 200% text | 235.81px wrapper; 43.89–51.97px cells; split `100.00%` and `6.00` | 233.81px cells; 201.81px label/value content; complete numeric tokens |
+| Match, 320 / 200% text | 250.22px wrapper, 1024px table, 1034px local scroll extent | 240.63px table; 238.63px cells; 206.63px content; scroll/client 250/250 |
+| Search, 320 / 200% text | 235.81px wrapper, 1559.28px table | 235.81px table; 233.81px cells; scroll/client 236/236 |
+| Session / Match, 390 / normal text | fragmented shared columns / 512px Match table | 303.81 / 308.63px full-width cells |
+| Wide normal-text tables | shared 1156.41px, Match 1164.41px | same widths and aligned native columns |
+| Narrow parent at 1365 / normal text | fragmented shared cells or local horizontal scrolling | shared 260.41px and Match 268.41px tables, labelled rows, no local overflow |
+
+All candidate cells, last values, captions, word/token ranges, local scroll extents,
+fonts and context faces are measured. Values remain **16px / 32px**; no type shrinking,
+ellipsis, hidden last column or clipping masks an overflow. Matched screenshots were
+inspected for desktop/narrow/enlarged comparisons, the last metrics, full red/dark
+context faces, source focus, forced colors and retained correction preview. The
+candidate limitation passes on all measured repaired surfaces. Existing enlarged
+guided form/detail overflow elsewhere on the Analyze page is separate; this is not
+a whole-page or full-Historical/technical-table repair.
+
+Accessibility-tree snapshots retain one named table/caption and the following
+columnheader / rowheader / data-cell counts in both layouts: **5/2/8** (Session),
+**7/1/6** (Search), **3/3/6** (Match). Static-text counts remain **16 / 15 / 13**,
+respectively, with no repeated visual-label announcements in the tree. Header IDs
+are unique and all associations resolve. This is browser-tree evidence, not a
+screen-reader certification. Native review return focuses `session-result`; next
+Tab and Enter reach `#recorded-decision-12`. From the focused Match wrapper, Tab
+reaches the following native Technical details summary. Same retained DOM resizing
+320 -> 1365 -> 320 preserves every row and the existing focus target with **zero
+requests, executions or saves**. Forced colors retain system text/borders and the
+existing focus rings, with `forced-color-adjust: auto` for context Card faces.
+
+### Exact sources, operations and artifacts
+
+Both runs use one genuine 30-Play Session, one returned-form Match review and one
+explicit imported Search execution, reused across viewports. The approved intermediate
+hands are C10/CJ/DK/D7 after six Tricks and CJ after nine. The SJ Result retains seven
+Cards, HJ/DJ, **14/29** and equal-best CJ/SJ at **100.00% / 6.00 / 6**. The current
+Match C7/C9/C8 values are **11.32/0.9**, **10.83/0.88**, **9.98/0.87**, with B's CK,
+C's ten-Card hand and 0/0. Selecting Game 2 does not rebind that Report. The available
+seven-column real Search has D7, rank 1, recommended, one completed world, **0.00%**,
+**-72**, **-108**. Multi-candidate/negative/unavailable/tie/unique-best and alternate
+method cases also have separately identified scalar and existing executed regressions.
+
+Each matched run records **36 Session saves and 7 Match saves during setup**, **one
+Session review and one guided Search execution**, **one Match decision execution**,
+**8 profile saves**, and **37 existing Match page preparations** overall. The Match
+view/language matrix accounts for 23 of those preparations in each run. Passive
+views/language/downloads create no Product save or extra execution; explicit language
+changes retain their separate profile behavior. A native #250 no-op Preview/Cancel,
+same-source Session chooser navigation and six native no-script downloads preserve
+the exact retained source, Checkpoints, Request, Result and Report bytes. No successful
+operation is mocked. Disclosure expansion for downloading is fixture navigation;
+download and review activation use native keyboard Enter. Search bytes are compared
+to the same retained execution, without removing timing fields or changing clocks.
+
+Selected SHA-256 evidence (complete module/source/download hashes are in `evidence.json`):
+
+```text
+Baseline Wheel  d7611640067289bfa4efd532ea853835ab385e58d6857f7b99f3c2702bcbbd48
+Repaired Wheel  6a6dd01a1c5d68b513e5f80fe24419eff94dfcecdd3a1de5ef9ce80092548e0f
+Baseline CSS    ebdc12494b706ce3b32007d8a5212b9621b618e2ad31d091fed85e0123cf931b
+Repaired CSS    e899f475898aa97647d9524b791e459bdb02ca5e78543194ce61f71ad8b14ac6
+Shared renderer 5fa86a7f4f965eb3ab5d866c96ff7ef048050ed81814cc32f39c2e3ac6c4c6a5
+Match renderer  c8a751d4cfe859bb93b81e349e5dec211c863a4650abd955531617dcec336a62
+Markup helper   f020a2501f1882e27b932f21d8c7c84576e2af2269c88db67a953d65107f7fbc
+SJ Request      05dc65aa713fb37c7b40cd9a4027ce6926881e6bb0c98adaf4256b8a7f14ec94
+SJ Result       76eb05221cab155ff59f734ec568bbead767c2f309d6823546d598412ac545c1
+Search Request  d225db3ed60ec6b6bde0474897553d648e11ab238dd41f792e5284aebbb862e4
+Search Result   0c4afc9eeadee4063ea92e7826e2e63020d63cd17d5934bd2497c54b81c6208a
+Final Match JSON 03f7a3622152c0d3abe5c3bd97f0706e6d3462fbf7438f8758605763e9ae10b0
+```
+
+SJ Request/Result are 1,534/9,640 bytes; Search Request/Result 2,991/12,886; final
+Match Result JSON 8,737. The final Session/Checkpoint/Workspace/full Report are
+53,588/33,308/11,284/13,744 bytes. Independently generated source IDs legitimately
+differ across runs; each source's bytes remain exact during its passive interval.
+The served CSS equals the installed Package resource. Earlier baseline attempts 01/02
+stopped on verifier assumptions about Report selection and the flattened download
+envelope; they are unsuccessful. Repaired attempt 01 exposed long-label overflow;
+02 passed, and the final run includes the subsequent wide-header/56em refinement.
+
+The inventory remains **67 POST routes / 112 forms / 1,657 paired catalog keys**,
+with unchanged catalogs, Package 0.17.0, Python >=3.13, AGPL-3.0-only, dependency
+floors including `tzdata>=2026.4`, public/persistence formats and 98 scenarios.
+#250 remains completed. Both `check` and `v1-supported-platform-matrix` must pass
+on the exact merged commit before manual #251 closure. #208, remaining R11 and other
+findings remain open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
+No release-readiness claim follows. W3C
+[reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html),
+[resize text](https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html) and
+[table headers](https://www.w3.org/WAI/tutorials/tables/two-headers/) are design
+references, not whole-app conformance claims or a ban on all two-dimensional tables.
 
 ## Reproduced baseline and measured repair
 

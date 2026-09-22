@@ -47,8 +47,8 @@ def assert_visible_equal_best(html, locale):
     assert text(locale, "result.immediate.equal_points", value="6.00") in recommendation
     assert text(locale, "result.value.optimal") in normal
     assert normal.count("6.00") >= 2
-    assert normal.count("<table>") == 1
-    table = normal.split("<table>", 1)[1]
+    assert len(re.findall(r"<table\b", normal)) == 1
+    table = re.search(r"<table\b[^>]*>(.*?)</table>", normal, re.S)[1]
     assert f'>{text(locale, "common.answer.yes")}<' not in table
     assert f'>{text(locale, "common.answer.no")}<' not in table
     assert_summary_points(html, locale, 14, 29)

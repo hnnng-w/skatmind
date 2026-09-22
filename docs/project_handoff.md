@@ -2775,6 +2775,19 @@ for synthetic HTTP/installed-browser evidence. #249 stays completed; both exact
 merged-commit CI jobs gate manual #250 closure. #208/other findings remain open,
 UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 
+Issue #251 repairs only narrow/enlarged single-decision candidate comparisons, from
+clean `9ea3ec887f03d668f68dbbacf93309fce7be1ca7`. Position Alternatives and selected
+unified Match Reports share private single-copy table markup with local-width/text-
+relative labelled reflow. Metrics, order, method routing, historical context and
+exact downloads remain unchanged. Independent baseline/repaired Wheels cover both
+renderers, de/en, script/no-script, real Immediate/Search/Match execution, accessibility
+trees and 320px/200%-text cells; see [current visual evidence](unified_workflow_visual_contract.md#responsive-candidate-comparisons-issue-251).
+The repaired candidate limitation supersedes earlier observations; unrelated tables
+and R11 findings remain separate. Inventory stays 67/112 and 1,657 paired keys.
+#250 stays completed; exact merged-commit `check` and `v1-supported-platform-matrix`
+gate manual #251 closure. #208 remains open, UAT-01 unaccepted, UAT-02–12 paused,
+B-09/B-07 open and B-06 closed. No release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

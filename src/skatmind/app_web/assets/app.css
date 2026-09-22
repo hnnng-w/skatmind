@@ -1650,6 +1650,64 @@ main[data-workflow="matches"] .workflow-table-scroll:focus-visible {
   outline-offset: 0.2rem;
 }
 
+/* Only single-decision candidate comparisons opt in. The query uses local width
+   and the container's text size, including inherited text enlargement. */
+.candidate-comparison {
+  container: candidate-comparison / inline-size;
+  min-width: 0;
+}
+
+.candidate-table,
+main[data-workflow="matches"] .workflow-table-scroll .candidate-table {
+  min-width: 0;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.candidate-table caption,
+.candidate-table .candidate-label {
+  hyphens: auto;
+  /* Long compounds still fit when the browser has no hyphenation dictionary. */
+  overflow-wrap: anywhere;
+}
+.candidate-table thead { hyphens: auto; }
+.candidate-table .candidate-label { display: none; font-weight: 700; }
+.candidate-table .candidate-value { font-variant-numeric: tabular-nums; }
+
+@container candidate-comparison (max-width: 56em) {
+  .candidate-table,
+  .candidate-table caption,
+  .candidate-table tbody,
+  .candidate-table tr,
+  .candidate-table th,
+  .candidate-table td { display: block; }
+
+  /* Keep column headers in the accessibility tree; local labels are visual only. */
+  .candidate-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .candidate-table tbody tr {
+    margin-block: 0.75em;
+    border: 1px solid var(--line);
+  }
+
+  .candidate-table tbody th,
+  .candidate-table tbody td {
+    padding: 0.5em;
+    border: 0;
+  }
+
+  .candidate-table tbody th { background: #eee9dd; }
+  .candidate-table tbody td { border-top: 1px solid var(--line); }
+  .candidate-table .candidate-label,
+  .candidate-table .candidate-value { display: block; }
+}
+
 @media (min-width: 52rem) {
   .site-header {
     grid-template-columns: max-content 1fr;

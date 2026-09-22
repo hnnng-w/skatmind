@@ -274,7 +274,34 @@ candidate/method/order preservation and Historical regressions. The
 [Session review guide](session_recorded_decision_review.md#verification-and-future-affected-path-retest)
 records genuine Session execution, exact downloads and installed-browser evidence.
 Issue #240 supplies the bounded R10 implementation below. Issue #241 adds only
-R11's recorded context slice; its remaining download/layout findings stay open.
+R11's recorded context slice. Issue #251 repairs the candidate layout described
+below; remaining method/download and other Result-layout findings stay open.
+
+### Responsive single-decision comparisons
+
+Issue #251 opts only Position **Alternatives** into the private
+`candidate_table_rendering.py` helper. `result_rendering.py` passes already formatted,
+localized, escaped cells; `ResultTableV1`, projection and effective-method selection
+are unchanged. The five-column Immediate and seven-column Search comparisons retain
+every candidate, column, value and their original order. Guided Position analysis/
+review and current/saved Session Results share this path. Full-Historical Immediate,
+bounded Search and Information-set chronological tables keep the original renderer.
+
+Above **56em of local component width**, headings and rows stay aligned. At or below
+that width, the same rows become expanded labelled blocks: Card, then each existing
+metric in order. The container-relative `em` threshold responds to inherited text
+size and narrow parents independently of viewport size, without JavaScript. Values
+are never copied into another mobile comparison or parsed back into numbers. Local
+labels reuse catalog keys, occupy the full metric width and can wrap long compounds;
+normal numeric tokens retain their signs, decimals and percent suffixes.
+
+Native caption/column/Card-row headers remain, with page-local IDs, `headers` links
+and explicit static table roles for the changed CSS display types. Narrow repeated
+visual labels are real HTML marked `aria-hidden`, so each value remains one accessible
+cell. No metric gains a Tab stop. Existing focus/source-return and download behavior
+are unchanged. [Installed visual evidence](unified_workflow_visual_contract.md#responsive-candidate-comparisons-issue-251)
+supersedes the earlier candidate-table limitation on these tested surfaces. Broader
+technical/full-Historical layouts and R11 method/export organization remain separate.
 
 ### Optional recorded pre-Card context
 

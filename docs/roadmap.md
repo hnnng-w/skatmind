@@ -1802,6 +1802,15 @@ table is documented in the [unplayed-card guide](unplayed_card_summary.md#issue-
 gate #247 closure. #208 and other findings remain open; UAT-01 is unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release-readiness claim follows.
 
+Issue #251 repairs the narrow/enlarged single-decision candidate layout: shared
+Position Alternatives and selected unified Match comparisons stay aligned wide and
+reflow the same ordered rows into labelled blocks at narrow local width. Complete
+metrics, ties, source context, formatting and bytes remain. The
+[independent installed evidence](unified_workflow_visual_contract.md#responsive-candidate-comparisons-issue-251)
+supersedes the earlier candidate limitation; other tables/R11 findings remain separate.
+#250 stays completed. Both exact merged-commit CI jobs gate manual closure; #208
+remains open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
 Issue #250 adds the bounded R06 normal Session declarer/declaration path: accepted-
 fact selection, immutable canonical Preview and explicit Apply/Cancel, with fresh
 consent for partial suffix removal. Public replay, Checkpoints and persistence are

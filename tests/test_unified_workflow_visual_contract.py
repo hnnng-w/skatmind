@@ -227,8 +227,9 @@ def test_executed_report_table_is_named_focusable_and_keeps_exact_download(local
         page = follow(browser, browser.submit(
             Forms(browser.page(route)).find("/actions/profile/language"), language=locale))
         region = re.search(
-            r'<div class="workflow-table-scroll" role="region" tabindex="0" '
-            r'aria-label="([^"]+)"><table><caption>([^<]+)</caption>', page)
+            r'<div class="workflow-table-scroll candidate-comparison" role="region" tabindex="0" '
+            r'aria-label="([^"]+)"><table class="candidate-table" role="table">'
+            r'<caption>([^<]+)</caption>', page)
         assert region and region[1] == region[2] == text(locale, "result.table.immediate")
         assert 'scope="col"' in page and 'scope="row"' in page
         assert f'href="{download}" download' in page

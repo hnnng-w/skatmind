@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import replace
 from html import escape
 
+from .candidate_table_rendering import candidate_table_html
 from .guided_contracts import (
     ANALYZE_REQUEST_DOWNLOAD_ROUTE_PATH,
     ANALYZE_RESULT_DOWNLOAD_ROUTE_PATH,
@@ -43,7 +44,15 @@ def _items(values) -> str:
     )
 
 
-def _table(table: ResultTableV1) -> str:
+def _table(table: ResultTableV1, *, candidate_identity: str | None = None) -> str:
+    if candidate_identity is not None:
+        return '<div class="result-table-wrap candidate-comparison">' + candidate_table_html(
+            caption_html=escape(result_label(table.caption)),
+            columns_html=tuple(escape(result_label(column)) for column in table.columns),
+            rows_html=tuple(tuple(escape(cell) if index == 0 else
+                escape(result_value(table.columns[index], cell))
+                for index, cell in enumerate(row)) for row in table.rows),
+            identity=candidate_identity) + '</div>'
     headings = "".join(f'<th scope="col">{escape(result_label(column))}</th>' for column in table.columns)
     rows = "".join(
         "<tr>"
@@ -62,12 +71,14 @@ def _table(table: ResultTableV1) -> str:
     )
 
 
-def _section_body(section: ResultSectionV1) -> str:
+def _section_body(section: ResultSectionV1, *, candidate_identity: str | None = None) -> str:
     return (
         "".join(f"<p>{escape(paragraph)}</p>" for paragraph in section.paragraphs)
         + _details(section.details)
         + _items(section.items)
-        + "".join(_table(table) for table in section.tables)
+        + "".join(_table(table, candidate_identity=(
+            f"{candidate_identity}-table-{index}" if candidate_identity is not None else None))
+            for index, table in enumerate(section.tables))
     )
 
 
@@ -154,7 +165,9 @@ def render_result_presentation_v1(
         if section.title == "Summary" and recorded_context is not None:
             section = replace(section, details=tuple(detail for detail in section.details
                 if detail.label not in {"Contract", "Next player", "Current Trick"}))
-        body = _section_body(section)
+        body = _section_body(section, candidate_identity=(identifier
+            if presentation.workflow == "position_analysis" and section.title == "Alternatives"
+            else None))
         if section.title == "Summary" and recorded_context is not None:
             body = render_recorded_decision_context(
                 recorded_context, recorded_context_locale, scores=False) + body

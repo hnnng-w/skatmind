@@ -37,6 +37,24 @@ emulation are in the [R08 visual evidence](unified_workflow_visual_contract.md#r
 
 ## Coverage and deterministic variant selection
 
+Issue #251 makes the shared Position Alternatives comparison responsive: aligned
+columns at sufficient local width, one expanded Card block with the original labelled
+metrics at narrow width or enlarged text. This supersedes the historical five-column
+cramping/clipping observation below for the repaired candidate comparison. Full
+labels, both equal-best CJ/SJ rows, **100.00% / 6.00 / 6**, seven pre-decision Cards,
+HJ/DJ and **14/29** remain from the same retained execution. There is one native
+table and one copy of each value; no new disclosure or focus stop is needed to read
+alternatives. Current-position Results use the same opt-in; full-Historical tables
+remain separate. See the [shared Result contract](unified_local_frontend_guided_analysis_and_results.md#responsive-single-decision-comparisons)
+and [independent-Wheel evidence](unified_workflow_visual_contract.md#responsive-candidate-comparisons-issue-251).
+
+The #251 HTTP/browser probe reuses the approved #246–#250 legal trace, including
+C10/CJ/DK/D7 after six Tricks and CJ after nine. A native saved-SJ review still
+focuses `session-result`; next Tab reaches its original decision-return link.
+Same-source opening, de/en changes, resize, native downloads and one #250 no-op
+Preview/Cancel preserve exact Session/Checkpoint/Request/Result bytes. Preparation
+and execution lifetimes are unchanged; #250 remains completed.
+
 Issue #229 adds chooser opening directly to `/sessions/current#recorded-decisions`.
 An unchanged already active source reuses the exact context, Result/source label,
 selection key and download bytes; inactive opening uses the existing strict loader.

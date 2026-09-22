@@ -466,7 +466,8 @@ def test_position_renderer_has_exact_semantic_sections_escaping_and_downloads() 
     heading_positions = [html.index(f">{title}</h2>") for title in RESULT_SECTION_TITLES_V1]
     assert heading_positions == sorted(heading_positions)
     assert html.count("<h2 ") == 5
-    assert "<table>" in html and '<th scope="col">Card</th>' in html
+    assert '<table class="candidate-table" role="table">' in html
+    assert re.search(r'<th scope="col"[^>]*>Card</th>', html)
     assert "Prefer H9 over &lt;unsafe &amp; unescaped&gt;." in html
     assert "Warning &lt;one&gt; &amp; retained." in html
     assert "<unsafe" not in html

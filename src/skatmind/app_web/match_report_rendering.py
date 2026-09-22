@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from html import escape
 
+from .candidate_table_rendering import candidate_table_html
 from .recorded_decision_context_rendering import render_recorded_decision_context
 from .stateful_localization import translated
 from .task_first_rendering import cards_summary, paragraph, technical_details
@@ -40,16 +41,15 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
             content += paragraph(locale, "result.no_recommendation")
         candidates = details.get("immediate_candidate_values", [])
         if candidates:
-            content += ('<div class="workflow-table-scroll" role="region" tabindex="0" aria-label="'
-                + translated(locale, "result.table.immediate") + '"><table><caption>'
-                + translated(locale, "result.table.immediate") + '</caption><thead><tr>')
-            content += ''.join('<th scope="col">' + translated(locale, key) + '</th>'
-                               for key in ("validation.field.card", "result.point_swing", "result.win_rate")) + '</tr></thead><tbody>'
-            for candidate in candidates:
-                content += '<tr><th scope="row">' + cards_summary(locale, (candidate["card"],)) + '</th>'
-                content += ''.join('<td>' + (translated(locale, "status.unavailable") if candidate.get(key) is None
-                    else escape(str(candidate[key]))) + '</td>' for key in ("expected_point_swing", "win_rate")) + '</tr>'
-            content += '</tbody></table></div>'
+            content += ('<div class="workflow-table-scroll candidate-comparison" role="region" tabindex="0" aria-label="'
+                + translated(locale, "result.table.immediate") + '">' + candidate_table_html(
+                    caption_html=translated(locale, "result.table.immediate"),
+                    columns_html=tuple(translated(locale, key) for key in (
+                        "validation.field.card", "result.point_swing", "result.win_rate")),
+                    rows_html=tuple((cards_summary(locale, (candidate["card"],)), *(
+                        translated(locale, "status.unavailable") if candidate.get(key) is None
+                        else escape(str(candidate[key])) for key in ("expected_point_swing", "win_rate")))
+                        for candidate in candidates), identity="match-candidates") + '</div>')
         for key, label_key in (("declarer_points", "guided.declarer_points"),
                                ("defender_points", "guided.defender_points")):
             if key in details:

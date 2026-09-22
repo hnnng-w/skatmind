@@ -272,6 +272,28 @@ comparison contradictions, and fixed-policy inconsistencies.
 
 ## Privacy and product boundaries
 
+Issue #251 opts the unified selected Report's existing **Card / Expected point swing /
+Win rate** comparison into the same private responsive presentation as Position
+Alternatives. At more than 56em of local width it is an aligned native table; at
+narrow width/enlarged text its existing rows become expanded labelled Card blocks.
+The named, focusable `.workflow-table-scroll` wrapper remains, but reading the tested
+stacked metrics needs no horizontal scrolling. This supersedes its former 32em
+minimum-width candidate limitation. All three columns, order, full names and existing
+fractions/precision/unavailable formatting remain unchanged. The helper receives only
+the already-curated `immediate_candidate_values`; it adds no Match Search report or
+shared metric calculation. Recording/review routes currently link to retained Reports;
+the explicit Report route selects the comparison. Both renderer callers share the
+opt-in independently of that routing.
+
+The real current C7/C9/C8 probe produces **11.32 / 10.83 / 9.98** point swings and
+**0.9 / 0.88 / 0.87** fractions at its existing review defaults. These are retained
+values, not the older export's forced expectations. B's CK, C's ten-Card historical
+hand and **0/0** remain bound to Game 1/decision 2 even after another Game is selected.
+Exact Report/Result/Workspace bytes survive passive views, language, native download
+and resize. Existing page-snapshot preparation counts remain their baseline; pure
+candidate markup adds no preparation, replay, execution or I/O. See
+[installed evidence](unified_workflow_visual_contract.md#responsive-candidate-comparisons-issue-251).
+
 Issue #241 adds the unified-only [recorded decision context](recorded_decision_context.md)
 before the selected one-Decision Report's actual/recommended Card comparison. Its
 typed Report and executed `profile_binding` identify the exact Game and acting/
