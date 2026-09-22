@@ -19,12 +19,26 @@ B-06 remains closed, and Package `1.0.0` preparation is not ready.
    the Trick, and actual Card. Select **Review decision** on that row.
 4. The page moves to the Result with the source Game/Player/Trick/Card label,
    visible pre-Card situation, actual Card, recommendation, and available assessment.
-   The existing Request and Result downloads contain the exact retained execution bytes.
+    After the normal Result, **Downloads for this analysis** exposes the existing
+    Request and Result links directly, without opening technical details. They
+    contain the exact retained execution bytes.
 
 The German labels are in the packaged translation catalog. Native forms, links,
 buttons, disclosures, and downloads work without JavaScript and with a keyboard.
 Normal Card recording remains primary during play. No manual Review draft or
 re-entry of the Game is required.
+
+Issue #252 gives this Result one **Technical analysis details** disclosure, with
+each General/Left/Right policy and original producer paragraph inspectable once.
+The accepted Commands/IDs/revisions/Checkpoint metadata remain in separate
+**Recording details**, beside the original file link under **Recording file**.
+That file is the editable recording; the analysis Result is not a whole-app backup.
+Existing source-bound lifetimes, exact bytes, warning authority, success focus and
+next decision-return link remain. Native downloads/toggles perform no execution,
+Checkpoint collection, Product save or receipt replay. #250 Preview/Cancel/no-op
+retention and normal invalidation on accepted changes remain authoritative.
+See the [shared ownership inventory](unified_local_frontend_guided_analysis_and_results.md#artifact-and-technical-content-ownership-issue-252)
+and [independent-Wheel evidence](unified_workflow_visual_contract.md#analysis-downloads-and-technical-details-issue-252).
 
 Issue #243 styles the existing `#session-result` focus destination with a solid 2px
 blue outline and 3px offset, including native redirected focus. Constant block

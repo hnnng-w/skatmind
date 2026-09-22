@@ -208,6 +208,14 @@ Analyze accepts only `position_analysis`. Review accepts `historical_game` and
 input parsing constructs one immutable Request, and a separate explicit Run is
 required. Incompatible workflows produce a distinct safe HTTP `400` response.
 
+Issue #252 names the metadata disclosure **Import details**. Before execution the
+validated Request link remains in this imported-document context, with no Result
+claim. Once the displayed Result owns that same retained Request, its download
+area owns the action alone. This uses `latest_successful_request` / `imported_request`
+ownership and retained bytes, never href equality, filenames or submitted form values.
+A running page retains import-only access when applicable; a rejected new input
+does not relabel an older Result. Accepted replacement still invalidates old output.
+
 ## Application execution
 
 Every explicit Run constructs or reuses one immutable Request and one immutable
@@ -247,7 +255,13 @@ Evidence and limits
 Technical details
 ```
 
-Technical details use a native disclosure closed by default. Candidate and
+The model retains these five identities. Issue #252 renders the final identity as
+one native **Technical analysis details** disclosure closed by default, retaining
+`result-section-5` on its summary rather than repeating the caption in an h2.
+The renderer-owned **Downloads for this analysis** utility precedes it, after
+Evidence and limits. Available **Analysis Request (JSON)** and **Analysis Result
+(JSON)** links are native secondary actions outside every disclosure. Downloads
+are not a sixth Result data section or a save of the editable recording. Candidate and
 Decision tables preserve retained public order. Whole-game Results explicitly
 state that there is no single whole-game Card recommendation. Review coverage,
 warnings, fallback, boundedness, information cutoffs, fixed-policy limits,
@@ -275,7 +289,50 @@ candidate/method/order preservation and Historical regressions. The
 records genuine Session execution, exact downloads and installed-browser evidence.
 Issue #240 supplies the bounded R10 implementation below. Issue #241 adds only
 R11's recorded context slice. Issue #251 repairs the candidate layout described
-below; remaining method/download and other Result-layout findings stay open.
+below; Issue #252 addresses download/detail organization below. Remaining method
+explanation and other R11 findings stay open.
+
+### Artifact and technical-content ownership (Issue #252)
+
+`analysis_download_rendering.py` composes only caller-supplied available hrefs.
+Guided state owns its existing precomputed Request/Result bytes; Session execution
+owns its separate existing Request/Result endpoints. Match supplies only its selected
+Report Result endpoint and existing availability flag. No Request counterpart or
+Teacher-source alias is added. The Match serializer remains distinct from the public
+guided/Session envelope. Mutable active-result URLs retain latest-active delivery.
+
+The shared renderer no longer appends a blanket raw copy of normal details:
+
+| Original projected content | Rendering owner |
+| --- | --- |
+| Summary facts, Recommendation values, Alternatives, ordinary Evidence/limits | Original normal section; optional recorded context replaces its existing equivalent Contract/Next Player/Current Trick rows |
+| General/Left/Right fixed-policy details | One localized scoped label each inside Technical analysis details; original joined lead/response text unchanged, explicitly English |
+| Position recommendation producer paragraph; safe Historical Replay/Information-set Coaching/Tactical limitation items | Technical prose once, preserving exact producer text |
+| Unmapped technical detail identities, including Historical method status counts | Technical details once; trusted labels use existing localization |
+| Unmapped enum values hidden by the existing localized technical-value placeholder | Exact original value once in Technical analysis details; the normal placeholder remains, not another raw value |
+| Public warnings | Existing visible warning count plus exact technical warning list once |
+
+Position's original technical section retains Search method, solution/policy claims,
+policy consistency, controlled decisions, requested Trick/depth/world/minimum/timeout
+budgets, consumed depth/nodes/states/information sets, deterministic representative,
+declaration flags/Matadors/bid, ending, requested/simulated Multi-Step decisions,
+stop/Card policy, Policy Comparison request/recommendation, and public artifact names.
+Requested/effective method, fallback, selected/completed/sampled/unique world counts,
+samples and information cutoff remain normal Evidence details under their original
+identities. Equal numbers or strings never merge these fields.
+
+Historical's original technical section retains API/schema versions, Player IDs,
+played-at and Game ID, Result/Schneider/Schwarz status, game/effective/required values,
+settlement completeness/score, Claim proof state/terminal counts, each selected review/
+Coaching/Tactical method and public artifact names. Original model tuples, privacy
+filtering, values and order remain unchanged. No policy parsing, execution, source
+read or export generation occurs during this composition. Match continues to render
+its separate curated Report diagnostic object once, without exposing a full Result.
+
+Recording files have separately named recording contexts, and import metadata has
+its own disclosure. Source-safe language/disclosure restoration keeps the same
+native disclosure count and existing binding; no workflow JavaScript changes are
+needed. See [installed evidence](unified_workflow_visual_contract.md#analysis-downloads-and-technical-details-issue-252).
 
 ### Responsive single-decision comparisons
 
@@ -301,7 +358,8 @@ visual labels are real HTML marked `aria-hidden`, so each value remains one acce
 cell. No metric gains a Tab stop. Existing focus/source-return and download behavior
 are unchanged. [Installed visual evidence](unified_workflow_visual_contract.md#responsive-candidate-comparisons-issue-251)
 supersedes the earlier candidate-table limitation on these tested surfaces. Broader
-technical/full-Historical layouts and R11 method/export organization remain separate.
+full-Historical table layouts and R11 method explanations remain separate. Issue #252
+adds wrapping analysis-download/technical composition without changing this comparison.
 
 ### Optional recorded pre-Card context
 

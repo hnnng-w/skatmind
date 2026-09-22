@@ -242,14 +242,22 @@ def _imported_request(
         if page == "analyze"
         else REVIEW_REQUEST_DOWNLOAD_ROUTE_PATH
     )
+    # The endpoint exports the successful Request when retained, otherwise the
+    # accepted import. A rejected candidate/current form is never a download owner.
+    import_owns_download = state.request_json_bytes is not None and (
+        state.latest_successful_request is None or executed)
+    result_shows_download = (state.latest_successful_result is not None
+                             and state.execution_source_revision is None)
+    download = (f'<p><a href="{request_download}" download>{_t("guided.request_download")}</a></p>'
+                if import_owns_download and not result_shows_download else "")
     return (
         '<section class="import-summary" aria-labelledby="import-summary-heading">'
         f'<h2 id="import-summary-heading">{_t("guided.imported_document")}</h2>'
         f'<p>{_t("guided.imported_retained")} {_e(status)}</p>'
-        f'<details><summary>{_t("task.technical")}</summary><dl class="result-details" lang="en">'
+        f'<details><summary>{_t("result.import_details")}</summary><dl class="result-details" lang="en">'
         + "".join(f"<dt>{_e(label)}</dt><dd>{_e(value)}</dd>" for label, value in rows)
         + "</dl></details>"
-        f'<p><a href="{request_download}" download>{_t("guided.request_download")}</a></p>'
+        + download +
         f'<form method="post" action="{_e(run_action)}">{_revision(state)}'
         f"{run_control}</form></section>"
     )

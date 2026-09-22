@@ -19,8 +19,8 @@ def disclosure(locale: str, key: str, content: str, *, technical: bool = False) 
     return f'<details class="{kind}"><summary>{translated(locale, key)}</summary>{content}</details>'
 
 
-def technical_details(locale: str, value: object) -> str:
-    return disclosure(locale, "task.technical", '<pre lang="en">'
+def technical_details(locale: str, value: object, *, caption_key: str = "task.technical") -> str:
+    return disclosure(locale, caption_key, '<pre lang="en">'
                       + escape(json.dumps(value, ensure_ascii=False, indent=2)) + '</pre>',
                       technical=True)
 

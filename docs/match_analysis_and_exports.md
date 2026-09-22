@@ -236,6 +236,20 @@ revision also returns `409` without execution.
 
 ## Authenticated local downloads
 
+Issue #252 places the selected unified Report's existing **Analysis Result (JSON)**
+link in **Downloads for this analysis**, after normal context/recommendation/comparison
+and before **Technical analysis details**. It was already outside the Report disclosure;
+the new grouping and order make its purpose explicit. The technical region retains the
+same minimized curated Report object. No analysis Request counterpart is invented,
+and neither materialization nor Strategy Teacher sources are relabelled as Requests.
+
+The recording page groups its existing Workspace link under **Match recording file**,
+with separate **Match recording details**. Accepted expert forms, source targets,
+freshness/CAS/retirement/publication and 404/409 boundaries are unchanged. The selected
+Report, not another currently selected Game, owns its Result href. No extra source read,
+preparation or file construction is needed to draw it. See the
+[installed download evidence](unified_workflow_visual_contract.md#analysis-downloads-and-technical-details-issue-252).
+
 Downloads reuse the existing token-established `HttpOnly`, `SameSite=Strict`
 cookie and loopback Host checks. Mutation and analysis POSTs additionally retain
 same-origin protection. No download accepts or exposes a server filesystem path.

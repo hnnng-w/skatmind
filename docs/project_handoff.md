@@ -2788,6 +2788,19 @@ and R11 findings remain separate. Inventory stays 67/112 and 1,657 paired keys.
 gate manual #251 closure. #208 remains open, UAT-01 unaccepted, UAT-02–12 paused,
 B-09/B-07 open and B-06 closed. No release-readiness claim follows.
 
+Issue #252 clarifies analysis downloads/details from clean
+`a1c277c500ab47168be12c42cd0ac9fbf90e635c`: native visible Request/Result actions
+(selected Match Report: Result only), one source-owned shared technical disclosure,
+no blanket raw mirror, and named recording/import scopes. Model, transport, exact
+bytes and lifetimes remain; #251 stays completed. Independent Wheels and genuine
+HTTP forms cover Session SJ, selected Match, imported Search and Historical Results;
+see [ownership](unified_local_frontend_guided_analysis_and_results.md#artifact-and-technical-content-ownership-issue-252)
+and [evidence](unified_workflow_visual_contract.md#analysis-downloads-and-technical-details-issue-252).
+Inventory remains 67 POST routes / 112 forms; nine new paired captions bring catalogs
+from 1,657 to 1,666 keys. Both exact merged-commit CI jobs remain closure gates.
+#208, remaining R11/other findings stay open; UAT-01 unaccepted, UAT-02–12 paused,
+B-09/B-07 open, B-06 closed. No release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

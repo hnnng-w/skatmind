@@ -1811,6 +1811,15 @@ supersedes the earlier candidate limitation; other tables/R11 findings remain se
 #250 stays completed. Both exact merged-commit CI jobs gate manual closure; #208
 remains open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 
+Issue #252 addresses R11's analysis-download/detail organization: one visible native
+artifact group per retained analysis, one shared technical disclosure without the
+blanket raw mirror, and source-specific recording/import captions. Exact bytes,
+ownership, native language/focus, #250 retention and #251 comparisons remain. See
+[current installed evidence](unified_workflow_visual_contract.md#analysis-downloads-and-technical-details-issue-252).
+The route/form inventory stays 67/112; paired catalog keys become 1,666. #251 remains
+completed; `check` and `v1-supported-platform-matrix` on the exact merged commit gate
+#252 closure. Remaining R11/other #208 findings stay open with the same UAT/blocker state.
+
 Issue #250 adds the bounded R06 normal Session declarer/declaration path: accepted-
 fact selection, immutable canonical Preview and explicit Apply/Cancel, with fresh
 consent for partial suffix removal. Public replay, Checkpoints and persistence are

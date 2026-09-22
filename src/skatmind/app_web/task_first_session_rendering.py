@@ -399,7 +399,8 @@ def render_task_first_session_v1(
         corrections += form(locale, "/sessions/reload", hidden("managed_handle", context.handle), "common.action.reload")
         normal += '<div id="session-history">' + disclosure(
             locale, "task.session.corrections", corrections) + '</div>'
-        normal += '<p><a href="/sessions/downloads/session.json" download>' + translated(
+        normal += '<section class="recording-file"><h3>' + translated(locale, "result.recording_file")
+        normal += '</h3><p><a href="/sessions/downloads/session.json" download>' + translated(
             locale, "task.session.download") + '</a></p>'
         normal += technical_details(locale, {
             "session_id": facts.session_id, "game_id": facts.game_id, "played_at": facts.played_at,
@@ -414,5 +415,5 @@ def render_task_first_session_v1(
             "last_operation_diagnostics": [] if context.last_operation is None else list(context.last_operation.diagnostics),
             "players": [player.to_dict() for player in facts.players],
             "command_log": [record.to_dict() for record in context.state.command_log],
-        })
+        }, caption_key="result.recording_details") + '</section>'
         return '<div id="session-app">' + normal + '</div>'

@@ -254,8 +254,10 @@ def main():
         cdp.call("Emulation.setEmulatedMedia", features=[])
         if surface == "match":
             key("Tab", 9)
-            assert cdp.evaluate("document.activeElement.tagName") == "SUMMARY"
-            evidence["actions"].append({"native_tab_from_match_wrapper": "SUMMARY", "requests": dict(requests-start)})
+            # #252 places the native Result download ahead of technical details.
+            expected_tag = "A" if cdp.evaluate("!!document.querySelector('.analysis-downloads')") else "SUMMARY"
+            assert cdp.evaluate("document.activeElement.tagName") == expected_tag
+            evidence["actions"].append({"native_tab_from_match_wrapper": expected_tag, "requests": dict(requests-start)})
         assert calls["session_saves"] == before["session_saves"] and calls["match_saves"] == before["match_saves"]
         assert calls["executions"] == before["executions"] and calls["match_executions"] == before["match_executions"]
         evidence["passive"].append({"surface": surface, "views_and_language_calls": dict(calls-before)})

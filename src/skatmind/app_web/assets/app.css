@@ -1166,6 +1166,60 @@ form:has(> input[name="declaration_form"]) > p { margin-block: 0.25em; }
   margin-top: 0;
 }
 
+.analysis-downloads {
+  margin-block: 1rem;
+}
+
+.analysis-downloads h3 {
+  margin-block: 0 0.5rem;
+}
+
+.analysis-downloads ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  list-style: none;
+  padding: 0;
+}
+
+.analysis-downloads .button-link {
+  color: var(--green-dark);
+  background: var(--surface);
+  border-color: var(--green);
+}
+
+.analysis-downloads .button-link:is(:hover, :active) {
+  color: var(--green-dark);
+  background: #dcebe3;
+}
+
+.analysis-downloads :where(li, a),
+.analysis-technical :where(details, dt, dd) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.result-presentation > .analysis-technical {
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.analysis-technical > details {
+  margin: 0;
+}
+
+.analysis-technical .result-details {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.analysis-technical dd {
+  margin-bottom: 0.6rem;
+}
+
 .result-details {
   display: grid;
   grid-template-columns: minmax(10rem, max-content) 1fr;

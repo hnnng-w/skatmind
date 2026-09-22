@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from html import escape
 
+from .analysis_download_rendering import analysis_downloads
 from .candidate_table_rendering import candidate_table_html
 from .recorded_decision_context_rendering import render_recorded_decision_context
 from .stateful_localization import translated
@@ -59,10 +60,10 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
             score = details["settlement"].get("settlement_score")
             content += '<p>' + translated(locale, "result.settlement") + ': ' + (
                 translated(locale, "task.unknown") if score is None else escape(str(score))) + '</p>'
-        content += technical_details(locale, report)
         if state["download_availability"]["report_result"]:
-            content += f'<p><a href="/matches/api/v1/reports/{report["report_id"]}.json" download>' + translated(
-                locale, "task.result_download") + '</a></p>'
+            content += analysis_downloads(
+                result_href=f'/matches/api/v1/reports/{report["report_id"]}.json', locale=locale)
+        content += technical_details(locale, report, caption_key="result.analysis_details")
     if materialization_form:
         content += materialization_form
         for kind, available in state["download_availability"].items():

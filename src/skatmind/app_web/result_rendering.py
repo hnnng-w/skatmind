@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import replace
 from html import escape
 
+from .analysis_download_rendering import analysis_downloads
 from .candidate_table_rendering import candidate_table_html
 from .guided_contracts import (
     ANALYZE_REQUEST_DOWNLOAD_ROUTE_PATH,
@@ -14,7 +15,12 @@ from .guided_contracts import (
 from .recorded_decision_context_rendering import render_recorded_decision_context
 from .render_locale import html_message as _t
 from .render_locale import localized_render
-from .result_localization import RESULT_LABEL_KEYS, result_label, result_value
+from .result_localization import (
+    RESULT_LABEL_KEYS,
+    needs_raw_technical_value,
+    result_label,
+    result_value,
+)
 from .result_presentation import (
     BrowserSafeResultPresentationV1,
     ResultSectionV1,
@@ -22,13 +28,15 @@ from .result_presentation import (
 )
 
 
-def _details(values) -> str:
+def _details(values, *, technical: bool = False) -> str:
     if not values:
         return ""
     return (
         '<dl class="result-details">'
         + "".join(
-            f"<dt>{escape(result_label(detail.label))}</dt><dd>{escape(result_value(detail.label, detail.value))}</dd>" for detail in values
+            f'<dt>{escape(result_label(detail.label))}</dt>'
+            + (f'<dd lang="en">{escape(detail.value)}</dd>' if technical else
+               f'<dd>{escape(result_value(detail.label, detail.value))}</dd>') for detail in values
         )
         + "</dl>"
     )
@@ -71,10 +79,10 @@ def _table(table: ResultTableV1, *, candidate_identity: str | None = None) -> st
     )
 
 
-def _section_body(section: ResultSectionV1, *, candidate_identity: str | None = None) -> str:
+def _section_body(section: ResultSectionV1, *, candidate_identity: str | None = None, technical: bool = False) -> str:
     return (
         "".join(f"<p>{escape(paragraph)}</p>" for paragraph in section.paragraphs)
-        + _details(section.details)
+        + _details(section.details, technical=technical)
         + _items(section.items)
         + "".join(_table(table, candidate_identity=(
             f"{candidate_identity}-table-{index}" if candidate_identity is not None else None))
@@ -99,20 +107,10 @@ def _download_links(
     else:
         request_href = REVIEW_REQUEST_DOWNLOAD_ROUTE_PATH
         result_href = REVIEW_RESULT_DOWNLOAD_ROUTE_PATH
-    links = []
-    if request_download_available:
-        links.append(
-            f'<li><a href="{escape(request_href, quote=True)}" '
-            f'download>{_t("guided.request_download")}</a></li>'
-        )
-    if result_download_available:
-        links.append(
-            f'<li><a href="{escape(result_href, quote=True)}" '
-            f'download>{_t("task.result_download")}</a></li>'
-        )
-    if not links:
-        return ""
-    return f'<nav aria-label="{_t("task.learning.results")}"><ul>' + "".join(links) + "</ul></nav>"
+    return analysis_downloads(
+        request_href=request_href if request_download_available else None,
+        result_href=result_href if result_download_available else None,
+    )
 
 
 @localized_render
@@ -148,15 +146,19 @@ def render_result_presentation_v1(
 
     rendered = []
     technical_extras = []
+    technical_prose = []
     for index, section in enumerate(presentation.sections):
         identifier = f"result-section-{index + 1}"
         if section.title != "Technical details":
+            # Original projected detail identities own their location. Equal values
+            # in different scopes are never merged or parsed back into policy data.
             technical_extras.extend(detail for detail in section.details
-                                    if detail.label not in RESULT_LABEL_KEYS or "fixed policy" in detail.label)
+                                    if detail.label not in RESULT_LABEL_KEYS or "fixed policy" in detail.label
+                                    or needs_raw_technical_value(detail.label, detail.value))
             if section.title == "Recommendation" and presentation.workflow == "position_analysis":
-                technical_extras.extend(section.paragraphs)
+                technical_prose.extend(section.paragraphs)
                 section = replace(section, paragraphs=())
-            technical_extras.extend(item for item in section.items if item.startswith(
+            technical_prose.extend(item for item in section.items if item.startswith(
                 ("Replay Coaching:", "Information-set Coaching:", "Tactical Review:")))
             section = replace(section,
                 details=tuple(detail for detail in section.details if detail.label in RESULT_LABEL_KEYS and "fixed policy" not in detail.label),
@@ -165,7 +167,7 @@ def render_result_presentation_v1(
         if section.title == "Summary" and recorded_context is not None:
             section = replace(section, details=tuple(detail for detail in section.details
                 if detail.label not in {"Contract", "Next player", "Current Trick"}))
-        body = _section_body(section, candidate_identity=(identifier
+        body = _section_body(section, technical=section.title == "Technical details", candidate_identity=(identifier
             if presentation.workflow == "position_analysis" and section.title == "Alternatives"
             else None))
         if section.title == "Summary" and recorded_context is not None:
@@ -179,26 +181,21 @@ def render_result_presentation_v1(
                 + body
             )
         if section.title == "Technical details":
-            exact = [*technical_extras, *presentation.warnings]
+            body += _details(technical_extras, technical=True)
             body += '<div lang="en">' + ''.join(
-                '<p>' + escape(item if isinstance(item, str) else f"{item.label}: {item.value}") + '</p>'
-                for item in exact) + '</div>'
-            body += '<dl lang="en">' + ''.join(
-                '<dt>' + escape(detail.label) + '</dt><dd>' + escape(detail.value) + '</dd>'
-                for original in presentation.sections for detail in original.details
-                if original.title != "Technical details") + '</dl>'
-            body = (
-                f'<details><summary>{_t("task.technical")}</summary>'
-                + body
-                + _download_links(
+                '<p>' + escape(item) + '</p>' for item in technical_prose) + _items(presentation.warnings) + '</div>'
+            rendered.append(_download_links(
                     page=effective_page,
                     request_download_available=request_download_available,
                     result_download_available=result_download_available,
                     request_download_route=request_download_route,
                     result_download_route=result_download_route,
-                )
-                + "</details>"
-            )
+                ))
+            rendered.append(
+                f'<section class="analysis-technical" aria-labelledby="{identifier}">'
+                f'<details class="technical-details"><summary id="{identifier}">'
+                f'{_t("result.analysis_details")}</summary>{body}</details></section>')
+            continue
         rendered.append(
             f'<section aria-labelledby="{identifier}">'
             f'<h2 id="{identifier}">{escape(result_label(section.title))}</h2>{body}</section>'

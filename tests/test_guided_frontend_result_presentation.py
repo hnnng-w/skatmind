@@ -463,21 +463,22 @@ def test_position_renderer_has_exact_semantic_sections_escaping_and_downloads() 
     )
 
     assert html.count("<section ") == 5
-    heading_positions = [html.index(f">{title}</h2>") for title in RESULT_SECTION_TITLES_V1]
+    heading_positions = [html.index(f'id="result-section-{index}"') for index in range(1, 6)]
     assert heading_positions == sorted(heading_positions)
-    assert html.count("<h2 ") == 5
+    assert html.count("<h2 ") == 4
+    assert '<summary id="result-section-5">Technical analysis details</summary>' in html
     assert '<table class="candidate-table" role="table">' in html
     assert re.search(r'<th scope="col"[^>]*>Card</th>', html)
     assert "Prefer H9 over &lt;unsafe &amp; unescaped&gt;." in html
     assert "Warning &lt;one&gt; &amp; retained." in html
     assert "<unsafe" not in html
-    assert "<details>" in html
+    assert '<details class="technical-details">' in html
     assert "<details open" not in html
     assert f'href="{ANALYZE_REQUEST_DOWNLOAD_ROUTE_PATH}" download' in html
     assert f'href="{ANALYZE_RESULT_DOWNLOAD_ROUTE_PATH}" download' in html
     assert REVIEW_REQUEST_DOWNLOAD_ROUTE_PATH not in html
     assert REVIEW_RESULT_DOWNLOAD_ROUTE_PATH not in html
-    assert "partial" in html
+    assert text("en", "result.value.partial") in html
     assert "not a perfect-play claim" in html
     assert "not calibrated probability" in html
     assert "analysis cutoff" in html
@@ -502,7 +503,7 @@ def test_normal_result_states_remain_textual_non_error_states(status: str) -> No
 
     html = render_result_presentation_v1(presentation)
 
-    assert f"<dd>{status}</dd>" in html
+    assert f'<dd>{text("en", "result.value." + status)}</dd>' in html
     assert "result-error" not in html
     assert ANALYZE_REQUEST_DOWNLOAD_ROUTE_PATH not in html
     assert ANALYZE_RESULT_DOWNLOAD_ROUTE_PATH not in html
@@ -574,7 +575,7 @@ def test_historical_renderer_escapes_values_and_excludes_raw_result_content() ->
     assert "Unnamed Player" in html
     assert "A completed game has no single whole-game Card recommendation." in html
     assert html.index('<th scope="row">1</th>') < html.index('<th scope="row">2</th>')
-    assert "timeout" in html
+    assert text("en", "result.value.timeout") in html
     assert REVIEW_REQUEST_DOWNLOAD_ROUTE_PATH in html
     assert REVIEW_RESULT_DOWNLOAD_ROUTE_PATH in html
     assert ANALYZE_REQUEST_DOWNLOAD_ROUTE_PATH not in html

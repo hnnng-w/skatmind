@@ -1,5 +1,9 @@
 # Unified Match and Learning visual contract
 
+Issue #252 supersedes the historical downloads-inside-Technical and shared raw-mirror
+organization. Its [current download/detail evidence](#analysis-downloads-and-technical-details-issue-252)
+preserves #251's repaired candidate readability and the earlier source/focus contracts.
+
 Issue #251 supersedes the **single-decision candidate comparison** limitation retained
 in the historical observations below. Shared Position Alternatives and unified selected
 Match comparisons now use one responsive native table: aligned wide, expanded labelled
@@ -200,6 +204,119 @@ Native single-line edit fields retain browser caret scrolling; native selects
 retain their complete option lists and keyboard selection. This is distinct from
 authored clipping or document overflow. No document overflow is hidden and zoom
 is not disabled.
+
+## Analysis downloads and technical details (Issue #252)
+
+Starting clean `bug/252-analysis-downloads-details`, HEAD
+`a1c277c500ab47168be12c42cd0ac9fbf90e635c`. The actual #252 and #208 R11 download/detail
+specifications were retrieved. This is a current-page baseline, separate from the
+planning archive and original maintainer UAT evidence.
+
+### Before/after ownership
+
+| Real page | Baseline analysis-link disclosure ancestors | Repaired | Total page disclosures, both |
+| --- | --- | --- | --- |
+| Saved Session SJ | Request 1, Result 1 | Both 0, one download group | 23 |
+| Guided imported Search | Request 1, Result 1, repeated import Request 0 | Request/Result 0, no repeated import action | 9 |
+| Imported Historical | Request 1, Result 1, repeated import Request 0 | Request/Result 0, no repeated import action | 3 |
+| Selected Match Report | Result 0, after technical details | Result 0, named group before technical details | 7 |
+
+General/Left/Right policy entries occur once each in the unchanged projection, twice
+each in baseline technical HTML, once each in repaired HTML. The former technical h2
+repeated its summary; these pages did not have two nested analysis disclosures.
+Recording, import, specialist and correction disclosures are separate scopes, not
+duplicates to remove. Import-only pages retain one Request action and no Result.
+The Session recording-file link also remains outside disclosures in its own named area.
+
+The [shared ownership inventory](unified_local_frontend_guided_analysis_and_results.md#artifact-and-technical-content-ownership-issue-252)
+records each technical family and raw-value fallback. `analysis_download_rendering.py`
+accepts available hrefs only. The five-section model, safe projection, candidate helper,
+export builders, workflow state and JavaScript remain unchanged. Scoped CSS reuses
+secondary link colors, wraps utility actions/technical values, and removes the redundant
+outer technical panel padding without clipping focus or #251 comparisons.
+
+### Independent installed evidence
+
+`scripts/verify_analysis_downloads.py` uses the existing dependency-free DevTools
+harness and genuine returned-form fixtures, with independently installed baseline and
+repaired Wheels. It is optional and not a browser dependency of the full check:
+
+```powershell
+& PATH_TO_INSTALLED_PYTHON scripts/verify_analysis_downloads.py `
+    --browser PATH_TO_EDGE --output FRESH_SCRATCH_DIRECTORY `
+    --wheel PATH_TO_WHEEL --phase after
+```
+
+Completed evidence is under `<temporary-directory>/opencode/252-before-03/` and
+`252-after-final/`, with `evidence.json` and inspected PNGs. Windows CPython **3.13.7**,
+Package **0.17.0**, Edge **153.0.4234.48**, DevTools **1.3**, V8 **15.3.12.7**.
+Each run contains **28 Result measurements**: all four surfaces in de/en with
+JavaScript on/off; German no-script adds **1365x900**, **390x844**, **320x844**, and
+**320px/200% computed text**. Other language/script combinations use 390px. Import-only
+Position and Historical samples are additional native download/screenshot checks.
+This bounded matrix is not a full Cartesian browser/device matrix.
+
+All **30 native downloads per run**, totaling **228,609 bytes**, matched their exact
+retained HTTP bytes and existing filenames. Repaired links required no disclosure
+opening. Accessible names were checked in the browser accessibility tree, not just
+hrefs. Native Enter activates downloads and disclosure summaries. Real SJ review
+still focuses `session-result`; next Tab/Enter reaches `#recorded-decision-12`.
+Script-enabled same-source language submissions retain the opened analysis disclosure.
+All 28 matched candidate matrices are identical before/after, with no repaired candidate
+overflow; #251 remains a completed repair. Inspected desktop/narrow/enlarged screenshots
+show wrapped secondary actions, full technical values, source focus, three distinct
+policy scopes, readable candidates, import-only state and Historical details.
+
+Each run performs **36 Session saves and 7 Match saves during fixture setup**, **one
+Session review, one guided Search, one Historical execution**, and **one Match decision
+execution**. Passive rendering/toggling/downloading performs **zero Product saves or
+executions**. Explicit profile saves total **10**, including two creation saves and
+eight actual locale changes. Existing Match page preparations total **26 baseline /
+28 repaired**; the difference is two additional repaired same-source language-restoration
+GETs, not new rendering work. The view/language interval accounts for 15/17 of those
+preparations. Pure disclosure/download operations add none. Fixture operations and
+explicit analysis are recorded separately from these passive intervals.
+
+Same-source chooser navigation and #250 no-op Preview/Cancel retain exact Session,
+Checkpoints and downloads. Selecting another Match Game does not rebind the Report.
+HTTP regressions additionally execute another Game's Report, reject direct stale
+downloads after an external-file fault (409, then unavailable 404), retain old guided
+bytes after failed input, invalidate on accepted import, and require explicit Session
+re-execution after strict Reload. Scalar content/availability fixtures are separate
+from these real executions. Existing source-safe language, validation, consent clearing,
+correction, equal-best and candidate regressions remain required.
+
+Exact sizes (bytes): SJ Request/Result **1,534/9,640**; Search Request/Result
+**2,991/12,886**; Historical Request/Result **5,102/14,239**; Match Result **8,737**.
+Session/Checkpoint/Workspace/full Report retention covers
+**53,588/33,308/11,284/13,744** bytes. Search compares the same retained execution,
+without stripping timing or changing clocks. Independently generated source identities
+may differ across runs; each passive interval preserves its own complete bytes.
+
+```text
+Baseline Wheel  a6a9aa5e631e24bacc522428e0c5f19d98ddaa3d8663ba48545b27401d701cfe
+Repaired Wheel  0b3eb0a48b03df7100c063221b1bdb388a4f1b877daedfc979d83054f9e9c8ea
+Repaired CSS    bf3d62b3e891985d86d54badee31895ec6ed10cd58d319d8cfb6f2a77a6dbab1
+Shared renderer 6d8becc2ab0fa4bc8127e0f3288e69e46847b029897136543df77d1aed90445b
+SJ Request      05dc65aa713fb37c7b40cd9a4027ce6926881e6bb0c98adaf4256b8a7f14ec94
+SJ Result       76eb05221cab155ff59f734ec568bbead767c2f309d6823546d598412ac545c1
+```
+
+The approved trace retains C10/CJ/DK/D7 after six Tricks and CJ after nine; SJ has
+seven pre-decision Cards, HJ/DJ, **14/29**, and equal-best CJ/SJ. Module/resource and
+other source/download hashes are in the evidence. Earlier baseline attempts remain
+unsuccessful: 01 assumed repeated browser downloads created new filenames; 02 was
+interrupted by the tool timeout. Final runs use separate per-download scratch folders
+and sufficient runtime. The first repaired run passed before the final secondary-color/
+technical-panel spacing refinement; `252-after-final` verifies the final Product tree.
+
+Registry remains **67 POST routes / 112 forms**. Nine paired captions change catalog
+count **1,657 → 1,666**. Package 0.17.0, Python >=3.13, AGPL-3.0-only, dependency floors
+including `tzdata>=2026.4`, public/persistence formats and **98 scenarios** remain.
+No physical-device, screen-reader, full-page form/Historical-table redesign or maintainer
+UAT is claimed. #251 stays completed. Both `check` and `v1-supported-platform-matrix`
+must pass on the exact merged commit before #252 closure. #208, remaining R11/other
+findings stay open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
 
 ## Responsive candidate comparisons (Issue #251)
 

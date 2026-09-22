@@ -355,7 +355,9 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     corrections += form(locale, "/matches/api/v1/reload", hidden("managed_handle", handle)
                         + hidden("match_position", view.selected_position), "common.action.reload")
     body += disclosure(locale, "task.match.corrections", corrections)
-    body += '<p><a href="/matches/downloads/workspace.json" download>' + translated(locale, "task.match.download") + '</a></p>'
+    body += '<section class="recording-file"><h3>' + translated(locale, "result.match_recording_file")
+    body += '</h3><p><a href="/matches/downloads/workspace.json" download>' + translated(locale, "task.match.download") + '</a></p>'
     body += technical_details(locale, {"match_id": state["match"]["match_id"],
-        "workspace_revision": state["workspace_revision"], "position_view": state["position_view"]})
+        "workspace_revision": state["workspace_revision"], "position_view": state["position_view"]},
+        caption_key="result.match_recording_details") + '</section>'
     return '<div id="task-first-match">' + body + '</div>'

@@ -192,3 +192,13 @@ def result_value(label: str, value: str) -> str:
             return message(prefix + value)
     # Exact unrecognized machine values belong to the technical disclosure.
     return message("result.technical_value")
+
+
+def needs_raw_technical_value(label: str, value: str) -> bool:
+    """Identify enum fallbacks by trusted field/catalog identity, not translated text."""
+    if label not in _ENUM_LABELS or value in {"Not available", "None", "Yes", "No"}:
+        return False
+    from .translation_catalog import load_frontend_translation_catalogs_v1
+    catalog = load_frontend_translation_catalogs_v1()["en"]
+    return not any(prefix + value in catalog for prefix in (
+        "task.value.", "creation.seat.", "result.value."))
