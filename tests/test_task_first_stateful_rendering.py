@@ -71,5 +71,6 @@ def test_learning_empty_sequence_precedes_import_and_has_no_build(tmp_path, loca
     for key in ("next.add", "recorded_help", "no_recorded", "refresh_recorded"):
         assert t(locale, f"task.learning.{key}") in html
     assert 'value="prepare_learning_artifacts"' not in html
-    assert html.index(t(locale, "task.learning.next")) < html.index('name="workspace_file"')
+    assert html.index(t(locale, "task.learning.recorded_help")) < html.index(
+        'name="workspace_file"')
     assert '<script' not in html

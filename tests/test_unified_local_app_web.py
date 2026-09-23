@@ -285,7 +285,7 @@ def test_home_has_exact_tasks_local_no_cloud_copy_and_honest_status(
     main = html[html.index("<main") : html.index("</main>")]
     groups_html = main[main.index('<section class="home-group"') :]
     assert "Local Skat analysis. No cloud service." in html
-    assert html.count('<article class="task-card">') == 4
+    assert html.count('<article class="task-card">') == 5
     assert html.count('<section class="home-group"') == 3
     assert html.count('class="task-action"') == 5
     assert '<details class="task-disclosure"' not in html
@@ -358,8 +358,8 @@ def test_stateful_landing_empty_states_explain_scope_prerequisite_and_next_actio
         ),
         "/learning": (
             "No learning collections yet",
-            "selected evidence from recorded Matches",
-            "Create a collection below, then choose saved Matches inside it",
+            "saved Match versions you choose to examine together",
+            "Creates an empty collection. Add saved Matches afterward",
         ),
     }
     for route, values in expected.items():
@@ -856,7 +856,8 @@ def test_managed_match_learning_and_explicit_transfer_http_lifecycle(
     learning_html = body.decode("utf-8")
     assert "Choose a saved Match below" in learning_html
     assert 'action="/learning/add-recorded-match"' in learning_html
-    assert "The first version of a new Match becomes selected" in learning_html
+    assert "The first version is selected" in learning_html
+    assert "adding a later version keeps the existing selection" in learning_html
 
     status, headers, _body = _post_form(
         server,

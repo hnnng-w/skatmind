@@ -206,6 +206,7 @@ def render_profile_driven_learning_creation_v1(
     return (
         '<section class="panel friendly-create" aria-labelledby="learning-create-heading">'
         f'<h2 id="learning-create-heading">{_t(locale, "creation.learning.heading")}</h2>'
+        f'<p>{_t(locale, "creation.learning.help")}</p>'
         '<form method="post" action="/learning/create" class="form-grid">'
         + _profile_generation(profile_generation)
         + f"<label>{_t(locale, 'creation.learning.name')} "

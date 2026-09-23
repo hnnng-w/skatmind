@@ -140,13 +140,6 @@ def _home(
             if not task.available:
                 raise ValueError("Home tasks must remain available.")
             prefix = f"home.task.{task_key}"
-            if task_key == "learning_insights":
-                cards.append(
-                    f'<p>{_translated(frontend, f"{prefix}.summary")}</p>'
-                    f'<p class="task-action"><a href="{route}">'
-                    f'{_translated(frontend, f"{prefix}.action")}</a></p>'
-                )
-                continue
             cards.append(
                 '<article class="task-card">'
                 f"<h3>{_translated(frontend, f'{prefix}.title')}</h3>"
@@ -160,7 +153,7 @@ def _home(
             f'<section class="home-group" aria-labelledby="{heading_id}">'
             f'<h2 id="{heading_id}">'
             f"{_translated(frontend, f'home.group.{group_key}.title')}</h2>"
-            f'<div class="{"task-grid" if len(task_keys) > 1 else "secondary-task"}">'
+            '<div class="task-grid">'
             f'{"".join(cards)}</div></section>'
         )
     content = ''.join(groups)

@@ -239,28 +239,45 @@ Decision Reports. No transfer runs analysis, preparation, or Dataset constructio
 
 Issue #236 supersedes the former five-step/open-Match-first Learning presentation:
 [Direct saved-Match entry](learning_direct_match_entry.md) provides one initially
-unselected native selector, explicit Add, explicit Build, then View results.
+unselected native selector, explicit Add, explicit Evaluate, then View evaluation.
 The first collection-page GET can initialize missing bounded Match discovery once;
 ordinary/language/error renders reuse it and refresh is explicit. Add copies the
 current valid saved version without activating a recording. Partial/empty valid
 Matches are allowed. The first version becomes Current; later direct adds use
 `keep_current`, unlike the unchanged Match-side transfer default above.
 
-Snapshot presentation uses Saved Match version and Version used for insights.
+Issue #255 clarifies the landing purpose and replaces the redundant opened-collection
+next-task panel with action-local help. Name-only creation makes an empty collection;
+it imports and prepares nothing. A collection is not required for ordinary individual
+decision review. Add copies the currently saved Match version, not a live link or
+every separately executed decision Report. The source dropdown alone imports nothing.
+
+Snapshot presentation uses Saved Match version and Version used for evaluation.
 Retained alternatives stay Advanced, selection stays explicit, and IDs stay
 Technical. Missing selection and non-current Report-source blockers are explained.
-The normal Build action appears after prerequisite guidance. Defaults remain
+The normal Evaluate collection action appears after prerequisite guidance. Defaults remain
 Dataset ID derived from the Corpus ID, seeds `0` and `0`, and weights `70/15/15`.
 Configuration is neither learned nor saved automatically.
 
 Strategy Teacher import remains Advanced. Non-current-source remediation exposes
-its native removal controls visibly when it blocks Build. Uploads always require
-file reselection when needed. Matching prepared artifacts lead to View results at
-`#learning-results`, with rebuild secondary. Counts describe available evidence,
+its native removal controls visibly when it blocks evaluation. Uploads always require
+file reselection when needed. Matching prepared artifacts lead to View evaluation at
+`#learning-results`, with the existing secondary preparation control labelled Recreate
+evaluation in its original placement. Missing-selection and source-remediation links
+remain; the redundant jump to the adjacent source form is removed. Counts describe available evidence,
 not 36-position completeness, Player strength, or zero mistakes without Teacher input.
 Prepared summaries and all ten exact authenticated downloads retain existing
 filenames, Routes, JSON, lineage, and invalidation behavior. Viewing or downloading
 does not rebuild artifacts.
+
+The #255 change is private composition/copy only: the existing task projection,
+`prepare_learning_artifacts`, #236 direct entry, #245 receipts, error/disclosure
+identities and all ten outputs remain authoritative. The registry is still 67 POST
+routes / 112 forms; three scoped captions bring paired catalog keys from 1,731 to
+1,734. Automatic source inclusion, executed-Report incorporation and recommendation
+adaptation remain distinct open product questions. Return/focus routing, version/
+conflict controls, result interpretation and download organization are separate
+follow-ups; this explanation does not resolve R13/R14 or accept UAT.
 
 The #224 light surface/foreground pairs cover empty, selected, blocked, prepared,
 error and Advanced states. Standalone Corpus CSS no longer overrides the unified

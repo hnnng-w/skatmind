@@ -1,11 +1,35 @@
 # Add recorded Matches directly to Learning
 
 Issue #236 adds one private unified-app shortcut:
-**Choose saved Match → Add to collection → Build insights → View results.**
+**Choose saved Match → Add Match to collection → Evaluate collection → View evaluation.**
 It supersedes the former open-Match-first Learning guidance and mandatory
 complete-Match wording. Partial and empty valid Workspaces are accepted by the
 existing strict import; they do not promise rich decision evidence. No new Engine,
 public API, Schema, source format, or persisted result is introduced.
+
+Issue #255 clarifies this existing path and collection purpose. A named collection
+holds saved Match versions the user chooses to examine together. Creating it leaves
+it empty. It is not a prerequisite for ordinary single-decision review, and partial
+input does not require two Matches or complete 36-Game recordings. Evaluation builds
+the existing descriptive evidence, dataset, partition and summary artifacts. It does
+not run new Card analyses, train a model or adapt future recommendations. Workspace
+Add does not incorporate separately executed decision Reports.
+
+| Control/state | Current English wording | Existing operation/target |
+| --- | --- | --- |
+| Name entry | Create learning collection | `/learning/create` |
+| Source choice | Saved Match | Native `source_handle`; no submission on choice |
+| Direct Add | Add Match to collection | `/learning/add-recorded-match`, fixed `keep_current` |
+| Current inputs | Match versions used for the evaluation | Existing Catalog Current selections |
+| Ready | Evaluate collection | `prepare_learning_artifacts` |
+| Prepared | View evaluation | Native `#learning-results` link |
+| Explicit repeat | Recreate evaluation | Same preparation form in the same secondary position |
+
+The de/en catalogs carry the corresponding localized wording. The extra next-task
+panel and adjacent-source jump are removed; source/selection remedies and the real
+results link remain. Feedback markers, section anchors and disclosure/form identity
+remain available to #223 and #245. Shared Match-transfer policy wording is unchanged;
+the shared selected-version caption now says evaluation rather than insights.
 
 ## Native routes and discovery
 
@@ -94,11 +118,11 @@ Imported copies remain independent of later source edits/deletion.
 ## Progression and coverage
 
 No imported Match means choose one here, or record one if none is available.
-Current input without preparation leads to explicit Build. Missing selection remains
+Current input without preparation leads to explicit Evaluate. Missing selection remains
 defensive guidance. A non-current retained Report source exposes its existing native
 remove/clear controls outside closed Advanced content; restoring the matching version
-also remains possible. Matching prepared input leads to **View results** at
-`#learning-results`; Build remains secondary. No persisted wizard is added.
+also remains possible. Matching prepared input leads to **View evaluation** at
+`#learning-results`; **Recreate evaluation** remains secondary. No persisted wizard is added.
 
 Preparation reuses its existing operation, Corpus-derived dataset ID, seeds `0/0`,
 weights `70/15/15`, and editable Advanced options. Observed/usable/skipped decision
@@ -111,6 +135,16 @@ Reload/reopen/restart preserves imported files but can require explicit rebuildi
 of process-local results. Nothing is automatically recreated.
 
 ## Language, accessibility and verification
+
+Current #255 evidence is linked from the
+[visual contract](unified_workflow_visual_contract.md#learning-entry-and-purpose-issue-255).
+It preserves the existing Add destination `#learning-recorded-matches` and Build
+destination `/learning/current`. Return-position repair, version/conflict ergonomics,
+R14 result interpretation and ten-download organization remain separate follow-ups.
+Automatic Match inclusion, incorporation of executed Reports and adaptation of future
+recommendations remain distinct open product expectations; explaining today's explicit
+operations neither accepts nor rejects them. The historical #236 evidence below is
+retained with its original counts.
 
 The exact de/en catalogs have **1,529 keys** with matching placeholders. Safe submitted
 values survive contextual errors/language changes; #223's browser-only unsent values

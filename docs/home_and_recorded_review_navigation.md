@@ -18,8 +18,9 @@ contain five tasks:
 | `analyze_and_review` | `review_game`, `analyze_decision` | `/review/recorded`, `/analyze` |
 | `learn_across_matches` | `learning_insights` | `/learning` |
 
-The first four tasks have one title, description, and action. Learning is one
-compact secondary description/action. About is a small normal footer link;
+Issue #255 supersedes #229's plain-link Learning exception: all five tasks have
+the same task card, title, description, and native button-styled link. Learning
+stays last in its existing group at `/learning`. About is a small normal footer link;
 Settings stays directly accessible. Recording descriptions explain resumability
 and evidence-limited review. Continuing one Session does not start another Game
 or insert it into a Match. Shared entry rendering supplies one optional short
@@ -29,11 +30,22 @@ explanation is retained beside its existing preparation controls.
 
 Issue #236 adds [direct saved-Match entry](learning_direct_match_entry.md) within an
 active Learning collection. It supersedes the former requirement to open a Match
-before transferring it: choose a saved Match, explicitly Add, explicitly Build,
-then View results. Learning can initialize missing bounded Match discovery once on
+before transferring it: choose a saved Match, explicitly Add, explicitly Evaluate,
+then View evaluation. Learning can initialize missing bounded Match discovery once on
 explicit page entry and otherwise reuses it. Home remains passive. The shortcut
 preserves unrelated active recordings, Reports, recovery and Session Results, and
 retains #235's independent-copy/deletion semantics.
+
+The #255 landing introduction explains that a collection holds chosen saved Match
+versions for joint descriptive summaries. Name-only creation imports nothing;
+ordinary single-decision review needs no collection. Partial input is allowed.
+Opened collections explain Add, selected versions and evaluation at their controls,
+without the former next-task box or adjacent-source jump. Meaningful result and
+blocker links, anchors, forms and return destinations remain. Preparation creates
+existing artifacts, not new Card analyses, a trained model or adapted recommendations.
+Automatic Match inclusion, automatic incorporation of executed Reports and future
+recommendation adaptation remain separate open R14 product questions. R13 return
+routing/version/conflict ergonomics and R14 result/download organization remain open.
 
 `APP_ROUTE_PATHS` retains eight prior static pages and adds the chooser. It is
 separate from seven visible navigation entries, in order: Home, Match recording,

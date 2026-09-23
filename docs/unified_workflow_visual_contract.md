@@ -1,5 +1,10 @@
 # Unified Match and Learning visual contract
 
+Issue #255 makes the existing Learning task an ordinary fifth Home card and
+clarifies collection purpose and action wording. Its
+[installed evidence](#learning-entry-and-purpose-issue-255) retains the current
+readiness, #236 direct Add and #245 feedback without CSS or workflow-script changes.
+
 Issue #254 changes existing Session/Match return and retained-decision-Report link
 captions to name their destinations. Its [native evidence](#review-return-labels-issue-254)
 preserves hrefs, source ownership, focus and #251–#253 presentation without CSS changes.
@@ -213,6 +218,129 @@ Native single-line edit fields retain browser caret scrolling; native selects
 retain their complete option lists and keyboard selection. This is distinct from
 authored clipping or document overflow. No document overflow is hidden and zoom
 is not disabled.
+
+## Learning entry and purpose (Issue #255)
+
+Baseline: clean `bug/255-learning-entry-purpose`, actual HEAD
+`f3b2cf318f23ae00201dbbfd1fde9ce4383ecf92`. Current-code regressions reproduced four
+ordinary Home cards plus the plain Learning link, the redundant next-task/source
+jump and missing purpose wording: **13 expected failures / 12 passes** before the
+presentation edit. Scalar rendering specimens are display evidence only. Current
+#236 code already correctly selected a first import, retained later direct imports
+under `keep_current`, supported partial input and preferred valid prepared results.
+Unlike the older archive, it had one generic preparation disclaimer plus action help;
+its secondary rebuild used the same Build caption. Those correct later behaviors
+were preserved rather than replaced with archived rendering.
+
+The optional `scripts/verify_learning_entry_purpose.py` reuses the existing native
+DevTools tooling and legal fixtures. It runs with an independently installed Wheel,
+`--phase before|after`, `--browser`, fresh external `--output`, and `--wheel`. It is
+not a runtime or mandatory pytest dependency. September 23 evidence:
+
+* CPython **3.13.7**, Package **0.17.0**, Windows, headless Edge **153.0.4234.48**;
+* `$env:TEMP/opencode/255-before-accounted/evidence.json` and
+  `$env:TEMP/opencode/255-after-accounted/evidence.json`, with adjacent screenshots
+  and actual browser-downloaded files;
+* **112 before / 112 after measurements**, both locales, scripts on/off, Home,
+  Learning landing, empty/ready/prepared and genuine non-current-source-blocked
+  collection states, 1365×900, 390×844, 320×800 and representative computed 200%
+  text (body **16 → 32 px**);
+* baseline Wheel SHA-256
+  `f02b3356f5b3d96fb0c266abe709e66cb390099c1750b3f170d5fdc8f10ee5de`;
+* repaired Wheel SHA-256
+  `7ff6caf24b484e4775845f8e47991ce6597c4d509816db9e0f003b3ea876221b`;
+* unchanged served CSS SHA-256
+  `bf3d62b3e891985d86d54badee31895ec6ed10cd58d319d8cfb6f2a77a6dbab1`;
+* unchanged served workflow-script SHA-256
+  `aa3871d9880326fc27590d80f7f0bf9ebc0a7cf31fd64fc2fd04a1e3932efce1`.
+
+The evidence records all 19 installed module/resource hashes, exact requests,
+source/file/artifact byte counts and hashes, controls, native focus and content
+geometry. Module bytes are checked against actual HEAD for baseline and the repaired
+source for after. Catalog inventory changes only **1,731 → 1,734** paired keys;
+routes/forms stay **67/112**. No stylesheet adjustment was needed. Inspected screenshots
+show the ordinary fifth card, concise purpose, direct Add and evaluation controls,
+the meaningful View link and visible blocker remedy. No measured document/visible
+element overflow was found. At 320 px/200% text, long words wrap and content remains
+vertically scrollable; this is not a claim of short pages or a redesigned result.
+
+Matched English native CSS heights (rounded):
+
+| Region / width | Before | After |
+| --- | ---: | ---: |
+| Home Learning group / 390 | 138 | 303 |
+| Empty active collection / 390 | 1,690 | 1,137 |
+| Ready evaluation section / 390 | 484 | 369 |
+| Prepared active collection / 390 | 3,427 | 3,099 |
+| Source-blocked evaluation section / 390 | 452 | 237 |
+
+Each of the four locale/script runs per Wheel performs native name-only creation,
+three direct imports (first, identical no-op, later saved version), one explicit
+Current selection, four preparations (initial, changed selection, explicit repeat,
+strict-reopen regeneration), ten native downloads, explicit refresh and language
+actions. First Add selects; later Add keeps Current; identical input retains exact
+Catalog, Snapshot and all prepared bytes. Applied import/selection invalidates
+preparation. Strict reopen retains both Snapshots and Catalog but requires explicit
+process-local regeneration. An explicitly imported exact executed Report, followed
+by a real source revision/selection change, supplies the genuine blocker; native
+removal restores readiness. No successful persistence/preparation is mocked.
+
+Operation accounting is identical before/after. Per run, native collection work has
+**1 creation, 3 import calls, 3 Catalog-change saves, 1 selection, 4 preparations**,
+and **3 Add-time strict discovery revalidations**. One separate explicit Report-source
+fixture import and one native removal are recorded. There are **15 server discovery
+calls**, including **8 during fixture setup**, and **7 profile saves**: one Session
+creation label, one collection label and five explicit language preferences. Choosing
+a source alone sends **zero requests and performs zero operations**. Unsent selection
+survives the language round trip with JavaScript; native-only switching restores the
+unsubmitted default and requires reselection.
+
+Fixture setup performs 17 Session saves for twelve legal Plays/setup, one genuine SJ
+review, two Match Decision executions and six existing Match-page preparation calls.
+Two synthetic Match files are saved through the real persistence service; a later
+explicit fixture edit saves one revised source. These are not passive work. The
+unrelated Session Result (**9,640 bytes**) and Match Report (**10,374 bytes**) retain
+exact identity/bytes through Learning actions; their recording files are **25,759**
+and **11,304 bytes**. No thirty-Card replay is repeated for viewport/copy assertions.
+
+Passive Home/landing/current navigation plus two language changes retains a **1,728-byte
+Catalog**, **17,009-byte Snapshot**, all three prepared-object identities and all ten
+downloads (**501,040 bytes** in total). That block performs one existing collection-list
+discovery and two profile saves, but zero import, selection, preparation, Catalog save,
+recording save or analysis. Each native download issues one authenticated GET, no POST
+or preparation, and its saved bytes equal the retained HTTP export. The ten respective
+sizes are **6,567 / 1,291 / 1,755 / 19,066 / 1,948 / 1,960 / 30,269 / 13,090 / 414,257 /
+10,837 bytes** in canonical kind order. Hashes are compared within each source;
+generated collection/Session identities can differ between independent installations.
+
+Earlier scratch attempts are retained: the first probe missed the repository fixture
+import path; `255-before-01` exposed a tooling click in the gap of a wrapped download
+link (fixed by targeting its first rendered rectangle); `255-before-02` was terminated
+at the 120-second tool limit, with no worker remaining. Later complete runs passed.
+The final accounted pair adds the actual server discovery call-site counter and
+unsent-source language coverage. These tooling attempts are not Product failures or
+successful full checks.
+
+Existing bounded HTTP tests cover same-revision reject/retain, CAS/source conflicts,
+failure retention, Product-first/profile-failure creation and safe submitted values.
+Missing-selection scalar input is defensive coverage, not a persisted valid Store.
+Fault fixtures explicitly introduce file/identity/conflict failures; they are not
+normal successful operations. No new race suite or skip is introduced.
+The corrected 19-module focused run passed **285 tests / 1 existing skip in 116.92s**;
+the skip is the actual symlink-permission fixture. The earlier affected run found
+two superseded UI-text assertions (283 passed / 1 skipped / 2 failed); only those
+expected captions were updated. Catalog order/key/placeholder and form-inventory
+checks passed before the final complete check.
+
+Add still returns to `/learning/current#learning-recorded-matches`; Build still returns
+to `/learning/current`; View uses the existing `#learning-results` focusable target.
+Those unchanged targets do not fix R13 return-position UX. Version/conflict ergonomics,
+R14 interpretation/download organization and automatic source/Report/recommendation
+use remain open. This is not screen-reader, physical-device or maintainer UAT evidence.
+The final full-check child exit/stages accompany the implementation report; exact
+merged-commit `check` and `v1-supported-platform-matrix` remain closure gates. #254
+remains completed, #208 stays open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open
+and B-06 closed. No release-readiness claim follows.
 
 ## Review return labels (Issue #254)
 

@@ -2,6 +2,10 @@
 
 ## Status
 
+Issue #255 restores an ordinary fifth Learning task card within the unchanged
+five-task/three-group contract. It supersedes only #229's compact plain-link
+exception and clarifies collection purpose; see the current navigation guide below.
+
 Issue #229 revises the private navigation and introduction design below. The
 current source chooser, same-context reuse, Match review presentation and browser
 evidence are documented in [Home and recorded-game review navigation](home_and_recorded_review_navigation.md).

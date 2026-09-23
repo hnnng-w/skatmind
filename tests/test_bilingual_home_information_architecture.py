@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import asdict
 
 import pytest
@@ -139,7 +140,7 @@ def test_information_architecture_rejects_drift(
         ),
     ),
 )
-def test_home_groups_match_first_recorded_review_and_compact_learning(
+def test_home_groups_match_first_recorded_review_and_fifth_learning_card(
     locale: str,
     group_headings: tuple[str, ...],
     task_titles: tuple[str, ...],
@@ -153,7 +154,12 @@ def test_home_groups_match_first_recorded_review_and_compact_learning(
 
     assert f'<html lang="{locale}">' in html
     assert html.count('<section class="home-group"') == 3
-    assert html.count('<article class="task-card">') == 4
+    assert html.count('<article class="task-card">') == 5
+    cards = re.findall(r'<article class="task-card">(.*?)</article>', main, re.DOTALL)
+    assert [re.search(r'href="([^"]+)"', card)[1] for card in cards] == [
+        route for _, route in HOME_TASK_ROUTE_MAPPINGS]
+    assert all('<h3>' in card and 'class="task-summary"' in card
+               and 'class="button-link"' in card for card in cards)
     assert 'class="task-disclosure"' not in html
     assert 'class="task-scope"' not in html
     assert html.count('class="task-action"') == 5

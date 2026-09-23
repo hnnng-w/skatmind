@@ -186,7 +186,7 @@ def test_browser_german_does_not_write_and_localizes_shell_home_about_and_errors
     home_main = home_html[home_html.index("<main") : home_html.index("</main>")]
     home_groups = home_main[home_main.index('<section class="home-group"') :]
     assert "Lokale Skat-Analyse. Kein Cloud-Dienst." in home_html
-    assert home_html.count('<article class="task-card">') == 4
+    assert home_html.count('<article class="task-card">') == 5
     assert home_html.count('<section class="home-group"') == 3
     assert "Welchen Bereich brauche ich?" not in home_html
     assert "Benötigte Angaben" not in home_html

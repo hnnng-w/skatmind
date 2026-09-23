@@ -2825,6 +2825,20 @@ and [independent-Wheel evidence](unified_workflow_visual_contract.md#review-retu
 #208 and other findings remain open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07
 open and B-06 closed. No release-readiness claim follows.
 
+Issue #255 clarifies only Learning entry and collection purpose from clean
+`bug/255-learning-entry-purpose`, HEAD `f3b2cf318f23ae00201dbbfd1fde9ce4383ecf92`.
+The fifth Home task now uses the ordinary card; concise bilingual purpose and
+action-local copy distinguish Create, Add, selected versions, Evaluate, View and
+Recreate. #236 imports, the existing readiness projection and #245 receipts remain.
+Inventory remains 67 POST routes / 112 forms, with 1,734 paired keys. See
+[operation mapping](learning_direct_match_entry.md) and
+[installed evidence](unified_workflow_visual_contract.md#learning-entry-and-purpose-issue-255).
+#254 remains completed. Return routing, version/conflict controls, result meaning,
+ten-download organization and the separate automatic-use product questions remain
+open under R13/R14. Exact merged-commit `check` and `v1-supported-platform-matrix`
+gate closure; #208 remains open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open
+and B-06 closed. No release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

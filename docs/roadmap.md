@@ -1841,6 +1841,17 @@ stays completed. Exact merged-commit `check` and `v1-supported-platform-matrix` 
 closure; #208 and other findings remain open, UAT-01 unaccepted, UAT-02–12 paused,
 B-09/B-07 open and B-06 closed. No release-readiness claim follows.
 
+Issue #255 makes Learning the ordinary fifth Home task and explains chosen saved
+Match versions, empty creation and explicit descriptive evaluation at the relevant
+controls. #236 direct entry/readiness and #245 feedback retain their existing behavior.
+Inventory remains 67/112; three captions bring paired keys to 1,734. See
+[mapping](learning_direct_match_entry.md) and
+[evidence](unified_workflow_visual_contract.md#learning-entry-and-purpose-issue-255).
+#254 remains completed. R13 routing/version/conflict ergonomics, R14 result/download
+presentation and automatic Match/Report/recommendation-use decisions remain open.
+Exact merged-commit `check` and `v1-supported-platform-matrix` gate #255 closure;
+#208 stays open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
 Issue #250 adds the bounded R06 normal Session declarer/declaration path: accepted-
 fact selection, immutable canonical Preview and explicit Apply/Cancel, with fresh
 consent for partial suffix removal. Public replay, Checkpoints and persistence are

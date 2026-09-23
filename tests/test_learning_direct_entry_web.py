@@ -8,7 +8,12 @@ from test_language_switch_context import switch
 from test_match_recording_recovery_web import entry_action, follow, operation_form
 from test_recorded_review_navigation import chooser_form, external_pass, saved_partial_match
 from test_recording_deletion_web import preview
-from test_session_recorded_review_web import Browser, Forms, record_live_game, review_first
+from test_session_recorded_review_web import (
+    Browser,
+    Forms,
+    record_score_review_game,
+    score_review_form,
+)
 
 import skatmind.app_web.learning_direct_entry as entry
 import skatmind.app_web.server as server_module
@@ -78,8 +83,8 @@ def test_returned_partial_add_build_versions_downloads_and_independent_recording
     browser = Browser(localized_server)
     app = localized_server.app_context
     # One genuine Session Result, plus one genuine Match Report/recovery preview.
-    record_live_game(browser)
-    review_first(browser)
+    record_score_review_game(browser)
+    follow(browser, browser.submit(score_review_form(browser)))
     session = app.managed_stateful.active_session
     session_result = session.execution
     session_download = browser.request("GET", "/sessions/downloads/result.json")[2]
@@ -102,9 +107,18 @@ def test_returned_partial_add_build_versions_downloads_and_independent_recording
     assert save_match_workspace_file_v1(source_path,
         build_match_workspace_persistence_document_v1(source), expected_content_fingerprint=None
     ).status == "saved"
-    create_collection(browser)
+    # Creation must not implicitly import the already saved sources or prepare data.
+    with monkeypatch.context() as creation_guard:
+        creation_guard.setattr(entry, "import_workspace_bytes_into_unified_learning_v1",
+                               lambda *a, **k: pytest.fail("Creation imported a Match"))
+        creation_guard.setattr(server_module, "prepare_unified_learning_artifacts_v1",
+                               lambda *a, **k: pytest.fail("Creation prepared artifacts"))
+        page = create_collection(browser, '<Synthetic & collection> ' + 'LongName' * 15)
+        assert '&lt;Synthetic &amp; collection&gt;' in page
     follow(browser, browser.request("GET", entry.LEARNING_REFRESH_ROUTE))
     target = app.managed_stateful.active_learning
+    assert target.corpus.store.document.catalog.revision == 0
+    assert not target.corpus.store.match_snapshots and target.corpus.prepared_artifacts is None
     before_profile = app.frontend_profile.profile_path.read_bytes()
     original_files = saved_bytes(app.managed_stateful.root("matches"))
     imports, builds = [], []
@@ -134,6 +148,7 @@ def test_returned_partial_add_build_versions_downloads_and_independent_recording
             state["prepared"]["skipped_decision_count"]) == (6, 2, 4)
     assert state["prepared"]["strategy_teacher_evidence_count"] == 0
     assert 'href="#learning-results"' in page and len(builds) == 1
+    assert 'Recreate evaluation' in page and 'View evaluation' in page
     artifacts = target.corpus.prepared_artifacts
     actual_downloads = downloads(browser)
     files = saved_bytes(target.path)

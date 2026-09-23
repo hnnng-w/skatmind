@@ -80,19 +80,9 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
     view = project_task_first_learning_v1(state)
     handle = managed_handle
     revision = state["corpus"]["catalog_revision"]
-    guidance = paragraph(locale, view.next_task_key)
-    if not state["matches"]:
-        guidance += '<p><a class="button-link" href="#learning-recorded-matches">' + translated(locale, "task.learning.choose_recorded") + '</a></p>'
-    elif view.status == "select":
-        guidance += '<p><a href="#insight-versions">' + translated(locale, "task.learning.choose_version") + '</a></p>'
-    elif view.status == "sources":
-        guidance += paragraph(locale, "task.learning.sources_help")
-        guidance += '<p><a href="#learning-sources">' + translated(locale, "task.learning.sources") + '</a></p>'
-    elif view.status == "results":
-        guidance += '<p><a class="button-link" href="#learning-results">' + translated(locale, "task.learning.view_results") + '</a></p>'
-    else:
-        guidance += '<p><a href="#learning-build">' + translated(locale, "task.learning.build") + '</a></p>'
-    body = '<!-- operation-feedback -->' + section(locale, "task.learning.next", guidance)
+    body = '<!-- operation-feedback -->'
+    if view.status == "results":
+        body += '<p><a class="button-link" href="#learning-results">' + translated(locale, "task.learning.view_results") + '</a></p>'
     available = paragraph(locale, "task.learning.recorded_help")
     options = [("", text(locale, "task.learning.choose_recorded"))]
     for number, item in enumerate(recorded, 1):
@@ -117,7 +107,7 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
             hidden("managed_handle", handle) + hidden("learning_selection", learning_selection)
             + hidden("source_generation", source_generation)
             + hidden("expected_catalog_revision", revision)
-            + select_field(locale, "source_handle", "task.learning.choose_recorded", tuple(options), required=True)
+            + select_field(locale, "source_handle", "task.learning.saved_match", tuple(options), required=True)
             + resolution,
             "task.learning.add_recorded", primary=not state["matches"], disabled=len(options) == 1)
     if entry_outcome is not None:
@@ -166,20 +156,25 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
             ("dataset_id", state["corpus"]["corpus_id"] + "-learning-dataset-v2", "text"),
             ("known_player_seed", 0, "number"), ("unseen_player_seed", 0, "number"),
             ("train_weight", 70, "number"), ("validation_weight", 15, "number"), ("test_weight", 15, "number")))
-    build = paragraph(locale, "task.learning.build_help")
-    build += paragraph(locale, "concept.learning.automatic")
+    build = ''
+    build_key = "task.learning.rebuild" if view.status == "results" else "task.learning.build"
     if view.primary_action:
+        build += paragraph(locale, "task.learning.build_help")
         build += form(locale, "/learning/api/v1/operations", _hidden(handle, "prepare_learning_artifacts")
             + disclosure(locale, "task.learning.settings", paragraph(locale, "task.learning.settings_help")
-                          + fields), "task.learning.build", primary=view.status == "build")
+                          + fields), build_key, primary=view.status == "build")
     else:
         build += paragraph(locale, view.next_task_key)
+        if view.status == "select":
+            build += '<p><a href="#insight-versions">' + translated(locale, "task.learning.choose_version") + '</a></p>'
+        elif view.status == "sources":
+            build += '<p><a href="#learning-sources">' + translated(locale, "task.learning.sources") + '</a></p>'
         if rejected_build:
             build += form(locale, "/learning/api/v1/operations",
                 _hidden(handle, "prepare_learning_artifacts")
                 + disclosure(locale, "task.learning.settings", fields),
                 "task.learning.build", disabled=True)
-    body += '<div id="learning-build" tabindex="-1">' + section(locale, "task.learning.build", build) + '</div>'
+    body += '<div id="learning-build" tabindex="-1">' + section(locale, build_key, build) + '</div>'
     prepared = state["prepared"]
     results = paragraph(locale, "task.learning.no_results")
     if prepared is not None:
