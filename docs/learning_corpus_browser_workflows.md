@@ -399,6 +399,58 @@ Coaching-only preparation, retry, or partial publication.
 
 ## Dashboard privacy
 
+### Unified retained-result explanation (Issue #258)
+
+The unified `learning-results` region now reads: retained input/coverage, separate
+evidence and Coaching interpretation, split availability, then purpose-grouped
+downloads. It uses only the already captured minimized prepared state. The source
+heading and counts belong to that preparation, not the last submitted form or
+`last_result`. Failed recreation preserves an older valid result with existing
+error priority. #256 native landing, #257 affected/selected version identity and
+#245 final-HTML-only receipt delivery are unchanged.
+
+| Prepared field | Normal unit and scope |
+| --- | --- |
+| `cross_game_match_count` | Match summaries represented in this preparation, not retained revisions or completed Games |
+| `observed_decision_count` | Recorded Card decisions accounted for by the Dataset |
+| `record_count` | Safely reconstructed before-Card Dataset Records, not recommendation executions |
+| `skipped_decision_count` | Recorded decisions without a safe Record, not proven mistakes |
+| `dataset_status` | Dataset reconstruction coverage only: `empty` has no observed decisions; `unavailable` skips all; `partial` contains both; `complete` covers every observed decision |
+| `commentary_evidence_count`, `response_evidence_count`, `strategy_teacher_evidence_count` | Normalized joined pools included in this Dataset; not all original comments, source files, distinct decisions or new analysis executions |
+| `tactical_collection_status`, `tactical_evidence_count`, `tactical_skipped_decision_count` | Separate Tactical coverage; all-skipped nonempty Tactical evidence is `partial`, unlike Dataset `unavailable` |
+| `tactical_motif_occurrence_count` | Structural motif occurrences, potentially several per decision, not errors or independent trials |
+| `tactical_coaching_status` | `empty`: no Tactical Decision summaries; `insufficient_evidence`: no qualifying focus under retained evidence; `available`: retained qualified focuses |
+| `tactical_coaching_focus_area_count`, `tactical_coaching_player_with_focus_count` | Retained Player–motif focus pairs and Players with focuses, not quality scores |
+| `known_player`, `unseen_player` status/reason | Each mode's exact split availability, independent of successful overall preparation |
+
+There are no percentages, completed-Game inference, forced denominators or combined
+Dataset/Tactical sample totals. Exact nonnegative integer zero stays zero; missing,
+Boolean, malformed and negative values display unavailable. Contradictory metadata
+does not produce a combined coverage/status claim or get silently repaired. Raw
+statuses/reasons, secondary aggregate counts, identities and invalid scalar diagnostics
+remain in the existing Technical details; valid normal counts are not copied there
+again. This defensive rendering does not validate or alter Product inputs.
+
+Human evidence remains factual commentary/explicit response links. Strategy Teacher
+evidence is separately supplied and source-bound; importing a Workspace does not
+include every previously executed Report. Optional absence is not a failed evaluation.
+Tactical motifs are structural observations, not mistakes. Coaching uses generic
+status explanations because the minimized view cannot establish every specific cause
+of no focus. Immediate-only assessments cannot establish an actionable focus. The
+browser shows aggregates only; detailed Player focuses, fixed Guidance, Cards and
+metrics remain in the existing Coaching JSON. No thresholds or consensus are recomputed.
+
+Known-player requires earlier Train context; unseen-player means Player-disjoint
+partitions. Neither means membership in Settings. An unavailable split remains a
+valid downloadable report and does not invalidate the retained evaluation. Complete
+Dataset coverage and complete splitting do not mean all Games ended or a model was
+trained/evaluated. The files are not a full editable-recording backup.
+
+The private pure helper performs no I/O, locks, scans, reconstruction, detection,
+aggregation, preparation, analysis or writes. Existing source invalidation/no-op
+preservation and strict reopen/regeneration remain unchanged, as do Dataset ID
+derivation, seeds `0/0`, weights `70/15/15`, public/persistence and standalone state.
+
 The server-rendered dashboard is a minimized path-free projection, not a public
 redaction layer. It shows Corpus identity and counts, retained/Current Snapshot
 identity and summary counts, source-binding summaries, preparation readiness and
@@ -434,8 +486,8 @@ values public or non-sensitive.
 
 Issue #179 historically introduced the first seven downloads below. Issue #195
 added two Tactical downloads, and Issue #196 adds the final Coaching download,
-so after successful current preparation the browser exposes exactly ten
-downloads in this order:
+so after successful current preparation the standalone browser and canonical tuples
+retain exactly ten downloads in this order:
 
 | Artifact | Route | Filename suffix |
 | --- | --- | --- |
@@ -449,6 +501,20 @@ downloads in this order:
 | Tactical Motif Evidence | `/downloads/tactical-motif-evidence.json` | `tactical-motif-evidence` |
 | Tactical Motif Cross-game Summary | `/downloads/tactical-motif-cross-game-summary.json` | `tactical-motif-cross-game-summary` |
 | Tactical Cross-game Coaching | `/downloads/tactical-cross-game-coaching.json` | `tactical-cross-game-coaching` |
+
+Issue #258 changes only the unified UI's DOM order, using `/learning`-prefixed
+existing native hrefs. Each link appears once, visibly outside Technical details,
+with a localized descriptive name, purpose sentence and JSON indicator:
+
+| Unified visible group | Artifact kinds, in UI order |
+| --- | --- |
+| Summaries and review focuses | `cross_game_summary`, `tactical_motif_cross_game_summary`, `tactical_cross_game_coaching` |
+| Underlying evidence | `player_catalog`, `human_evidence`, `strategy_teacher_evidence`, `tactical_motif_evidence` |
+| Dataset and partitioning | `learning_dataset_v2`, `known_player_partitions`, `unseen_player_partitions` |
+
+Empty/unavailable reports keep their permitted links. There is no eleventh export,
+new envelope, ZIP, automatic download, lazy build or JavaScript request. Canonical
+tuple order, handlers, filenames, headers and retained bytes are unchanged.
 
 Filenames are exactly:
 

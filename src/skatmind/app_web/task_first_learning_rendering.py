@@ -4,9 +4,8 @@ from __future__ import annotations
 from collections import Counter
 from html import escape
 
-from skatmind.corpus_web.downloads import LEARNING_CORPUS_ALL_PREPARED_DOWNLOAD_KINDS
-
 from .learning_outcome_navigation import learning_match_target, learning_version_target
+from .learning_result_rendering import learning_result_technical_facts, render_learning_result
 from .stateful_localization import managed_name, text, translated
 from .task_first_projections import project_task_first_learning_v1
 from .task_first_rendering import (
@@ -222,19 +221,7 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
     prepared = state["prepared"]
     results = paragraph(locale, "task.learning.no_results")
     if prepared is not None:
-        results = paragraph(locale, "task.learning.current_results")
-        results += paragraph(locale, "task.learning.coverage_help")
-        results += paragraph(locale, "task.learning.dataset_status",
-                             status=text(locale, "task.learning.dataset." + prepared["dataset_status"]))
-        results += '<dl>' + ''.join('<dt>' + translated(locale, f"task.learning.count.{name}") + '</dt><dd>'
-            + escape(str(prepared[name])) + '</dd>' for name in (
-                "cross_game_match_count", "cross_game_player_count", "observed_decision_count",
-                "record_count", "skipped_decision_count", "commentary_evidence_count",
-                "response_evidence_count", "strategy_teacher_evidence_count",
-                "tactical_motif_occurrence_count", "tactical_coaching_focus_area_count")) + '</dl>'
-        results += '<ul>' + ''.join(f'<li><a href="/learning/downloads/{kind.replace("_", "-")}.json" download>'
-            + translated(locale, f"task.download.{kind}") + '</a></li>'
-            for kind in LEARNING_CORPUS_ALL_PREPARED_DOWNLOAD_KINDS) + '</ul>'
+        results = render_learning_result(prepared, locale)
     body += '<div id="learning-results" tabindex="-1"><!-- results-operation-feedback -->' + section(locale, "task.learning.results", results) + '</div>'
     advanced = ''
     upload = ('<label>' + translated(locale, "creation.import.file")
@@ -269,5 +256,6 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
     advanced += form(locale, "/learning/api/v1/operations", _hidden(handle, "reload_corpus"), "common.action.reload")
     body += disclosure(locale, "task.advanced", advanced)
     body += technical_details(locale, {"corpus": state["corpus"], "matches": state["matches"],
-                                        "strategy_sources": state["strategy_sources"], "prepared": prepared})
+                                        "strategy_sources": state["strategy_sources"],
+                                        "prepared": learning_result_technical_facts(prepared)})
     return '<div id="task-first-learning">' + body + '</div>'

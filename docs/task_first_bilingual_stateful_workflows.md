@@ -219,6 +219,18 @@ wrap guidance without shrinking text; actual browser measurements are linked abo
 
 ## Explicit transfer and Learning
 
+Issue #258 explains the retained result inside the existing `learning-results`
+identity. Compact source-qualified sentences precede separate Human/Teacher/Tactical
+evidence and Coaching status, then per-mode split availability and ten grouped native
+JSON downloads. The [field/status and artifact maps](learning_corpus_browser_workflows.md#unified-retained-result-explanation-issue-258)
+define units, zero/unavailable handling, aggregate privacy and technical ownership.
+Rendering uses the captured prepared view only; no workflow or lifecycle boundary
+changes. #256 focus/receipt routing and #257 selection/variant policies remain.
+The current inventory is **67 routes / 112 forms / 1,786 paired keys** (48 legitimate
+result/description captions added). Historical milestone counts below remain evidence
+of their original trees. Optional Report attachment and automatic source inclusion,
+Report incorporation and recommendation adaptation remain separate open questions.
+
 Issue #257 clarifies selected input and retained alternatives using the existing
 per-Snapshot forms. A valid selected singleton is read-only without an empty
 disclosure. Multiple versions retain one visible Current summary and one native

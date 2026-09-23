@@ -206,6 +206,13 @@ complete     every observed Decision has a Record
 Commentary, Teacher Evidence, Statistics, Historical strictness, partitions, and
 model targets do not affect status.
 
+Issue #258 explains these literal units in the unified Learning result using existing
+minimized facts: observed decisions, safe before-Card Records and explicit skips.
+Dataset pool counts are labelled as included in this Dataset; Human source evidence
+can exist outside those joined pools. Complete coverage does not mean complete Games,
+successful recommendation execution or model training. See the [browser mapping](learning_corpus_browser_workflows.md#unified-retained-result-explanation-issue-258).
+No Dataset contract, reconstruction, join or serialization changes.
+
 ## Evidence joins
 
 Every Strategy Teacher Evidence value joins by exact Decision Reference to one

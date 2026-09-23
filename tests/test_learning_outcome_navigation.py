@@ -316,8 +316,9 @@ def test_successful_limited_and_empty_results_keep_qualifications_before_counts(
     assert response[1]["location"] == "/learning/current#learning-results"
     page = follow(browser, response)
     result = node(page, "learning-results")
-    status = text("en", "task.learning.dataset." + ("empty" if empty else "partial"))
+    status = ("No recorded decisions in this Dataset." if empty else
+              "Some recorded decisions lack a safe Dataset Record.")
     assert status in result["text"]
-    assert page.index(status) < page.index('<dt>Matches</dt>')
+    assert page.index(status) < page.index('class="learning-downloads"')
     assert page.count('data-operation-feedback ') == 1
     downloads(browser)

@@ -230,6 +230,14 @@ embeds no assignment, Partitioned View, or source Dataset and never regenerates 
 Plan. `complete` means only that the existing split contract succeeded. It is not
 a model-readiness or Dataset-sufficiency claim.
 
+Issue #258 renders each mode's retained status separately in unified Learning and
+keeps its exact reason in Technical details/export. A valid overall preparation can
+contain two unavailable splits and ten valid downloads. Known/unseen-player names
+describe split conditions, not the current Settings directory. Match summary count
+is the represented Current-Snapshot summary count, never a completed-Game total.
+The UI groups downloads by purpose without changing canonical order or bytes; see
+the [browser mapping](learning_corpus_browser_workflows.md#unified-retained-result-explanation-issue-258).
+
 ## Dataset readiness
 
 `LearningDatasetReadinessSummaryV1` retains Dataset status, Decision-state and

@@ -332,6 +332,14 @@ or mutates the Corpus.
 
 ## Minimized dashboard
 
+Issue #258 explains the same captured aggregate facts in unified Learning: Tactical
+coverage is separate from Dataset coverage, and an all-skipped nonempty Tactical
+collection is `partial`. Several structural motif occurrences may belong to one
+decision; occurrences are neither mistakes nor independent trials. Human, Teacher
+and Tactical families remain distinct. Evidence and Summary links move into visible
+purpose groups in the unified UI only, with unchanged exact exports and standalone
+order. Individual observations, Cards and per-Player rows remain outside HTML.
+
 The server-rendered dashboard adds only these Tactical preparation facts:
 
 ```text

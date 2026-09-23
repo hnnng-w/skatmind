@@ -96,6 +96,33 @@ body:has(#task-first-learning) .language-buttons {
   scroll-margin-block: 1rem;
 }
 
+/* Learning explanations and ten ordinary links use the available reading width. */
+#learning-results p,
+#learning-results h2,
+#learning-results h3,
+#learning-results h4,
+#learning-results li {
+  overflow-wrap: anywhere;
+  max-width: 72ch;
+  hyphens: auto;
+}
+
+#learning-results .learning-downloads ul {
+  list-style: none;
+  padding: 0;
+}
+
+#learning-results .learning-downloads li { margin-block: 1rem; }
+#learning-results .learning-downloads li p { margin-block: 0.25rem; }
+
+@media (max-width: 35rem) {
+  #task-first-learning #learning-results {
+    margin-inline: -0.5rem;
+    width: calc(100% + 1rem);
+  }
+  #task-first-learning #learning-results > .panel { padding-inline: 0.35rem; }
+}
+
 .technical-details,
 #session-app > details,
 #task-first-match > details,

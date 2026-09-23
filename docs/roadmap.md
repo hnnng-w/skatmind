@@ -1874,6 +1874,18 @@ and [evidence](unified_workflow_visual_contract.md#learning-version-selection-is
 remaining R13/R14 results/download organization and separate automatic-use decisions
 stay open. UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
 
+Issue #258 explains existing Learning reconstruction coverage, separate evidence,
+Coaching status and per-mode split availability before ten purpose-grouped native
+JSON links. It changes only unified presentation; captured facts, aggregate privacy,
+source/default/receipt contracts and canonical export order/bytes remain unchanged.
+Inventory remains 67 routes / 112 forms; 48 captions bring paired keys to 1,786.
+See [mapping](learning_corpus_browser_workflows.md#unified-retained-result-explanation-issue-258)
+and [evidence](unified_workflow_visual_contract.md#learning-result-explanations-issue-258).
+#257 stays completed. Exact merged-commit `check` and `v1-supported-platform-matrix`
+gate closure. #208, remaining R13/R14, optional Report attachment and distinct
+automatic-inclusion/incorporation/adaptation questions stay open. UAT-01 remains
+unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
 Issue #250 adds the bounded R06 normal Session declarer/declaration path: accepted-
 fact selection, immutable canonical Preview and explicit Apply/Cancel, with fresh
 consent for partial suffix removal. Public replay, Checkpoints and persistence are

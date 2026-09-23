@@ -232,6 +232,18 @@ Downloads serialize retained artifacts and never rebuild Coaching.
 
 ## Dashboard and download
 
+Issue #258 gives unified Learning a plain explanation of this report's retained
+status: `empty` has no Tactical Decision summaries, `insufficient_evidence` has no
+qualifying focus, and `available` has qualified Player–motif focuses. The latter
+shows focus-pair and Player-with-focus counts and directs detailed inspection to
+the exact Coaching JSON. No-focus does not mean error-free play; available focuses
+do not establish objective mistakes or Player weakness. A generic explanation is
+used rather than inferring a specific cause from missing Teachers or motif counts.
+Immediate-only evidence remains descriptive. Thresholds, consensus, rankings and
+Guidance are never recomputed by presentation. The same aggregate-only boundary
+below applies; the download moves into Summaries and review focuses in the unified
+DOM, retaining canonical order/bytes and standalone behavior.
+
 The ordinary browser state exposes only:
 
 ```text

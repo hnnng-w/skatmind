@@ -2867,6 +2867,19 @@ and [installed evidence](unified_workflow_visual_contract.md#learning-version-se
 open. UAT-01 remains unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 No whole-UAT or release-readiness claim follows.
 
+Issue #258 implements bounded retained Learning result explanations and purpose-grouped
+downloads from clean `bug/258-learning-results-downloads`, starting HEAD
+`1824c754d376bc5b1b2c74ae3970ff9e1206f4ee`. Existing captured counts/statuses now have
+literal reconstruction/evidence/Coaching/split meanings; all ten native JSON links
+appear once in three visible groups. Aggregate privacy, source validity, #256 focus,
+#257 identity/policies and #245 receipts remain. Inventory is 67/112 and 1,786 paired
+keys. See [mapping](learning_corpus_browser_workflows.md#unified-retained-result-explanation-issue-258)
+and [installed evidence](unified_workflow_visual_contract.md#learning-result-explanations-issue-258).
+#257 stays completed. Both exact merged-commit CI jobs gate manual #258 closure;
+#208, remaining R13/R14, optional Report attachment and automatic-use questions stay
+open. UAT-01 is unaccepted; UAT-02–12 paused; B-09/B-07 open; B-06 closed.
+No whole-UAT or release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

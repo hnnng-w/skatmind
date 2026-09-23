@@ -1822,3 +1822,146 @@ contracts. #246 stays completed; both exact merged-commit `check` and
 `v1-supported-platform-matrix` gate manual #247 closure. #208 and other findings
 remain open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 This does not resolve all R07 ergonomics or establish release readiness.
+
+## Learning result explanations (Issue #258)
+
+Started clean on `bug/258-learning-results-downloads` at
+`1824c754d376bc5b1b2c74ae3970ff9e1206f4ee`, after completed #257. Actual #258 and
+#208's R14 were read. Current pre-fix composition tests produced **19 failures and
+one pass**, including real returned-form creation/Add/preparation with **6 recorded
+decisions / 2 safe Records / 4 skips**. This is separate from the planner's archived
+text inspection. The baseline inventory was **67 POST routes / 112 forms / 1,738
+paired keys**; the repair retains routes/forms and adds 48 paired captions (1,786).
+
+The existing result now explains its retained source and literal coverage, separate
+Human/Teacher/Tactical evidence, Coaching and split statuses, then three visible
+download groups. See the [field/status and artifact map](learning_corpus_browser_workflows.md#unified-retained-result-explanation-issue-258).
+One pure private helper consumes the captured minimized state, with no raw Report,
+Player focus rows, Guidance, Cards, analysis or render-time preparation. Existing
+Technical details retains raw statuses/reasons and secondary facts once. #256 native
+targets, #257 version/selection semantics and #245 receipt lifetime/delivery remain.
+
+### Independent installed evidence
+
+`scripts/verify_learning_result_explanations.py` reuses the optional dependency-free
+Chromium harness. Run with an independently installed Wheel Python:
+
+```powershell
+& PATH_TO_INSTALLED_PYTHON scripts/verify_learning_result_explanations.py `
+    --phase after --browser PATH_TO_EDGE --output FRESH_SCRATCH_DIRECTORY `
+    --wheel PATH_TO_WHEEL
+```
+
+`before` verifies loaded resources against starting HEAD; `after` compares against
+the repaired tree. Both reject checkout Package imports and verify exact served
+CSS/JavaScript bytes. Completed authoritative runs, outside the repository:
+
+```text
+<temporary-directory>/opencode/258-before-03/evidence.json
+<temporary-directory>/opencode/258-after-complete/evidence.json
+```
+
+Each independently installed run uses **Windows CPython 3.13.7**, **Package 0.17.0**
+and **headless Edge 153.0.4234.48**. Each covers **52 scoped measurements**, de/en with
+JavaScript off/on: real partial/no-Teacher and exact bound Immediate Teacher/Tactical
+preparations, unavailable partitions, failed recreation with older retained result,
+technical disclosure, identical Add, later version/explicit Current change,
+regeneration and strict reopen. Layouts include **1365×900**, **390×844**, **320×800**,
+and **320px with computed 32px body text** (200% of 16px, not browser zoom).
+The no-Teacher and Teacher states both have Dataset/Tactical partial coverage,
+four motif occurrences and Coaching `insufficient_evidence`; both splits have exact
+reason `insufficient_match_groups`. Attaching the actual Report changes the Dataset
+Teacher pool and Coaching Assessment count from zero to one without new analysis.
+
+Native evaluation is measured before manual target scrolling/focus. Active element
+is `learning-results`; next Tab is the existing enhanced receipt's Dismiss control,
+or the first summary download with script disabled. Errors focus the existing error
+summary and then its field link. Downloads never gain autofocus. Actual accessible
+link names are inspected through the browser accessibility tree. Full prose, heading,
+link and paragraph rectangles are retained; screenshots inspect source/coverage,
+status qualifiers, all ten descriptions and their tails. Narrow and enlarged text
+requires vertical scrolling; long words wrap, with explicit German soft-hyphen
+opportunities for summary headings. No text size was reduced. Measured document/client
+widths agree at **1350/1350**, **375/375**, **305/305**. This is not a one-screen,
+physical-device, screen-reader, whole-frontend accessibility or maintainer UAT claim.
+
+Each locale/script run has **39 HTTP POSTs**: **23 fixture setup**, **15 native
+browser submissions**, and **one returned-form HTTP strict reopen**. Setup performs
+17 actual Session saves, one SJ review execution, two separate Match analyses and
+six existing Match page-preparation calls. Two valid synthetic Workspace files are
+saved directly for setup and one later external source revision is saved directly;
+these fixture file saves are separate from the `match_saves` operation observer.
+The native path creates one collection, invokes three imports (including identical
+Add), one Teacher attachment, one Teacher removal, one Current selection and four
+explicit preparations. Each preparation invokes each family builder once and the
+partition preparer twice. Invalid weight zero is rejected before a fifth preparation.
+There are two Snapshot publications and three Catalog saves. Five actual profile
+saves include one setup save, initial language, creation labels and two passive
+language changes. Thirteen existing server-discovery calls and three Add-source
+revalidations remain separately counted.
+
+Each run downloads all ten files natively in both the no-Teacher and Teacher states:
+**20 native downloads per run, 80 per installation**. Each saved basename and exact
+byte string equals its retained artifact and HTTP attachment header. All response
+headers, counts and SHA-256 values are in the evidence. Passive views, language,
+disclosures and downloads add zero artifact builds, analyses, Catalog saves or
+Snapshot publications. Identical Add preserves the same three prepared objects,
+all ten bytes and Corpus files. Real input/Teacher/Current changes invalidate;
+strict reopen has no output until explicit regeneration. Source changes are confined
+to disposable fixture files. The independent genuine Session SJ and active Match
+Result/download bytes remain unchanged, including SJ Result SHA-256
+`76eb05221cab155ff59f734ec568bbead767c2f309d6823546d598412ac545c1`.
+
+Representative exact native download evidence from the repaired de/no-script
+Teacher preparation (other source identities have their own hashes in evidence):
+
+| Kind | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `cross_game_summary` | 30270 | `56729a4f926bde398ff52b97b579cbd72b6c3b18f60f698ed791671ce4d0084d` |
+| `tactical_motif_cross_game_summary` | 414257 | `2ab92f45092ef1582499ba7beb2819db7f07cf79bc4f0b4db0c71cb1248f51c2` |
+| `tactical_cross_game_coaching` | 12708 | `068e278cef18cdf03f034de3ed0517705ea9b47febb3073a0e6be017897f1f93` |
+| `player_catalog` | 6567 | `65de5206f94cbeb550629b63eafad5fafce48a722036076d97de2f08a7e23e1a` |
+| `human_evidence` | 1291 | `3466dd305fec76eb343dcabd63661a061d7e0ab0cb264a0866f59b596e59877d` |
+| `strategy_teacher_evidence` | 11771 | `c0550d4d6ffca379ddc90a482742c73aab239df138e29e6e9e6316c325773c99` |
+| `tactical_motif_evidence` | 13090 | `4c221dc22b72710551c30c3c75da0805ca30f95596ce7d2724c5fd56c26c6dcc` |
+| `learning_dataset_v2` | 29198 | `f651ceae9f8b08a8bb6fe90608ad28ca4338a9ce0fb4ebcd08be5311217da8ae` |
+| `known_player_partitions` | 1948 | `f23f368f58f9835f98acaa34424afeb0ff628c58cabd170b61e956d6acf21028` |
+| `unseen_player_partitions` | 1960 | `21632c05ae511750744bc8f34ba59e94692ae06232ca3b33db43b0e396131ddd` |
+
+Wheel SHA-256 values:
+
+```text
+Before 238ba0d34abb14b60531ee7e29bfd3b320302d5e7b70e3e858c65d9c13ef3bc0
+After  e6b51c1081217d04ec61a52f811a8054b0190d8b396009caa91b00b24f554da5
+```
+
+The evidence records all loaded module/catalog/asset hashes (20 baseline, 21 repaired),
+source/download identities and exact operation/request deltas. No timing fields are
+stripped and production clocks are unchanged. Earlier baseline attempts stopped on
+a verifier evidence-list key and wrong asset URL; they are not Product failures or
+successful evidence. Earlier repaired runs passed but prompted shorter wording and
+improved enlarged-text layout; `258-after-complete` is the final presentation tree.
+
+Focused tests additionally cover genuine empty/all-skipped/complete reconstruction
+preparations, optional pools, separate family statuses, partition complete/unavailable,
+zero versus unknown defensive values and contradictory metadata. The available-focus
+test reuses the existing bounded retained-Search fixture (two Games, two focuses,
+one Player), explicitly labelled supplementary rather than genuine Search/browser
+execution. Browser coverage does not claim an available Coaching focus or a complete
+partition. Source-fault/interleaving tests retain their separate labels. Final catalog
+ordering/key/placeholder and explanation checks pass **66 tests**; broader focused
+runs passed **117**, **152** and **116** tests (overlapping sets, no skips).
+The final Learning/entry/version/catalog subset passed **135 tests**, with the existing
+real-symlink fixture skipped. A focused file-boundary reason check passed **60 tests**
+and confirmed the three existing account-dependent skips: Learning direct-entry
+symlink creation (`errno 22`), deletion-file symlink creation (`winerror 1314`), and
+managed-item symlink creation (this Windows account cannot create symbolic links).
+Actual Windows junction and hard-link paths remain exercised; no skip was added.
+
+All edits and this evidence precede the prescribed detached full check. Its complete
+native stdout/stderr log, actual child exit and exact stage/test/skip results belong
+to the implementation report. Package 0.17.0, Python >=3.13, AGPL-3.0-only, dependency
+floors including tzdata>=2026.4, public/persistence contracts and 98 scenarios remain.
+#257 stays completed; exact merged-commit `check` and `v1-supported-platform-matrix`
+gate manual #258 closure. #208, remaining R13/R14 and automatic-use questions remain
+open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
