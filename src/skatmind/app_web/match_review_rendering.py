@@ -60,7 +60,7 @@ def render_match_review_v1(state, view, *, managed_handle, locale, transfer=""):
     body += '<button type="submit">' + translated(locale, "recordings.match.show") + '</button></form>'
     body += '<h2>' + translated(locale, "recordings.match.game", position=position) + '</h2>'
     body += '<p><a href="/matches/position/' + str(position) + '#match-recording">' + translated(
-        locale, "recordings.continue") + '</a></p>'
+        locale, "recordings.continue", number=position) + '</a></p>'
     if state["selected_report"] is not None:
         body += section(locale, "recordings.match.result", _reports(state, managed_handle, locale, secondary=False))
     game = state["game"]

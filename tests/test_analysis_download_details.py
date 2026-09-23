@@ -89,6 +89,7 @@ def test_real_import_execution_download_and_failed_input(localized_server, area,
     assert "analysis-downloads" not in page and "result-section-1" not in page
     assert browser.request("GET", result_route)[0] == 404
     page = follow(browser, browser.submit(Forms(page).find(f"/actions/{area}/run-imported")))
+    assert 'href="#recorded-decision-' not in page
     state = getattr(localized_server.app_context, area + "_state")
     before = state.request_json_bytes, state.result_json_bytes
     assert_analysis_actions(page, (request_route, result_route))

@@ -250,6 +250,7 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
         from test_hand_evidence_labels import hand_row, overview_html
         from test_recorded_party_presentation import assert_party_score, history_rows
         from test_recording_task_focus import Hierarchy
+        from test_review_return_labels import assert_session_return
 
         form = score_review_form(browser)
         before = context.path.read_bytes()
@@ -267,6 +268,7 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
         source = page.split('class="recorded-review-source"', 1)[1].split("</p>", 1)[0]
         assert "Synthetic score review" in source and "Trick 4 · Card position 3" in source
         assert "SJ" in source
+        assert_session_return(page, "en")
         assert_summary_points(page, "en", 14, 29)
         ended = context.state.phase == "ended"
         assert_party_score(page, (42, 3) if ended else (14, 1),
@@ -318,6 +320,7 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
             assert_visible_equal_best(browser.page(), locale)
             assert_context(browser.page(), locale, hand=SESSION_HAND,
                             prefix=(("B", "HJ"), ("C", "DJ")), actor="A", trick=4, play=3)
+            assert_session_return(browser.page(), locale)
             overview = overview_html(browser.page())
             assert text(locale, "task.session.remaining_hands") in overview
             assert overview.count(text(locale, "task.session.hand_unknown")) == 2

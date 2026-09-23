@@ -19,10 +19,16 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
     for report in state["reports"] if results else ():
         if report["match_position"] not in {None, state["selected_position"]}:
             continue
-        content += f'<p><a href="/matches/reports/{report["report_id"]}">' + translated(
-            locale, f"task.report.{report['report_kind']}")
-        if report["match_position"] is not None:
-            content += ' — ' + translated(locale, "task.match.position", number=report["match_position"])
+        content += f'<p><a href="/matches/reports/{report["report_id"]}">'
+        if report["report_kind"] == "decision_analysis" and report["match_position"] is not None:
+            index = report["decision_index"]
+            content += (translated(locale, "recordings.match.report", number=report["match_position"])
+                if index is None else translated(locale, "recordings.match.report_decision",
+                    number=report["match_position"], trick=(index - 1) // 3 + 1, position=(index - 1) % 3 + 1))
+        else:
+            content += translated(locale, f"task.report.{report['report_kind']}")
+            if report["match_position"] is not None:
+                content += ' — ' + translated(locale, "task.match.position", number=report["match_position"])
         content += '</a></p>'
     report = state["selected_report"] if results else None
     if report is not None:

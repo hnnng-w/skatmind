@@ -299,8 +299,9 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     task += '<p><a href="#match-games">' + translated(locale, "task.match.overview") + '</a>'
     if view.selected.play_count:
         ready = state["decision_preparation"]["prepared_decision_count"] > 0
-        task += ' · <a href="/matches/review/' + str(view.selected_position) + '">' + translated(
-            locale, "recordings.match.open" if ready else "recordings.match.inspect") + '</a>'
+        task += ' · <a href="/matches/review/' + str(view.selected_position) + '">' + (
+            translated(locale, "recordings.match.open", number=view.selected_position) if ready
+            else translated(locale, "recordings.match.inspect")) + '</a>'
     task += '</p>'
     if game is not None:
         task += accepted_declaration_summary(locale, game["declaration"],

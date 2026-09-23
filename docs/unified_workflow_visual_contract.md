@@ -1,5 +1,9 @@
 # Unified Match and Learning visual contract
 
+Issue #254 changes existing Session/Match return and retained-decision-Report link
+captions to name their destinations. Its [native evidence](#review-return-labels-issue-254)
+preserves hrefs, source ownership, focus and #251–#253 presentation without CSS changes.
+
 Issue #253 supersedes the normal single-decision cutoff-mode label and generic
 limitation list with effective-method, sampling and source-supported information
 explanations. Its [installed evidence](#analysis-explanations-issue-253) preserves
@@ -209,6 +213,110 @@ Native single-line edit fields retain browser caret scrolling; native selects
 retain their complete option lists and keyboard selection. This is distinct from
 authored clipping or document overflow. No document overflow is hidden and zoom
 is not disabled.
+
+## Review return labels (Issue #254)
+
+Clean starting branch `bug/254-review-return-labels`, HEAD
+`f7e987e500fc1b8ab9f1a890fa78f38dd8eef168`. Actual #254 and #208's consolidated R11
+were retrieved. Five pre-fix regressions reproduced the Session return, Report-open
+and real Match recording-caption defects; 15 baseline catalog/inventory tests passed.
+The Session target was present and correctly bound, not a lost route. This is current
+source evidence, separate from the archived scalar characterization and maintainer UAT.
+
+The [destination map](home_and_recorded_review_navigation.md#destination-wording-issue-254)
+records existing hrefs and owners. The exact Session row uses retained Checkpoint
+Trick/Card fields (decision 12 is Trick 4/Card 3). Match Report links use their captured
+summary's Game/decision, never another selected Game's preparation. Existing Player/
+actual-Card captions, missing-evidence inspection and chooser purpose remain. Three
+paired keys distinguish whole selection and Report-open captions; inventory is
+**67 POST routes / 112 forms / 1,731 keys**, from 1,728. No assets, routes, forms,
+source adapters, data contracts or execution settings change.
+
+### Independent installed coverage
+
+Optional `scripts/verify_review_return_labels.py` uses the existing dependency-free
+DevTools transport and rejects checkout imports. Completed evidence and inspected
+screenshots are under `<temporary-directory>/opencode/254-before-final/` and
+`254-after-final/`; `254-before-02` is the equivalent completed comparison input.
+Windows CPython **3.13.7**, Package **0.17.0**, Edge **153.0.4234.48**, DevTools **1.3**,
+V8 **15.3.12.7** were used. The source-only baseline Wheel and repaired Wheel were
+independently built and installed into separate disposable environments.
+
+| Surface / genuine execution | Native coverage per installation |
+| --- | --- |
+| Completed Session SJ Result to exact selection row | de/en, JavaScript off/on |
+| Match review to Game recording | de/en, JavaScript off/on |
+| Match recording to decision selection | de/en, JavaScript off/on |
+| Existing Game-1/decision-2 Report after another client selects Game 2 | de/en, JavaScript off/on |
+
+Each run records **28 link activations**. German no-script uses 1365x900, 390x844,
+320x844 and 320px/200% computed text; other locale/script pairs use 390px. Desktop
+uses native pointer activation; other cases use native Tab followed by Enter. No
+destination receives programmatic focus. On Session fragment return, `activeElement`
+is the body and the next Tab reaches the exact SJ row's review button. Recording
+return focuses `match-recording`; fragment-free review/Report navigation leaves body
+focus and Tab begins with Home. Result POST focus remains `session-result`. Matched
+baseline/repaired focus identities, outlines and next-Tab behavior agree.
+
+Visible text and accessible link names agree. Inspected origin-focus, landing and
+next-Tab screenshots retain readable blue rings and wrapping at 320px/200% text;
+long German words can split across lines without clipping. Document/client widths
+are **1350/1350, 375/375, 305/305**. No large navigation panel or CSS adjustment is
+needed. Text scaling applies to each source page; a full-page navigation naturally
+loads the destination's normal text size, while same-document Session return retains
+the enlargement. This is computed text scaling, not browser zoom or a physical device.
+No screen-reader, whole-app accessibility or maintainer-UAT claim is made.
+
+Each installation performs **36 Session saves / 14 Match saves** during real returned-
+form setup, then **one native Session review and two native Match analyses** (Games 4
+and 1, both decision 2). Four language POSTs cause two actual preference saves; two
+creation saves make four profile saves overall. Existing Match page preparations
+remain **73 per run**, including 16 during setup and 53 during the passive matrix.
+Navigation/downloads and the representative real HTTP #250 no-op Preview/Cancel add
+**zero Product saves or executions**. Real selection changes retain their normal
+selection/recovery semantics; no unconditional state-free-navigation promise is made.
+
+All **12 native downloads**, totaling **79,648 bytes** per installation, equal their
+own retained bytes and remain outside disclosures. Both complete Report identities
+and bytes survive, including their contained Requests/Results. The approved trace
+keeps C10/CJ/DK/D7 after six Tricks and CJ after nine. SJ retains 14/29, HJ/DJ, seven
+historical Cards, and equal-best CJ/SJ at 100.00% / 6.00 / 6. Match retains CK and C's
+ten historical Cards, C7/C9/C8 and 11.32/10.83/9.98 with 0.9/0.88/0.87. All 28 matched
+candidate matrices agree. #253 method/information prose and #252 downloads remain.
+
+Focused HTTP/scalar tests additionally cover long/escaped names, completed/passed/
+empty/zero-Play readiness, valid missing sub-location, selected Game 2 with a retained
+Game-1 Report, same-number decisions in Games 1/4, rejected later review, unbound
+manual/Historical Results, unchanged execution POSTs and exact downloads. Existing
+source/race/mutation guards remain; negative external-file/execution fixtures are
+separate from genuine successful saves and executions.
+
+```text
+Baseline Wheel  39f87950a0bc03ec3e5d5be5a5ccbe17cb4b59ee9b5d84e7a5fd87313cbde070
+Repaired Wheel  b4271d7381921034b994576e799de259a972a1714a5a07b049dcaf4d6215322c
+SJ Request     05dc65aa713fb37c7b40cd9a4027ce6926881e6bb0c98adaf4256b8a7f14ec94
+SJ Result      76eb05221cab155ff59f734ec568bbead767c2f309d6823546d598412ac545c1
+Match Result   0a21a0e291d32f9b037f7308a9b4ef8ab00a30e106aa58762bb5f4ed1bfefb9d
+```
+
+Final exact byte sizes: Session **53,588**, Checkpoints **33,308**, Workspace **14,031**,
+two-Report canonical collection **28,749**, SJ Request/Result **1,534/9,640**, selected
+Match Result **8,738**. Full source/module/resource hashes and Report IDs are retained
+in `evidence.json`. Independently generated identities differ between runs; each
+passive interval preserves its own exact bytes. `254-before-01` retains an unsuccessful
+verifier assumption that a graphical CK face would contain the raw code in visible
+text; the corrected probe checks its printed suit/rank. No Product change followed.
+
+Focused runs passed **68**, **165**, **18**, and **153** tests. A separate skip-reason probe
+confirmed the three existing Windows symlink-privilege skips. The established detached
+native-output logger captured stdout/stderr and actual proof exit **23** before the
+final prescribed full check; its actual
+exit, stage/test totals and complete log belong to the implementation report. Package
+0.17.0, Python >=3.13, AGPL-3.0-only, dependency floors including tzdata>=2026.4 and
+98 generated scenarios remain. #253 stays completed; exact merged-commit `check` and
+`v1-supported-platform-matrix` gate manual closure. #208/other findings stay open,
+UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed. This bounded R11
+caption repair makes no release-readiness claim.
 
 ## Analysis explanations (Issue #253)
 

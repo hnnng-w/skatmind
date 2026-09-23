@@ -58,6 +58,14 @@ selection generation, Report store and recovery expiry/token. Actual switching
 retains existing recovery invalidation and exact-source Card/declaration rejection.
 A Report's route still opens its actual Game, with same-Game recording backlinks.
 
+Issue #254 names those existing review backlinks **Recording: Game N**, including
+passed and completed Games. The ready-review invitation says **Decision selection:
+Game N**; retained decision Report links say **Open existing analysis: Game N** with
+their own available Trick/Card position. Their hrefs, fragments and readiness remain
+exactly as above. Existing missing-evidence inspection, first-unfinished/overview
+controls and explicit analysis POSTs retain their meanings. See the
+[destination ownership map](home_and_recorded_review_navigation.md#destination-wording-issue-254).
+
 Language return uses existing semantic source checks and safe input restoration.
 The scoped Match branch now omits a normal fragment when retained validation
 feedback exists: Chromium otherwise suppresses the existing error-summary

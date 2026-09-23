@@ -83,5 +83,6 @@ def render_recorded_review_source_v1(
         + paragraph(locale, "recorded_review.limit")
         + '<p><a href="#recorded-decision-'
         + escape(str(source.decision.checkpoint.decision_index)) + '">'
-        + translated(locale, "recorded_review.back") + '</a></p>'
+        + translated(locale, "recorded_review.back", trick=source.decision.checkpoint.trick_number,
+                     position=source.decision.checkpoint.play_index) + '</a></p>'
     )

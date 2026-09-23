@@ -12,7 +12,7 @@ B-06 remains closed, and Package `1.0.0` preparation is not ready.
 
 1. From Home, choose **Review recorded games** (`/review/recorded`) and explicitly
    open an individual recording. `/sessions` also remains its recording entry.
-2. When an own Play has been observed, follow **Review recorded decisions**, or
+2. When an own Play has been observed, follow **Recorded decision selection**, or
    **Inspect recorded decisions** if no saved snapshot is eligible. The list follows
    the recording task, including after all 30 Plays and after Game End.
 3. Recognize an own decision by Player name, one-based Trick, Card position within
@@ -27,6 +27,23 @@ The German labels are in the packaged translation catalog. Native forms, links,
 buttons, disclosures, and downloads work without JavaScript and with a keyboard.
 Normal Card recording remains primary during play. No manual Review draft or
 re-entry of the Game is required.
+
+Issue #254 names the existing Result return by its actual destination: **Decision
+selection: Trick 4, Card 3** for `#recorded-decision-12`. That is the saved decision's
+selection row with Player A's actual SJ, not the Result or chronological correction
+editor. The caption uses the retained `recorded_review_source` Checkpoint's
+`trick_number` and `play_index`; its `decision_index` still supplies the unchanged
+fragment. The nearby Player/actual-Card source caption remains. The whole-region
+invitation says **Recorded decision selection** and still targets `#recorded-decisions`.
+Unavailable-snapshot inspection and explicit **Review decision** POST wording remain.
+
+A rejected later review keeps the older valid Result's return identity. Unbound
+current-position, manual and Historical Results acquire no checkpoint return. Native
+focus, error priority, source freshness and process-local lifetimes remain unchanged;
+strict reopen restores recordings and requires explicit re-execution for a Result.
+An emitted active-source fragment is not an immutable per-tab source snapshot.
+See [destination ownership](home_and_recorded_review_navigation.md#destination-wording-issue-254)
+and [native browser evidence](unified_workflow_visual_contract.md#review-return-labels-issue-254).
 
 Issue #252 gives this Result one **Technical analysis details** disclosure, with
 each General/Left/Right policy and original producer paragraph inspectable once.

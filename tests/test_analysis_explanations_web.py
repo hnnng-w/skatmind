@@ -9,6 +9,7 @@ from test_guided_frontend_web import _multipart, _request
 from test_match_card_correction_ui import activated_form
 from test_match_recording_recovery_web import follow, operation_form
 from test_recorded_decision_context_web import record_context_match, record_second_context_game
+from test_review_return_labels import assert_session_return
 from test_session_declaration_correction_web import PREFIX, preview
 from test_session_recorded_review_web import (
     Browser,
@@ -38,6 +39,7 @@ def test_real_session_binding_manual_same_mode_preview_and_invalidation(
     retained, source = context.execution, context.path.read_bytes()
     checkpoints = canonical([c.to_dict() for c in context.decision_checkpoints])
     assert "Saved situation before this recorded Card" in page
+    assert_session_return(page, "en")
     assert "None — unknown in this analysis" in page
     manual = normal_result(retained.result)
     assert "supplied review facts and accepted information policy" in manual
@@ -51,6 +53,7 @@ def test_real_session_binding_manual_same_mode_preview_and_invalidation(
     page = follow(browser, browser.submit(Forms(page).find("/actions/review/run-imported")))
     assert "supplied review facts and accepted information policy" in page
     assert "Saved situation before this recorded Card" not in page
+    assert 'href="#recorded-decision-' not in page
     calls = Counter()
     for module, name, label in ((files, "save_session_file", "saves"),
                                 (execution, "execute", "executions")):
@@ -64,6 +67,7 @@ def test_real_session_binding_manual_same_mode_preview_and_invalidation(
         page = follow(browser, browser.submit(Forms(browser.page()).find(
             "/actions/profile/language"), language=locale))
         assert meaning in page
+        assert_session_return(page, locale)
         assert_analysis_actions(page, tuple(
             f"/sessions/downloads/{name}.json" for name in ("request", "result")), locale)
     for action in ("cancel", "apply"):
@@ -74,6 +78,12 @@ def test_real_session_binding_manual_same_mode_preview_and_invalidation(
         page = follow(browser, browser.submit(form))
         assert context.execution is retained
         assert "Saved situation before this recorded Card" in page
+        assert_session_return(page, "en")
+    # Negative input: a rejected later row must not relabel the surviving SJ Result.
+    later = Forms(browser.page()).find("/sessions/review-decision", index=0)
+    status, _, rejected = browser.submit(later, actual_card_played="CA")
+    assert status == 400 and context.execution is retained
+    assert_session_return(rejected.decode(), "en")
     assert not calls
     assert context.path.read_bytes() == source
     assert canonical([c.to_dict() for c in context.decision_checkpoints]) == checkpoints

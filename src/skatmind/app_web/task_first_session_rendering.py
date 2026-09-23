@@ -321,7 +321,7 @@ def render_task_first_session_v1(
                              player=player_name(locale, facts.players, facts.local_player_id))
         if recorded.local_play_count:
             current += '<p><a href="#recorded-decisions">' + translated(
-                locale, "recorded_review.title" if recorded.decisions else "recorded_review.inspect") + '</a></p>'
+                locale, "recorded_review.selection" if recorded.decisions else "recorded_review.inspect") + '</a></p>'
         primary = view.workflow.primary_action
         normal = current
         controls = (_command(context, locale, view, primary, normal=True, progress=progress, app=app_context)

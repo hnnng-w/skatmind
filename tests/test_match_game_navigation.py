@@ -113,7 +113,9 @@ def test_selected_identity_controls_seats_and_single_overview(mixed, selected, a
     if selected in (2, 6, 36):
         assert state["game"] is None and 'data-unplayed-cards' not in recording
     review = render_match_review_v1(state, view, managed_handle="a" * 64, locale=locale)
-    assert f'href="/matches/position/{selected}#match-recording"' in review
+    from test_review_return_labels import assert_link
+    assert_link(review, f"/matches/position/{selected}#match-recording",
+        f"Zur Erfassung: Spiel {selected}" if locale == "de" else f"Recording: Game {selected}")
     assert text(locale, "task.match.position", number=selected) in review
     assert "Position " not in review
 

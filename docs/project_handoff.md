@@ -2813,6 +2813,18 @@ and [browser evidence](unified_workflow_visual_contract.md#analysis-explanations
 #208/other findings remain open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open
 and B-06 closed. No release-readiness claim follows.
 
+Issue #254 repairs only R11's return/open captions from clean
+`bug/254-review-return-labels`, HEAD `f7e987e500fc1b8ab9f1a890fa78f38dd8eef168`.
+Session Checkpoints name the exact decision-selection row; selected Match Games name
+recording/selection destinations; captured decision Reports name existing analysis.
+Href/action/availability, focus, source adapters, #245 receipts and #238–#253 behavior
+remain. Inventory is 67 POST routes / 112 forms / 1,731 paired keys (three additions).
+See [ownership](home_and_recorded_review_navigation.md#destination-wording-issue-254)
+and [independent-Wheel evidence](unified_workflow_visual_contract.md#review-return-labels-issue-254).
+#253 stays completed. Both exact merged-commit CI jobs gate manual #254 closure;
+#208 and other findings remain open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07
+open and B-06 closed. No release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

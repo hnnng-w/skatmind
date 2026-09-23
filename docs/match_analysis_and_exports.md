@@ -43,6 +43,18 @@ Historical materialization runs on GET. Standalone transports, methods, budgets,
 strict evidence and report contracts below remain unchanged. See
 [Home and recorded-game review navigation](home_and_recorded_review_navigation.md).
 
+Issue #254 gives existing unified links destination wording: **Recording: Game N**
+returns to `/matches/position/N#match-recording`; **Decision selection: Game N**
+opens `/matches/review/N` where decisions are prepared. Each retained decision
+Report link says **Open existing analysis: Game N**, with its captured Trick/Card
+position when available, and retains `/matches/reports/{report_id}`. Report headings
+and explicit **Analyze recorded decision** POSTs retain their separate meanings.
+Selected-Game links use that selection; Report links use the exact captured Report
+summary even when another Game or same-number decision is selected. No extra source
+adapter, file read, preparation or execution names these links. Passed/completed
+recordings retain their state; strict reopen still restores no process-local Reports.
+See [ownership and lifetimes](home_and_recorded_review_navigation.md#destination-wording-issue-254).
+
 The private version-1 contracts cover:
 
 ```text

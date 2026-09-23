@@ -1831,6 +1831,16 @@ Inventory remains 67/112 with 1,728 paired keys. #252 stays completed; exact mer
 `check` and `v1-supported-platform-matrix` gate closure. #208 and other findings stay
 open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
 
+Issue #254 names existing Session/Match return and retained-decision-Report links by
+destination. Exact Checkpoint/Report owners supply Trick/Card/Game wording; existing
+hrefs, native focus, readiness, execution actions and lifetimes remain. See
+[ownership](home_and_recorded_review_navigation.md#destination-wording-issue-254) and
+[installed evidence](unified_workflow_visual_contract.md#review-return-labels-issue-254).
+Inventory remains 67/112; three dedicated captions bring paired keys to 1,731. #253
+stays completed. Exact merged-commit `check` and `v1-supported-platform-matrix` gate
+closure; #208 and other findings remain open, UAT-01 unaccepted, UAT-02–12 paused,
+B-09/B-07 open and B-06 closed. No release-readiness claim follows.
+
 Issue #250 adds the bounded R06 normal Session declarer/declaration path: accepted-
 fact selection, immutable canonical Preview and explicit Apply/Cancel, with fresh
 consent for partial suffix removal. Public replay, Checkpoints and persistence are

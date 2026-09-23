@@ -192,6 +192,35 @@ changed files invalidate derived Reports and offer explicit Reload. Bounded,
 unavailable, and failure outcomes remain truthful. No analysis batch, fabricated
 hand/Card, inferred timestamp, or relaxed knowledge rule is introduced.
 
+## Destination wording (Issue #254)
+
+Existing links now name their destination in both catalogs; execution controls keep
+their action wording. The table describes existing controls, not additional links.
+
+| Control / owner | English wording | Unchanged href |
+| --- | --- | --- |
+| Session Result / retained review Checkpoint | Decision selection: Trick T, Card P | `#recorded-decision-N` |
+| Session invitation / whole eligible chooser | Recorded decision selection | `#recorded-decisions` |
+| Match review / selected Game | Recording: Game N | `/matches/position/N#match-recording` |
+| Match recording / selected Game with prepared decisions | Decision selection: Game N | `/matches/review/N` |
+| Decision Report list / each captured Report summary | Open existing analysis: Game N — Trick T, Card P | `/matches/reports/{report_id}` |
+| Review chooser return | Choose another recording | `/review/recorded` |
+
+The chooser return and missing-evidence inspection wording were already accurate.
+Zero-Play invitations remain suppressed; direct empty/passed/completed review names
+the recording destination without implying that play can continue. A Report lacking
+a decision sub-location uses its Game-only caption. Other Report kinds retain their
+labels. No filename, input reference, current profile or another Game's preparation
+rows supplies Report ownership. The existing Report route selects that Report's Game.
+
+The original relative fragments, availability, form actions, focus targets, next Tab,
+error priority and language-source restoration are preserved. Same-source navigation
+retains valid Results/previews; real selection changes retain their existing
+process-local selection/invalidation. Clearer labels add no per-tab snapshot, new
+Return route, save, replay, preparation or execution. Existing page preparation and
+explicit language preference saves remain. #245 receipt delivery is unchanged.
+See [scoped evidence](unified_workflow_visual_contract.md#review-return-labels-issue-254).
+
 ## Language, security, and compatibility
 
 The #223 semantic source capture includes chooser discoveries, active review
