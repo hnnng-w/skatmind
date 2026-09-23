@@ -1,5 +1,10 @@
 # Unified Match and Learning visual contract
 
+Issue #256 returns direct Learning Add and successful preparation to their actual
+outcomes. Its [native before/after evidence](#learning-outcome-returns-issue-256)
+separates target scrolling, focus, next Tab and receipt delivery, with measured
+Learning-only narrow/enlarged-text wrapping and no workflow-script change.
+
 Issue #255 makes the existing Learning task an ordinary fifth Home card and
 clarifies collection purpose and action wording. Its
 [installed evidence](#learning-entry-and-purpose-issue-255) retains the current
@@ -218,6 +223,102 @@ Native single-line edit fields retain browser caret scrolling; native selects
 retain their complete option lists and keyboard selection. This is distinct from
 authored clipping or document overflow. No document overflow is hidden and zoom
 is not disabled.
+
+## Learning outcome returns (Issue #256)
+
+Clean baseline `bug/256-learning-outcome-navigation`, actual starting HEAD
+`171b81ad2310129b0897595ebf4842f9afc8b97c`. Two literal real-HTTP regression tests
+failed before the repair: accepted Add returned to `#learning-recorded-matches`,
+successful preparation to bare `/learning/current`. Import/computation succeeded.
+The independent baseline browser confirmed selector focus after Add and page-top
+BODY focus after preparation; English desktop results began **2,154 px** below the
+viewport, with next Tab at the skip link.
+
+`scripts/verify_learning_outcome_navigation.py` reuses the dependency-free DevTools,
+#255 returned-form and genuine Session/Match fixture helpers. Independent Wheels run
+in separate scratch installations and synthetic roots. Current evidence:
+
+* `$env:TEMP/opencode/256-before-final/evidence.json` and
+  `$env:TEMP/opencode/256-after-final/evidence.json`, screenshots and actual native downloads;
+* Windows CPython **3.13.7**, Package **0.17.0**, headless Edge **153.0.4234.48**;
+* de/en, JavaScript off/on; native pointer/keyboard submissions at desktop **1365×900**,
+  **390×844**, **320×800**, and native browser default-font enlargement **16 → 32 px**;
+* **52 before / 52 after landing observations**, plus source-blocker screenshots;
+  each records actual POST/status/303/GET, fragment, scroll, heading/content geometry,
+  activeElement and a separate next Tab before any manual destination scroll/focus;
+* installed resource/module hashes checked against HEAD (before) and source (after),
+  source/target identities, duplicate titles, exact operation counts and export hashes.
+
+The repaired Match/results containers receive native focus at about **16 px** from
+the top (**32 px** with enlarged text). Next Tab continues to alternative-version
+disclosure or the first result download; when present, the existing enhanced receipt
+dismiss control is the first local Tab stop. No repeating save/build button receives
+autofocus. First Add selects its first version; later Add visibly distinguishes affected
+version 2 from evaluation version 1 and retains the existing qualification. Identical
+Add lands at its existing version without a new receipt or artifact invalidation.
+Failed scalar recreation retains old bytes while focusing its error summary; a real
+temporarily missing synthetic file produces the source error. A real non-current
+Report source exposes the existing native removal remedy. Successful partial results
+keep their coverage qualification ahead of counts.
+
+At 320 px/200% text, the baseline body's `18rem` minimum forced **576 px** width.
+The first repaired run reproduced this obstruction. Diagnostic runs then isolated
+the header's intrinsic grid/brand width and unwrapped language buttons (**362**, then
+**311 px**). Small Learning-only shrink/wrap rules now keep document and viewport
+client widths at **305 px**. A one-rem scroll margin prevents target-edge clipping.
+Screenshots/accessible labels were inspected; the affected-version relation and result
+heading are visible without manual scrolling. Long text still wraps vertically and
+the full result need not fit one viewport. Earlier `256-after-01`, `-02`,
+`-diagnostic`, and `-03` are retained unsuccessful measurements, not acceptance.
+`256-after-04` passed before the final accounting/non-first-row refinement.
+
+Native per-run collection work is identical before/after: **1 creation, 6 imports
+(including two identical no-ops), 2 explicit selections, 6 preparations and 6 Catalog
+change saves**. The missing-file submission reaches no import. Choosing a source alone
+sends zero requests. One separately identified real Report-source fixture import and
+native removal establish/recover the blocker. Reopen is explicit HTTP; all six
+preparations, including recreation and post-reopen regeneration, are native submissions.
+Strict reopen restores saved sources only. All ten native downloads issue GET without
+preparation and match their retained bytes exactly, including after passive actions
+and after explicit deterministic regeneration within the same source.
+
+Setup is separate: **17 Session saves**, one real SJ execution, two Match executions,
+six existing Match-page preparation calls, three initial saved synthetic Match files
+and two later source-file saves. It reuses the approved bounded legal fixture rather
+than the rejected original-UAT suffix. Total per run: **14 existing server discoveries**
+(eight during setup), **6 Add-time source revalidations**, and **5 profile saves**
+(Session/collection labels and three explicit language preferences). The passive
+Home/Learning/current plus language block performs **one discovery and two profile
+saves**, with zero import/selection/preparation/Catalog/recording save or analysis.
+The unrelated genuine Session SJ Result (**9,640 bytes**) and Match Report
+(**10,374 bytes**) and their files (**25,759 / 11,304 bytes**) retain exact identity/bytes.
+
+Ten final native exports, canonical kind order, are **11,295 / 1,366 / 1,829 / 35,960 /
+1,948 / 1,960 / 34,560 / 23,040 / 415,465 / 16,165 bytes**, totaling **543,588 bytes**.
+The evidence includes every full SHA-256 and filename for each source. Generated
+collection identities differ across installations; equality is checked within each
+source, not falsely across independent IDs.
+
+* Baseline Wheel: `684a79c39dd7d19ccf9ee0a99eb9fd270570afb132d80b2ba38067c0a8c74304`.
+* Repaired Wheel: `8e9282e5abdc78f6fa8b7a9bdfaa0259b83c27becef1030af08567ce8d3d4fe8`.
+* Repaired CSS: `0d3043a31407ac610334909bb099ce39b8b5e329bc7e84074d665ced543045ae`.
+* Unchanged script: `aa3871d9880326fc27590d80f7f0bf9ebc0a7cf31fd64fc2fd04a1e3932efce1`.
+
+The focused 13-module run passed **223 tests / one existing Windows symlink-permission
+skip** in **133.94s**. Earlier catalog parity failed only on the expected 1,734 → 1,735
+count; the legitimate new caption's exact count/order/placeholder checks now pass.
+Tests include same-revision reject/retain, empty/limited real preparation, failed
+recreation with older downloads, expired/consumed receipts, pure-render/HEAD/download
+nonconsumption, and bounded superseding source/operation before redirect GET. No new
+skip, fake successful save/preparation, or general race framework is introduced.
+
+This is headless installed-browser evidence, not physical-device, screen-reader or
+maintainer UAT. Text enlargement is not browser zoom. Version/conflict control and
+result/download redesign remain separate. The final unchanged-tree complete-check log
+and actual child exit accompany the implementation report; both exact merged-commit
+CI jobs still gate closure. #255 remains completed; #208 and remaining R13/R14 and
+automatic-use questions remain open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07
+open and B-06 closed.
 
 ## Learning entry and purpose (Issue #255)
 

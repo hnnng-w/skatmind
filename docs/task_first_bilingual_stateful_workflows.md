@@ -277,7 +277,25 @@ routes / 112 forms; three scoped captions bring paired catalog keys from 1,731 t
 1,734. Automatic source inclusion, executed-Report incorporation and recommendation
 adaptation remain distinct open product questions. Return/focus routing, version/
 conflict controls, result interpretation and download organization are separate
-follow-ups; this explanation does not resolve R13/R14 or accept UAT.
+follow-ups at that milestone; this explanation does not resolve R13/R14 or accept UAT.
+
+Issue #256 changes only successful direct-Add and preparation returns. Add targets its
+collection/Match-derived native block, where the exact affected saved version and
+the version used for evaluation are named separately. First/keep-current/identical
+semantics, Current controls and alternative disclosures remain. Preparation/recreation
+returns to the existing `#learning-results`; an older retained result cannot establish
+new success. The actual typed returned outcome determines routing. Error-summary and
+source remedies retain priority, and limited/empty successful results remain allowed.
+See [outcome mapping](learning_direct_match_entry.md#outcome-returns-issue-256).
+
+The one #245 receipt is colocated with its outcome, independently of content lifetime;
+no second toast, renewed receipt, automatic operation or persistent result is added.
+The existing direct-entry outcome carries an exact Snapshot/source binding instead of
+looking up a version by revision/title. Stable anchors remain navigation only. Both
+targets use native negative tabindex and a measured scroll margin; script and #223
+language/validation restoration are unchanged. One new caption brings the catalog to
+1,735 paired keys on the same 67 routes / 112 forms. Remaining R13 version/conflict and
+R14 result/download/automatic-use questions remain open.
 
 The #224 light surface/foreground pairs cover empty, selected, blocked, prepared,
 error and Advanced states. Standalone Corpus CSS no longer overrides the unified

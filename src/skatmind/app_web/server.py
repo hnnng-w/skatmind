@@ -2112,6 +2112,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         error_notice: str | None = None,
         initialize_discovery: bool = False,
     ) -> None:
+        from .learning_outcome_navigation import current_learning_entry_outcome
+
         active = self._active_learning()
         if initialize_discovery:
             with self.server.app_context.managed_stateful.learning_lifecycle_lock:
@@ -2143,6 +2145,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 "learning", active_identity=active)
         locale = self._frontend_state().locale
         with active.corpus.lock:
+            entry_outcome = current_learning_entry_outcome(active)
             selection = (None if discovery is None else
                          learning_selection_v1(active, discovery, source_generation))
             self._operation_feedback_delivery = (active, "learning", feedback_source(active),
@@ -2161,13 +2164,11 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             source_generation=source_generation,
             candidate_limit_reached=(discovery is not None
                                      and discovery.view.candidate_limit_reached),
-            entry_outcome=active.entry_outcome if active.entry_outcome is not None
-                and active.entry_outcome[0] is result else None,
+            entry_outcome=entry_outcome,
             rejected_build=(feedback is not None
                 and feedback.form_key == "learning.operation.prepare_learning_artifacts"),
         )
-        if notice is not None and not (active.entry_outcome is not None
-                                      and active.entry_outcome[0] is result):
+        if notice is not None and entry_outcome is None:
             key = ("task.operation.conflict" if notice_kind in {"warning", "error"}
                    else "task.operation.reloaded" if result is not None
                    and result.status == "reloaded" else "feedback.transfer_resolution")
@@ -2876,6 +2877,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         body: bytes,
         content_type: str,
     ) -> None:
+        preparation_result = None
         media_type = content_type.split(";", 1)[0].strip().lower()
         if media_type == "multipart/form-data":
             upload = parse_learning_corpus_multipart_upload_v1(
@@ -2961,7 +2963,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                         "test_weight",
                     },
                 )
-                prepare_unified_learning_artifacts_v1(
+                preparation_result = prepare_unified_learning_artifacts_v1(
                     active,
                     dataset_id=values["dataset_id"],
                     known_player_seed=self._form_integer(values, "known_player_seed"),
@@ -2976,10 +2978,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 )
             else:
                 raise ValueError("Learning operation is not supported.")
-        result = active.last_result
+        result = preparation_result if preparation_result is not None else active.last_result
         status = HTTPStatus.OK if result is None else result.http_status
         if status == HTTPStatus.OK:
-            self._redirect("/learning/current")
+            self._redirect("/learning/current" + (
+                "#learning-results" if preparation_result is not None
+                and preparation_result.status == "prepared" else ""))
             return
         definition = self._current_form_definition
         self._retain_form_feedback(

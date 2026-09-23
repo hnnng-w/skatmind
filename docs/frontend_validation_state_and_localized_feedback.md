@@ -149,6 +149,17 @@ The standalone Capture and Corpus renderers are not modified.
 
 ## Accepted And Submitted State
 
+Issue #256's [Learning outcome returns](learning_direct_match_entry.md#outcome-returns-issue-256)
+distinguish accepted direct Add and actual successful preparation from rejection.
+Existing `400`/`409`, same-revision `resolution_required` HTTP `200`, safe values,
+error-driven disclosure opening and native error-summary autofocus are preserved.
+Failed recreation may retain an older result and its ten exact downloads; it does
+not redirect to that result as a new success. Retained-version warnings move with
+the affected Match block and remain explicit/untimed. The single #245 receipt moves
+to the successful Match/results region, still suppressed by contextual errors and
+source mismatches. Pure render, assets, HEAD and downloads do not consume it.
+No submitted return parameter or new form is introduced (67 routes / 112 forms).
+
 Issue #230 adds five exact local-time/Settings forms with narrow `time_form` markers,
 source-bound `time_selection`, current profile generation, native date/time/zone
 controls, explicit Keep/Replace/Remove and occurrence choices. The unchanged raw

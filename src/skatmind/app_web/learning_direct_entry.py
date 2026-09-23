@@ -14,7 +14,9 @@ from skatmind.match_workspace_persistence import (
 )
 
 from .learning_frontend import import_workspace_bytes_into_unified_learning_v1
+from .learning_outcome_navigation import LearningEntryOutcome
 from .managed_item_discovery import discover_managed_items_v1
+from .operation_feedback import feedback_source
 from .recording_deletion import _digest
 from .workflow_state import StaleFrontendWorkflowRevisionError
 
@@ -141,5 +143,7 @@ def add_recorded_match_v1(app, target, values):
                     if snapshot.source_content_fingerprint == document.content_fingerprint}
         selected = any(selection.match_snapshot_id in matching
                        for selection in store.document.catalog.current_matches)
-        target.entry_outcome = (result, identity, document.workspace.revision, selected)
+        target.entry_outcome = LearningEntryOutcome(
+            result, identity, document.workspace.revision, selected,
+            next(iter(matching), None), feedback_source(target))
         return result

@@ -5,6 +5,7 @@ from html import escape
 
 from skatmind.corpus_web.downloads import LEARNING_CORPUS_ALL_PREPARED_DOWNLOAD_KINDS
 
+from .learning_outcome_navigation import learning_match_target, learning_version_target
 from .stateful_localization import managed_name, text, translated
 from .task_first_projections import project_task_first_learning_v1
 from .task_first_rendering import (
@@ -101,7 +102,7 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
         resolution = disclosure(locale, "task.advanced", select_field(locale, "same_revision_resolution",
             "task.transfer.conflict", (("reject", text(locale, "task.transfer.reject")),
                                       ("retain", text(locale, "task.transfer.retain")))))
-        if entry_outcome is not None and entry_outcome[0].status == "resolution_required":
+        if entry_outcome is not None and entry_outcome.result.status == "resolution_required":
             resolution = resolution.replace('<details', '<details open', 1)
         available += form(locale, "/learning/add-recorded-match",
             hidden("managed_handle", handle) + hidden("learning_selection", learning_selection)
@@ -110,23 +111,42 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
             + select_field(locale, "source_handle", "task.learning.saved_match", tuple(options), required=True)
             + resolution,
             "task.learning.add_recorded", primary=not state["matches"], disabled=len(options) == 1)
+    accepted_entry = (entry_outcome is not None
+                      and entry_outcome.result.status in {"applied", "unchanged"}
+                      and entry_outcome.snapshot_id is not None)
+    outcome_notice = ''
     if entry_outcome is not None:
-        result, match_id, copied_revision, selected = entry_outcome
+        result = entry_outcome.result
+        match_id, copied_revision, selected = (entry_outcome.match_id,
+            entry_outcome.copied_revision, entry_outcome.selected)
         outcome = {"unchanged": "unchanged", "resolution_required": "resolution",
                    "revision_conflict": "conflict", "persistence_conflict": "conflict"}.get(result.status)
         if result.status == "applied" and not selected:
             outcome = "retained"
         if outcome is not None:
-            available += '<div role="status">' + paragraph(locale, "task.learning.import." + outcome,
+            outcome_notice = '<div role="status">' + paragraph(locale, "task.learning.import." + outcome,
                 name=_match_label(locale, profile, match_id, recorded), revision=copied_revision) + '</div>'
+    if not accepted_entry:
+        available += outcome_notice
     available += '<p><a href="/learning/recorded-matches/refresh">' + translated(locale, "task.learning.refresh_recorded") + '</a></p>'
     available += '<p><a href="/matches">' + translated(locale, "task.learning.open_matches") + '</a></p>'
-    body += '<div id="learning-recorded-matches" tabindex="-1"><!-- entry-operation-feedback -->' + section(locale, "task.learning.recorded", available) + '</div>'
+    body += '<div id="learning-recorded-matches" tabindex="-1">' + (
+        '' if accepted_entry else '<!-- entry-operation-feedback -->') + section(locale, "task.learning.recorded", available) + '</div>'
     selections = paragraph(locale, "task.learning.versions_help")
     alternatives = ''
     for match in state["matches"]:
         label = '<h3>' + escape(_match_label(locale, profile, match["match_id"], recorded)) + '</h3>'
-        selections += label
+        selections += '<div id="' + learning_match_target(handle, match["match_id"]) + '" tabindex="-1">' + label
+        if accepted_entry and entry_outcome.match_id == match["match_id"]:
+            affected = next(((number, snapshot) for number, snapshot in enumerate(match["snapshots"], 1)
+                             if snapshot["match_snapshot_id"] == entry_outcome.snapshot_id), None)
+            if affected is not None:
+                selections += '<!-- entry-operation-feedback -->'
+                selections += paragraph(locale, "task.learning.affected_version",
+                    number=affected[0], revision=affected[1]["workspace_revision"],
+                    selected_number=next(number for number, snapshot in enumerate(match["snapshots"], 1)
+                                         if snapshot["current"]))
+                selections += outcome_notice
         selected = next((snapshot for snapshot in match["snapshots"] if snapshot["current"]), None)
         if selected is None:
             selections += paragraph(locale, "task.learning.missing_selection")
@@ -134,7 +154,7 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
             selections += paragraph(locale, "task.learning.used_version")
         choices = ''
         for number, snapshot in enumerate(match["snapshots"], 1):
-            summary = _version(locale, snapshot, number)
+            summary = '<div id="' + learning_version_target(handle, snapshot["match_snapshot_id"]) + '">' + _version(locale, snapshot, number) + '</div>'
             if snapshot["current"]:
                 selections += summary
             else:
@@ -147,6 +167,7 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
             selections += choices
         else:
             alternatives += label + choices
+        selections += '</div>'
     if alternatives:
         selections += disclosure(locale, "task.learning.alternatives", alternatives)
     if state["matches"]:
@@ -191,7 +212,7 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
         results += '<ul>' + ''.join(f'<li><a href="/learning/downloads/{kind.replace("_", "-")}.json" download>'
             + translated(locale, f"task.download.{kind}") + '</a></li>'
             for kind in LEARNING_CORPUS_ALL_PREPARED_DOWNLOAD_KINDS) + '</ul>'
-    body += '<div id="learning-results" tabindex="-1">' + section(locale, "task.learning.results", results) + '</div>'
+    body += '<div id="learning-results" tabindex="-1"><!-- results-operation-feedback -->' + section(locale, "task.learning.results", results) + '</div>'
     advanced = ''
     upload = ('<label>' + translated(locale, "creation.import.file")
               + '<input type="file" name="workspace_file" accept="application/json,.json" required></label>')

@@ -362,6 +362,17 @@ and validation feedback across language changes without rerunning Product work.
 
 ### Semantic origin and exact presentation binding
 
+Issue #256 keeps Learning's semantic language origin `/learning/current` and all
+existing #223 safe-field/disclosure rules. Successful direct Add uses a server-owned
+collection/Match fragment; successful preparation uses `#learning-results`. Neither
+becomes a client-supplied language return value. Language changes never reimport,
+select, prepare or mint another receipt. The reset source dropdown after accepted
+Add does not establish a new selection-preservation rule. An affected-version caption
+is source-bound presentation, not a second authoritative Current selection; it cannot
+be restored to another collection through an old language overlay. Failed forms keep
+their actual contextual remedy and existing validation focus. The single new caption
+has matching de/en keys/placeholders, bringing the paired catalog to 1,735 entries.
+
 Issue #229 adds exact chooser `/review/recorded` and selected-Game
 `/matches/review/N` semantic origins, while `/matches/reports/ID` retains its exact
 Report identity in the focused review view. Chooser language changes retain both

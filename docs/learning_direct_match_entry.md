@@ -36,7 +36,7 @@ the shared selected-version caption now says evaluation rather than insights.
 | Method / route | Effect |
 | --- | --- |
 | `GET /learning/recorded-matches/refresh` | Refresh bounded read-only managed-Match discovery; redirect to `/learning/current#learning-recorded-matches` |
-| `POST /learning/add-recorded-match` | Copy one explicitly selected saved Match into the exact active collection; successful `303` returns to the same section |
+| `POST /learning/add-recorded-match` | Copy one explicitly selected saved Match into the exact active collection; accepted `303` returns to its `#learning-match-…` collection block |
 
 The first explicit collection-page GET initializes missing Match discovery once.
 Ordinary renders, errors and language changes reuse its retained object/generation.
@@ -136,11 +136,55 @@ of process-local results. Nothing is automatically recreated.
 
 ## Language, accessibility and verification
 
-Current #255 evidence is linked from the
+### Outcome returns (Issue #256)
+
+Issue #256 supersedes only the two return destinations preserved by #255:
+
+| Outcome | Location and stable content owner | Native focus / receipt |
+| --- | --- | --- |
+| First direct Add | `/learning/current#learning-match-<digest>`; affected Match with selected first version | Focusable Match container; one eligible added-version receipt here |
+| Later direct Add / explicit retain | Same affected Match block; exact affected saved-version number/revision alongside the version still used | Same native target; existing untimed retained-version qualification, no clean-success receipt |
+| Identical direct Add | Same existing Match/version context | Neutral unchanged explanation; no new addition/save receipt; prepared objects remain valid |
+| Successful preparation/recreation | `/learning/current#learning-results`; existing heading, qualifications, counts and ten downloads | Existing focusable container; one preparation receipt here |
+| Rejected Add or preparation | Existing contextual response and error/remedy | Native error-summary focus; no success redirect or receipt |
+| Source refresh | `/learning/current#learning-recorded-matches` | Existing source selector/remediation target |
+
+Match targets hash the managed collection handle and exact Match ID, never titles,
+list positions or revisions. Individual existing version summaries also have distinct
+collection/Snapshot-derived IDs, including equal-revision variants. The small neutral
+affected-versus-selected caption belongs to the existing Match block; Current controls
+and alternative-version disclosures are unchanged. No disclosure must open to expose
+this target. Successful preparation uses the actual returned `prepared` outcome, not
+the presence of an older prepared object. Empty/limited successful results retain the
+existing coverage qualifications before their counts; no new evidence minimum applies.
+
+The existing single direct-entry outcome now retains the exact imported Snapshot ID
+and source binding. It is nonpersistent and applicable only while its exact active
+context, retained result, Store, generations and prepared families still match. It
+does not select anything. Superseding operations/reopen invalidate attribution; stale
+fragment URLs show the truthful current page and never retry Add or preparation.
+These current-context URLs are not immutable multi-tab result snapshots.
+
+Native `303` fragments and `tabindex="-1"` containers provide scrolling and next-Tab
+continuation without script. There is no success autofocus, focus timer or client
+navigation change. #245 receipts retain one final-HTML-only delivery, exact-source
+checks, 60-second monotonic expiry and eight-second enhanced idle dismissal. Their
+expiry/consumption does not remove saved rows or valid results. Errors and substantive
+warnings retain priority; qualified Add outcomes are untimed at the affected block.
+Uploads, version selection, Teacher actions, creation/opening and Match transfers keep
+their previous returns. #223 form/language/consent boundaries remain unchanged.
+
+The baseline **67 POST routes / 112 forms / 1,734 paired keys** becomes **67 / 112 /
+1,735** with one scoped bilingual caption. Rendering adds no discovery, import,
+selection, preparation, analysis, Checkpoint, lock or Product save. See the
+[installed before/after evidence](unified_workflow_visual_contract.md#learning-outcome-returns-issue-256).
+
+Historical #255 evidence is linked from the
 [visual contract](unified_workflow_visual_contract.md#learning-entry-and-purpose-issue-255).
-It preserves the existing Add destination `#learning-recorded-matches` and Build
-destination `/learning/current`. Return-position repair, version/conflict ergonomics,
-R14 result interpretation and ten-download organization remain separate follow-ups.
+It preserved Add at `#learning-recorded-matches` and preparation at `/learning/current`;
+the in-scope accepted returns above supersede those two historical contracts.
+Version/conflict ergonomics, R14 result interpretation and ten-download organization
+remain separate follow-ups.
 Automatic Match inclusion, incorporation of executed Reports and adaptation of future
 recommendations remain distinct open product expectations; explaining today's explicit
 operations neither accepts nor rejects them. The historical #236 evidence below is

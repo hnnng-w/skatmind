@@ -58,6 +58,33 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* Keep native outcome landings readable when the browser's text size is enlarged. */
+body:has(#task-first-learning) {
+  min-width: 0;
+}
+
+body:has(#task-first-learning) .site-header > *,
+body:has(#task-first-learning) .language-buttons {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+body:has(#task-first-learning) .language-buttons {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 35rem) {
+  body:has(#task-first-learning) .site-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+#task-first-learning [id^="learning-match-"],
+#learning-results {
+  scroll-margin-block: 1rem;
+}
+
 .technical-details,
 #session-app > details,
 #task-first-match > details,

@@ -1852,6 +1852,17 @@ presentation and automatic Match/Report/recommendation-use decisions remain open
 Exact merged-commit `check` and `v1-supported-platform-matrix` gate #255 closure;
 #208 stays open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 
+Issue #256 returns direct Learning Add to the affected Match/version block and actual
+successful evaluation/recreation to the existing results. Native focus, source-bound
+caption/receipt ownership and explicit error/qualification priority preserve Current,
+imports, preparation and all ten outputs. Inventory remains 67/112; paired keys become
+1,735. See [mapping](learning_direct_match_entry.md#outcome-returns-issue-256) and
+[evidence](unified_workflow_visual_contract.md#learning-outcome-returns-issue-256).
+#255 stays completed. Exact merged-commit `check` and `v1-supported-platform-matrix`
+gate closure; #208 and remaining R13/R14 version/conflict/results/download and
+automatic-use decisions remain open. UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07
+open and B-06 closed. No release-readiness claim follows.
+
 Issue #250 adds the bounded R06 normal Session declarer/declaration path: accepted-
 fact selection, immutable canonical Preview and explicit Apply/Cancel, with fresh
 consent for partial suffix removal. Public replay, Checkpoints and persistence are

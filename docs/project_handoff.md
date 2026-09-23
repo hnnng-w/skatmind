@@ -2839,6 +2839,20 @@ open under R13/R14. Exact merged-commit `check` and `v1-supported-platform-matri
 gate closure; #208 remains open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open
 and B-06 closed. No release-readiness claim follows.
 
+Issue #256 implements the bounded R13 Add/preparation return repair from clean
+`bug/256-learning-outcome-navigation`, HEAD `171b81ad2310129b0897595ebf4842f9afc8b97c`.
+Direct Add targets the affected Match block and distinguishes its exact saved version
+from Current; successful preparation targets the existing results region. Native focus,
+one colocated #245 receipt, untimed qualifications and error priority keep separate
+roles. #236 operations, ten exact exports and #223/#238–#255 boundaries remain.
+Inventory stays 67/112, with one caption increasing paired keys to 1,735. See
+[mapping](learning_direct_match_entry.md#outcome-returns-issue-256) and
+[installed evidence](unified_workflow_visual_contract.md#learning-outcome-returns-issue-256).
+#255 remains completed. Exact merged-commit `check` and `v1-supported-platform-matrix`
+gate manual #256 closure. #208, remaining R13/R14 version/conflict/results/download
+and automatic-use questions remain open; UAT-01 unaccepted, UAT-02–12 paused,
+B-09/B-07 open and B-06 closed. No release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

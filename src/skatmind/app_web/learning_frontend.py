@@ -31,6 +31,7 @@ from skatmind.match_analysis_report_source_codec import (
     resume_match_analysis_report_source_export_v1,
 )
 
+from .learning_outcome_navigation import LearningEntryOutcome
 from .managed_item_contracts import DiscoveredManagedItemV1
 from .managed_item_import import decode_managed_item_json_object_v1
 from .managed_item_storage import (
@@ -53,7 +54,7 @@ class UnifiedLearningContextV1:
     operation_feedback: PendingOperationFeedback = field(
         default_factory=PendingOperationFeedback, repr=False)
     entry_key: bytes = field(default_factory=lambda: secrets.token_bytes(32), repr=False)
-    entry_outcome: tuple[LearningCorpusWebResultV1, str, int, bool] | None = field(
+    entry_outcome: LearningEntryOutcome | None = field(
         default=None, repr=False)
 
     def __post_init__(self) -> None:

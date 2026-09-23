@@ -211,7 +211,7 @@ def test_learning_creation_add_noop_retained_version_selection_and_build(localiz
     target = localized_server.app_context.managed_stateful.active_learning
     page = follow(browser, browser.submit(add_form(browser), source_handle=source_handle(path)))
     row = notice(page, "version_added")
-    assert any(p["attrs"].get("id") == "learning-recorded-matches" for p in row["parents"])
+    assert any(p["attrs"].get("id", "").startswith("learning-match-") for p in row["parents"])
     assert not notices(browser.page("/learning/current"))
     page = build(browser)
     notice(page, "prepared")

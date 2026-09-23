@@ -1194,6 +1194,7 @@
   "task.learning.add_recorded": "Match zur Sammlung hinzufügen",
   "task.learning.add_source": "Geprüfte Berichtsquelle hinzufügen",
   "task.learning.added": "Dieser Sammlung hinzugefügte Matches",
+  "task.learning.affected_version": "Gespeicherte Version {number} (Revision {revision}); für die Auswertung ausgewählt: Version {selected_number}.",
   "task.learning.alternatives": "Alternative gespeicherte Match-Versionen",
   "task.learning.automatic": "Hinzufügen und Erstellen erfordern ausdrückliche Aktionen. Die erste hinzugefügte Version wird ausgewählt; später hinzugefügte Versionen behalten die bestehende Auswahl bei.",
   "task.learning.binding.current": "Quelle passt zur ausgewählten Version",

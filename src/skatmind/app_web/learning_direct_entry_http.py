@@ -5,6 +5,7 @@ from .learning_direct_entry import (
     LearningEntryConflict,
     add_recorded_match_v1,
 )
+from .learning_outcome_navigation import current_learning_entry_outcome, learning_match_target
 from .validation_mapping import map_frontend_exception_v1
 
 
@@ -32,4 +33,12 @@ def dispatch_learning_direct_entry(handler, values):
                                                  definition, status=400), status=400)
             handler._learning_page()
             return
-        handler._redirect(LEARNING_ENTRY_LOCATION)
+        with target.corpus.lock:
+            outcome = current_learning_entry_outcome(target)
+            location = LEARNING_ENTRY_LOCATION
+            if (outcome is not None and outcome.result is result
+                    and result.status in {"applied", "unchanged"}
+                    and outcome.snapshot_id is not None):
+                location = "/learning/current#" + learning_match_target(
+                    target.handle, outcome.match_id)
+        handler._redirect(location)

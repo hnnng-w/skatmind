@@ -1194,6 +1194,7 @@
   "task.learning.add_recorded": "Add Match to collection",
   "task.learning.add_source": "Add verified Report source",
   "task.learning.added": "Matches added to this collection",
+  "task.learning.affected_version": "Saved version {number} (revision {revision}); evaluation uses version {selected_number}.",
   "task.learning.alternatives": "Alternative saved Match versions",
   "task.learning.automatic": "Adding and building require explicit actions. The first added version becomes selected; later added versions keep the existing selection.",
   "task.learning.binding.current": "Source matches the selected version",

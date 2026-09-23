@@ -1433,7 +1433,8 @@ for operation, fields, media, file_reselection in (
             media_type=media,
             body_limit=LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES,
             file_reselection=file_reselection,
-            success="/learning/current",
+            success=("contextual" if operation == "prepare_learning_artifacts"
+                     else "/learning/current"),
             discriminator=("operation", operation),
             value_free=not fields,
             control_overrides=learning_controls,

@@ -15,6 +15,7 @@ DELIVERY_TTL_SECONDS = 60
 FEEDBACK_MARKER = "<!-- operation-feedback -->"
 ENTRY_FEEDBACK_MARKER = "<!-- entry-operation-feedback -->"
 METADATA_FEEDBACK_MARKER = "<!-- metadata-operation-feedback -->"
+RESULTS_FEEDBACK_MARKER = "<!-- results-operation-feedback -->"
 
 # Parameters are accepted roster ordinals, canonical Cards and bounded counts only.
 # Full accepted labels are resolved on the exact bound source, never copied/truncated.
@@ -168,14 +169,17 @@ def deliver_operation_feedback(handler, content, *, status):
         if current is not active or not rendered_source.matches(source):
             # A stale response must not consume a newer source's receipt.
             return (content.replace(FEEDBACK_MARKER, "").replace(ENTRY_FEEDBACK_MARKER, "")
-                    .replace(METADATA_FEEDBACK_MARKER, ""))
+                    .replace(METADATA_FEEDBACK_MARKER, "").replace(RESULTS_FEEDBACK_MARKER, ""))
         receipt = active.operation_feedback.take(source, suppressed=(
             suppressed or status >= 400 or feedback is not None
             or getattr(active, "retired", False)))
         rendered = "" if receipt is None else render_operation_receipt(
             receipt, handler._frontend_state().locale, feedback_players(active))
     marker = (METADATA_FEEDBACK_MARKER if receipt is not None and receipt.area == "metadata" else
+              RESULTS_FEEDBACK_MARKER if receipt is not None
+              and receipt.message_key == "feedback.prepared" else
               ENTRY_FEEDBACK_MARKER if receipt is not None
               and receipt.message_key == "feedback.version_added" else FEEDBACK_MARKER)
-    return content.replace(marker, rendered, 1).replace(FEEDBACK_MARKER, "").replace(
-        ENTRY_FEEDBACK_MARKER, "").replace(METADATA_FEEDBACK_MARKER, "")
+    return (content.replace(marker, rendered, 1).replace(FEEDBACK_MARKER, "")
+            .replace(ENTRY_FEEDBACK_MARKER, "").replace(METADATA_FEEDBACK_MARKER, "")
+            .replace(RESULTS_FEEDBACK_MARKER, ""))
