@@ -128,6 +128,17 @@ and the file is removed after success or every failure path.
 
 ## Workspace import and Current selection
 
+Issue #257 clarifies the unified opened collection without changing this standalone
+interface or its operations. It shows accepted Current as Selected for evaluation;
+valid singletons omit empty alternatives, and multiple versions keep one native
+disclosure per Match with explicit per-version buttons. Workspace revision and
+display-only same-revision variant labels share the exact Snapshot mapping with
+#256's affected-version caption. Missing selection and Teacher blockers retain their
+remedies. Complete native conflict-policy labels/help explain `reject` and `retain`
+without claiming an error from a configured setting. Selection alone prepares
+nothing; all ten current exports retain their existing invalidation and strict
+reopen/regeneration rules. See [version presentation](learning_direct_match_entry.md#selected-versions-and-conflict-policy-issue-257).
+
 The unified app's Issue #236 [direct saved-Match shortcut](learning_direct_match_entry.md)
 adds an in-collection native selector without opening the source Match. That private
 shortcut alone fixes `keep_current`: first version selected, later versions retained

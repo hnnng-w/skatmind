@@ -78,6 +78,17 @@ body:has(#task-first-learning) .language-buttons {
   body:has(#task-first-learning) .site-header {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  /* Preserve room for revision/variant names and full native-policy descriptions. */
+  #task-first-learning #insight-versions > .panel,
+  #task-first-learning #learning-recorded-matches > .panel {
+    padding-inline: 0.35rem;
+  }
+
+  #insight-versions details,
+  #task-first-learning .advanced-settings:has(> label > select[name="same_revision_resolution"]) {
+    padding-inline: 0.25rem;
+  }
 }
 
 #task-first-learning [id^="learning-match-"],

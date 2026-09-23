@@ -2853,6 +2853,20 @@ gate manual #256 closure. #208, remaining R13/R14 version/conflict/results/downl
 and automatic-use questions remain open; UAT-01 unaccepted, UAT-02–12 paused,
 B-09/B-07 open and B-06 closed. No release-readiness claim follows.
 
+Issue #257 clarifies bounded Learning version/conflict presentation from clean
+`bug/257-learning-version-selection`, HEAD `85b4e75eb14447f3ee83ffa8c1b3074467b3b14d`.
+Current source used per-alternative buttons, not the reported dropdown; the reproduced
+singleton defect was an empty disclosure. Current is now an accepted read-only fact,
+real alternatives stay within their Match, and revision-scoped display variants plus
+precise `reject`/`retain` help preserve exact identities/policies. Selection and
+evaluation remain separate; #236/#245/#255/#256 and ten output serializers remain.
+Inventory is 67/112 with 1,738 paired keys. See [mapping](learning_direct_match_entry.md#selected-versions-and-conflict-policy-issue-257)
+and [installed evidence](unified_workflow_visual_contract.md#learning-version-selection-issue-257).
+#256 remains completed. Both exact merged-commit CI jobs gate manual #257 closure;
+#208, remaining R13/R14 result/download and separate automatic-use questions remain
+open. UAT-01 remains unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+No whole-UAT or release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

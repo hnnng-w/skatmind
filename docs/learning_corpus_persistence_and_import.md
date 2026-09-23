@@ -283,6 +283,16 @@ supplied logical Match. Selecting the already Current Snapshot is unchanged;
 selecting another retained Snapshot increments the Catalog revision once and
 does not alter entries.
 
+Issue #257 adds only unified-app presentation over these captured facts. A valid
+Current singleton has no redundant alternative control; real alternatives keep the
+existing explicit operation. Same-revision variant ordinals are display-only within
+canonical same-Match/revision order, not timestamps, import order or a persistence
+field. `reject` means do not add the conflicting version; `retain` means keep a
+separate saved version, with any number of retained variants permitted by the
+existing contract. Retention and selection remain separate. Direct Add alone fixes
+`keep_current`; transfer/upload preserve their explicit selection choice. See the
+[unified mapping](learning_direct_match_entry.md#selected-versions-and-conflict-policy-issue-257).
+
 ## Immutable object publication
 
 Objects are published before the updated Catalog. Publication validates the

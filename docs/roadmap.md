@@ -1863,6 +1863,17 @@ gate closure; #208 and remaining R13/R14 version/conflict/results/download and
 automatic-use decisions remain open. UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07
 open and B-06 closed. No release-readiness claim follows.
 
+Issue #257 clarifies selected Learning versions and same-revision conflict policy.
+Normal Current singletons omit empty alternatives; per-Match explicit alternative
+forms, truthful Workspace revision/variant captions and precise `reject`/`retain`
+help preserve existing imports, Current selection and separate preparation. #256
+targets/receipts and all ten exports remain. Inventory stays 67/112 with 1,738 paired
+keys. See [mapping](learning_direct_match_entry.md#selected-versions-and-conflict-policy-issue-257)
+and [evidence](unified_workflow_visual_contract.md#learning-version-selection-issue-257).
+#256 stays completed. Both exact merged-commit CI jobs gate #257 closure; #208,
+remaining R13/R14 results/download organization and separate automatic-use decisions
+stay open. UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
+
 Issue #250 adds the bounded R06 normal Session declarer/declaration path: accepted-
 fact selection, immutable canonical Preview and explicit Apply/Cancel, with fresh
 consent for partial suffix removal. Public replay, Checkpoints and persistence are

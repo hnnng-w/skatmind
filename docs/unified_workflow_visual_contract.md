@@ -224,6 +224,124 @@ retain their complete option lists and keyboard selection. This is distinct from
 authored clipping or document overflow. No document overflow is hidden and zoom
 is not disabled.
 
+## Learning version selection (Issue #257)
+
+Clean baseline `bug/257-learning-version-selection`, actual starting HEAD
+`85b4e75eb14447f3ee83ffa8c1b3074467b3b14d`. Current code and independent baseline
+Wheel reproduced an **empty singleton alternatives disclosure**, not a one-option
+version selector. Selection already used one native form/button per non-Current
+Snapshot; the optional Report dropdown is a separate operation. Eight pre-fix
+presentation regressions failed and five passed. Old global saved-version ordinals
+were distinct, but lacked the explicit same-revision display-only meaning; conflict
+choices said Require explicit resolution / Retain both saved versions without direct
+adjacent policy help. No broken import/selection engine was established.
+
+Production changes are confined to the Learning renderer, de/en catalogs and scoped
+Learning padding. Accepted Current is visible once, useful alternatives are inside
+their Match, and the same captured revision/variant mapping names Current, explicit
+buttons and the affected-version caption. Existing Snapshot-derived targets remain.
+The native policy select has complete associated text including both full labels;
+clipped closed-select text is not the sole explanation. Version button accessible
+names include Match and revision/variant, with associated recorded-count descriptions.
+
+`scripts/verify_learning_version_selection.py` reuses the dependency-free #256
+DevTools harness and real disposable fixtures. Evidence:
+
+* `$env:TEMP/opencode/257-before-verified/evidence.json` (**68 views**) and
+  `$env:TEMP/opencode/257-after-complete/evidence.json` (**72 views**), with inspected
+  screenshots, actual request payloads, native downloads and accessibility-tree names;
+* separate installed Wheels, Windows CPython **3.13.7**, Package **0.17.0**,
+  headless Edge **153.0.4234.48**;
+* four runs per installation: de/en × scripts off/on, with native pointer and
+  keyboard submissions, source/policy choice, per-version buttons and language changes;
+* desktop **1365×900** singleton/first result, **390×844** identical Add and second
+  equal-title Match landing, **320×800** multiple revisions, same-revision rejection/
+  retention, exact variant selection, Teacher mismatch/recovery and downloads;
+* representative **320px / 200% computed text** (native default font 16 → 32px)
+  for actual variant captions/buttons, policy descriptions and reopened results.
+
+Native Add/results/error landings record activeElement and next Tab **before** any
+manual destination scroll/focus. Separate caption inspection scrolls are explicitly
+marked as such. At enlarged text, nested padding initially left about **131px** for
+captions even though the document did not overflow. A first adjustment was partially
+overridden by the existing panel specificity. Narrow Learning-only panel/disclosure
+padding now gives at least **190px** to measured variant and policy descriptions;
+the variant discriminator stays readable, long German words wrap, and full text
+remains available by normal vertical scrolling. Text rectangles, not only document
+width, are checked. This is computed text enlargement, not browser zoom.
+
+Each final run performs the same real native collection operations before/after:
+**1 creation, 7 import calls (2 duplicates and 1 rejected conflict included),
+4 explicit selections, 4 preparations, 8 Catalog-change saves and 4 immutable
+object publications**. Seven Add-time source revalidations remain. Opening versions
+and changing source/policy alone send zero requests. Selection returns to the existing
+bare `/learning/current`, invalidates matching outputs on a real change, and adds no
+preparation. Exact-source HTTP tests separately verify an already-Current no-op,
+malformed/foreign/stale rejection, three retained equal-revision variants, exact
+label-to-Snapshot mapping, safe native language recovery and strict reopen.
+
+One real Teacher-source fixture import binds the earlier version. Selecting the
+later version exposes the existing blocker; restoring the older selection restores
+compatibility without rebinding. Native removal is explicit. No successful save,
+import, selection or preparation is mocked. Controlled external fixture writes are
+separate: two initial canonical partial source files, one later revision save and
+one valid equal-title/equal-progress same-revision content save. Original UAT files
+and default homes are never used.
+
+Setup reuses one genuine Session SJ review and two real Match Reports per run:
+**17 Session saves, 1 Session execution, 2 Match executions, 6 existing Match-page
+preparation calls**. The approved bounded synthetic trace remains unchanged; it is
+not another full Game for each UI assertion. Total per run includes **14 existing
+server discoveries** (8 in setup) and **9 profile saves** (2 creation labels and
+7 explicit language submissions). The passive navigation/language block contributes
+one discovery and two profile saves; its separately named identical Add contributes
+one revalidation/import no-op. It performs no Catalog/object write, preparation,
+recording mutation or analysis. Script-on unsent `retain` survives a language change;
+script-off restores the prior safely submitted `reject`, requiring explicit choice.
+
+All ten native downloads match the same retained preparation, including subsequent
+passive views/language and identical Add. Strict reopen restores sources/selection,
+then an explicit native regeneration produces the same source-bound bytes. No byte
+equality is demanded across distinct generated collection IDs or actual selection
+changes. Final per-kind sizes in canonical order are **11,207 / 1,366 / 1,829 /
+35,894 / 1,948 / 1,960 / 34,516 / 22,974 / 415,388 / 16,110 bytes**, totaling
+**543,192 bytes**. The evidence records every full source/Catalog/object/export hash
+and actual filename. Unrelated Session Result **9,640 bytes**, Match Report
+**10,365 bytes**, and their files **25,759 / 11,286 bytes** retain identity and bytes.
+
+Exact installed identities:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Baseline Wheel | `f47805b8690b994fa9bc3177a54310934e82b1753c9c09764fb4fb8064059416` |
+| Repaired Wheel | `4ced0faef52b28f7610c5fd055c49e9de16e50a93b13c669852ee90c7d765978` |
+| Repaired Learning renderer | `951e9cd550a9f10eb8af95d48638647259cdeb6af4757b228cf8f948ab73b2a0` |
+| Repaired CSS | `61ee305f5a5244181470117ff8ba4717e801ff21c863aeea809128bfc6754f46` |
+| Unchanged workflow script | `aa3871d9880326fc27590d80f7f0bf9ebc0a7cf31fd64fc2fd04a1e3932efce1` |
+
+Earlier browser attempts remain retained: `257-before-01` failed on an instrumentation
+symbol typo; `-02` used a form made stale by the explicit Teacher fixture; `-03` tried
+to activate a control inside a closed disclosure; `-04` exceeded the tool timeout
+and left partial screenshots. Process inspection confirmed no surviving worker before
+retry. `257-before-final` and `257-after-01` passed narrower coverage; `257-after-final`
+and `257-after-verified` passed geometry assertions but screenshot inspection motivated
+the further padding refinement. None replaces the final evidence above.
+
+The focused 17-module run passed **262 tests / one existing Windows symlink skip**
+in **121.25s**. The final extra three-variant HTTP assertion and catalog checks passed
+**27 tests** in **7.30s**. Catalog key/order/placeholder checks verify **1,738** paired
+keys from baseline **1,735**; registered routes/forms remain **67 / 112**. Full-check
+native output and actual child exit accompany the implementation report. This is a
+bounded synthetic browser matrix, not exhaustive surface/viewport combinations,
+physical-device, screen-reader or maintainer-UAT acceptance. Advanced upload and
+Match-transfer field/default compatibility are covered by tests, not a new browser
+matrix. No new mandatory tooling dependency or installation contract is introduced.
+
+#256 stays completed. Exact merged-commit `check` and `v1-supported-platform-matrix`
+still gate manual #257 closure. #208, remaining R13/R14 result/download organization
+and the distinct automatic-use questions remain open; UAT-01 unaccepted, UAT-02–12
+paused, B-09/B-07 open, B-06 closed. No release-readiness claim follows.
+
 ## Learning outcome returns (Issue #256)
 
 Clean baseline `bug/256-learning-outcome-navigation`, actual starting HEAD

@@ -219,6 +219,20 @@ wrap guidance without shrinking text; actual browser measurements are linked abo
 
 ## Explicit transfer and Learning
 
+Issue #257 clarifies selected input and retained alternatives using the existing
+per-Snapshot forms. A valid selected singleton is read-only without an empty
+disclosure. Multiple versions retain one visible Current summary and one native
+alternatives disclosure per Match. Missing-selection remedies, rejected-form feedback
+and Teacher-source blockers remain independent. Stored Workspace revision plus a
+display-only same-revision variant ordinal distinguish exact identities; no Catalog
+version or chronology is invented. Selection saves only Current, followed by separate
+explicit evaluation. Shared `reject`/`retain` help explains no-add versus separate
+retention, while direct Add keeps its fixed `keep_current` and transfer/upload keep
+their explicit selection policies. #256 targets and #245 receipt ownership remain.
+See [state/field mapping](learning_direct_match_entry.md#selected-versions-and-conflict-policy-issue-257).
+The current inventory is 67 routes / 112 forms / 1,738 paired keys. Earlier milestone
+evidence below retains its original wording and counts.
+
 Issue #244 makes the existing Match-side **Add this Match to Learning** shortcut a
 secondary native disclosure after recording/overview. Relevant retained transfer
 feedback opens it, including when the old exact form is no longer present; normal

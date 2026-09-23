@@ -1,6 +1,7 @@
 # ruff: noqa: E501 - Keep complete server-rendered elements legible.
 from __future__ import annotations
 
+from collections import Counter
 from html import escape
 
 from skatmind.corpus_web.downloads import LEARNING_CORPUS_ALL_PREPARED_DOWNLOAD_KINDS
@@ -20,14 +21,22 @@ from .task_first_rendering import (
 )
 
 
-def transfer_choices(locale):
+def _conflict_choices(locale, identity):
+    help_id = identity + "-help"
+    control = select_field(locale, "same_revision_resolution", "task.transfer.conflict", (
+        ("reject", text(locale, "task.transfer.reject")),
+        ("retain", text(locale, "task.transfer.retain"))))
+    return (control.replace('<select ', f'<select aria-describedby="{help_id}" ', 1)
+        + f'<p id="{help_id}">' + translated(locale, "task.transfer.conflict_help",
+            reject=text(locale, "task.transfer.reject"), retain=text(locale, "task.transfer.retain")) + '</p>')
+
+
+def transfer_choices(locale, *, conflict_identity="match-transfer-conflict"):
     return (paragraph(locale, "task.transfer.choices_help")
         + select_field(locale, "selection_mode", "task.transfer.selection", (
             ("select_imported", text(locale, "task.transfer.select_imported")),
             ("keep_current", text(locale, "task.transfer.keep_current"))))
-        + select_field(locale, "same_revision_resolution", "task.transfer.conflict", (
-            ("reject", text(locale, "task.transfer.reject")),
-            ("retain", text(locale, "task.transfer.retain")))))
+        + _conflict_choices(locale, conflict_identity))
 
 
 def render_task_first_transfer_v1(
@@ -70,11 +79,25 @@ def _match_label(locale, profile, match_id, recorded):
     return managed_name(locale, profile, "matches", match_id, fallback)
 
 
-def _version(locale, snapshot, number):
-    return (paragraph(locale, "task.learning.version_number", number=number)
-        + paragraph(locale, "task.learning.saved_revision", revision=snapshot["workspace_revision"])
-        + paragraph(locale, "task.learning.version_progress", games=snapshot["observed_game_count"],
-                    decisions=snapshot["decision_count"]))
+def _version_labels(locale, snapshots):
+    """Display ordinals within captured canonical same-Match/revision order only."""
+    counts = Counter(snapshot["workspace_revision"] for snapshot in snapshots)
+    seen = Counter()
+    labels = {}
+    for snapshot in snapshots:
+        revision = snapshot["workspace_revision"]
+        seen[revision] += 1
+        label = text(locale, "task.learning.saved_revision", revision=revision)
+        if counts[revision] > 1:
+            label = text(locale, "task.learning.version_variant", revision_label=label, number=seen[revision])
+        labels[snapshot["match_snapshot_id"]] = label
+    return labels
+
+
+def _version(locale, snapshot, label, identity):
+    return (f'<h4 id="{identity}-label">' + escape(label) + '</h4>'
+        + f'<p id="{identity}-progress">' + translated(locale, "task.learning.version_progress",
+            games=snapshot["observed_game_count"], decisions=snapshot["decision_count"]) + '</p>')
 
 
 def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile=None, recorded=(), rejected_build=False, active_recorded=None, learning_selection=None, source_generation=0, candidate_limit_reached=False, entry_outcome=None):
@@ -99,9 +122,7 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
     if candidate_limit_reached:
         available += paragraph(locale, "task.learning.discovery_limit")
     if learning_selection is not None:
-        resolution = disclosure(locale, "task.advanced", select_field(locale, "same_revision_resolution",
-            "task.transfer.conflict", (("reject", text(locale, "task.transfer.reject")),
-                                      ("retain", text(locale, "task.transfer.retain")))))
+        resolution = disclosure(locale, "task.advanced", _conflict_choices(locale, "learning-add-conflict"))
         if entry_outcome is not None and entry_outcome.result.status == "resolution_required":
             resolution = resolution.replace('<details', '<details open', 1)
         available += form(locale, "/learning/add-recorded-match",
@@ -133,43 +154,45 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
     body += '<div id="learning-recorded-matches" tabindex="-1">' + (
         '' if accepted_entry else '<!-- entry-operation-feedback -->') + section(locale, "task.learning.recorded", available) + '</div>'
     selections = paragraph(locale, "task.learning.versions_help")
-    alternatives = ''
     for match in state["matches"]:
-        label = '<h3>' + escape(_match_label(locale, profile, match["match_id"], recorded)) + '</h3>'
-        selections += '<div id="' + learning_match_target(handle, match["match_id"]) + '" tabindex="-1">' + label
+        match_target = learning_match_target(handle, match["match_id"])
+        label = '<h3 id="' + match_target + '-label">' + escape(_match_label(locale, profile, match["match_id"], recorded)) + '</h3>'
+        selections += '<div id="' + match_target + '" tabindex="-1">' + label
+        labels = _version_labels(locale, match["snapshots"])
+        selected = next((snapshot for snapshot in match["snapshots"] if snapshot["current"]), None)
         if accepted_entry and entry_outcome.match_id == match["match_id"]:
-            affected = next(((number, snapshot) for number, snapshot in enumerate(match["snapshots"], 1)
-                             if snapshot["match_snapshot_id"] == entry_outcome.snapshot_id), None)
-            if affected is not None:
+            if entry_outcome.snapshot_id in labels:
                 selections += '<!-- entry-operation-feedback -->'
                 selections += paragraph(locale, "task.learning.affected_version",
-                    number=affected[0], revision=affected[1]["workspace_revision"],
-                    selected_number=next(number for number, snapshot in enumerate(match["snapshots"], 1)
-                                         if snapshot["current"]))
+                    version=labels[entry_outcome.snapshot_id])
                 selections += outcome_notice
-        selected = next((snapshot for snapshot in match["snapshots"] if snapshot["current"]), None)
         if selected is None:
             selections += paragraph(locale, "task.learning.missing_selection")
         else:
             selections += paragraph(locale, "task.learning.used_version")
         choices = ''
-        for number, snapshot in enumerate(match["snapshots"], 1):
-            summary = '<div id="' + learning_version_target(handle, snapshot["match_snapshot_id"]) + '">' + _version(locale, snapshot, number) + '</div>'
+        for snapshot in match["snapshots"]:
+            identity = learning_version_target(handle, snapshot["match_snapshot_id"])
+            summary = _version(locale, snapshot, labels[snapshot["match_snapshot_id"]], identity)
             if snapshot["current"]:
-                selections += summary
+                selections += f'<div id="{identity}">' + summary + '</div>'
             else:
-                choices += summary + form(locale, "/learning/api/v1/operations",
+                action = form(locale, "/learning/api/v1/operations",
                     _hidden(handle, "select_current_snapshot")
                     + hidden("expected_catalog_revision", revision)
                     + hidden("match_id", match["match_id"])
                     + hidden("match_snapshot_id", snapshot["match_snapshot_id"]), "task.learning.use_version")
+                action = action.replace('<button ', f'<button id="{identity}-action" '
+                    f'aria-labelledby="{identity}-action {match_target}-label {identity}-label" '
+                    f'aria-describedby="{identity}-progress" ', 1)
+                choices += f'<div id="{identity}">' + summary + action + '</div>'
+        if len(set(snapshot["workspace_revision"] for snapshot in match["snapshots"])) < len(match["snapshots"]):
+            selections += paragraph(locale, "task.learning.variant_help")
         if selected is None:
             selections += choices
-        else:
-            alternatives += label + choices
+        elif choices:
+            selections += disclosure(locale, "task.learning.alternatives", choices)
         selections += '</div>'
-    if alternatives:
-        selections += disclosure(locale, "task.learning.alternatives", alternatives)
     if state["matches"]:
         body += '<div id="insight-versions">' + section(locale, "task.learning.selected", selections) + '</div>'
     fields = ''.join(input_field(locale, name, f"task.field.{name}", default, kind=kind, required=True)
@@ -218,7 +241,7 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
               + '<input type="file" name="workspace_file" accept="application/json,.json" required></label>')
     advanced += section(locale, "creation.import.heading", paragraph(locale, "task.transfer.help")
         + form(locale, "/learning/api/v1/operations", _hidden(handle, "import_match_workspace")
-            + hidden("expected_catalog_revision", revision) + upload + transfer_choices(locale),
+            + hidden("expected_catalog_revision", revision) + upload + transfer_choices(locale, conflict_identity="learning-upload-conflict"),
             "creation.import.action", multipart=True), level=3)
     source_options = tuple((item["match_snapshot_id"], _match_label(locale, profile, item["match_id"], recorded))
                            for item in state["current_match_snapshots"])

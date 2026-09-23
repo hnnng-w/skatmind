@@ -20,7 +20,7 @@ Add does not incorporate separately executed decision Reports.
 | Name entry | Create learning collection | `/learning/create` |
 | Source choice | Saved Match | Native `source_handle`; no submission on choice |
 | Direct Add | Add Match to collection | `/learning/add-recorded-match`, fixed `keep_current` |
-| Current inputs | Match versions used for the evaluation | Existing Catalog Current selections |
+| Current inputs | Match versions selected for evaluation | Existing Catalog Current selections |
 | Ready | Evaluate collection | `prepare_learning_artifacts` |
 | Prepared | View evaluation | Native `#learning-results` link |
 | Explicit repeat | Recreate evaluation | Same preparation form in the same secondary position |
@@ -28,8 +28,70 @@ Add does not incorporate separately executed decision Reports.
 The de/en catalogs carry the corresponding localized wording. The extra next-task
 panel and adjacent-source jump are removed; source/selection remedies and the real
 results link remain. Feedback markers, section anchors and disclosure/form identity
-remain available to #223 and #245. Shared Match-transfer policy wording is unchanged;
-the shared selected-version caption now says evaluation rather than insights.
+remain available to #223 and #245. Issue #257 clarifies the shared conflict-policy
+wording while preserving the distinct direct-Add and transfer selection policies.
+
+## Selected versions and conflict policy (Issue #257)
+
+The starting implementation at `85b4e75eb14447f3ee83ffa8c1b3074467b3b14d` uses
+one form/button per non-Current Snapshot, not a version-selection dropdown. Its
+normal singleton already had no selection form, but emitted an empty alternatives
+disclosure with only the Match heading. The optional Report-attachment dropdown
+serves a different operation and retains its domain. #257 preserves these contracts.
+
+| Captured accepted state | Presentation / explicit remedy | Owner and unchanged fields |
+| --- | --- | --- |
+| One retained Snapshot, validly Current | Read-only Selected for evaluation summary; no empty alternatives | Captured `corpus_web/state.py` Current entry |
+| Several retained Snapshots | Current stays visible; one Choose a different saved version disclosure inside that Match block | Existing per-alternative `select_current_snapshot` forms: `managed_handle`, `operation`, `expected_catalog_revision`, `match_id`, `match_snapshot_id` |
+| Missing Current | Specific warning and available explicit version buttons, even for one candidate | Defensive presentation only; ordinary canonical Catalogs require Current |
+| No retained versions | Existing Add/absence guidance; no fabricated choice | Existing task projection |
+| Rejected selection | Existing contextual error focus and actual alternative forms | Existing validation/repeated-form identity; hidden transport is not a preserved user choice |
+| Non-current Teacher source | Independent blocker with existing source removal/clear or matching-version remedy | Existing exact binding classification; cardinality does not bypass it |
+
+The pure display helper uses each captured Snapshot's stored **Workspace revision**,
+not the Catalog revision. Equal-revision entries receive `variant 1`, `variant 2`,
+etc. in canonical same-Match/same-revision entry order. These display-only ordinals
+are neither chronology, quality, stable external identifiers nor persisted fields;
+another captured set can renumber them. Equal titles, revisions and progress never
+deduplicate identities. Summary, alternative button accessible name and #256 affected
+caption use the same label mapping. Observed Game/recorded decision counts do not
+claim completion or analysis. Existing fallback labels and escaping remain.
+
+Use version for evaluation selects the exact retained alternative; it returns to
+the existing bare `/learning/current`. Opening the disclosure sends no request.
+Selection does not edit a Workspace/object, import, analyze, prepare or rebind Teacher
+Reports. A true no-op preserves matching outputs; a real change invalidates them by
+the existing operation. Evaluate collection remains a separate explicit submission.
+Only one Current version per Match contributes, not all retained alternatives.
+
+Advanced **Same revision, different content** remains a configured import policy,
+not a standing error. The native select retains exactly `reject` (default) and
+`retain`, with its complete explanation associated by `aria-describedby`:
+
+* **Do not add the conflicting version** (`reject`): a typed same-revision content
+  conflict returns `resolution_required` without changing the accepted Catalog.
+  Contextual feedback states that the attempted version was not added.
+* **Keep as a separate saved version** (`retain`): add the distinct immutable
+  Snapshot alongside existing versions, including when several variants already
+  exist. Nothing is merged, overwritten or declared correct.
+* An exact duplicate remains `duplicate_snapshot`; ordinary older/newer revisions
+  remain their existing classifications, not unresolved same-revision conflicts.
+
+Direct Add still fixes `keep_current`: first Add selects the first version; later
+Adds, including retained variants, keep Current. Shared transfer/upload help instead
+explains their independent `selection_mode` choice and existing `select_imported`
+default. There is no automatic retry, modal or extra confirmation step.
+
+#256 Match/Snapshot targets, affected-versus-Current content and native focus remain;
+the affected non-Current label is visible outside the disclosure. #245 receipt expiry
+cannot remove accepted content. All ten serializers, source guards, failed-save/CAS
+semantics, preparation defaults and standalone interfaces remain unchanged. Rendering
+uses captured facts only. Inventory stays **67 POST routes / 112 forms**; three
+display/help keys bring **1,735** paired catalog keys to **1,738**.
+
+See [installed evidence and limits](unified_workflow_visual_contract.md#learning-version-selection-issue-257).
+Result/download organization and the distinct automatic Match inclusion, Report
+incorporation and future recommendation-adaptation questions remain open.
 
 ## Native routes and discovery
 

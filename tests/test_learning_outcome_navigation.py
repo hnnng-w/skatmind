@@ -59,7 +59,7 @@ def test_first_add_returns_to_accepted_match_not_source_selector(localized_serve
     page = follow(browser, response)
     row = node(page, target)
     assert row["attrs"]["tabindex"] == "-1" and "autofocus" not in row["attrs"]
-    assert "Version used for evaluation" in row["text"]
+    assert "Selected for evaluation" in row["text"]
     assert any(p["attrs"].get("id") == target for p in notice(page, "version_added")["parents"])
 
 
@@ -83,11 +83,13 @@ def affected(page, active):
     row = node(page, match_target(active, outcome.match_id))
     match = next(m for m in learning.build_unified_learning_state_v1(active)["matches"]
                  if m["match_id"] == outcome.match_id)
-    number = next(n for n, s in enumerate(match["snapshots"], 1)
-                  if s["match_snapshot_id"] == outcome.snapshot_id)
-    selected_number = next(n for n, s in enumerate(match["snapshots"], 1) if s["current"])
-    assert text("en", "task.learning.affected_version", number=number,
-                revision=outcome.copied_revision, selected_number=selected_number) in row["text"]
+    same_revision = [s["match_snapshot_id"] for s in match["snapshots"]
+                     if s["workspace_revision"] == outcome.copied_revision]
+    label = f"Saved recording revision {outcome.copied_revision}"
+    if len(same_revision) > 1:
+        label += f" — variant {same_revision.index(outcome.snapshot_id) + 1}"
+    assert f"Affected saved version: {label}. The selected input is shown below." in row["text"]
+    assert "Selected for evaluation" in row["text"]
     current = next(s for s in match["snapshots"] if s["current"])
     assert text("en", "task.learning.saved_revision",
                 revision=current["workspace_revision"]) in row["text"]
@@ -195,7 +197,7 @@ def test_same_revision_variants_use_exact_snapshot_not_revision(localized_server
     assert active.entry_outcome.snapshot_id != first
     assert active.entry_outcome.copied_revision == workspace.revision
     versions = [n for n in Hierarchy(page).nodes
-                if n["attrs"].get("id", "").startswith("learning-version-")]
+                 if n["tag"] == "div" and n["attrs"].get("id", "").startswith("learning-version-")]
     assert len(versions) == 2 and versions[0]["attrs"]["id"] != versions[1]["attrs"]["id"]
 
 
@@ -269,8 +271,7 @@ def test_post_to_get_supersession_never_replays_add_or_attributes_old_notice(
             assert 'id="' + old_target + '"' not in page
     else:
         node(page, old_target)
-        assert text("en", "task.learning.affected_version", number=1,
-                    revision=active.entry_outcome.copied_revision, selected_number=1) not in page
+        assert "Affected saved version:" not in page
     if change == "prepare":
         row = notice(page, "prepared")
         assert any(p["attrs"].get("id") == "learning-results" for p in row["parents"])

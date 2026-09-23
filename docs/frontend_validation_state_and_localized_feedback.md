@@ -149,6 +149,20 @@ The standalone Capture and Corpus renderers are not modified.
 
 ## Accepted And Submitted State
 
+Issue #257 keeps Learning's existing value-free per-alternative selection forms,
+including exact Match/Snapshot/revision bindings and repeated-form identity. There
+is no new version dropdown or substituted Current value after rejection. A normal
+Current singleton has no empty alternatives disclosure; defensive missing Current
+still offers its supported explicit remedy. Errors open the relevant containing
+disclosure and take focus priority; non-current Teacher blockers remain visible.
+The direct-Add native policy select retains safe submitted `reject`/`retain` and
+source choice through language changes. Enhanced unsent restoration remains #223's
+bounded behavior; hidden transport is excluded. Full conflict descriptions are
+associated with native selects, and version buttons have Match/revision/variant
+accessible names plus recorded-count descriptions. No validation, registry, script,
+route, error-code, receipt-lifetime or redirect contract changes. Inventory remains
+67/112; three localized display/help keys bring paired keys to 1,738.
+
 Issue #256's [Learning outcome returns](learning_direct_match_entry.md#outcome-returns-issue-256)
 distinguish accepted direct Add and actual successful preparation from rejection.
 Existing `400`/`409`, same-revision `resolution_required` HTTP `200`, safe values,
