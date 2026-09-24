@@ -55,6 +55,15 @@ consent, and never extends expiry. Enhanced unsent fields remain bound to the ex
 form/source; native no-script switching preserves submitted values only. Named
 submitters never enter language overlays. Native selection alone sends no POST.
 
+Issue #262 makes only the editor's optional Matador input `7em`, bounded by available
+width, with concise all-types help and the Session evidence restriction. Its label
+and errors remain full natural width and help/error IDs remain separately associated.
+Accepted supplied counts and blank values still prefill from the selected Command;
+safe submitted/unsent language restoration follows the existing boundaries above.
+The verified preview stays read-only. Select/Preview/Cancel expiry, no-op retention,
+real Apply invalidation and fresh unchecked partial-removal consent are unchanged.
+See [count presentation](compact_game_declaration.md#optional-count-presentation-issue-262).
+
 Apply holds the existing Session lifecycle gate and Session lock, checks exact
 context/generation/persistence content and the current file, rebuilds the canonical
 correction, and compares the complete result including retained/discarded records

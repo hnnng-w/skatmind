@@ -1898,6 +1898,17 @@ and [evidence](unified_workflow_visual_contract.md#optional-learning-report-atta
 remaining R13/R14 and automatic-use decisions stay open. UAT-01 unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
 
+Issue #262 implements only R07a/b: a container-bounded, text-relative optional
+Matador input and concise bilingual help in Session/Match declaration entry and
+the staged Session editor. Existing input/number/evidence/source/correction
+contracts and 67 routes / 112 forms / 1,802 paired keys remain. See the
+[field map](compact_game_declaration.md#optional-count-presentation-issue-262) and
+[measurements](unified_workflow_visual_contract.md#optional-matador-entry-issue-262).
+#261 stays completed. Exact merged-#262 `check` and `v1-supported-platform-matrix`
+gate manual closure. Other R07/audited residues and automatic-Learning decisions
+remain separate; #208 stays open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07
+open and B-06 closed. No whole-R07/UAT acceptance or release-readiness claim follows.
+
 Issue #261 repairs R15a/c/d dedicated deletion captions, concise exact-scope
 confirmation and redundant valid-preview links. R15b was already correct and R15e
 unchecked consent is preserved. Separate Cancel, exact target/expiry/filesystem

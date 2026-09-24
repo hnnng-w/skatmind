@@ -14,6 +14,53 @@ The new private inventory is 67 POST routes / 112 forms and 1,657 paired catalog
 keys. Source Command Matadors, explicit Boolean flags and blank-number semantics
 remain authoritative; inferred analysis counts never prefill corrections.
 
+## Optional count presentation (Issue #262)
+
+R07a/b changes only the optional Matador field's presentation. Starting clean
+`bug/262-optional-matador-entry` HEAD was
+`4cd274db3df883b29d021de6ec78f01fda6d245a`, after integrated #261. The actual #262
+specification, #208 R07 and supplied post-#259 width/help audit references were
+checked against current callers. The older #228 evidence below remains historical;
+it did not establish that the repeated Matador complaint was resolved.
+
+| Caller | Count ID / help owner | Evidence boundary |
+| --- | --- | --- |
+| `task_first_session_rendering._command` | `session-declaration-matadors`; shared renderer | Current accepted mode, perspective and permitted ownership |
+| `session_declaration_correction_rendering` editor | `session-correction-matadors`; same renderer | Exact #250 selected source; no later inferred count |
+| `task_first_match_rendering.operation_form` | `match-declaration-matadors`; same renderer | Existing whole-candidate and continuation validation |
+| Retained Session compatibility rendering branches | Marker-derived correction ID or `session-command-matadors` | Existing caller semantics; no restored normal direct-save path |
+
+The field remains one native `input type="text" name="matadors"`, with its exact
+submitted value. An opt-in `declaration-matadors` class limits only this input to
+`7em` and available width. Its label's single `minmax(0, 1fr)` grid track prevents
+intrinsic sizing from overflowing a narrow container at enlarged text. Label, help
+and errors retain natural width. The generic input helper, bid, announcements,
+standalone controls and workflow script are unchanged. No acceptance-related
+attribute, numeric filtering, formatting, truncation or default is introduced.
+
+The existing optional disclosure still opens for a supplied count or applicable
+error. One concise paragraph combines unknown/blank guidance, all-type ranges,
+the top-trump count and positive with/without-two example. Session adds one short
+permitted-evidence/Live-defender restriction. Caller-specific `-help` and
+`-evidence` IDs associate these with the field; validation appends its existing
+error association. No nested help disclosure or Game-type JavaScript is needed.
+Changing Game type without submitting therefore leaves the guidance truthful.
+
+Blank stays `None`; Suit stays `1..11`, Grand `1..4`, and Null requires explicit
+clearing. Positive bid semantics, exact source bindings, #223 safe-value/disclosure
+restoration, #245 receipts and #250's nonrenewable Select/Edit/Preview/Apply/Cancel
+lifetime remain. A verified preview is read-only. Live defenders still cannot
+supply counts; Live declarer ownership must verify, and Retrospective requires the
+complete deal. Match retains its distinct validation boundary. Formatting consults
+no Settings identity, later hand or Report and adds no inference or Product work.
+
+Current inventory remains **67 POST routes / 112 forms / 1,802 paired catalog keys**,
+Package 0.17.0, Python >=3.13, AGPL-3.0-only, the existing dependency floors including
+tzdata>=2026.4, and 98 scenarios. See
+[measured before/after evidence](unified_workflow_visual_contract.md#optional-matador-entry-issue-262).
+R07's empty evidence wrappers, initial-hand findability and Unknown/Exact controls
+remain separate work, as do other audited residues and automatic-Learning decisions.
+
 ## Shared fields and accepted summary
 
 `app_web/compact_declaration_rendering.py` supplies the same fields to active

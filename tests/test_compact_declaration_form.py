@@ -82,7 +82,9 @@ def test_field_failures_have_exact_private_reasons(field, value, reason):
     assert isinstance(error.value, ValueError) and error.value.reason == reason
 
 
-@pytest.mark.parametrize("game_type,count", (("clubs", 11), ("grand", 4), ("grand", 2)))
+@pytest.mark.parametrize("game_type,count", (
+    ("clubs", 1), ("clubs", 10), ("clubs", 11), ("grand", 1), ("grand", 4), ("grand", 2),
+))
 def test_supplied_positive_count_is_preserved_without_polarity(game_type, count):
     declaration = parse_compact_declaration({
         "game_type": game_type, "bid_value": "", "matadors": str(count)})

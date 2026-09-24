@@ -11,7 +11,7 @@ from .stateful_localization import text, translated
 from .task_first_rendering import input_field, paragraph, select_field
 
 
-def compact_declaration_fields(locale, values=None, *, session=False):
+def compact_declaration_fields(locale, values=None, *, count_id, session=False):
     values = values or {}
     core = select_field(locale, "game_type", "declaration.game_type",
         (("", text(locale, "declaration.choose")), *(
@@ -23,10 +23,18 @@ def compact_declaration_fields(locale, values=None, *, session=False):
         + (' checked' if values.get(name) is True else '') + '><span>'
         + translated(locale, "declaration." + name) + '</span></label>'
         for name in BOOLEAN_DECLARATION_FIELDS)
-    details = input_field(locale, "matadors", "declaration.matadors", values.get("matadors"))
-    details += paragraph(locale, "declaration.count_help") + paragraph(locale, "declaration.count_examples")
+    count_id = escape(count_id, quote=True)
+    help_id = count_id + "-help"
+    session_id = count_id + "-evidence"
+    described_by = help_id + (" " + session_id if session else "")
+    value = values.get("matadors")
+    details = ('<label>' + translated(locale, "declaration.matadors")
+        + f' <input name="matadors" type="text" class="declaration-matadors" id="{count_id}"'
+        + f' aria-describedby="{described_by}" value="{escape(str(value) if value is not None else "", quote=True)}"></label>')
+    details += (f'<p id="{help_id}">' + translated(locale, "declaration.count_help")
+        + ' ' + translated(locale, "declaration.count_examples") + '</p>')
     if session:
-        details += paragraph(locale, "declaration.session_count")
+        details += f'<p id="{session_id}">' + translated(locale, "declaration.session_count") + '</p>'
     return ('<div class="compact-declaration"><div class="declaration-core">' + core + '</div>'
         + '<fieldset class="declaration-options"><legend>' + translated(locale, "declaration.options")
         + '</legend><div class="declaration-checks">' + flags + '</div>'

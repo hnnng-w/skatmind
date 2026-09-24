@@ -2894,6 +2894,18 @@ gate manual #259 closure. #208, remaining R13/R14 and automatic-use questions st
 open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 No whole-UAT acceptance or release-readiness claim follows.
 
+Issue #262 implements only R07a/b optional Matador sizing and concise bilingual
+help from clean `bug/262-optional-matador-entry` at
+`4cd274db3df883b29d021de6ec78f01fda6d245a`. The native text field is `7em`/container-
+bounded; label/help/error widths remain independent. Blank, ranges, positive with/
+without counts, Session evidence, Match validation and #250 staged correction are
+unchanged. Inventory remains 67/112/1,802. See
+[caller map](compact_game_declaration.md#optional-count-presentation-issue-262) and
+[installed evidence](unified_workflow_visual_contract.md#optional-matador-entry-issue-262).
+#261 remains completed. Both exact merged-#262 CI jobs gate manual closure; #208,
+other R07/audited residues and automatic-Learning decisions remain open. UAT-01
+unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
 Issue #261 clarifies only R15a/c/d deletion grammar, compact whole-recording
 confirmation and valid-preview navigation from clean
 `bug/261-recording-deletion-presentation` at `9977fb93c5909388423ac64c9b5517d354555e69`.

@@ -108,7 +108,7 @@ def session_command_fields(locale: str, view: TaskFirstSessionV1, kind: str, *, 
     if kind == "set_declarer":
         return select_field(locale, "player_id", "task.field.declarer_player_id", players)
     if kind == "set_declaration":
-        return compact_declaration_fields(locale, session=True)
+        return compact_declaration_fields(locale, count_id="session-command-matadors", session=True)
     if kind == "record_discard":
         cards = facts.remaining_hand_for(facts.declarer_player_id) if normal else None
         return card_select(locale, cards=cards)
@@ -225,7 +225,7 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
             "declaration_selection", declaration_binding(context, marker, target))
         fields += paragraph(locale, "task.session.declarer",
             player=player_name(locale, view.facts.players, declarer))
-        fields += compact_declaration_fields(locale, values, session=True)
+        fields += compact_declaration_fields(locale, values, count_id=marker + "-matadors", session=True)
         return form(locale, "/sessions/command", fields, "declaration.save", primary=normal)
     if correction:
         fields += paragraph(locale, "task.session.correction_help") + input_field(

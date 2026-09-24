@@ -1128,6 +1128,9 @@ form:has(> input[name="declaration_form"]) > p { margin-block: 0.25em; }
   max-width: 100%;
 }
 .declaration-count { border-top: 1px solid var(--line); padding-block: 0.5em; }
+/* Only the optional count is narrow; its label, help and errors retain natural width. */
+.declaration-count > label { grid-template-columns: minmax(0, 1fr); }
+.compact-declaration input.declaration-matadors { width: 7em; max-width: 100%; }
 .accepted-declaration dl {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 15em), 1fr));

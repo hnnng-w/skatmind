@@ -69,6 +69,14 @@ prepare a Dataset, materialize a Report, or run analysis.
 
 ## Normal, Advanced, and Technical hierarchy
 
+Issue #262 scopes compact sizing to the optional Matador input in shared Session/
+Match declaration forms, including the #250 editor. The existing count disclosure
+contains concise bilingual all-types help and an applicable Session evidence note.
+Labels/errors wrap independently of the `7em`, container-bounded text input. It
+does not change generic controls, disclosure preferences, hand-evidence entry,
+declaration semantics or the staged correction actions. See
+[caller and field map](compact_game_declaration.md#optional-count-presentation-issue-262).
+
 Issue #244 supersedes the former **Current state → Next required Skat action →
 Next step** instruction stack. Normal Session/Match recording has compact accepted
 identity/status, one task heading immediately beside its existing form, and entered

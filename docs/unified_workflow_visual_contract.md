@@ -2227,6 +2227,126 @@ completed; #208 and other residues/product questions remain open. UAT-01 unaccep
 UAT-02–12 paused, B-09/B-07 open, B-06 closed. Both exact merged-#260 CI jobs remain
 manual closure gates; implementation verification is not whole-R12 human acceptance.
 
+## Optional Matador entry (Issue #262)
+
+Started on clean `bug/262-optional-matador-entry` at
+`4cd274db3df883b29d021de6ec78f01fda6d245a`. Actual #262, #208 R07 and the supplied
+post-#259 width/help audit references were read. Current code still used a generic
+native **text** input and two Match/three Session help paragraphs. The initial eight
+new presentation cases failed on the absent opt-in class; 129 existing parser cases
+passed. The #228 historical browser evidence is retained in the declaration guide,
+not treated as acceptance of the later R07 complaint.
+
+`scripts/verify_optional_matador_entry.py` uses independent installed Wheels, the
+existing dependency-free DevTools transport and legal returned-form fixtures. The
+scratch environments include pytest only to import those existing test fixtures;
+there is no new runtime/browser dependency or full-check browser gate. It checks
+16 installed module/resource hashes against Wheel bytes and HEAD/repaired source,
+and checks authenticated served CSS/script bytes against installed resources.
+
+Completed evidence is in `%TEMP%\opencode\262-before-verified\evidence.json` and
+`262-after-final\evidence.json`, with adjacent inspected PNGs, eight saved recording
+specimens, and exact retained Session/Request/Result/Report JSON. The separate
+`262-baseline-env`/`262-repaired-env` installations use Python **3.13.7**, Package
+**0.17.0**, jsonschema **4.26.0**, referencing **0.37.0**, tzdata **2026.4**, pytest
+**9.1.1** and headless Edge **153.0.4234.48** on Windows. Only disposable synthetic
+roots are used.
+
+Each Wheel completes **38 measurements** over Session entry, staged declaration
+editing, Match entry/editor, evidence/format/Null errors and retained-artifact views.
+All three editable callers have de/en and JavaScript on/off specimens. The bounded
+responsive cells use desktop **1365×900**, **390×844**, **320×800** and **200% computed
+text**, rather than repeating every workflow at every size.
+
+| Specimen | Available label width | Input before → after | Count section height before → after |
+| --- | ---: | ---: | ---: |
+| German Session entry, desktop | 684.23px | 684.23 → 112px | 443.75 → 278.97px |
+| German Session entry, 390px | 317px | 317 → 112px | 716.52 → 402.95px |
+| German Session entry, 320px | 247px | 247 → 112px | 865.30 → 477.34px |
+| German Session entry, 320px / enlarged | 247px | 247 → 224px | 3375.39 → 1607.61px |
+| English Session editor, desktop | 1216px | 1216 → 112px | 344.56 → 229.38px |
+| English Session editor, 320px / enlarged | 273px | 273 → 224px | 2681.08 → 1260.45px |
+| German Match count 11, desktop | 1010.81px | 1010.81 → 112px | 291.16 → 225.56px |
+| German Match count 11, 390px | 286.22px | 286.22 → 112px | 539.13 → 299.95px |
+| German Match count 11, 320px | 216.22px | 216.22 → 112px | 687.91 → 349.55px |
+| German Match count 11, 320px / enlarged | 216.22px | 216.22 → 216.22px | 2546.08 → 1175.05px |
+| English Match Null error, desktop | 1010.81px | 1010.81 → 112px | 331.95 → 266.36px |
+
+The Match section has its existing padding: its 320px outer width is **245.41px**,
+with **216.22px** available to label/help/input. The first repaired measurement found
+a 7.78px intrinsic-grid overrun into that padding at enlarged text. The final scoped
+label track fixes it; the final field fits its actual label content width. Input
+font stays **16px / 32px**, height **44.39px / 69.19px**, padding **8.8px 10.4px**.
+Matched bid width/height/font/padding are unchanged in all 38 cells. `11`, longer
+invalid text, visible labels, uncompressed help/errors and the blue **3px** keyboard
+focus ring were inspected. Narrow/enlarged help still wraps and requires scrolling;
+there is no fixed line-count or single-screen claim, clipping or smaller font.
+
+Native pointer editing and Tab/Enter submission exercise verified Live declarer
+Grand-four, Live-defender count rejection followed by blank success, retained
+`12345bad`, submitted/unsent language preservation, Match Clubs-eleven, Null rejection
+and explicit clearing. The text input permits malformed text to be edited; server
+rejection is separate from malformed/duplicate HTTP tests. Error focus is observed
+on the actual summary and next Tab reaches its count link; no focus is assigned by
+the verifier. Some native autofocus summaries do not acquire `:focus-visible`, while
+the next keyboard link and field retain the blue ring. All IDs are unique and help
+associations resolve. Staged verified previews contain no editable count. Actual
+Cancel/no-op preserve accepted bytes; real Apply and strict reopen retain their
+existing boundaries. Existing focused tests retain partial consent, source/expiry,
+wrong-Game, equal-revision, stale and prepublication-failure coverage.
+
+Before/after comparisons match **142 route/semantic payloads**, canonical declarations
+in eight saved specimens and every instrumented operation count. Each run records
+**118 actions**, **26 passive measurement groups**, and POSTs split into **44 fixture
+setup / 66 native / 19 retained-artifact setup / 10 retained-artifact interaction /
+3 explicit final mutation**. Initial fixture setup uses 12 Session and 8 Match saves;
+native actions use 8 of each, with 8 explicit language profile writes and 14 existing
+Match page-preparation calls. Separate bounded artifact setup uses only three Plays
+per family, 8 Session/7 Match saves and one real analysis per family. Those artifacts
+are reused across views, help and language; the same execution's complete bytes are
+compared without stripping timing fields. All measurement/help/typing groups add
+zero instrumented operations and zero POSTs.
+
+The retained-artifact interaction includes four explicit profile-language writes,
+three existing Match page preparations, and four canonical correction calls plus
+one existing no-op Apply Checkpoint-collection call. These are not attributed to
+help rendering. It saves no recording and executes no analysis. Final genuine
+Session Apply uses one save and normal Result invalidation; the unrelated Match
+Report stays byte-identical. Request/Result/Report comparisons are authenticated
+HTTP downloads, not native Save-dialog tests.
+
+| Retained value / installed artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Session source | 11202 | `f2d8537aba639db642d59a54e0881af9e8251d7a81fea9df4ad17055d8d6a85f` |
+| Request | 887 | `b56173dfcecf2b65ac9d61bc9fc5ee6878731310d8fa89807fe0a7ec35d23776` |
+| Result | 10751 | `080006282bb7fd09d9e9b633a233f58b8001525a3e5fcad585ed766210ed0e5a` |
+| Match Report | 8739 | `b248cd77b1113a750f04d9bf749fe5df152204f6b1984dd208f612eed88dce39` |
+| Baseline Wheel | 1751386 | `7e601d0ffd4555bc6c93cf5df3c38b728c7512b0a621b2dac8339bfbaf6d27b3` |
+| Final repaired Wheel | 1751381 | `83c9ed816ba936fa16704de7ce3d68f5144b0a11329b24f3e6a7cbd6f5804a8d` |
+| Final served CSS | 42771 | `0b3fb9097e0f868b87a70e6639d6ac0e0c4569a06ece80d9002feb8bd7648a26` |
+| Unchanged served script | 5626 | `aa3871d9880326fc27590d80f7f0bf9ebc0a7cf31fd64fc2fd04a1e3932efce1` |
+
+The focused declaration/correction run passed **221 tests in 177.68s**. The subsequent
+catalog key/order/placeholder, validation/language, canonical declaration/Matador,
+Session transition and final field/parser run passed **394 tests in 46.69s**, no
+skips. These overlapping selections are not added together. An initial test command
+named a nonexistent incremental-validation test file and ran no tests; the corrected
+command uses `test_session_transitions.py`. Earlier browser attempts retain an import
+setup failure and two timeouts caused by trying to open an inner disclosure before
+its closed ancestor. The bounded outermost-first native opener fixed the verifier;
+no Product behavior was altered for it. The first repaired run predates the final
+grid-track correction and is not the final evidence.
+
+All edits/evidence precede the required unchanged-tree full check; its actual child
+exit, complete log and stage/test/skip totals belong to the implementation report.
+This is computed-text/desktop emulation, not browser zoom, a physical device,
+screen-reader evidence or maintainer UAT. Inventory remains **67 / 112 / 1,802**,
+with unchanged Package/license/dependency/public/persistence/98-scenario contracts.
+#261 stays completed. Exact merged-#262 `check` and `v1-supported-platform-matrix`
+must pass before manual closure. #208, other R07/audited residues and automatic-
+Learning decisions stay open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open,
+B-06 closed. No whole-R07 acceptance or release-readiness claim follows.
+
 ## Recording deletion confirmation (Issue #261)
 
 Started on clean `bug/261-recording-deletion-presentation` at

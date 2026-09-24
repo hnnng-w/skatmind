@@ -352,6 +352,15 @@ controls use `aria-invalid="true"` and `aria-describedby`; focus styling and
 status presentation do not depend on color alone. If a prior valid Result remains
 visible, the summary says that it was retained.
 
+Issue #262 adds caller-specific help IDs to the optional Matador text input in
+normal declaration entry and the staged Session editor. The existing validator
+appends its error IDs to `aria-describedby`, opens the count disclosure and links
+the summary to that visible field. Only the input is narrow; errors/help retain
+natural width. Safe invalid text remains intact for correction, including native
+submitted-language restoration and enhanced bounded unsent restoration. There is
+no numeric-only filter, truncation, new acceptance attribute or hidden/consent
+restoration. See [count guidance](compact_game_declaration.md#optional-count-presentation-issue-262).
+
 Translation occurs from structured message keys at render time. A language
 change preserves the rejected form and values, then renders its summary and
 messages in the newly selected German or English locale. Technical contracts,

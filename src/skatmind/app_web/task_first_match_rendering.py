@@ -78,7 +78,7 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
             (("", text(locale, "declaration.choose_declarer")), *(
                 (player["player_id"], _named_seat(state, locale, player["player_id"]))
                 for player in state["participants"])), values.get("declarer_player_id"), required=True)
-        fields += compact_declaration_fields(locale, values)
+        fields += compact_declaration_fields(locale, values, count_id="match-declaration-matadors")
         return form(locale, "/matches/api/v1/operation", fields, "declaration.save", primary=primary)
     definition = get_frontend_form_by_key_v1(
         f"match.{'analysis' if analysis else 'operation'}.{operation}")

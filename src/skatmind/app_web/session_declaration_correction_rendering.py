@@ -156,7 +156,8 @@ def render_session_correction(context, locale):
                  for p in context.state.players), proposal.declarer_player_id, required=True)
         else:
             fields += compact_declaration_fields(locale,
-                build_serializable_game_declaration(proposal.declaration), session=True)
+                build_serializable_game_declaration(proposal.declaration),
+                count_id="session-correction-matadors", session=True)
         main = _action(context, locale, "preview", selected.token,
                        "session.correction.preview", fields, primary=True)
     else:
