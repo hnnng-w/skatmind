@@ -2894,6 +2894,21 @@ gate manual #259 closure. #208, remaining R13/R14 and automatic-use questions st
 open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 No whole-UAT acceptance or release-readiness claim follows.
 
+Issue #260 implements bounded R12a–c saved Match progress from clean
+`bug/260-match-progress-presentation` at `6477188ee89034bb5d49f8f5b93086a1f73150d6`.
+Accepted completed Tricks and incomplete-Trick Cards have one plain coverage caption;
+first-incomplete navigation names its captured target, and round context is secondary.
+All six position states, 36 entries/twelve groups, tile-local selected text/ARIA,
+rotation, readiness and source/recovery/Report lifetimes remain. See
+[mapping](match_game_navigation.md#saved-progress-presentation-issue-260) and
+[installed evidence](unified_workflow_visual_contract.md#saved-match-progress-issue-260).
+Inventory stays 67 routes / 112 forms; three captions bring paired keys to 1,800.
+#259 remains completed; its exact starting-SHA CI run 35977510861 subsequently passed
+both jobs. That baseline is separate from #260's final local check and exact merged-
+commit CI requirements. #208, other R01/R07/R11/R13/R15 residues and automatic Learning
+questions stay open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
+No whole-R12/UAT acceptance or release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

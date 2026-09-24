@@ -149,7 +149,7 @@ execution, Result lifetime, and contextual bilingual feedback are documented in
 
 Issue #238 supersedes the old progress → suggestion → full overview → task order
 and normal Position labels. Compact started/complete-trace/passed counts now precede
-the selected **Game N of 36**, actual round, named seats and existing recording
+the selected **Game N of 36**, accepted progress, named seats and existing recording
 action inside `#match-recording`. The one native 36-tile/twelve-round overview
 follows recording at `#match-games`. Tiles and first-unfinished links use the
 existing `/matches/position/N#match-recording` destination. The suggestion still
@@ -157,6 +157,16 @@ uses the first view neither passed nor play-complete; it is omitted as a CTA whe
 already selected, can point backward, and never changes selection automatically.
 See [Match Game navigation](match_game_navigation.md) for exact progress, native
 focus, same-source lifecycle and measured before/after evidence.
+
+Issue #260 supersedes only R12a–c's activity-sounding partial label, ambiguous
+first-open wording and redundant primary round paragraph. Accepted completed
+Tricks and any one/two Cards in the next Trick share one compact coverage caption;
+empty/setup/zero-Play-ready/passed/complete remain distinct. The existing captured
+first-incomplete target is named by **Open Game N for recording**. Twelve secondary
+round headings and all 36 entries remain, with the already-correct tile-local text
+and `aria-current` selection cue (R12d). Coverage is not unsaved work, analysis
+readiness or settlement. No state, operation, Report lifetime or workflow-script
+change follows; historical UAT observations and remaining residues remain open.
 
 An empty position offers Record this game as primary and Mark as passed as
 secondary. Neither requires a Game ID or timecode. Optional exact values remain

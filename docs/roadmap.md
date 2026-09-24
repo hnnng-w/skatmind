@@ -1898,6 +1898,19 @@ and [evidence](unified_workflow_visual_contract.md#optional-learning-report-atta
 remaining R13/R14 and automatic-use decisions stay open. UAT-01 unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
 
+Issue #260 implements only R12a–c saved Match coverage, understandable first-incomplete
+navigation and secondary round context. Accepted partial counts distinguish complete
+Tricks from one/two Cards; existing empty/setup/ready/passed/complete classification,
+36-entry rotation, next-target rules and tile-local selected text/ARIA remain. No
+recording, source, readiness, lifetime or public/persistence change follows. See
+[mapping](match_game_navigation.md#saved-progress-presentation-issue-260) and
+[evidence](unified_workflow_visual_contract.md#saved-match-progress-issue-260).
+Inventory stays 67/112; paired keys become 1,800. #259 remains completed, with both
+baseline CI jobs passed. Exact merged-#260 `check` and `v1-supported-platform-matrix`
+gate manual closure. #208, other residues and automatic-use decisions remain open;
+UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed. Whole-R12 human
+acceptance and release readiness are not claimed.
+
 Issue #250 adds the bounded R06 normal Session declarer/declaration path: accepted-
 fact selection, immutable canonical Preview and explicit Apply/Cancel, with fresh
 consent for partial suffix removal. Public replay, Checkpoints and persistence are

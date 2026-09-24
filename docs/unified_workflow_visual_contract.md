@@ -1,5 +1,9 @@
 # Unified Match and Learning visual contract
 
+Issue #260 clarifies accepted Match recording coverage and first-incomplete navigation,
+and makes round context secondary. Its [installed evidence](#saved-match-progress-issue-260)
+supersedes only R12a–c presentation and preserves the existing tile-local selected cue.
+
 Issue #256 returns direct Learning Add and successful preparation to their actual
 outcomes. Its [native before/after evidence](#learning-outcome-returns-issue-256)
 separates target scrolling, focus, next Tab and receipt delivery, with measured
@@ -2131,3 +2135,90 @@ public/persistence contracts, preparation defaults and 98 scenarios remain uncha
 #258 stays completed; both exact merged-commit CI jobs gate manual #259 closure.
 #208, remaining R13/R14 and automatic-use questions stay open. UAT-01 is unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
+
+## Saved Match progress (Issue #260)
+
+`scripts/verify_match_progress_presentation.py` reuses the optional dependency-free
+DevTools transport. Separate baseline/repaired Wheel environments reject checkout
+imports and verify sixteen installed module/catalog/resource hashes against the
+intended source. All managed roots and exports are fresh synthetic scratch data.
+The source/meaning map is in [Match navigation](match_game_navigation.md#saved-progress-presentation-issue-260).
+
+The completed matched evidence is under `%TEMP%\opencode\`:
+
+* `260-before-verified/evidence.json` and `260-after-verified/evidence.json`;
+* `260-baseline-env/`, `260-repaired-env/` and their separate `260-*-wheel/` artifacts;
+* per-state recording/overview PNGs, plus local selected-tile captures for enlarged text.
+
+Each phase completed **100 measurements**: de/en × JavaScript off/on, each with
+empty, declaration-needed, zero-Play-ready and 1/2 Plays at 390×844, plus 3/4/29 Plays,
+passed Game 2 with earlier unfinished Game 1, and complete Game 1 at 1365×900,
+390×844, 320×800 and 320×800 with 200% computed text. Windows CPython **3.13.7**,
+SkatMind **0.17.0**, Edge **153.0.4234.48**, pytest **9.1.1**, jsonschema **4.26.0**,
+referencing **0.37.0** and tzdata **2026.4** were used in the independent installations.
+The full-check environment is separate and is recorded with its own log.
+
+Baseline screenshots confirm the activity wording and generic count even after a
+saved first Trick, the prominent round paragraph, and the ambiguous first-open cue.
+The selected cue was already correctly inside the tile. After repair, the selected
+heading remains **24px/700** (48px enlarged); round group headings remain **18.72px**
+(37.44px enlarged) with weight **700 → 400**, unchanged color, and no duplicate
+selected-Game round paragraph. Only Match-scoped heading weight CSS changed.
+Inspected screenshots show the literal partial/remainder captions, passed versus
+complete wording, backward target and retained text selection cue. Document/client
+widths remain **1350/1350**, **375/375**, **305/305**, including enlarged text.
+Long German captions wrap vertically; the existing emergency wrapping can split
+compounds at 320px/200%. Neither a single-screen layout nor a reduced total page
+height is claimed. Local enlarged screenshots are scrolled after font reflow for
+inspection, without programmatic destination focus.
+
+Native Tab/Enter reaches overview and Game 2 at 320px; native pointer activation
+returns from passed Game 2 to the earlier unfinished Game 1 at 320px/enlarged text.
+Actual URLs retain `#match-games` / `#match-recording`; observed active elements are
+the corresponding sections. Next Tab reaches the selected-Game backlink, Start
+button or Card radio respectively. The existing blue 3px focus indicator remains.
+Destination focus is never manually set to make these navigation assertions pass.
+Desktop/390px evidence measures layouts; it is not an extra native-keyboard matrix.
+
+Each of the four runs per phase has exactly **16 POSTs**, **10 genuine Match saves**,
+**1 explicit bounded analysis**, **53 existing Match page preparations**, and
+**4 profile saves**. Eight POSTs use returned HTTP forms (creation/Start/declaration,
+one 25-Play legal fixture batch, one sample-count-1 analysis and strict reopen);
+eight use native browser submission (five Cards, Pass and two language changes).
+Profile saves are initial locale, creation defaults and the two explicit locale
+changes. Passive measurements/navigation/language/downloads add no Match save or
+analysis. Pointer/keyboard navigation and page preparation are counted separately;
+actual Game switching still changes process-local selection and recovery lifetime.
+
+A genuine retained Game-1 Report stays source-bound while Game 2's tile remains
+Passed. Exact Workspace/download bytes and the immutable Report/Request/Result
+survive navigation and language. Downloads here are authenticated HTTP bytes,
+not a physical browser Save dialog. Strict fresh reopen verifies the persisted
+Workspace and the existing loss of process-local Reports. The reused HTTP regression
+separately checks accepted-versus-proposed progress through Preview/Cancel/Apply,
+real-switch invalidation, rejected input and no-op Report preservation.
+
+German/no-script repaired specimen (10,429 downloaded bytes):
+
+| Evidence | SHA-256 |
+| --- | --- |
+| Workspace | `b481a30080462cfb052d3942ec62bac5a15583dc1ff4d65f49c629c042f2b859` |
+| Download | `7dca90bf508af145f1c094c0e7e92eb4ec9e926e5159b8fa1aa2094e654c6b0c` |
+| Request, sorted JSON wrapper | `b0940a2bd76ac44a6677dc6aff09fbbfa2dfd6eb58e0b461606ccf343733bb87` |
+| Result, sorted JSON wrapper | `c710479bd782e70a08981975c4adc3af2381e4c64135c935ee4c1164803c6159` |
+| Baseline Wheel | `4f55b3095c32e8682be4f934b7cd233ff66067c9316be9ff8b69628a75e9cfbc` |
+| Repaired Wheel | `f341a918acafd2fd3757f64b4b8f4af055bb7aac8009c784d2d0755b5a0a215f` |
+| Repaired Match renderer | `fdefd2cc4c6b715e23fc1231b62d2e78f4e3d063f3811e35dbd707f2c7b30d80` |
+| Repaired CSS | `af6ddd51202a7c5131b4f40b1f97dea786b3934f7f9350c2a86f8f5ef93eafd6` |
+| Unchanged workflow script | `aa3871d9880326fc27590d80f7f0bf9ebc0a7cf31fd64fc2fd04a1e3932efce1` |
+
+Earlier probe directories retain a token-redirect harness error, a tool-timeout
+interruption, and completed runs before page-preparation accounting/local enlarged
+screenshots were corrected. An imported test-fixture dependency was made lazy;
+none of these diagnostics required Product changes or is counted as final success.
+Font enlargement doubles computed sizes; it is not browser zoom. No physical-device,
+screen-reader, maintainer-UAT, full Learning or separate installation-matrix claim
+is made. All edits/evidence precede the prescribed complete check. #259 remains
+completed; #208 and other residues/product questions remain open. UAT-01 unaccepted,
+UAT-02–12 paused, B-09/B-07 open, B-06 closed. Both exact merged-#260 CI jobs remain
+manual closure gates; implementation verification is not whole-R12 human acceptance.

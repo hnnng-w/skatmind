@@ -1703,6 +1703,10 @@ main:is([data-workflow="matches"], [data-workflow="learning"]) .card-choice:has(
   border-color: var(--green);
 }
 
+main[data-workflow="matches"] .match-round-heading {
+  font-weight: 400;
+}
+
 main[data-workflow="matches"] .round-slots {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from html import escape
 
+from skatmind.game_result import COMPLETED_TRICK_COUNT
+
 from .compact_card_rendering import compact_card_selector
 from .compact_declaration_rendering import accepted_declaration_summary, compact_declaration_fields
 from .form_registry import get_frontend_form_by_key_v1
@@ -219,10 +221,25 @@ def _reports(state, handle, locale, *, secondary=True, results=True):
         if secondary else ""))
 
 
+def _recording_status(position, locale):
+    """Format captured accepted counts only; completion remains the position's status."""
+    if position.game_state != "play_in_progress":
+        return translated(locale, f"task.match.status.{position.game_state}")
+    plays, tricks = position.play_count, position.completed_trick_count
+    if (type(plays) is not int or type(tricks) is not int
+            or not 0 < plays < 3 * COMPLETED_TRICK_COUNT or tricks != plays // 3):
+        raise ValueError("Partial recording counts must describe a normal incomplete play trace.")
+    remainder = plays - 3 * tricks
+    caption = translated(locale, "task.match.partial", count=tricks, total=COMPLETED_TRICK_COUNT)
+    if remainder:
+        caption += translated(locale, f"task.match.partial.cards_{remainder}", trick=tricks + 1)
+    return caption
+
+
 def _game_overview(state, view, locale):
     positions = ''
     for round_number in range(1, 13):
-        positions += '<section><h3>' + translated(locale, "task.match.round", number=round_number) + '</h3><div class="round-slots">'
+        positions += '<section><h3 class="match-round-heading">' + translated(locale, "task.match.round", number=round_number) + '</h3><div class="round-slots">'
         for position in view.positions[(round_number - 1) * 3:round_number * 3]:
             selected = position.match_position == view.selected_position
             following = position.match_position == view.next_position
@@ -232,7 +249,7 @@ def _game_overview(state, view, locale):
                 + '<strong class="match-tile-title">'
                 + translated(locale, "task.match.position", number=position.match_position)
                 + '</strong><span class="match-tile-status">'
-                + translated(locale, f"task.match.status.{position.game_state}") + '</span>'
+                + _recording_status(position, locale) + '</span>'
                 + '<span class="match-tile-markers">')
             if selected:
                 positions += '<span>' + translated(locale, "task.match.selected") + '</span>'
@@ -242,7 +259,7 @@ def _game_overview(state, view, locale):
             for seat in ("forehand", "middlehand", "rearhand"):
                 positions += '<span><b>' + translated(locale, f"creation.seat.{seat}") + ':</b> ' + escape(
                     _name(state, locale, getattr(position, f"{seat}_player_id"))) + '</span>'
-            positions += '</span><span>' + translated(locale, "task.match.plays", count=position.play_count) + '</span></a>'
+            positions += '</span></a>'
         positions += '</div></section>'
     return ('<section id="match-games" class="panel" tabindex="-1" aria-labelledby="match-games-heading">'
         + '<h2 id="match-games-heading">' + translated(locale, "task.match.overview") + '</h2>'
@@ -261,7 +278,7 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     game = state["game"]
     task = '<!-- operation-feedback --><h2 id="match-recording-heading">' + translated(
         locale, "task.match.game_heading", number=view.selected_position) + '</h2>'
-    task += paragraph(locale, "task.match.round", number=view.selected.round_number)
+    task += '<p class="match-recording-status">' + _recording_status(view.selected, locale) + '</p>'
     task += '<dl class="match-game-seats">' + ''.join('<div><dt>' + translated(
         locale, f"creation.seat.{seat}") + '</dt><dd>' + escape(_name(
             state, locale, getattr(view.selected, f"{seat}_player_id"))) + '</dd></div>'
@@ -288,13 +305,11 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
             task += render_current_trick(recorded, locale)
         task += _card_form(state, handle, locale, "append_plays", card_bindings.get("append_plays", ""),
                            cards=view.selected.selectable_cards, play=True)
-    else:
-        task += paragraph(locale, view.workflow.next_task_key)
     task += '</div>' + ("" if recorded is None else render_recorded_summary(recorded, locale)) + '</div>'
     if view.next_position is None:
         task += paragraph(locale, "task.match.all_complete")
     elif view.next_position != view.selected_position:
-        task += f'<p><a href="/matches/position/{view.next_position}#match-recording">' + translated(
+        task += '<p>' + translated(locale, "task.match.next") + f': <a href="/matches/position/{view.next_position}#match-recording">' + translated(
             locale, "task.match.first_unfinished", number=view.next_position) + '</a></p>'
     task += '<p><a href="#match-games">' + translated(locale, "task.match.overview") + '</a>'
     if view.selected.play_count:

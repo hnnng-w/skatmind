@@ -59,6 +59,12 @@ def declare(browser, page):
         declarer_player_id=player, game_type="grand", hand_game="true"))
 
 
+def assert_progress(page, locale, kind):
+    from test_match_game_navigation import PROGRESS
+    assert (f'<p class="match-recording-status">{PROGRESS[locale][kind]}</p>'
+            in page.split('<section id="match-games"', 1)[0])
+
+
 @pytest.mark.parametrize("locale", ("en", "de"))
 def test_real_empty_create_start_declare_play_pass_backward_continue_and_reopen(
     localized_server, saves, locale,
@@ -72,8 +78,10 @@ def test_real_empty_create_start_declare_play_pass_backward_continue_and_reopen(
     assert len(saves) == 2 and active.workspace.revision == 1
     page = declare(browser, page)
     assert len(saves) == 3
-    page = follow(browser, browser.submit(primary(page, "append_plays"), cards="SA"))
-    assert len(saves) == 4
+    for count, card in enumerate(synthetic_cards()[:3], 1):
+        page = follow(browser, browser.submit(primary(page, "append_plays"), cards=card))
+        assert_progress(page, locale, count)
+    assert len(saves) == 6
     original = active.path.read_bytes()
     generation = active.position_generation
     page = link(browser, page, "#match-games")
@@ -83,7 +91,8 @@ def test_real_empty_create_start_declare_play_pass_backward_continue_and_reopen(
     stale_declaration = operation_form(page, "set_declaration")
     page = link(browser, page, "/matches/position/2#match-recording")
     assert active.selected_position == 2 and active.workspace.slots[1].observed_game is None
-    assert active.path.read_bytes() == original and len(saves) == 4
+    assert active.path.read_bytes() == original and len(saves) == 6
+    assert_progress(page, locale, "empty")
     assert browser.submit(stale_card, cards="S9")[0] == 409
     assert browser.submit(stale_declaration, bid_value="18")[0] == 409
     page = browser.page("/matches/position/2")
@@ -93,22 +102,26 @@ def test_real_empty_create_start_declare_play_pass_backward_continue_and_reopen(
     assert re.search(r'<section class="error-summary"[^>]*autofocus', page)
     assert text(locale, "task.match.first_unfinished", number=1) in page
     page = follow(browser, browser.submit(primary(page, "mark_passed_deal")))
-    assert len(saves) == 5 and active.selected_position == 2
+    assert len(saves) == 7 and active.selected_position == 2
+    assert_progress(page, locale, "passed")
     assert active.workspace.slots[1].slot_kind == "passed_deal"
     page = link(browser, page, "/matches/position/1#match-recording")
-    assert len(saves) == 5
-    page = follow(browser, browser.submit(primary(page, "append_plays"), cards="S9"))
-    assert len(saves) == 6 and active.selected_position == 1
+    assert len(saves) == 7
+    assert_progress(page, locale, 3)
+    page = follow(browser, browser.submit(primary(page, "append_plays"), cards="CA"))
+    assert len(saves) == 8 and active.selected_position == 1
+    assert_progress(page, locale, 4)
     accepted = active.path.read_bytes()
     assert load_match_workspace_file_v1(active.path).document.workspace == active.workspace
     page = link(browser, page, "/matches/review/1")
     page = link(browser, page, "/matches/position/1#match-recording")
     page = link(browser, page, "/matches/position/2#match-recording")
-    follow(browser, browser.submit(Forms(browser.page("/matches")).find("/matches/open")))
+    page = follow(browser, browser.submit(Forms(browser.page("/matches")).find("/matches/open")))
     reopened = localized_server.app_context.managed_stateful.active_match
     assert reopened is not active and reopened.selected_position == 1
-    assert reopened.path.read_bytes() == accepted and len(saves) == 6
+    assert reopened.path.read_bytes() == accepted and len(saves) == 8
     assert reopened.workspace == active.workspace
+    assert_progress(page, locale, 4)
 
 
 def test_rejected_card_language_keeps_summary_priority_safe_value_and_fresh_binding(
@@ -130,6 +143,7 @@ def test_rejected_card_language_keeps_summary_priority_safe_value_and_fresh_bind
         assert re.search(r'<section class="error-summary"[^>]*autofocus', page)
         assert "invalid" in page
         assert active.path.read_bytes() == before and len(saves) == count
+        assert_progress(page, locale, "declaration")
     follow(browser, browser.submit(primary(page, "append_plays"), cards="SA"))
     assert len(saves) == count + 1
 
@@ -148,6 +162,7 @@ def test_final_card_report_preview_language_noop_cancel_and_real_rewind(
     legacy = next(f for f in Forms(page).forms if f["action"] == "/matches/api/v1/operation"
                   and f["values"].get("operation") == "append_plays")
     page = follow(browser, browser.submit(legacy, cards=" ".join(cards[1:29])))
+    assert_progress(page, locale, 29)
     count = len(saves)
     response = browser.submit(primary(page, "append_plays"), cards=cards[-1])
     assert response[1]["location"] == "/matches/position/1#match-recording"
@@ -155,6 +170,7 @@ def test_final_card_report_preview_language_noop_cancel_and_real_rewind(
     assert len(saves) == count + 1 and active.selected_position == 1
     assert text(locale, "task.match.first_unfinished", number=2) in page
     assert len(active.workspace.slots[0].observed_game.plays) == 30
+    assert_progress(page, locale, 30)
     assert 'data-unplayed-cards' in page
     assert all(page.count(f'id="match-play-{n}"') == 1 for n in range(1, 31))
     page = link(browser, page, "/matches/review/1")
@@ -175,6 +191,7 @@ def test_final_card_report_preview_language_noop_cancel_and_real_rewind(
                                          confirm_apply="on"))
     assert active.path.read_bytes() == original and len(saves) == count + 1
     page = follow(browser, browser.submit(entry_action(page, 30, rewind=True)))
+    assert_progress(page, locale, 30)
     preview, selected = active.recovery.preview, active.recovery.selected
     apply = Forms(page).find("/matches/recovery/apply")
     for route in ("/matches/current", "/matches/position/1", "/matches/review/1", report_path):
@@ -189,14 +206,17 @@ def test_final_card_report_preview_language_noop_cancel_and_real_rewind(
         page = follow(browser, response)
         binding = Forms(page).find("/matches/recovery/apply")["values"]["recovery_selection"]
         assert binding == preview.apply_token
+        assert_progress(page, target, 30)
         assert active.recovery.selected is selected and active.recovery.preview is preview
         assert browser.request("GET", download)[2] == report_bytes
     page = follow(browser, browser.submit(Forms(page).find("/matches/recovery/cancel")))
+    assert_progress(page, "de", 30)
     assert active.path.read_bytes() == original and len(saves) == count + 1
     assert browser.submit(apply, confirm_apply="on")[0] == 409
     page = browser.page("/matches/current")
     page = follow(browser, browser.submit(entry_action(page, 30, rewind=True)))
     page = link(browser, page, "/matches/position/2#match-recording")
+    assert_progress(page, "de", "empty")
     assert active.recovery.preview is None and active.recovery.selected is None
     assert active.capture.report_store.list() == (report,)
     page = browser.page(report_path)
@@ -209,6 +229,7 @@ def test_final_card_report_preview_language_noop_cancel_and_real_rewind(
                                          confirm_apply="on"))
     assert len(saves) == count + 2 and active.selected_position == 1
     assert len(active.workspace.slots[0].observed_game.plays) == 29
+    assert_progress(page, "de", 29)
     assert project_task_first_match_v1(active.workspace, selected_position=1).next_position == 1
     assert text("de", "task.match.first_unfinished", number=1) not in page
     assert 'data-unplayed-cards' not in page and active.capture.report_store.list() == ()

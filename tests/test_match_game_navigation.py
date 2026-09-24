@@ -46,7 +46,8 @@ def workspace_for(states):
             declaration=None if state == "started" else complete.declaration,
             declarer_player_id=None if state == "started" else mapping[complete.declarer_player_id],
             plays=tuple(replace(play, player_id=mapping[play.player_id]) for play in
-                complete.plays[:30 if state == "complete" else 4 if state == "partial" else 0]))
+                complete.plays[:state if type(state) is int else
+                    30 if state == "complete" else 4 if state == "partial" else 0]))
         workspace = set_match_workspace_observed_game_v1(workspace, game,
             expected_revision=workspace.revision).workspace
     return workspace
@@ -76,7 +77,7 @@ def test_selected_identity_controls_seats_and_single_overview(mixed, selected, a
     assert 'class="match-tile' not in recording
     heading = text(locale, "task.match.game_heading", number=selected)
     assert f'<h2 id="match-recording-heading">{heading}</h2>' in recording
-    assert text(locale, "task.match.round", number=view.selected.round_number) in recording
+    assert text(locale, "task.match.round", number=view.selected.round_number) not in recording
     seats = re.search(r'<dl class="match-game-seats">(.*?)</dl>', recording, re.S)[1]
     for seat in ("forehand", "middlehand", "rearhand"):
         player = next(p for p in mixed.match_definition.participants
@@ -91,10 +92,7 @@ def test_selected_identity_controls_seats_and_single_overview(mixed, selected, a
     for step in view.workflow.completed_steps:
         assert (text(locale, f"task.match.action.{step}") + ' — '
                 + text(locale, "task.recorded")) not in recording
-    if action:
-        assert text(locale, view.workflow.next_task_key) not in recording
-    else:
-        assert recording.count(text(locale, view.workflow.next_task_key)) == 1
+    assert text(locale, view.workflow.next_task_key) not in recording
     assert 'aria-labelledby="match-games-heading"' in overview and 'tabindex="-1"' in overview
     assert re.findall(r'class="match-tile(?: selected)?" href="([^"]+)"', overview) == [
         f"/matches/position/{n}#match-recording" for n in range(1, 37)]
@@ -136,3 +134,82 @@ def test_recording_completion_is_not_occupancy(
     assert (text(locale, "task.match.all_complete") in html) == (next_position is None)
     assert (text(locale, "task.match.first_unfinished", number=1) in html) == (next_position == 1)
     assert view.selected_position == 2
+
+
+PROGRESS = {
+    "en": {
+        "empty": "Not yet recorded", "started": "Declaration needed",
+        "declaration": "Ready to record Cards; no Cards recorded yet",
+        1: "Partially recorded: 0 of 10 Tricks; 1 Card in Trick 1",
+        2: "Partially recorded: 0 of 10 Tricks; 2 Cards in Trick 1",
+        3: "Partially recorded: 1 of 10 Tricks",
+        4: "Partially recorded: 1 of 10 Tricks; 1 Card in Trick 2",
+        29: "Partially recorded: 9 of 10 Tricks; 2 Cards in Trick 10",
+        30: "Play record complete", "passed": "Passed",
+    },
+    "de": {
+        "empty": "Noch nicht erfasst", "started": "Ansage erforderlich",
+        "declaration": "Bereit zur Kartenerfassung; noch keine Karten erfasst",
+        1: "Teilweise erfasst: 0 von 10 Stichen; 1 Karte in Stich 1",
+        2: "Teilweise erfasst: 0 von 10 Stichen; 2 Karten in Stich 1",
+        3: "Teilweise erfasst: 1 von 10 Stichen",
+        4: "Teilweise erfasst: 1 von 10 Stichen; 1 Karte in Stich 2",
+        29: "Teilweise erfasst: 9 von 10 Stichen; 2 Karten in Stich 10",
+        30: "Spielverlauf vollständig erfasst", "passed": "Eingepasst",
+    },
+}
+
+
+@pytest.fixture(scope="module")
+def progress_workspace():
+    # One legal complete trace supplies all prefixes, rather than one full replay per label.
+    return workspace_for(tuple(PROGRESS["en"]))
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+@pytest.mark.parametrize("number,kind", enumerate(PROGRESS["en"], 1))
+def test_literal_accepted_progress(progress_workspace, number, kind, locale):
+    view, _, html = rendered(progress_workspace, number, locale)
+    caption = PROGRESS[locale][kind]
+    recording, overview = html.split('<section id="match-games"', 1)
+    assert f'<p class="match-recording-status">{caption}</p>' in recording
+    tile = re.search(r'<a class="match-tile selected".*?</a>', overview, re.S)[0]
+    assert f'<span class="match-tile-status">{caption}</span>' in tile
+    assert text(locale, "task.match.plays", count=view.selected.play_count) not in tile
+    if type(kind) is int:
+        assert view.selected.play_count == kind
+        assert view.selected.completed_trick_count == kind // 3
+        assert view.selected.current_trick_play_count == kind % 3
+        assert view.selected.game_state == ("play_complete" if kind == 30 else "play_in_progress")
+    assert '<span>' + text(locale, "task.match.selected") + '</span>' in tile
+    assert tile.count('aria-current="page"') == overview.count('aria-current="page"') == 1
+    round_caption = text(locale, "task.match.round", number=view.selected.round_number)
+    assert f'<p>{round_caption}</p>' not in recording
+    assert re.findall(r'<h3[^>]*>(.*?)</h3><div class="round-slots">', overview) == [
+        text(locale, "task.match.round", number=n) for n in range(1, 13)]
+
+
+@pytest.mark.parametrize("locale,caption,context", (
+    ("en", "Open Game 3 for recording", "First Game with incomplete recording"),
+    ("de", "Spiel 3 zur Erfassung öffnen", "Erstes Spiel mit unvollständiger Erfassung"),
+))
+def test_literal_earlier_unfinished_target(mixed, locale, caption, context):
+    view, _, html = rendered(mixed, 5, locale)
+    assert view.next_position == 3
+    recording, overview = html.split('<section id="match-games"', 1)
+    assert f'{context}: <a href="/matches/position/3#match-recording">{caption}</a>' in recording
+    tile = re.search(
+        r'<a class="match-tile" href="/matches/position/3#match-recording".*?</a>',
+        overview, re.S)[0]
+    assert context in tile and 'aria-current' not in tile
+
+
+@pytest.mark.parametrize("plays,tricks", (
+    (0, 0), (30, 10), (31, 10), (-1, 0), (2, 1), (29, 10), (4, 0),
+    (True, 0), (3, True), (3.0, 1), (3, 1.0), ("3", 1), (3, -1),
+))
+def test_defensive_partial_counts_are_not_clamped_or_completed(plays, tricks):
+    from skatmind.app_web.task_first_match_rendering import _recording_status
+    with pytest.raises(ValueError, match="Partial recording counts"):
+        _recording_status(SimpleNamespace(game_state="play_in_progress",
+            play_count=plays, completed_trick_count=tricks), "en")

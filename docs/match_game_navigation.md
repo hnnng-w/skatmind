@@ -12,7 +12,7 @@ the original maintainer trace or constitute UAT acceptance.
 
 Compact progress labels distinguish started Games, complete play traces and passed
 deals. `#match-recording` is a labelled, focusable section containing **Game N of
-36**, its actual round, and escaped full Forehand/Middlehand/Rearhand names from the
+36**, accepted recording coverage, and escaped full Forehand/Middlehand/Rearhand names from the
 accepted selected position view. Existing Start/Pass, declaration or Card controls
 follow. Compact captured totals, current Trick, accepted declaration, #234's
 separately sourced unplayed pair and the full accepted/correction history retain
@@ -38,7 +38,8 @@ rule, selected-Game-first ordering, all 36 tiles, rotation and Mark as passed re
 
 The existing `view.next_position` is unchanged: first canonical entry whose view
 is neither `passed_deal` nor `play_complete`. If it equals the selection, there is
-no redundant continuation CTA. Otherwise **First unfinished recording: Game N**
+no redundant continuation CTA. Otherwise **Open Game N for recording**, preceded by
+**First Game with incomplete recording**,
 can point backward. Passing or recording the final Card keeps the selected Game;
 continuation is explicit. If there is no suggestion, the message states only that
 all 36 entries are passed or contain complete traces. All-started/zero-Play input
@@ -77,6 +78,84 @@ targets remain exact. Unsent other-form inputs survive language changes only wit
 the existing JavaScript enhancement; submitted safe input survives natively.
 
 ## Focused verification
+
+### Saved progress presentation (Issue #260)
+
+Starting clean `bug/260-match-progress-presentation` HEAD:
+`6477188ee89034bb5d49f8f5b93086a1f73150d6`, the integrated #259 tree. The actual
+#260 specification and #208's consolidated comment `5740775548` preserve the
+historical UAT installation `483e51269d0206d29d9f73001dfadf8f0e7b2f32` as separate
+evidence. The supplied post-#259 engineering reconciliation was confirmed at the
+renderer seams: activity-sounding partial status, generic Card count, first-open
+wording and the selected-Game round paragraph. The existing selected text and
+`aria-current="page"` were already tile-local. Issue #260 implements R12a–c and
+preserves R12d; it does not establish whole-R12 human acceptance.
+
+`_recording_status` reads only the captured position's `game_state`, `play_count`
+and `completed_trick_count`. For `play_in_progress`, integer Plays must be from
+1 through 29 and completed Tricks must equal `play_count // 3`. The accepted
+remainder is `play_count - 3 * completed_trick_count`, either zero, one or two.
+The existing `game_result.COMPLETED_TRICK_COUNT` supplies the ten-Trick bound.
+Malformed partial counts raise rather than clamp, round or fabricate completion.
+There is no additional position replay, hand reconstruction, recovery, score or I/O.
+
+| Existing accepted state/count | English caption meaning (paired German catalog) |
+| --- | --- |
+| `empty` | Not yet recorded |
+| `setup` | Declaration needed |
+| `ready_for_play`, zero Plays | Ready to record Cards; no Cards recorded yet |
+| 1 / 2 Plays | Partially recorded: 0 of 10 Tricks; 1 Card / 2 Cards in Trick 1 |
+| 3 Plays | Partially recorded: 1 of 10 Tricks |
+| 4 Plays | Partially recorded: 1 of 10 Tricks; 1 Card in Trick 2 |
+| 29 Plays | Partially recorded: 9 of 10 Tricks; 2 Cards in Trick 10 |
+| `play_complete`, 30 Plays | Play record complete |
+| `passed_deal` | Passed |
+
+These are all six current Match position states. There is no shortened-terminal
+state in this Match contract; Historical/Session terminal support is not changed.
+Only the partial branch uses a denominator. Completion, next target and review
+eligibility remain independent authoritative facts. A partial Game may have prepared
+decisions, and thirty Plays do not guarantee every export or a settled score.
+
+The same compact caption is used on the selected Game and its overview tile;
+the separate generic tile Card count and redundant completed/passed task paragraph
+are removed. The selected-Game round paragraph is removed. All twelve `h3` round
+groups remain, at the same font size/contrast with normal weight, beneath the
+overview `h2`. All 36 ordered native links, seats, exact hrefs/fragments and the
+single tile-local textual selected marker retain their behavior. The actual
+captured `next_position` supplies both the first-incomplete cue and link; selection
+coincidence and no-target rules remain unchanged.
+
+The navigation tests add literal bilingual coverage for the table, invalid scalar
+counts, ordered groups, earlier targets and unchanged selection. Existing real
+HTTP tests now record a first Trick, Pass Game 2, return, continue and strictly
+reopen; rejected input leaves accepted progress unchanged. The existing final-Card
+and rewind Preview/Cancel/Apply case checks 30 accepted Plays during the proposal,
+then 29 only after Apply. Same-Game navigation/language retains exact Report bytes
+and recovery identity; a real Game switch invalidates recovery but preserves a
+still-current Report whose own source stays Game 1. Rendering Game 2 never borrows
+that Report's progress. Strict reopen retains Workspace bytes, not process-local
+Reports. No source/selection/readiness contract was changed.
+
+Twenty-two new presentation cases failed before the repair. Focused corrected
+runs passed **92**, then **198**, then **188** tests (overlapping selections,
+not an additive suite count). See the
+[independent installed comparison](unified_workflow_visual_contract.md#saved-match-progress-issue-260)
+for the bounded browser matrix, native focus, operation accounting and hashes.
+The prescribed final complete check is separately reported with its actual child
+exit and retained log; these focused runs do not replace it.
+
+Package 0.17.0, Python >=3.13, AGPL-3.0-only, dependency floors including
+tzdata>=2026.4, 67 POST routes, 112 forms and 98 scenarios remain. Three partial
+captions increase the paired catalogs from 1,797 to 1,800 with sorted key and
+placeholder parity. No workflow JavaScript, standalone Capture, consent, persistence
+or public field changes follow. R01/R07/R11/R13/R15 residues and automatic Learning
+questions remain separate. Both #259 CI jobs on the starting SHA subsequently
+passed in [run 35977510861](https://github.com/hnnng-w/skatmind/actions/runs/35977510861);
+this is baseline evidence, not #260 validation. #259 remains completed. Exact
+merged-#260 `check` and `v1-supported-platform-matrix` must pass before manual closure.
+
+### Historical Issue #238 evidence
 
 Starting clean branch: `feature/238-match-game-navigation`, HEAD
 `dd981819bf4a23577dd485ebd72b20a66435429d`. The bounded comparison with planning
