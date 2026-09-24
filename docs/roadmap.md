@@ -1886,6 +1886,18 @@ gate closure. #208, remaining R13/R14, optional Report attachment and distinct
 automatic-inclusion/incorporation/adaptation questions stay open. UAT-01 remains
 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 
+Issue #259 clarifies optional specialized executed-Report source attachment in
+Learning. A sole Current target has a named read-only version and one hidden exact
+ID; several targets keep native explicit choices. Bound-version captions, non-current
+remedies, rejection/reselection and process-local lifetime are explicit. Canonical
+matching, persistence, separate evaluation and #258's ten grouped exports remain.
+Inventory stays 67 routes / 112 forms; eleven captions bring paired keys to 1,797.
+See [mapping](learning_corpus_browser_workflows.md#unified-optional-attachment-issue-259)
+and [evidence](unified_workflow_visual_contract.md#optional-learning-report-attachment-issue-259).
+#258 stays completed. Both exact merged-commit CI jobs gate #259 closure; #208,
+remaining R13/R14 and automatic-use decisions stay open. UAT-01 unaccepted,
+UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
+
 Issue #250 adds the bounded R06 normal Session declarer/declaration path: accepted-
 fact selection, immutable canonical Preview and explicit Apply/Cancel, with fresh
 consent for partial suffix removal. Public replay, Checkpoints and persistence are

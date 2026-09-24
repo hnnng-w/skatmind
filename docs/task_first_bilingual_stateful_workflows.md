@@ -219,6 +219,19 @@ wrap guidance without shrinking text; actual browser measurements are linked abo
 
 ## Explicit transfer and Learning
 
+Issue #259 clarifies optional attachment of an existing executed Match Decision
+Report's specialized source JSON. Current-only offered targets determine the
+control: no target gives a prerequisite/remedy, one gives a read-only named version
+and one hidden ID, several give an explicit native selector with distinguishable
+full captions. Attached-source labels use their own exact bound version; non-current
+blockers retain restoration/removal/clear controls. File reselection, explicit
+validation/evaluation and process-local source lifetime remain. The existing direct
+transfer, #245 receipts, #256 returns, #257 version policy and #258 result groups
+are preserved. See [attachment ownership](learning_corpus_browser_workflows.md#unified-optional-attachment-issue-259).
+Inventory remains **67 routes / 112 forms**, now **1,797 paired keys**. Automatic
+inclusion/discovery/conversion, durable Report sources, full Coaching presentation
+and recommendation adaptation remain separate open work.
+
 Issue #258 explains the retained result inside the existing `learning-results`
 identity. Compact source-qualified sentences precede separate Human/Teacher/Tactical
 evidence and Coaching status, then per-mode split availability and ten grouped native

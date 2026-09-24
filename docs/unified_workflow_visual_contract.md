@@ -1965,3 +1965,169 @@ floors including tzdata>=2026.4, public/persistence contracts and 98 scenarios r
 #257 stays completed; exact merged-commit `check` and `v1-supported-platform-matrix`
 gate manual #258 closure. #208, remaining R13/R14 and automatic-use questions remain
 open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
+## Optional Learning Report attachment (Issue #259)
+
+Started on the required clean `bug/259-learning-report-attachment` at
+`b9464146bb3fd36a6e0a6cb911fca4068eb6e082`, after completed #258. Actual #259,
+#208/R13–R14 and the #257/#258 completion reports were read. GitHub retrieval worked
+in this implementation session; the planner's archived inspection was not runtime
+evidence. The current renderer retained a one-option upload select, Match-name-only
+targets, no bound-version caption, and the premature Add verified Report source label.
+#257's separate per-alternative Current controls and #258's result groups were already
+correct. Fourteen corrected pre-fix presentation tests failed on these UI expectations.
+
+The [target/field/status map](learning_corpus_browser_workflows.md#unified-optional-attachment-issue-259)
+documents Current-only cardinality, one hidden singleton transport, native multiple
+choice, exact bound labels and process-local remedies. Production changes are confined
+to the private Learning renderer, scoped existing validation rendering, de/en catalogs
+and Learning CSS. The actual unified source-export route exists without a visible
+source link on the current Report page; help names the verified specialized Match
+Capture export rather than mislabelling the ordinary Result download. No new workflow,
+route/form, source picker, converter, analysis or preparation is introduced.
+
+### Installed native scope
+
+`scripts/verify_learning_report_attachment.py` uses the existing optional dependency-free
+Chromium harness and rejects checkout Package imports. Run it with independently
+installed baseline/repaired Wheel Python, `--phase before` or `after`, `--browser`,
+`--wheel` and a fresh `--output` directory. Authoritative completed evidence is:
+
+```text
+<temporary-directory>/opencode/259-before-final/evidence.json
+<temporary-directory>/opencode/259-after-final/evidence.json
+```
+
+Both use **Windows CPython 3.13.7**, **Package 0.17.0**, **Edge 153.0.4234.48**,
+pytest 9.1.1, jsonschema 4.26.0, referencing 0.37.0 and tzdata 2026.4. Each has
+**84 scoped measurements**: 21 per de/en × JavaScript off/on run. Coverage includes
+zero/single/multiple Current targets, retained same-revision variants with one Current,
+equal long Match names, actual attachment, explicit evaluation, exact duplicate,
+wrong-target rejection/retry, language/error file reselection, bound non-current
+source/removal, same-context Reload and a fresh strictly reopened context.
+
+The harness supplies only disposable synthetic source files via DevTools
+`DOM.setFileInputFiles`. This is automation assigning a file control, **not physical
+file-dialog testing**. Pointer and keyboard activation submit the actual native forms;
+the observed multipart body has exactly one `match_snapshot_id` and the existing
+four fields. Raw-body/file-part hashes and lengths are recorded. File/target choice
+and disclosure opening alone send no request. The code uses no form.submit(),
+fetch-based submission, patched success, fake Report or fake preparation.
+
+Measurements cover **1365×900**, **390×844**, **320×800** and a separate browser profile
+with **32px computed body text**, twice the default 16px. This is not browser zoom.
+Document/client widths agree at 1350/1350, 375/375 and 305/305. Early completed runs
+revealed clipped native option captions and excessive nested padding at enlarged
+text. Full associated wrapping captions now accompany the native multiple select;
+equal-name Match ordinals lead the captions. Learning-only padding preserves reading
+width without smaller type or a custom selector. Screenshots inspect captions, source
+status/help and long-text tails; vertical scrolling remains necessary. Accessibility
+trees include the actual file/select/submit controls, and focus/next Tab are captured.
+Native evaluation still focuses `learning-results`, then Dismiss with script enabled
+or the first summary link without it. Rejection retains error-summary priority and
+next Tab reaches its file diagnostic. Focused tests separately prove the visible
+singleton target-error link and no-target error fallback.
+
+No screen-reader, physical-device, full Coaching-browser, whole-frontend accessibility
+or maintainer-UAT acceptance is claimed. Direct transfer and standalone compatibility,
+malformed fields, exact legacy wrappers, unsupported document kinds, same-revision
+incompatibility, stale singleton replacement and still-valid cardinality expansion
+are focused HTTP/contract-test coverage rather than additional browser matrices.
+
+### Operations and exact retained bytes
+
+Each baseline/repaired locale/script run records **47 POSTs**: 23 fixture-setup,
+23 native browser submissions and one returned-form HTTP fresh-context open.
+Setup performs 17 actual Session saves, one genuine SJ review and two genuine Match
+decision executions, plus six existing Match page-preparation calls. Three setup
+Workspace saves (initial, long-title fixture, unrelated Match) and one later valid
+equal-revision fixture save use real persistence and are counted separately from
+the Match-operation save observer.
+
+The native path performs one collection creation, three applied Workspace imports,
+one Current selection, five source-attachment attempts (two applied, two exact
+duplicates, one mismatched target), one removal, four explicit preparations and one
+same-context Reload. There are three Snapshot publications and four Catalog changes,
+in addition to initialization. Nine source-Request reconstructions comprise four
+successful/duplicate attachment validations and five source validations across the
+four preparations. Attachment runs no new engine analysis or collection preparation.
+Thirteen existing discovery calls, three Add-source revalidations and nine profile
+saves (one setup, one collection label, seven language operations) are distinct from
+Product source changes. Passive views, choices and disclosures add no analysis,
+source reconstruction, preparation, Catalog save or Snapshot publication.
+
+All ten native downloads are saved in three stages per run: first retained preparation,
+the same preparation after passive language/views and exact duplicate attachment,
+and the later two-source preparation. This is **30 native downloads per run / 120
+per installation**, not thirty artifact kinds. Every native file matches its exact
+retained artifact, filename, HTTP headers and bytes. No operational timing is stripped
+and no cross-install generated-ID equality is assumed. Genuine changes invalidate
+the prior preparation normally. Same-context Reload retains/reclassifies sources
+while clearing preparation; fresh context has neither sources nor prepared artifacts.
+The genuine unrelated Session SJ and active Match Report retain exact identity and
+bytes throughout. Their Result hashes are respectively
+`76eb05221cab155ff59f734ec568bbead767c2f309d6823546d598412ac545c1` and
+`07624225a76abaf4a2e0f53e8df86c29d285bfd92dfe83979ede1de098ddcc39`.
+
+Representative repaired de/no-script first preparation: **523,380 bytes** across
+the ten exports below, identical after passive views/language and duplicate upload.
+
+| Kind | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `cross_game_summary` | 30270 | `68cbafb937da4a93055fdfca14fc9253ab60774d6985c87e5300cd9364c9f740` |
+| `tactical_motif_cross_game_summary` | 414257 | `54da2fe69b20e4df24f6a2ebf7a655f23f01f9dfea86aa14061818ac23c1896a` |
+| `tactical_cross_game_coaching` | 12708 | `4532bb27568b3a81d9b9ce9e27f98a21daca61ed68219753d25699edc9c32a2d` |
+| `player_catalog` | 6759 | `281eae24bc59c0f5a08e981037c54a9f6c28d77b06705a3dca9329b5153b56dd` |
+| `human_evidence` | 1291 | `2dc1fa2de07ead30188208f0bfd9803bc65187284fa0ce5d38058fe52eff1fb3` |
+| `strategy_teacher_evidence` | 11771 | `a16fcf2ac273102a12ba30d0ad999d2efbfe194daf21f0aa339eb154cce4f025` |
+| `tactical_motif_evidence` | 13090 | `4e861bbc5760257845a932b1ac067ec6dc8a600ea81c76e0b348c62a59ab013e` |
+| `learning_dataset_v2` | 29326 | `38afa43f535bd43845ab8965196022b277b1a698516b89bf653971a9ee35f610` |
+| `known_player_partitions` | 1948 | `e7ae73b0b4d47cfebb270c2669d3826ef54f250469022aae4145a4a98635193f` |
+| `unseen_player_partitions` | 1960 | `2c1e815d4144fccd1c252519fbc85795698fbd4ad306a9a2e0ca04eebdf6a750` |
+
+That specimen binds source Report
+`6bf16890bc043babc818d9e46c5e6f26ae947b78b212bb7c464a92d0538b81b5`
+to Snapshot `31d3567a3266cc11d0482db7c9e658b66804f7945184136409ebfacaed16f52e`
+through binding `cc1850fec6e7c8b67902f7ea7796ea5f1e34ade8a0fd11081f7f73a36034ef8b`.
+Preparation has source revision 1, context generation 4 and Catalog fingerprint
+`4cef70074693ee45e9a5fb3b196482a1e3c27285a4d12770ee7e53fad69d9f3e`.
+Its full Dataset ID, subsequent bindings/generations and all per-run hashes are in
+the evidence; these technical identities are not normal UI captions.
+
+| Installed resource | SHA-256 |
+| --- | --- |
+| Baseline Wheel | `62a8e290d9c9d3ac557bbad2d756ad34604c5d84ee629752b5a710263451f2fa` |
+| Repaired Wheel | `88d0d9fac10e40717769d09087d6f936d4a012d6d9ca98caf10748f6fe94b7a2` |
+| Repaired Learning renderer | `84d1dfe33b11153e58b006686891f2ccc36ba11b4c0ce59e7428157dba82d5b9` |
+| Repaired validation renderer | `3abf0c82f13e8d7062e60ed6ab2a734922eec15645a7bdbd67d8fe40c557e5e5` |
+| Repaired served CSS | `1f70c86905ee0599d6d13a33e26345f4a794937fc75cdbb5a0edd692d28593f6` |
+| Unchanged served workflow script | `aa3871d9880326fc27590d80f7f0bf9ebc0a7cf31fd64fc2fd04a1e3932efce1` |
+
+The evidence records 22 exact installed module/catalog/asset hashes. Earlier completed
+`259-before-01` / `259-after-01` runs remain retained; the latter prompted the wrapping
+improvement, while final runs also inspect individual control accessibility. The first
+non-isolated Wheel attempt failed because system Python lacked setuptools; the normal
+isolated build succeeded without changing dependencies. Initial test-fixture failures
+(constructor wiring, stale discovery/active-source guards and immutable-builder use)
+were corrected through genuine existing boundaries, not by weakening them.
+
+The final 22-module focused run passes **385 tests**, with one existing Windows
+symlink-creation skip (`tests/test_learning_direct_entry.py`, errno 22). A prior
+overlapping run passed 150 tests; the final scoped catalog/attachment check passed
+38 tests, including key order/parity/placeholders. No skip or check configuration was
+added. A final localization/file-boundary selection passed 52 tests with the other
+two existing symbolic-link skips: deletion-file creation (Windows error 1314) and
+managed-item link creation (this account cannot create symbolic links). Real matching
+cases retain canonical eligibility: metadata-only variants are
+accepted while a genuine changed Game identity at the same revision is rejected.
+Malformed wrapper specimens remain explicitly labelled negative tests.
+
+All code, tests, docs and installed evidence precede the prescribed complete check.
+The established detached logger's proof captured both native streams and actual
+child exit 23; the full-check log/exit/stage/test data belongs to the implementation
+report. Inventory remains 67 POST routes / 112 forms; eleven keys bring paired catalogs
+from 1,786 to 1,797. Package 0.17.0, Python >=3.13, AGPL-3.0-only, dependency floors,
+public/persistence contracts, preparation defaults and 98 scenarios remain unchanged.
+#258 stays completed; both exact merged-commit CI jobs gate manual #259 closure.
+#208, remaining R13/R14 and automatic-use questions stay open. UAT-01 is unaccepted,
+UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.

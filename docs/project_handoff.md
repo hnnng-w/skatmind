@@ -2880,6 +2880,20 @@ and [installed evidence](unified_workflow_visual_contract.md#learning-result-exp
 open. UAT-01 is unaccepted; UAT-02–12 paused; B-09/B-07 open; B-06 closed.
 No whole-UAT or release-readiness claim follows.
 
+Issue #259 clarifies the bounded optional Learning Report attachment from clean
+`bug/259-learning-report-attachment`, starting HEAD
+`b9464146bb3fd36a6e0a6cb911fca4068eb6e082`. The actual singleton upload dropdown is
+replaced by a named read-only Current version plus one hidden exact ID. Multiple
+Current choices remain explicit; bound-source revision/variant captions, rejection
+remedies and process-local lifetime are explained. Canonical source reconciliation,
+multipart/persistence/preparation rules, #236/#245 and #238–#258 remain. Inventory is
+67/112 and 1,797 paired keys. See [mapping](learning_corpus_browser_workflows.md#unified-optional-attachment-issue-259)
+and [installed evidence](unified_workflow_visual_contract.md#optional-learning-report-attachment-issue-259).
+#258 stays completed. Exact merged-commit `check` and `v1-supported-platform-matrix`
+gate manual #259 closure. #208, remaining R13/R14 and automatic-use questions stay
+open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+No whole-UAT acceptance or release-readiness claim follows.
+
 Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and

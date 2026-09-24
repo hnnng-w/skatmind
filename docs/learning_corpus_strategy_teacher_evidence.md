@@ -38,6 +38,20 @@ For each accepted source, the builder reconciles:
 
 No cross-revision Decision lineage is inferred.
 
+Issue #259 clarifies only the unified collection's optional source attachment.
+It accepts the existing `MatchAnalysisReportSourceExportV1` JSON wrapper, including
+strict legacy input wrappers, not an ordinary Request/Result/recording download.
+Current-only targets are captured facts: a sole target has one explicit hidden
+Snapshot ID plus its read-only version caption; several targets keep one native
+select. Hidden values retain the same strict checks. The attached list names the
+bound Snapshot even after another becomes Current. A non-current source remains
+a blocker with explicit restoration/removal remedies. Sources stay process-local
+and must be supplied again after restart; same-context Reload is distinct.
+See the [field and lifecycle map](learning_corpus_browser_workflows.md#unified-optional-attachment-issue-259).
+The upload adds no execution or preparation. Eligibility still uses the executed
+Report contract, including limited Search outcomes, not a non-null recommendation.
+Exported Teacher evidence is not an automatically reimportable source wrapper.
+
 ## Request and Result reconciliation
 
 The builder calls `build_match_decision_position_request_v1()` exactly once for

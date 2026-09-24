@@ -95,6 +95,16 @@ incorporation and future recommendation-adaptation questions remain open.
 
 ## Native routes and discovery
 
+Issue #259 repairs the separate optional Report attachment inside the opened
+collection. It does not change direct Add or `render_task_first_transfer_v1`.
+Only captured Current Snapshots are upload targets. A singleton shows its exact
+Match/revision/variant and submits one hidden ID; multiple choices remain native
+and distinguishable, including full wrapping descriptions for clipped select
+captions. Attached Reports show their bound version and process-local lifetime.
+The specialized executed-Decision source wrapper and explicit validation remain
+required; adding a Workspace still does not discover or include its Reports.
+See [optional attachment](learning_corpus_browser_workflows.md#unified-optional-attachment-issue-259).
+
 | Method / route | Effect |
 | --- | --- |
 | `GET /learning/recorded-matches/refresh` | Refresh bounded read-only managed-Match discovery; redirect to `/learning/current#learning-recorded-matches` |

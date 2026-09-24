@@ -272,6 +272,70 @@ scan, Report persistence, or Capture-to-Corpus background connection.
 
 ## Process-local Strategy Teacher sources
 
+### Unified optional attachment (Issue #259)
+
+The opened unified collection keeps **Attach an existing decision-analysis Report**
+secondary under Advanced, except that existing non-current-source remedies remain
+visible when they block evaluation. **Report source (JSON)** accepts the specialized
+source wrapper above for an already executed Match Decision Report. Plain Request,
+Result, recording, Historical and materialization documents are not substitutes.
+**Check and attach Report** validates existing evidence; it does not execute analysis,
+prepare the collection or persist the Report.
+
+The existing unified authenticated source route is
+`/matches/api/v1/reports/<report_id>/strategy-source.json`. At this baseline the unified
+Report page exposes the ordinary Result download, not a source-download link. The
+help therefore names the verified standalone Match Capture **Download for Learning
+Corpus** export and its `-strategy-source.json` suffix. It does not construct a link
+from an unrelated active Report. The separate existing direct Match transfer remains
+available without changes.
+
+| Captured domain / field | Presentation and ownership |
+| --- | --- |
+| `current_match_snapshots` resolved against `matches[*].snapshots` | Only offered Current identities, one per represented Match; retained alternatives are not upload choices |
+| Zero valid offered targets | Existing Add/selection prerequisite and link; no empty-target upload form; older sources and removal controls remain |
+| One unique offered identity | Visible read-only Match/revision/variant description and exactly one hidden `match_snapshot_id`; file input and explicit submit remain |
+| Several offered identities | One required native `match_snapshot_id` select with unchanged exact values and full associated wrapping captions |
+| Equal names / revisions | Match display ordinals distinguish equal names; #257's canonical captured same-revision variant labels distinguish exact Snapshots; neither ordinal is persisted identity or chronology |
+| `strategy_sources[*].match_snapshot_id` | Resolve the source's bound version, not the newly Current version; keep existing Game position, Decision index and method without deriving a Trick number |
+| `binding_status=current` | Binding matches selected input, not proof of inclusion in a preparation or satisfaction of every prerequisite |
+| `binding_status=non_current` | Visible blocker; restore the matching selected version, remove this binding, or clear sources explicitly |
+
+The unchanged multipart operation is `/learning/api/v1/operations` with
+`operation=import_strategy_teacher_report`, `managed_handle`, `match_snapshot_id`
+and `report_source_file`. Its body limit remains 16,777,216 bytes including framing.
+The singleton hidden control is regenerated transport, not a server default or
+authority. Missing, duplicate, foreign, non-current and incompatible input retains
+canonical rejection. A still-valid old singleton ID remains valid when an unrelated
+Match adds another choice; changing Current cannot silently rebind that ID.
+
+The existing reconciliation may rebuild the exact Decision Request on explicit
+attachment. It does not impose whole-Workspace byte-origin equality: a valid
+metadata-only same-revision alternative can still reconcile; a changed source Game
+identity cannot. No page render reads the upload, scans files, reconstructs Requests,
+validates sources, acquires another lock, imports, saves or prepares anything beyond
+the existing page work.
+
+Rejected forms retain the original mapped diagnostic and file-reselection message.
+Singleton target errors link to a visible focusable description; multiple offered
+submitted choices retain exact-source restoration. An unavailable submitted choice
+is not replaced by a first-option acceptance claim. Retry help identifies the current
+offered target as unaccepted input. No-target errors still open their containing
+disclosure beside the prerequisite. File content is never restored by validation or
+language overlays; hidden target transport is excluded from editable language state.
+
+Attached sources are process-local. Restart/fresh context needs them again; same-context
+Reload can retain and reclassify them while invalidating preparation. Actual add/remove/
+clear changes invalidate artifacts, exact duplicate/no-op operations preserve them,
+and evaluation remains explicit. Removal affects the binding, not the uploaded original,
+Report or Match. Teacher-evidence export is not a source-wrapper backup.
+
+The private presentation retains #245 receipts, #256 outcome targets, #257 Current
+policy and #258's three groups/ten exact exports. No route, form, parser, JavaScript,
+public/persistence contract, preparation default or standalone behavior changes.
+Inventory remains **67 POST routes / 112 forms**; eleven scoped captions bring paired
+catalog keys from **1,786 to 1,797**. See [installed evidence](unified_workflow_visual_contract.md#optional-learning-report-attachment-issue-259).
+
 One server retains at most `2,048` exact Strategy Teacher source bindings in
 memory. Equal source bindings are `unchanged`; a different source under the same
 binding ID is rejected. Sources use deterministic canonical order and expose

@@ -296,6 +296,24 @@ def _add_control_accessibility(
     return block, first_control_id
 
 
+def _learning_report_feedback(block, state, locale):
+    """A regenerated sole target is transport, never a restored accepted attachment."""
+    retained = state.safe_visible_values.singular("match_snapshot_id")
+    pattern = re.compile(r'(<select\b[^>]*name="match_snapshot_id"[^>]*>)(.*?)(</select>)', re.S)
+
+    def choices(match):
+        if retained is not None and not re.search(
+                rf'<option\b[^>]*value="{re.escape(escape(retained, quote=True))}"', match[2]):
+            options = re.sub(r'\s+selected(?:="selected")?', '', match[2])
+            caption = escape(translate_frontend_message_v1(locale, "task.learning.report_choose"))
+            return match[1] + f'<option value="" selected>{caption}</option>' + options + match[3]
+        return match[0]
+
+    block = pattern.sub(choices, block)
+    return '<p>' + escape(translate_frontend_message_v1(
+        locale, "task.learning.report_retry")) + '</p>' + block
+
+
 def _render_summary(
     state: FrontendSubmittedFormStateV1,
     translated: list[tuple[str | None, str, str]],
@@ -457,7 +475,17 @@ def apply_validation_feedback_to_html_v1(
     source_bound = card_entry or declaration_entry or time_entry or correction_entry
     bounds = (None if source_bound and not form_identity else
               _find_form_bounds(html, definition, form_instance, form_identity))
+    learning_report = definition.form_key == "learning.operation.import_strategy_teacher_report"
     if bounds is None:
+        if learning_report and '<!-- report-attachment-feedback -->' in html:
+            marker = '<!-- report-attachment-feedback -->'
+            start = html.index(marker)
+            html = _open_containing_details(html, start, start + len(marker))
+            summary = _render_summary(
+                state, translated, field_definitions, rendered_fields, locale=locale,
+                fallback_anchor="learning-report-target",
+                last_valid_result_retained=last_valid_result_retained)
+            return html.replace(marker, summary + _learning_report_feedback("", state, locale), 1)
         if correction_entry:
             summary = _render_summary(
                 state, translated, field_definitions, rendered_fields, locale=locale,
@@ -543,16 +571,22 @@ def apply_validation_feedback_to_html_v1(
         return html
     form_start, form_end = bounds
     block = _replace_values(html[form_start:form_end], state)
+    if learning_report:
+        block = _learning_report_feedback(block, state, locale)
     for field, messages in field_messages.items():
         block = _open_field_details(block, field)
         described_by = " ".join(identifier for identifier, _message in messages)
         control_id = f"validation-field-{state.feedback_generation}-{field}"
-        block, rendered_control_id = _add_control_accessibility(
-            block,
-            field,
-            described_by,
-            control_id,
-        )
+        singleton_target = (learning_report and field == "match_snapshot_id"
+                            and '<select ' not in block)
+        if singleton_target:
+            rendered_control_id = "learning-report-target"
+            block = block.replace('<div id="learning-report-target" tabindex="-1">',
+                '<div id="learning-report-target" tabindex="-1" '
+                f'aria-describedby="{escape(described_by, quote=True)}">', 1)
+        else:
+            block, rendered_control_id = _add_control_accessibility(
+                block, field, described_by, control_id)
         if rendered_control_id is None:
             continue
         rendered_fields[field] = rendered_control_id
@@ -560,7 +594,10 @@ def apply_validation_feedback_to_html_v1(
             f'<p class="field-error" id="{identifier}">{escape(message)}</p>'
             for identifier, message in messages
         )
-        block = _insert_field_messages(block, field, rendered_messages)
+        if singleton_target:
+            block = block.replace('</div>', rendered_messages + '</div>', 1)
+        else:
+            block = _insert_field_messages(block, field, rendered_messages)
 
     form_anchor_id = f"validation-form-heading-{state.feedback_generation}"
     summary = _render_summary(
@@ -569,7 +606,7 @@ def apply_validation_feedback_to_html_v1(
         field_definitions,
         rendered_fields,
         locale=locale,
-        fallback_anchor=form_anchor_id,
+        fallback_anchor="learning-report-target" if learning_report else form_anchor_id,
         last_valid_result_retained=last_valid_result_retained,
         evidence_anchor=evidence_anchor,
     )

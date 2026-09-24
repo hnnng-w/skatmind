@@ -59,7 +59,8 @@ def test_action_local_guidance_preserves_blockers_and_native_controls(locale, st
     html = render_task_first_learning_v1(specimen(status), managed_handle="a" * 64,
                                        locale=locale, learning_selection="b" * 64)
     assert '<h2>' + t(locale, "task.learning.next") + '</h2>' not in html
-    assert 'href="#learning-recorded-matches"' not in html
+    # Only the optional attachment's missing-target remedy links back to Add.
+    assert html.count('href="#learning-recorded-matches"') == (1 if status == "add" else 0)
     assert t(locale, "concept.learning.automatic") not in html
     assert html.count(t(locale, "task.learning.recorded_help")) == 1
     assert 'id="learning-recorded-matches" tabindex="-1"' in html

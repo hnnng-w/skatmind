@@ -99,6 +99,75 @@ def _version(locale, snapshot, label, identity):
             games=snapshot["observed_game_count"], decisions=snapshot["decision_count"]) + '</p>')
 
 
+def _report_sources(state, handle, locale, profile, recorded):
+    """Describe captured exact bindings only; choices do not predict file compatibility."""
+    names = {match["match_id"]: _match_label(locale, profile, match["match_id"], recorded)
+             for match in state["matches"]}
+    counts = Counter(names.values())
+    labels, current = {}, {}
+    for number, match in enumerate(state["matches"], 1):
+        name = names[match["match_id"]]
+        if counts[name] > 1:
+            name = text(locale, "task.learning.report_match", name=name, number=number)
+        versions = _version_labels(locale, match["snapshots"])
+        for snapshot in match["snapshots"]:
+            identity = snapshot["match_snapshot_id"]
+            labels[identity] = text(locale, "task.learning.report_target", name=name, version=versions[identity])
+            if snapshot["current"]:
+                current[identity] = match["match_id"]
+    options = tuple(dict((item["match_snapshot_id"], labels[item["match_snapshot_id"]])
+        for item in state["current_match_snapshots"]
+        if current.get(item["match_snapshot_id"]) == item["match_id"]).items())
+    sources = '<!-- report-attachment-feedback -->' + paragraph(locale, "task.learning.sources_help")
+    sources += paragraph(locale, "task.learning.report_export")
+    sources += '<h4>' + translated(locale, "task.learning.report_attach") + '</h4>'
+    target = '<div id="learning-report-target" tabindex="-1">'
+    if not options:
+        has_matches = bool(state["matches"])
+        target += paragraph(locale, "task.learning.next.select" if has_matches else "task.learning.next.add")
+        target += '<p><a href="#' + ('insight-versions' if has_matches else 'learning-recorded-matches') + '">'
+        target += translated(locale, "task.learning.choose_version" if has_matches else "task.learning.recorded") + '</a></p></div>'
+        sources += target
+    else:
+        if len(options) == 1:
+            identity, label = options[0]
+            target += '<p>' + translated(locale, "task.learning.report_attach_to") + ': ' + escape(label) + '</p>'
+            target += hidden("match_snapshot_id", identity)
+        else:
+            target += select_field(locale, "match_snapshot_id", "task.learning.report_attach_to", options, required=True).replace(
+                '<select ', '<select aria-describedby="learning-report-target-help learning-report-targets" ', 1)
+            # Native collapsed options cannot wrap; keep their full captions readable too.
+            target += '<ul id="learning-report-targets">' + ''.join(
+                '<li>' + escape(label) + '</li>' for _, label in options) + '</ul>'
+        target += '<p id="learning-report-target-help">' + translated(locale, "task.learning.report_target_help") + '</p></div>'
+        sources += form(locale, "/learning/api/v1/operations", _hidden(handle, "import_strategy_teacher_report")
+            + target + '<label>' + translated(locale, "task.learning.report_file")
+            + '<input type="file" name="report_source_file" accept="application/json,.json" required></label>',
+            "task.learning.add_source", multipart=True)
+    sources += paragraph(locale, "task.learning.report_lifetime")
+    for source in state["strategy_sources"]:
+        label = labels.get(source.get("match_snapshot_id"))
+        sources += '<div class="learning-attached-source"><h4>' + escape(label or _match_label(
+            locale, profile, source["match_id"], recorded)) + '</h4>'
+        if label is None:
+            sources += paragraph(locale, "task.learning.report_version_unavailable")
+        sources += paragraph(locale, "task.match.position", number=source["match_position"])
+        sources += '<p>' + translated(locale, "task.field.decision_index") + ': ' + str(source["decision_index"]) + '</p>'
+        sources += paragraph(locale, "task.value." + source["recommendation_method"])
+        sources += paragraph(locale, "task.learning.binding." + source["binding_status"])
+        if source["binding_status"] == "non_current":
+            sources += paragraph(locale, "task.learning.next.sources")
+            if state["matches"]:
+                sources += '<p><a href="#insight-versions">' + translated(locale, "task.learning.choose_version") + '</a></p>'
+        sources += form(locale, "/learning/api/v1/operations", _hidden(handle, "remove_strategy_teacher_report")
+            + hidden("source_binding_id", source["source_binding_id"]), "task.learning.remove_source") + '</div>'
+    if state["strategy_sources"]:
+        sources += paragraph(locale, "task.learning.report_changes")
+    sources += form(locale, "/learning/api/v1/operations", _hidden(handle, "clear_strategy_teacher_reports"),
+                    "task.learning.clear_sources", disabled=not state["strategy_sources"])
+    return sources
+
+
 def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile=None, recorded=(), rejected_build=False, active_recorded=None, learning_selection=None, source_generation=0, candidate_limit_reached=False, entry_outcome=None):
     view = project_task_first_learning_v1(state)
     handle = managed_handle
@@ -230,24 +299,7 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
         + form(locale, "/learning/api/v1/operations", _hidden(handle, "import_match_workspace")
             + hidden("expected_catalog_revision", revision) + upload + transfer_choices(locale, conflict_identity="learning-upload-conflict"),
             "creation.import.action", multipart=True), level=3)
-    source_options = tuple((item["match_snapshot_id"], _match_label(locale, profile, item["match_id"], recorded))
-                           for item in state["current_match_snapshots"])
-    sources = paragraph(locale, "task.learning.sources_help")
-    sources += form(locale, "/learning/api/v1/operations", _hidden(handle, "import_strategy_teacher_report")
-        + '<label>' + translated(locale, "task.learning.report_file")
-        + '<input type="file" name="report_source_file" accept="application/json,.json" required></label>'
-        + select_field(locale, "match_snapshot_id", "task.learning.used_version", source_options),
-        "task.learning.add_source", multipart=True, disabled=not source_options)
-    for source in state["strategy_sources"]:
-        sources += '<h4>' + escape(_match_label(locale, profile, source["match_id"], recorded)) + '</h4>'
-        sources += paragraph(locale, "task.match.position", number=source["match_position"])
-        sources += '<p>' + translated(locale, "task.field.decision_index") + ': ' + str(source["decision_index"]) + '</p>'
-        sources += paragraph(locale, "task.value." + source["recommendation_method"])
-        sources += paragraph(locale, "task.learning.binding." + source["binding_status"])
-        sources += form(locale, "/learning/api/v1/operations", _hidden(handle, "remove_strategy_teacher_report")
-            + hidden("source_binding_id", source["source_binding_id"]), "task.learning.remove_source")
-    sources += form(locale, "/learning/api/v1/operations", _hidden(handle, "clear_strategy_teacher_reports"),
-                    "task.learning.clear_sources", disabled=not state["strategy_sources"])
+    sources = _report_sources(state, handle, locale, profile, recorded)
     source_section = '<div id="learning-sources">' + section(locale, "task.learning.sources", sources, level=3) + '</div>'
     if view.status == "sources":
         body += source_section

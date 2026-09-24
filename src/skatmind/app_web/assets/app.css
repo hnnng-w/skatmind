@@ -115,12 +115,26 @@ body:has(#task-first-learning) .language-buttons {
 #learning-results .learning-downloads li { margin-block: 1rem; }
 #learning-results .learning-downloads li p { margin-block: 0.25rem; }
 
+/* Native Report selects keep full, wrapping captions in their associated description. */
+#learning-sources p,
+#learning-sources h3,
+#learning-sources h4,
+#learning-sources li {
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+#learning-report-targets { list-style: none; padding: 0; }
+#learning-report-targets li { margin-block: 0.5rem; }
+
 @media (max-width: 35rem) {
   #task-first-learning #learning-results {
     margin-inline: -0.5rem;
     width: calc(100% + 1rem);
   }
   #task-first-learning #learning-results > .panel { padding-inline: 0.35rem; }
+  #task-first-learning > details:has(#learning-sources) { padding-inline: 0.25rem; }
+  #task-first-learning #learning-sources > .panel { padding-inline: 0.35rem; }
 }
 
 .technical-details,

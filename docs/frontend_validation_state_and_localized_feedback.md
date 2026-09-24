@@ -149,6 +149,24 @@ The standalone Capture and Corpus renderers are not modified.
 
 ## Accepted And Submitted State
 
+Issue #259 reuses `learning.operation.import_strategy_teacher_report` and its
+unchanged multipart fields/limit. A sole offered Current Snapshot is now hidden
+transport with a visible `learning-report-target` description (`tabindex=-1`),
+not an editable dropdown. Existing safe-value replacement skips that hidden field,
+and #223's rendered-control manifest excludes it and the file. Multi-target safe
+choices still restore only under the existing exact-source rules.
+
+The narrow validation-render adaptation preserves original mapped issues, upload
+reselection, disclosure opening and error-summary focus. A singleton target issue
+links to its visible description, never an unfocusable hidden input. A rejected
+non-offered multi-target value leaves an explicit blank retry choice instead of
+portraying a different first option as accepted. Retry prose distinguishes the
+currently offered target from the rejected attachment. If no upload form remains,
+feedback opens the optional area and links to its visible prerequisite/remedy.
+No file content, automatic retry, new field/form definition, expected revision,
+signed selection, workflow-script change or Product validation is introduced.
+The registry remains 67/112; eleven captions bring paired keys to 1,797.
+
 Issue #257 keeps Learning's existing value-free per-alternative selection forms,
 including exact Match/Snapshot/revision bindings and repeated-form identity. There
 is no new version dropdown or substituted Current value after rejection. A normal
