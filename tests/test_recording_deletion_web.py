@@ -6,6 +6,7 @@ import http.client
 import os
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
+from html import escape
 from pathlib import Path
 from threading import Event
 
@@ -307,3 +308,98 @@ def test_exact_private_registry_and_destructive_exclusion():
             consent, = form.safe_fields
             assert consent.field_key == "confirm_delete" and consent.cardinality == "single"
             assert consent.clear_after_rejection and consent.allowed_values == ("on",)
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+@pytest.mark.parametrize("family", ("sessions", "matches"))
+@pytest.mark.parametrize("active_target", (False, True))
+def test_compact_confirmation_names_exact_scope_and_keeps_native_consent(
+    localized_server, locale, family, active_target,
+):
+    from test_language_switch_context import switch
+    browser = Browser(localized_server)
+    title = '<Imported & "same title"> ' + "LongName" * 15
+    first, _ = create_recording(browser, family, title)
+    second, _ = create_recording(browser, family, title)
+    target = second if active_target else first
+    entry = deletion_form(browser, family, target.handle, area="review")
+    assert {key: entry["values"][key] for key in ("family", "handle", "return_area")} == {
+        "family": family, "handle": target.handle, "return_area": "review"}
+    assert int(entry["values"]["generation"]) > 0
+    page = follow(browser, browser.submit(entry))
+    pending = localized_server.app_context.recording_deletion.pending
+    page = switch(browser, page, locale)
+    assert localized_server.app_context.recording_deletion.pending is pending
+    body = page.split('id="recording-deletion"', 1)[1].split('</section>', 1)[0]
+    assert body.count(escape(title)) == 1
+    assert all(escape(name) in body for name in pending.players)
+    assert '<nav' not in body and '<details' not in body
+    assert pending.product_id not in body and str(target.path) not in body
+    assert '<nav' in page  # Global shell navigation remains.
+    scope = {
+        ("de", "matches"): "Das gesamte Match einschließlich aller 36 Spielpositionen "
+            "(auch leer oder eingepasst) wird gelöscht.",
+        ("en", "matches"): "The entire saved Match, including all 36 positions "
+            "(empty or passed too), will be deleted.",
+        ("de", "sessions"): "Die gesamte gespeicherte Aufzeichnung dieses einzelnen "
+            "Spiels wird gelöscht.",
+        ("en", "sessions"): "The whole saved recording of this single Game will be deleted.",
+    }[locale, family]
+    undo = ("Das lässt sich in SkatMind nicht rückgängig machen." if locale == "de"
+            else "There is no Undo within SkatMind.")
+    action = {
+        ("de", "matches"): "Match endgültig löschen",
+        ("en", "matches"): "Permanently delete Match",
+        ("de", "sessions"): "Spielaufzeichnung endgültig löschen",
+        ("en", "sessions"): "Permanently delete Game recording",
+    }[locale, family]
+    assert scope in body and undo in body and action in body
+    active_caption = ("Diese Aufzeichnung ist geöffnet." if locale == "de"
+                      else "This recording is open.")
+    assert (active_caption in body) is active_target
+    assert ("Unabhängige Exporte und Kopien im Lernen bleiben erhalten." if locale == "de"
+            else "Independent exports and Learning copies remain.") in body
+    assert body.index(scope) < body.index('name="confirm_delete"')
+    assert body.index(undo) < body.index('name="confirm_delete"')
+    apply, cancel = (Forms(page).find("/recordings/delete/" + operation)
+                     for operation in ("apply", "cancel"))
+    assert apply["values"]["deletion_selection"] == cancel["values"]["deletion_selection"]
+    assert apply["values"]["deletion_selection"] == pending.selection
+    assert "confirm_delete" not in apply["values"] and "confirm_delete" not in cancel["values"]
+    assert 'name="confirm_delete" value="on" required' in body
+    status, headers, _ = browser.submit(cancel)
+    assert status == 303 and headers["location"] == "/review/recorded"
+    assert first.path.exists() and second.path.exists()
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+def test_dedicated_entry_captions_and_already_correct_chooser(localized_server, locale):
+    from test_language_switch_context import switch
+    browser = Browser(localized_server)
+    create_recording(browser, "sessions")
+    create_recording(browser, "matches")
+    switch(browser, browser.page("/review/recorded"), locale)
+    for route in ("/matches", "/sessions", "/review/recorded"):
+        page = browser.page(route)
+        if route != "/sessions":
+            assert ("Gesamtes Match löschen" if locale == "de" else "Delete entire Match") in page
+        if route != "/matches":
+            assert ("Spielaufzeichnung löschen" if locale == "de"
+                    else "Delete Game recording") in page
+        if route == "/review/recorded":
+            assert ("Zur Auswertung öffnen" if locale == "de" else "Open for review") in page
+
+
+@pytest.mark.parametrize("expired", (False, True))
+def test_nonactionable_confirmation_keeps_truthful_way_back(localized_server, expired):
+    browser = Browser(localized_server)
+    if expired:
+        target, _ = create_recording(browser, "sessions")
+        preview(browser, "sessions", target.handle)
+        state = localized_server.app_context.recording_deletion
+        state.pending = replace(state.pending, created_at=state.pending.created_at - 1800)
+    page = browser.page("/recordings/delete")
+    body = page.split('id="recording-deletion"', 1)[1].split('</section>', 1)[0]
+    assert "No current deletion confirmation is available" in body
+    assert '<a href="/review/recorded">' in body
+    assert not any(form["action"].startswith("/recordings/delete/") for form in Forms(page).forms)

@@ -91,6 +91,16 @@ the owning context. The entire Match is selected, not one Game. Imported Learnin
 copies, exports and the profile remain. The private registry is now 62 POST
 routes/106 definitions; the four deletion routes are separate from opening/review.
 
+Issue #261 clarifies only these dedicated deletion captions and the shared
+confirmation. A valid preview shows the captured name, compact Player/progress
+facts, whole-recording scope/no app Undo, applicable active effects and retained
+copies before unchecked consent. Its unrelated in-content shortcuts are removed;
+global navigation, the separate exact Cancel return and non-actionable fallback
+links remain. The chooser's German opening caption was already correct. List order,
+availability, invalid-entry exclusions and source binding remain unchanged.
+Current inventory remains 67 POST routes / 112 forms; see the
+[confirmation map](managed_recording_deletion.md#confirmation-presentation-issue-261).
+
 The chooser uses the existing direct-child, nonrecursive, strict discovery of at
 most 2,048 candidates per family. Friendly profile labels and localized imported
 fallbacks use the same managed-name projection. Duplicate titles remain separate

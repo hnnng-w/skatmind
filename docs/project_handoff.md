@@ -2894,6 +2894,18 @@ gate manual #259 closure. #208, remaining R13/R14 and automatic-use questions st
 open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 No whole-UAT acceptance or release-readiness claim follows.
 
+Issue #261 clarifies only R15a/c/d deletion grammar, compact whole-recording
+confirmation and valid-preview navigation from clean
+`bug/261-recording-deletion-presentation` at `9977fb93c5909388423ac64c9b5517d354555e69`.
+R15b's chooser opening label was already correct; R15e's unchecked consent remains.
+Captured target/expiry, separate Cancel, single unlink and source retirement are
+unchanged. Inventory stays 67/112; paired keys become 1,802. See the
+[scope/consequence map](managed_recording_deletion.md#confirmation-presentation-issue-261)
+and [installed evidence](unified_workflow_visual_contract.md#recording-deletion-confirmation-issue-261).
+#260 remains completed. Both exact merged-#261 CI jobs gate manual closure; #208,
+other residues and automatic-Learning questions remain open. UAT-01 unaccepted,
+UAT-02–12 paused, B-09/B-07 open, B-06 closed; no release-readiness claim.
+
 Issue #260 implements bounded R12a–c saved Match progress from clean
 `bug/260-match-progress-presentation` at `6477188ee89034bb5d49f8f5b93086a1f73150d6`.
 Accepted completed Tricks and incomplete-Trick Cards have one plain coverage caption;

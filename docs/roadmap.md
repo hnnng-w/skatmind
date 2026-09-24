@@ -1898,6 +1898,17 @@ and [evidence](unified_workflow_visual_contract.md#optional-learning-report-atta
 remaining R13/R14 and automatic-use decisions stay open. UAT-01 unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
 
+Issue #261 repairs R15a/c/d dedicated deletion captions, concise exact-scope
+confirmation and redundant valid-preview links. R15b was already correct and R15e
+unchecked consent is preserved. Separate Cancel, exact target/expiry/filesystem
+guards, one-file removal and active retirement remain unchanged. Inventory stays
+67 POST routes / 112 forms; paired captions become 1,802. See
+[deletion guidance](managed_recording_deletion.md#confirmation-presentation-issue-261)
+and [evidence](unified_workflow_visual_contract.md#recording-deletion-confirmation-issue-261).
+#260 remains completed. Exact merged-#261 `check` and `v1-supported-platform-matrix`
+gate manual closure. #208, other residues and automatic-Learning decisions remain
+open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
+
 Issue #260 implements only R12a–c saved Match coverage, understandable first-incomplete
 navigation and secondary round context. Accepted partial counts distinguish complete
 Tricks from one/two Cards; existing empty/setup/ready/passed/complete classification,

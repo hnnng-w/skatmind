@@ -55,40 +55,40 @@ def render_deletion_page(handler, *, status=200):
     body = '<section class="panel recording-deletion" id="recording-deletion">'
     if preview is None:
         body += paragraph(locale, "deletion." + (outcome or "missing"))
+        body += '<nav aria-label="' + translated(locale, "deletion.return") + '">'
+        for area, route in RETURN_AREAS.items():
+            body += f'<p><a href="{route}">' + translated(locale, f"navigation.{area}") + '</a></p>'
+        body += '</nav>'
     else:
         body += ('<h2>' + managed_item_label_v1(preview.summary, profile=profile, locale=locale)
                  + '</h2>')
-        body += paragraph(locale, f"deletion.family.{preview.family}")
-        body += '<p>' + ', '.join(escape(name) if name else translated(
+        body += '<p><strong>' + translated(locale, f"deletion.family.{preview.family}")
+        body += '</strong> · ' + ', '.join(escape(name) if name else translated(
             locale, "deletion.player", number=index)
-            for index, name in enumerate(preview.players, 1)) + '</p>'
+            for index, name in enumerate(preview.players, 1)) + '<br>'
         if preview.family == "sessions":
-            body += paragraph(locale, "deletion.session_progress", plays=preview.progress[0],
+            body += translated(locale, "deletion.session_progress", plays=preview.progress[0],
                               phase=translate_frontend_message_v1(
                                   locale, f"task.session.phase.{preview.summary.phase}"))
         else:
-            body += paragraph(locale, "deletion.match_progress", observed=preview.progress[0],
+            body += translated(locale, "deletion.match_progress", observed=preview.progress[0],
                               passed=preview.progress[1], empty=preview.progress[2])
-        body += paragraph(locale, "deletion.permanent")
+        body += '</p><p>' + translated(locale, f"deletion.scope.{preview.family}")
+        body += ' ' + translated(locale, "deletion.permanent") + '</p>'
         if preview.active is not None:
             body += paragraph(locale, "deletion.active")
         body += paragraph(locale, "deletion.retained") + paragraph(locale, "deletion.download")
-        body += ('<details><summary>' + translated(locale, "deletion.identity") + '</summary><p>'
-                 + escape(preview.product_id) + '</p></details>')
         body += (f'<form method="post" action="{DELETION_PAGE}/apply" autocomplete="off">'
                  + hidden("deletion_selection", preview.selection)
                  + '<label><input type="checkbox" name="confirm_delete" value="on" required> '
                  + translated(locale, "deletion.consent") + '</label>'
-                 + '<button type="submit">' + translated(locale, "deletion.apply")
+                 + '<button type="submit">' + translated(locale, f"deletion.apply.{preview.family}")
                  + '</button></form>'
                  + f'<form method="post" action="{DELETION_PAGE}/cancel">'
                  + hidden("deletion_selection", preview.selection)
                  + '<button type="submit" class="secondary">'
                  + translated(locale, "deletion.cancel") + '</button></form>')
-    body += '<nav aria-label="' + translated(locale, "deletion.return") + '">'
-    for area, route in RETURN_AREAS.items():
-        body += f'<p><a href="{route}">' + translated(locale, f"navigation.{area}") + '</a></p>'
-    body += '</nav></section>'
+    body += '</section>'
     from .language_context import capture_language_source_v1
     handler._rendered_language_source = capture_language_source_v1(app, DELETION_PAGE)
     handler._content_page("/review/recorded", return_to=DELETION_PAGE,

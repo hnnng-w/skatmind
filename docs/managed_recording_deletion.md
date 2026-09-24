@@ -1,5 +1,62 @@
 # Delete a saved Session or entire Match
 
+## Confirmation presentation (Issue #261)
+
+Starting clean `bug/261-recording-deletion-presentation` HEAD:
+`9977fb93c5909388423ac64c9b5517d354555e69`, after integrated #260. The actual #261
+specification, R15 in #208's consolidated retest and the supplied post-#259
+reconciliation identify R15a/c/d as presentation work. Current source reproduced
+the two German Match grammar errors, repeated confirmation composition and extra
+valid-preview destinations. R15b's chooser opening caption was already correct;
+R15e's unchecked consent is preserved. This is not whole-R15 human acceptance.
+
+| Entry action | Captured scope | Final action after native consent |
+| --- | --- | --- |
+| Delete Game recording | Entire saved single-Game Session recording | Permanently delete Game recording |
+| Delete entire Match | Entire saved Workspace, all 36 positions including empty and passed | Permanently delete Match |
+
+Both catalogs express the same scope. Available managed list/chooser entries still
+open Preview; the first click removes nothing. The name appears once prominently,
+followed by compact family, recorded Players and accepted progress. Match counts
+are labelled recording/passed/empty counts, not completed-Game counts. Escaping and
+the existing managed-name projection cover long, same-title and imported labels.
+Names never resolve the target. The old raw Product-ID disclosure is omitted.
+
+The normal confirmation keeps these consequences visible before consent:
+
+* **Unconditional:** whole-recording removal, no Undo within SkatMind, retained
+  independent exports/Learning copies and unchanged other recordings/Players/settings.
+  The existing advice to Cancel and use opening/download controls for a copy is shorter.
+  This promises neither secure erasure nor an inability to restore a separate file.
+* **Captured active target only:** its in-memory Results, Reports and correction
+  previews are discarded; running work cannot publish Results for the deleted source.
+* **Post-removal refresh failure:** the original untimed deleted-with-warning outcome
+  remains, with its list-refresh remedy and no repeated deletion. Pre-removal refusals
+  retain their original diagnostics and valid state.
+
+The two native forms retain their order, fields and validation: required unchecked
+checkbox, literal `confirm_delete=on`, destructive Apply and secondary Cancel.
+Only valid confirmations lose the extra in-content `RETURN_AREAS` links. The routing
+domain, exact Cancel return, global navigation and non-actionable fallback links
+remain. Invalid/expired pages expose neither fabricated Cancel tokens nor Delete.
+Language clears consent while preserving the exact selection and nonrenewed expiry.
+There is no new discovery, read, lock, token, write, JavaScript or history mechanism.
+
+The registry remains **67 POST routes / 112 forms**. Two family-specific final
+captions and two scope captions replace the generic final caption and technical-ID
+caption: **1,800 -> 1,802** paired, ordered, placeholder-checked keys. Package
+0.17.0, Python >=3.13, AGPL-3.0-only, all dependency floors including tzdata>=2026.4,
+public/persistence contracts and 98 generated scenarios remain unchanged.
+
+The original #235 implementation and historical evidence follow. The current
+[installed verification](unified_workflow_visual_contract.md#recording-deletion-confirmation-issue-261)
+uses independent Wheels and disposable synthetic roots. Exact merged-commit `check`
+and `v1-supported-platform-matrix` must pass before manual #261 closure. #260 remains
+completed; #208, other residues and automatic-Learning decisions remain open.
+UAT-01 is unaccepted; UAT-02–12 paused; B-09/B-07 open; B-06 closed.
+
+## Original deletion implementation (Issue #235)
+
 Issue #235 adds a **private managed-file lifecycle operation** to the unified local
 app. Available Session and Match entries in their normal lists and
 `/review/recorded` offer a secondary deletion action. A Match means its entire
@@ -41,7 +98,8 @@ existing bounded cardinality. The three definitions bring the private registry
 to **62 POST routes / 106 forms**, without adding public or persistence versions.
 
 One native confirmation page names the recording, family, recorded Players, and
-actual source progress. Exact Product identity is secondary; paths are absent.
+actual source progress. Originally, exact Product identity was secondary; #261
+omits that raw-ID disclosure. Paths remain absent.
 The checkbox starts unchecked; Apply accepts only literal `on`. Native required
 validation, visible keyboard focus, and server validation work without JavaScript.
 The destructive action receives no default focus. Error rerenders and both language

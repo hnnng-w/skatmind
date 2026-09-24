@@ -6,13 +6,19 @@ import argparse
 import hashlib
 import http.client
 import json
+import os
+import subprocess
 import sys
 import time
+from collections import Counter
+from contextlib import ExitStack
 from html.parser import HTMLParser
+from importlib.metadata import version
 from importlib.resources import files
 from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import urlencode, urlsplit
+from zipfile import ZipFile
 
 from _workflow_visual_browser import LocalBrowser
 
@@ -92,29 +98,60 @@ def keyboard(cdp, key, code, number, text=None):
 
 
 def choose(cdp):
-    cdp.evaluate(f"document.querySelector({json.dumps(CHECKBOX)}).scrollIntoView();"
-                 f"document.querySelector({json.dumps(CHECKBOX)}).focus()")
+    tab_to(cdp, CHECKBOX)
     keyboard(cdp, " ", "Space", 32, " ")
+
+
+def tab_to(cdp, selector):
+    for _ in range(180):
+        if cdp.evaluate("document.activeElement.matches(" + json.dumps(selector) + ")"):
+            return
+        keyboard(cdp, "Tab", "Tab", 9)
+    raise AssertionError((selector, focus(cdp)))
+
+
+def click(cdp, selector):
+    point = cdp.evaluate("(()=>{const e=document.querySelector(" + json.dumps(selector)
+        + ");e.scrollIntoView({block:'center'});const r=e.getClientRects()[0];"
+        + "return {x:r.x+r.width/2,y:r.y+Math.min(15,r.height/2)}})()")
+    for kind in ("mouseMoved", "mousePressed", "mouseReleased"):
+        cdp.call("Input.dispatchMouseEvent", type=kind, **point,
+                 **({"button": "left", "clickCount": 1} if kind != "mouseMoved" else {}))
 
 
 def focus(cdp):
     return cdp.evaluate("""(() => {const e=document.activeElement,s=getComputedStyle(e);
-        return {tag:e.tagName,name:e.name||null,outline:s.outlineColor,width:s.outlineWidth,
+        return {tag:e.tagName,id:e.id,name:e.name||null,text:e.innerText,
+                href:e.getAttribute('href'),
+                outline:s.outlineColor,width:s.outlineWidth,
                 visible:e.matches(':focus-visible')};})()""")
 
 
-def submit(cdp, selector, evidence, name, *, expected_posts=1):
+def submit(cdp, selector, evidence, name, *, expected_posts=1, pointer=False):
+    before = evidence["operation_counts"].copy()
     cdp.events.clear()
-    cdp.activate(selector)
+    if pointer:
+        click(cdp, selector)
+    else:
+        tab_to(cdp, selector)
+        keyboard(cdp, "Enter", "Enter", 13, "\r")
+    time.sleep(.6)
     cdp.evaluate("void 0")
     paths = [urlsplit(event["params"]["request"]["url"]).path for event in cdp.events
              if event["params"]["request"]["method"] == "POST"]
     assert len(paths) == expected_posts, (name, paths)
-    evidence["actions"].append({"name": name, "posts": paths,
-        "path": cdp.evaluate("location.pathname"), "focus": focus(cdp)})
+    observation = {"name": name, "posts": paths, "input": "pointer" if pointer else "keyboard",
+        "path": cdp.evaluate("location.pathname+location.hash"), "focus": focus(cdp)}
+    keyboard(cdp, "Tab", "Tab", 9)
+    observation["next_tab"] = focus(cdp)
+    observation["operations"] = dict(evidence["operation_counts"] - before)
+    evidence["actions"].append(observation)
 
 
 def measure(cdp, output, evidence, name, selector, *, all_sizes=True):
+    before = evidence["operation_counts"].copy()
+    if cdp.evaluate("document.activeElement.matches('.skip-link')"):
+        keyboard(cdp, "Tab", "Tab", 9)
     sizes = ((1365, 900, 1), (390, 844, 1), (320, 800, 1), (320, 800, 2))
     for width, height, scale in sizes if all_sizes else ((320, 800, 1),):
         cdp.call("Emulation.setDeviceMetricsOverride", width=width, height=height,
@@ -133,12 +170,19 @@ def measure(cdp, output, evidence, name, selector, *, all_sizes=True):
                     tag:e.tagName,classes:e.className,text:e.innerText,
                     width:e.getBoundingClientRect().width,
                     columns:getComputedStyle(e).gridTemplateColumns})),
-            path:location.pathname};})(""" + json.dumps(selector) + ")")
+             local:[...e.querySelectorAll('h2,p,label,input[type=checkbox],button')].map(n=>{
+                 const b=n.getBoundingClientRect(),s=getComputedStyle(n);return {tag:n.tagName,
+                 text:n.innerText,width:b.width,height:b.height,left:b.left,right:b.right,
+                 client:n.clientWidth,scroll:n.scrollWidth,font:s.fontSize,color:s.color,
+                 background:s.backgroundColor,outline:s.outline,display:s.display}}),
+             path:location.pathname};})(""" + json.dumps(selector) + ")")
         evidence["measurements"].append({"name": name, "viewport": [width, height],
             "text_scale": scale, "focus": focus(cdp), **result})
         cdp.evaluate(f"document.querySelector({json.dumps(selector)}).scrollIntoView()")
         cdp.screenshot(output / f"{evidence['key']}-{name}-{width}-{scale}.png")
         if selector == "#recording-deletion":
+            cdp.evaluate(f"document.querySelector({json.dumps(CHECKBOX)}).scrollIntoView()")
+            cdp.screenshot(output / f"{evidence['key']}-{name}-{width}-{scale}-consent.png")
             cdp.evaluate(f"document.querySelector({json.dumps(APPLY)}).scrollIntoView()")
             cdp.screenshot(output / f"{evidence['key']}-{name}-{width}-{scale}-controls.png")
         assert result["client"] == result["scroll"], (name, result)
@@ -146,6 +190,7 @@ def measure(cdp, output, evidence, name, selector, *, all_sizes=True):
         if scale == 2:
             cdp.evaluate("document.querySelectorAll('body,body *').forEach(e=>"
                          "e.style.removeProperty('font-size'))")
+    assert evidence["operation_counts"] == before
 
 
 def create(cdp, server, family, evidence):
@@ -153,15 +198,15 @@ def create(cdp, server, family, evidence):
     route = "/sessions/create" if family == "sessions" else "/matches/api/v1/create"
     selector = f'form[action="{route}"]'
     title_field = "game_name" if family == "sessions" else "match_title"
-    values = {title_field: ("Repeated synthetic recording " + "LongTitle" * 14)[:160],
+    values = {title_field: ('Repeated <synthetic & recording> ' + "LongTitle" * 14)[:160],
         "forehand_name": "Alexandra Long-Synthetic-Name", "middlehand_name": "Boris",
         "rearhand_name": "Clara"}
     for name, value in values.items():
         control = selector + f' [name="{name}"]'
-        cdp.evaluate(f"document.querySelector({json.dumps(control)}).focus()")
+        tab_to(cdp, control)
         cdp.call("Input.insertText", text=value)
     # Native select defaults are retained except the deliberately chosen perspective.
-    cdp.evaluate(f"document.querySelector('{selector} [name=perspective_seat]').focus()")
+    tab_to(cdp, selector + ' [name=perspective_seat]')
     keyboard(cdp, "ArrowDown", "ArrowDown", 40)
     submit(cdp, selector + ' button[value="update"]', evidence, family + "-setup")
     submit(cdp, selector + ' button[value="create"]', evidence, family + "-create")
@@ -194,7 +239,8 @@ def flow(cdp, server, output, evidence, removals):
             assert cdp.evaluate("document.activeElement.name") != "confirm_delete"
             assert not cdp.evaluate("!!document.querySelector('[name=confirm_delete]:checked')")
             measure(cdp, output, evidence, prefix + "-preview", "#recording-deletion")
-            submit(cdp, CANCEL + " button", evidence, prefix + "-cancel")
+            submit(cdp, CANCEL + " button", evidence, prefix + "-cancel", pointer=index == 0)
+            assert cdp.evaluate("location.pathname") == route
             assert target.path.read_bytes() == original and len(removals) == before
             assert app.frontend_profile.profile_path.read_bytes() == profile
             cdp.navigate(server.origin + route)
@@ -205,20 +251,27 @@ def flow(cdp, server, output, evidence, removals):
             assert focus(cdp)["visible"] and focus(cdp)["width"] != "0px"
             cdp.screenshot(output / f"{evidence['key']}-{prefix}-checked-focus.png")
             evidence["actions"].append({"name": prefix + "-checked", "posts": [],
-                                        "focus": focus(cdp)})
+                                         "focus": focus(cdp)})
+            click(cdp, APPLY + " label")
+            assert not cdp.evaluate("!!document.querySelector('[name=confirm_delete]:checked')")
+            click(cdp, APPLY + " label")
+            assert cdp.evaluate("!!document.querySelector('[name=confirm_delete]:checked')")
+            assert len(removals) == before and target.path.read_bytes() == original
             for language in ("en" if locale == "de" else "de", locale):
                 submit(cdp, f'.language-selector button[value="{language}"]', evidence,
                        prefix + "-language-" + language)
                 assert app.recording_deletion.pending is pending
                 assert not cdp.evaluate("!!document.querySelector('[name=confirm_delete]:checked')")
+                assert pending.created_at == app.recording_deletion.pending.created_at
             measure(cdp, output, evidence, prefix + "-language-cleared", "#recording-deletion")
             submit(cdp, APPLY + " button", evidence, prefix + "-unchecked", expected_posts=0)
-            assert cdp.evaluate("document.activeElement.name") == "confirm_delete"
+            assert evidence["actions"][-1]["focus"]["name"] == "confirm_delete"
             assert len(removals) == before and target.path.read_bytes() == original
             competing_open(server, family, target, evidence)
             choose(cdp)
             submit(cdp, APPLY + " button", evidence, prefix + "-stale")
             assert cdp.evaluate("!!document.querySelector('.error-summary')")
+            assert evidence["actions"][-1]["focus"]["tag"] != "BUTTON"
             assert len(removals) == before and target.path.read_bytes() == original
             measure(cdp, output, evidence, prefix + "-stale", "main", all_sizes=False)
             if other is not None:
@@ -227,14 +280,16 @@ def flow(cdp, server, output, evidence, removals):
             submit(cdp, selection, evidence, prefix + "-final-preview")
             profile = app.frontend_profile.profile_path.read_bytes()
             choose(cdp)
-            submit(cdp, APPLY + " button", evidence, prefix + "-delete")
+            submit(cdp, APPLY + " button", evidence, prefix + "-delete", pointer=index == 0)
             assert len(removals) == before + 1 and not target.path.exists()
             assert app.frontend_profile.profile_path.read_bytes() == profile
             if other is not None:
                 assert other.path.read_bytes() == other_bytes
             evidence["files"].append({"name": prefix, "removed_count": 1,
-                "source_sha256": digest(original), "profile_sha256": digest(profile),
+                "source_sha256": digest(original), "source_bytes": len(original),
+                "profile_sha256": digest(profile), "profile_bytes": len(profile),
                 "remaining_sha256": None if other_bytes is None else digest(other_bytes),
+                "remaining_bytes": None if other_bytes is None else len(other_bytes),
                 "target_absent": True, "profile_unchanged": True})
             measure(cdp, output, evidence, prefix + "-deleted", "main", all_sizes=False)
 
@@ -248,12 +303,20 @@ def run(args):
     hashes = {}
     for name in MODULES:
         raw = files("skatmind.app_web").joinpath(name).read_bytes()
-        assert raw == (ROOT / "src/skatmind/app_web" / name).read_bytes(), name
+        expected = ((ROOT / "src/skatmind/app_web" / name).read_bytes() if args.phase == "after"
+                    else subprocess.check_output(
+                        ["git", "show", "HEAD:src/skatmind/app_web/" + name], cwd=ROOT))
+        assert raw.replace(b"\r\n", b"\n") == expected.replace(b"\r\n", b"\n"), name
+        with ZipFile(args.wheel) as wheel:
+            assert raw == wheel.read("skatmind/app_web/" + name), name
         hashes[name] = digest(raw)
     output.mkdir()
     evidence = {"completed": False, "python": sys.version, "package": skatmind.__version__,
         "module": skatmind.__file__, "wheel_sha256": digest(args.wheel.read_bytes()),
-        "installed_hashes": hashes, "runs": []}
+        "installed_hashes": hashes, "phase": args.phase,
+        "versions": {name: version(name) for name in ("jsonschema", "referencing", "tzdata")},
+        "starting_head": subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), "runs": []}
     try:
         for javascript in (True, False):
             for locale in ("de", "en"):
@@ -267,13 +330,35 @@ def run(args):
                     "files": [], "competing_http": [], "responses": []}
                 evidence["runs"].append(item)
                 removals = []
+                counts = Counter()
+                item["operation_counts"] = counts
                 real = Path.unlink
-                def counted(path, *args, real=real, app=app, removals=removals, **kwargs):
+                def counted(path, *args, real=real, app=app, removals=removals,
+                            counts=counts, **kwargs):
+                    managed = path.parent in (app.managed_stateful.root("sessions"),
+                                              app.managed_stateful.root("matches"))
+                    if managed:
+                        counts["unlink_attempts"] += 1
                     result = real(path, *args, **kwargs)
-                    if path.parent in (app.managed_stateful.root("sessions"),
-                                       app.managed_stateful.root("matches")):
+                    if managed:
                         removals.append(path)
                     return result
+                real_replace = os.replace
+                def replaced(source, destination, real_replace=real_replace,
+                             app=app, counts=counts):
+                    destination = Path(destination)
+                    result = real_replace(source, destination)
+                    if destination.parent in (app.managed_stateful.root("sessions"),
+                                              app.managed_stateful.root("matches")):
+                        counts["recording_setup_writes"] += 1
+                    elif destination == app.frontend_profile.profile_path:
+                        counts["profile_writes"] += 1
+                    return result
+                def count_calls(label, real, counts=counts):
+                    def wrapped(*args, **kwargs):
+                        counts[label] += 1
+                        return real(*args, **kwargs)
+                    return wrapped
                 real_headers = SkatMindAppWebRequestHandlerV1._headers
                 def headers(handler, status, *args, real_headers=real_headers, item=item, **kwargs):
                     item["responses"].append({"method": handler.command,
@@ -284,14 +369,25 @@ def run(args):
                     cdp.call("Emulation.setScriptExecutionDisabled", value=not javascript)
                     cdp.call("Page.navigate", url=server.origin + "/?token=" + TOKEN)
                     time.sleep(.5)
-                    with (patch.object(Path, "unlink", counted),
-                          patch.object(SkatMindAppWebRequestHandlerV1, "_headers", headers)):
+                    with ExitStack() as stack:
+                        stack.enter_context(patch.object(Path, "unlink", counted))
+                        stack.enter_context(patch("os.replace", replaced))
+                        stack.enter_context(patch.object(
+                            SkatMindAppWebRequestHandlerV1, "_headers", headers))
+                        from skatmind.app_web import recording_deletion, stateful_context
+                        from skatmind.app_web import server as server_module
+                        for module in (recording_deletion, server_module, stateful_context):
+                            stack.enter_context(patch.object(module, "discover_managed_items_v1",
+                                count_calls(module.__name__, module.discover_managed_items_v1)))
                         flow(cdp, server, output, item, removals)
                     for route, name in (("/assets/app.css", "assets/app.css"),
                                         ("/matches/assets/capture.js", "assets/workflow.js")):
                         status, raw = request(server, "GET", route)
                         assert status == 200 and digest(raw) == hashes[name]
                     item["actual_removals"] = len(removals)
+                    item["counts"] = dict(counts)
+                    item["language_posts"] = sum(
+                        "language" in action["name"] for action in item["actions"])
                     assert len(removals) == 4
                     print(key, "completed", len(item["measurements"]), "measurements", flush=True)
                 finally:
@@ -310,4 +406,5 @@ if __name__ == "__main__":
     parser.add_argument("--browser", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--wheel", type=Path, required=True)
+    parser.add_argument("--phase", choices=("before", "after"), default="after")
     run(parser.parse_args())

@@ -1,5 +1,9 @@
 # Unified Match and Learning visual contract
 
+Issue #261 clarifies the shared deletion confirmation and dedicated list/chooser
+captions. See [installed evidence](#recording-deletion-confirmation-issue-261) and
+the [scope/consequence map](managed_recording_deletion.md#confirmation-presentation-issue-261).
+
 Issue #260 clarifies accepted Match recording coverage and first-incomplete navigation,
 and makes round context secondary. Its [installed evidence](#saved-match-progress-issue-260)
 supersedes only R12a–c presentation and preserves the existing tile-local selected cue.
@@ -2222,3 +2226,127 @@ is made. All edits/evidence precede the prescribed complete check. #259 remains
 completed; #208 and other residues/product questions remain open. UAT-01 unaccepted,
 UAT-02–12 paused, B-09/B-07 open, B-06 closed. Both exact merged-#260 CI jobs remain
 manual closure gates; implementation verification is not whole-R12 human acceptance.
+
+## Recording deletion confirmation (Issue #261)
+
+Started on clean `bug/261-recording-deletion-presentation` at
+`9977fb93c5909388423ac64c9b5517d354555e69`, after integrated #260. The actual issue,
+#208 R15 and supplied post-#259 reconciliation were read. Current-source regressions
+confirmed the grammatical Match captions and redundant valid-preview composition/
+navigation. Ten corrected pre-fix cases failed and two normal/expired fallback cases
+passed; an initial test assumed alphabetical Match Player order and was corrected
+to assert the captured names instead. R15b's chooser label was already correct.
+
+`scripts/verify_recording_deletion.py` reuses the optional dependency-free DevTools
+transport with separate baseline/repaired Wheel installations. It compares 17
+installed module/resource hashes with their Wheel bytes and HEAD/repaired source,
+and checks served CSS/script hashes. All data is newly created synthetic scratch
+data. Completed paired evidence is under `%TEMP%\opencode\`:
+
+* `261-before-final/evidence.json`, `261-after-verified/evidence.json` and adjacent PNGs;
+* `261-baseline-env/`, `261-repaired-env/`, `261-baseline-wheel/`,
+  `261-repaired-wheel-final/`;
+* `261-lifecycle-bytes-02/evidence.json` for genuine retained HTTP artifacts and
+  persisted independent-copy byte evidence from the existing lifecycle fixtures.
+
+Each Wheel completes **224 measurements**, covering both deletion families,
+active/inactive equal long titles, de/en, JavaScript on/off, **1365×900, 390×844,
+320×800**, and representative **200% computed text**. Environment: Windows,
+CPython **3.13.7**, Package **0.17.0**, Edge **153.0.4234.48**, jsonschema **4.26.0**,
+referencing **0.37.0**, tzdata **2026.4**. The browser verifier requires no pytest or
+browser-library installation. Source lifecycle checks use the existing pytest
+environment; the complete check records its own environment separately.
+
+Inspected screenshots show the named recording, compact family/Player/progress
+context, literal whole-recording scope/no Undo, conditional active warning, copies,
+consent and actions. No material warning requires a disclosure. Long labels wrap;
+the unrelated in-content links and raw-ID disclosure disappear only on valid
+confirmations. Global navigation and invalid-state destinations remain.
+
+| Confirmation specimen | Baseline height | Repaired height |
+| --- | ---: | ---: |
+| German active Match, desktop | 744.22px | 499.44px |
+| German active Match, 390px | 1201.75px | 932.17px |
+| German active Match, 320px | 1430.52px | 1111.34px |
+| German active Match, 320px / enlarged text | 5008.73px | 4039.23px |
+| English inactive Session, desktop | 653.83px | 433.84px |
+| English inactive Session, 320px / enlarged text | 3488.92px | 2866.58px |
+
+Body/action text remains **16px**, **32px** when enlarged; name headings remain
+24px/48px. There is no font-size or layout CSS change. The only stylesheet change
+adds the exact deletion Apply selector to the existing destructive palette:
+measured ordinary green `rgb(20,92,67)` becomes `rgb(126,33,25)` with white text.
+Cancel remains secondary. Native checkbox size is 20×20px at normal text; action
+heights start at 44.39px and grow with wrapping. Document/client widths remain
+1350/1350, 375/375 and 305/305. Local text/control geometry and consent/focus PNGs
+were inspected. Long labels and enlarged text still require vertical scrolling;
+no single-screen promise is made.
+
+Native Tab/Space/Enter and pointer actions exercise real Cancel and confirmed removal
+for each family. No verifier assigns focus programmatically. An unchecked Apply
+is blocked by native required validation with **zero POSTs**: focus reaches the
+checkbox, then next Tab reaches Delete. Checked consent is cleared by each language
+return with the identical pending object/selection and original creation time.
+Label clicks toggle only the checkbox. A real competing HTTP open invalidates the
+preview; its native stale Apply receives contextual 409 and removes nothing.
+The existing error section receives focus; next Tab reaches its actual main-content
+link. Cancel/Delete return to the captured family list or chooser, with document
+body focus and the skip link next. Focus rings remain visible, without Delete
+autofocus, positive tabindex, merged forms or workflow-script changes.
+
+Each of four locale/script runs per Wheel records **4 fixture recording writes**,
+**4 unlink attempts / 4 successful removals** (2 Session, 2 Match), and **13 profile
+writes**: 4 creation enrichments and 9 explicit language saves. Existing discovery
+is counted separately: 59 server and 52 deletion-boundary calls. Measurements,
+checkbox toggles, unchecked attempts and Cancel add no recording writes/removals.
+Preview/language retain their existing read-only revalidation/discovery. Every
+successful Apply removes exactly one file; same-title survivor and profile bytes
+are compared exactly. Browser specimens contain 5,660-byte Session and 8,919-byte
+Match files, with 1,267/1,976-byte profile snapshots. All per-source hashes are retained.
+
+The corrected deletion/file/lifecycle/catalog run passes **90 tests, one existing
+Windows symlink-permission skip (1314), in 129.36s**. Navigation/language/localization
+checks pass **92 tests in 99.48s**. These overlapping selections are not added to
+full-suite totals. Existing controlled clock, permission, refresh, stale, supersession,
+replacement and legacy fixtures retain their assertions. A mixed Match has six
+accepted Plays, one passed position and 34 empty positions; its real confirmed
+removal deletes the Workspace once and retains unrelated Session/profile bytes.
+
+The existing genuine Session review and Match Report lifecycle cases additionally
+pass **2 tests in 94.41s**, recording unchanged bytes through applicable Preview,
+Cancel, controlled unlink refusal and unrelated deletion. Exact active deletion
+retires its Results normally (subsequent download 404). A separately imported Corpus
+strictly reopens with identical Catalog/Snapshot bytes; a separately saved Report
+export remains unchanged. Representative byte evidence:
+
+| Value | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Session Result before/after unrelated deletion | 10751 | `080006282bb7fd09d9e9b633a233f58b8001525a3e5fcad585ed766210ed0e5a` |
+| Match Report and retained independent export | 10371 | `d7322506e0fdd93377b94c66e4d9ab07a208fc22f4f8327166beefcc739f4138` |
+| Independent Corpus Catalog | 1730 | `2f8489b43c478522d49a24943018aaef1e119ef7d8a7dd1f8213f49abf989bdd` |
+| Independent Corpus Snapshot | 36311 | `cdafd37b6a00895423af0570a9eb99aff78130b40d2e1dc25509809671561ec8` |
+| Baseline Wheel | — | `f4cecaa21a623cee15a78964f989d3928235c69f9276acb16edeb8f1744cd134` |
+| Repaired Wheel | — | `07f35d383074e6b33588880dfea704202a52da8b0b9c5454349b90fa8fca137b` |
+| Repaired renderer | — | `c59cd97078899286c15b5431f444672018eba1eabf32d08ac5c4dda58b148068` |
+| Repaired CSS | — | `eb3f88085e5e4f81cf28c6b9b5fbada48b5600bc49d34f1c458a1d200575c5e5` |
+| Unchanged deletion service | — | `1b43cbbc43b4b27b78a3be2d6284fdc2cdcad17014662e97ae9f73188f5a5cff` |
+
+Downloads are authenticated HTTP byte checks, not native downloads or physical Save
+dialogs. Browser fixture recordings are setup-only; partial/completed recordings,
+real analyses, retained Corpus and fault/expiry variants use the separate HTTP
+fixtures. Computed text enlargement is not browser zoom. No screen-reader, physical
+device, maintainer UAT, full Learning matrix or new filesystem race claim is made.
+Earlier scratch evidence retains one verifier module-name shadowing failure and one
+external byte-recorder import-path failure, both before their successful corrected
+runs. Completed intermediate browser runs precede the final count-label wording.
+No Product behavior was changed to accommodate those harness errors.
+
+The established detached logger proof captured stdout/stderr and actual child exit
+23 in `261-proof-20260924T142038Z.{log,json}`. Final complete-check stage/test/skip
+counts, actual child exit and full native-output log belong to the implementation
+report. All edits and this evidence precede that check. Inventory is 67 POST routes /
+112 forms / 1,802 paired keys; package/dependency/public/persistence/scenario contracts
+remain. R15a/c/d presentation is repaired; R15b was already correct; R15e is preserved.
+Both exact merged-#261 CI jobs gate closure. #260 remains completed; #208 and other
+residues/automatic-Learning questions remain open. UAT-01 unaccepted, UAT-02–12
+paused, B-09/B-07 open, B-06 closed; no whole-UAT or release-readiness claim.

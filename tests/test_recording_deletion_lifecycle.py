@@ -83,7 +83,9 @@ def test_completed_session_result_and_manual_draft_survive_inactive_delete_then_
     assert match.path.read_bytes() == match_bytes
 
 
-def test_real_match_report_recovery_and_imported_corpus_survive_source_removal(localized_server):
+def test_real_match_report_recovery_and_imported_corpus_survive_source_removal(
+    localized_server, monkeypatch,
+):
     from test_historical_game import build_historical_input
     browser = Browser(localized_server)
     path, _, page = open_partial_match(browser)
@@ -119,6 +121,18 @@ def test_real_match_report_recovery_and_imported_corpus_survive_source_removal(l
     page = preview(browser, "matches", active.handle)
     follow(browser, browser.submit(Forms(page).find("/recordings/delete/cancel")))
     assert active.capture.report_store.list() == (report,) and active.selected_position == 3
+    assert (active.recovery.selected, active.recovery.preview) == recovery
+    assert browser.request("GET", download_route)[2] == download and path.read_bytes() == disk
+    failed = Forms(preview(browser, "matches", active.handle)).find("/recordings/delete/apply")
+    real_unlink = Path.unlink
+    def refused(target, *args, **kwargs):
+        if target == path:
+            raise PermissionError("Controlled refusal with a genuine retained Match Report")
+        return real_unlink(target, *args, **kwargs)
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "unlink", refused)
+        assert browser.submit(failed, confirm_delete="on")[0] == 400
+    assert active.capture.report_store.list() == (report,)
     assert (active.recovery.selected, active.recovery.preview) == recovery
     assert browser.request("GET", download_route)[2] == download and path.read_bytes() == disk
     # A real second source, created through the normal native flow, is deleted inactive.
@@ -301,3 +315,43 @@ def test_accepted_edit_after_preview_preserves_new_source_on_delete_conflict(loc
     assert active.state.revision == 1
     assert browser.submit(form, confirm_delete="on")[0] == 409
     assert active.path.read_bytes() == changed and not active.retired
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+def test_mixed_partial_passed_empty_match_confirmation_removes_whole_workspace(
+    localized_server, locale, monkeypatch,
+):
+    from test_language_switch_context import switch
+    browser = Browser(localized_server)
+    path, _, _ = open_partial_match(browser)
+    page = browser.page("/matches/position/2")
+    follow(browser, browser.submit(operation_form(page, "mark_passed_deal")))
+    active = localized_server.app_context.managed_stateful.active_match
+    assert len(active.workspace.slots) == 36
+    assert len(active.workspace.slots[2].observed_game.plays) == 6
+    session, _ = create_recording(browser, "sessions")
+    profile = localized_server.app_context.frontend_profile.profile_path
+    original, unrelated = path.read_bytes(), session.path.read_bytes()
+    page = switch(browser, preview(browser, "matches", active.handle), locale)
+    profile_bytes = profile.read_bytes()
+    assert ("Spielaufzeichnungen: 1 · eingepasst: 1 · leere Positionen: 34" if locale == "de"
+            else "Game recordings: 1 · passed: 1 · empty positions: 34") in page
+    assert ("aller 36 Spielpositionen (auch leer oder eingepasst)" if locale == "de"
+            else "all 36 positions (empty or passed too)") in page
+    apply = Forms(page).find("/recordings/delete/apply")
+    attempts = []
+    real_unlink = Path.unlink
+    def counted(target, *args, **kwargs):
+        if target.parent in (path.parent, session.path.parent):
+            attempts.append(target)
+        return real_unlink(target, *args, **kwargs)
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "unlink", counted)
+        assert browser.submit(apply)[0] == 400
+        follow(browser, browser.submit(Forms(page).find("/recordings/delete/cancel")))
+        assert attempts == [] and path.read_bytes() == original
+        page = preview(browser, "matches", active.handle)
+        follow(browser, browser.submit(Forms(page).find("/recordings/delete/apply"),
+                                       confirm_delete="on"))
+    assert attempts == [path] and not path.exists()
+    assert session.path.read_bytes() == unrelated and profile.read_bytes() == profile_bytes

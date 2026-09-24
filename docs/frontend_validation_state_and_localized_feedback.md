@@ -304,6 +304,17 @@ An already-retained version imported with `select_imported` can genuinely change
 Current selection: its accepted `applied`/`duplicate_snapshot` outcome says only
 that the version was selected, never that another version was added.
 
+Issue #261 shortens deletion presentation only. The visible native required
+checkbox remains initially unchecked and accepts only literal `confirm_delete=on`.
+It is still excluded from safe-value/language overlays. Cancel remains a separate
+form and works without consent. Target/expiry binding, source/error focus and
+actual error-link destinations are unchanged. Valid previews omit unrelated local
+navigation; absent/expired/conflicting states keep their error and existing way
+back without actionable deletion. Failed unlink preserves valid artifacts;
+successful unlink plus failed refresh remains the existing untimed qualified
+success, never a new receipt, timer or retry. See
+[deletion verification](unified_workflow_visual_contract.md#recording-deletion-confirmation-issue-261).
+
 The short native fallback is a polite status at the task/outcome return area, with
 no focus transfer. The optional existing script can hide only these redundant
 confirmations after eight seconds of document-visible idle time, paused by hover,

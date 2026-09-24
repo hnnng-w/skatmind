@@ -1575,6 +1575,7 @@ main[data-workflow="sessions"] { overflow-wrap: anywhere; }
 
 .remove-player-form button,
 .reset-form button,
+.recording-deletion form[action="/recordings/delete/apply"] button,
 main:is([data-workflow="matches"], [data-workflow="learning"]) form:has(
   [name="operation"]:is([value="clear_position"], [value="truncate_plays"], [value="remove_commentary"],
     [value="remove_response_link"], [value="clear_player_statistics_snapshot"],
