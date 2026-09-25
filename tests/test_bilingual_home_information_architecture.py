@@ -208,8 +208,8 @@ def test_short_introductions_replace_generic_related_panels_without_losing_contr
         frontend=_frontend("de"),
         empty_state_key="sessions",
     )
-    assert "setzen Sie dieselbe Aufzeichnung" in german
-    assert "keinem Match hinzugefügt" in german
+    assert ('<p class="entry-introduction">Ein Spiel erfassen oder eine gespeicherte '
+            'Aufzeichnung öffnen.</p>') in german
     assert "Noch keine erfassten einzelnen Spiele" in german
     assert german.index("Noch keine erfassten einzelnen Spiele") < german.index(
         "<p>Retained user text</p>"

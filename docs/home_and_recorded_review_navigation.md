@@ -21,12 +21,53 @@ contain five tasks:
 Issue #255 supersedes #229's plain-link Learning exception: all five tasks have
 the same task card, title, description, and native button-styled link. Learning
 stays last in its existing group at `/learning`. About is a small normal footer link;
-Settings stays directly accessible. Recording descriptions explain resumability
-and evidence-limited review. Continuing one Session does not start another Game
-or insert it into a Match. Shared entry rendering supplies one optional short
+Settings stays directly accessible. Issue #265 makes the Session recording caption
+describe recording or opening a saved recording. Continuing an eligible Session
+does not start another Game or insert it into a Match. Shared entry rendering supplies one optional short
 explanation beneath the page title. Actual recovery, transfer, prerequisite,
 source-selection, and return links remain; Learning's explicit-operation
 explanation is retained beside its existing preparation controls.
+
+### Recording entry and Settings/About navigation (Issue #265)
+
+This implements only #208 R01a/c/d/e. Starting clean branch
+`bug/265-entry-settings-navigation` was at
+`4d0c0a9209210067b9ba2526c7528f65496bc593`, the integrated #264 implementation.
+The audit coordinates at `6477188ee89034bb5d49f8f5b93086a1f73150d6` remain historical;
+current callers and real HTTP output were inspected before editing.
+
+| Item | Current key/caller | Region and exact target | Bounded change |
+| --- | --- | --- | --- |
+| R01a | `home.task.record_session.summary`, `rendering._home` | Session task card, `/sessions` | Record one Game or open a saved recording. |
+| R01a | `entry.session`, `entry_rendering.render_entry_introduction_v1` via shell rendering | Session landing introduction | Same recording/opening meaning; the entry renderer itself needs no edit. |
+| R01c | `profile_settings_rendering.render_local_settings_v1` | Paragraph between Time zone and Recommended defaults; `/sessions`, `/matches/new` | Remove only this two-link paragraph. |
+| R01d | `rendering._about`, `navigation.settings` | Generic paragraph in `.about-grid`, `/settings` | Remove only this paragraph. |
+| R01e | `about.advanced.heading` and `.description`, `rendering._about` | Existing `interfaces-heading` section | Development and automation; one sentence explaining script/tool access and ordinary-browser optionality. |
+
+Both entry keys are entry-specific; active Session review uses separate captions.
+There is no new helper panel or review shortcut. Existing recording titles/actions,
+five Home cards, group/order/hrefs, recorded chooser and independent `/analyze` and
+manual `/review` remain. Opening is explicit, not automatic last-source selection;
+an ended recording is not promised resumable. #233's two paths remain knowledge-based.
+Eligible recorded-own-decision review and its process-local Results/downloads remain.
+
+The technical inventory is exactly four non-clickable `code` filenames, in order:
+`README.md`, `docs/installed_cli.md`, `docs/public_python_api_v1.md`, and
+`docs/unified_local_frontend_contract.md`. There are no technical hrefs, fragments,
+command examples, launch buttons or visibility conditions at this HEAD. The existing
+secondary section remains visible, and the separate storage-path disclosure remains
+native. CLI and Public Python API contract-version-1 access is described accurately;
+no HTTP endpoint, standalone-service launch or cloud/account feature is implied.
+
+Header navigation, footer About and invalid-profile Settings remedies remain.
+The reused creation-title and navigation keys retain their other callers. No form,
+reset hierarchy, capture preference, route, profile codec, server, registry, CSS or
+JavaScript change follows. See [Settings](settings_and_player_seat_setup.md) and
+[independent installed evidence](unified_workflow_visual_contract.md#recording-entry-and-settingsabout-navigation-issue-265).
+R01b remains completed by #255; R01f/g, R07f, R13g and automatic-Learning decisions
+remain separate. #264 remains completed; exact merged-#265 `check` and
+`v1-supported-platform-matrix` must pass before manual closure. #208 remains open,
+UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 
 Issue #236 adds [direct saved-Match entry](learning_direct_match_entry.md) within an
 active Learning collection. It supersedes the former requirement to open a Match

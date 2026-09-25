@@ -312,8 +312,6 @@ def render_local_settings_v1(
             locale=locale,
         )
         + render_time_zone_settings(profile, profile_generation, locale)
-        + '<p><a href="/sessions">' + _t(locale, "creation.session.heading") + '</a> · '
-        + '<a href="/matches/new">' + _t(locale, "creation.match.heading") + '</a></p>'
         + _recommended_reset(generation=profile_generation, locale=locale)
         + "</div>"
     )

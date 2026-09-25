@@ -16,6 +16,13 @@ informational, and revises normal Player/own-seat/default behavior. Legacy profi
 fields and bytes remain compatible. See [Settings and Player seat
 setup](settings_and_player_seat_setup.md) for the lossless adapter and confirmation policy.
 
+Issue #265 removes only the two loose creation shortcuts from normal Settings and
+the extra generic Settings paragraph from About. Global and contextual navigation
+remain. Recording entry captions and About's **Development and automation** heading
+are paired catalog edits; all 1,805 keys, ordering and placeholders remain. Profile
+operations, reset/capture preferences, explicit language write/no-op rules and GET
+non-migration remain unchanged. See the [navigation map](home_and_recorded_review_navigation.md#recording-entry-and-settingsabout-navigation-issue-265).
+
 Issue #230 intentionally extends only `interface_preferences` with optional
 `time_zone` after `advanced_settings_expanded`, and adds `tzdata>=2026.4`. The old
 one-key and new ordered two-key shapes are accepted; present null/extra keys are

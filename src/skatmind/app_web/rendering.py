@@ -281,7 +281,6 @@ def _about(
         f"{_translated(frontend, 'about.local.storage_show')}</summary>"
         f"<code>{escape(str(storage_root), quote=True)}</code></details>"
         "</section>"
-        f'<p><a href="/settings">{_translated(frontend, "navigation.settings")}</a></p>'
         '<section aria-labelledby="interfaces-heading">'
         f'<h2 id="interfaces-heading">{_translated(frontend, "about.advanced.heading")}</h2>'
         f"<p>{_translated(frontend, 'about.advanced.description')}</p>"

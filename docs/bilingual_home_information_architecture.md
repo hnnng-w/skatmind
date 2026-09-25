@@ -159,11 +159,13 @@ The exact bilingual task titles are:
 | `review_game` | Review recorded games | Erfasste Spiele auswerten |
 | `learning_insights` | Explore patterns across recorded Matches | Muster über erfasste Matches hinweg untersuchen |
 
-Home leads directly with the three semantic group sections. The four primary
-cards have an H3, one purpose sentence, and one GET action. Learning has only one
-compact secondary description/action. Per-task unit/timing/detail blocks and
-repeated introductory copy are removed. Recording explains later continuation
-and evidence-limited review. No JavaScript is needed.
+Home leads directly with the three semantic group sections. All five task cards
+have an H3, one purpose sentence, and one GET action; #255 supersedes the former
+compact Learning link. Per-task unit/timing/detail blocks and repeated introductory
+copy are removed. Issue #265's Session description explains recording one Game or
+opening a saved recording, while the separate recorded-review card keeps its review
+purpose. Existing headings/actions and all destinations remain. No JavaScript is needed.
+See the [R01a/c/d/e caller map](home_and_recorded_review_navigation.md#recording-entry-and-settingsabout-navigation-issue-265).
 
 ## Historical scope guide (superseded by #229)
 

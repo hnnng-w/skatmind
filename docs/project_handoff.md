@@ -2894,6 +2894,20 @@ gate manual #259 closure. #208, remaining R13/R14 and automatic-use questions st
 open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 No whole-UAT acceptance or release-readiness claim follows.
 
+Issue #265 implements only R01a/c/d/e from clean `bug/265-entry-settings-navigation`
+at integrated #264 HEAD `4d0c0a9209210067b9ba2526c7528f65496bc593`. Session entry now
+describes recording/opening; Settings loses its two loose creation shortcuts and
+About its extra generic Settings paragraph. The existing technical section is
+**Development and automation**, with its exact four non-clickable filenames retained.
+Five Home tasks, active review/Results, global/contextual navigation, all forms,
+reset/capture preferences and source lifetimes remain. See the
+[map](home_and_recorded_review_navigation.md#recording-entry-and-settingsabout-navigation-issue-265)
+and [installed evidence](unified_workflow_visual_contract.md#recording-entry-and-settingsabout-navigation-issue-265).
+Inventory stays 67/112/1,805. #264 and R01b remain completed; exact merged-#265 `check`
+and `v1-supported-platform-matrix` gate manual closure. #208, R01f/g, R07f, R13g and
+automatic-Learning decisions remain open. UAT-01 unaccepted; UAT-02–12 paused;
+B-09/B-07 open; B-06 closed. No whole-R01/UAT or release-readiness claim follows.
+
 Issue #264 implements only R11d from clean `bug/264-match-analysis-action-placement`
 at integrated #263 HEAD `06d1fc1e5aefea92ff03eacc577fc9d830dbb995`. Two private
 renderer modules group decision selection, the existing Analyze button and advanced

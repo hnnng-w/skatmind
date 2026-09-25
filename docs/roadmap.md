@@ -1898,6 +1898,18 @@ and [evidence](unified_workflow_visual_contract.md#optional-learning-report-atta
 remaining R13/R14 and automatic-use decisions stay open. UAT-01 unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
 
+Issue #265 implements R01a/c/d/e only: recording-focused Session Home/landing copy,
+removal of the two loose Settings creation links and About's extra Settings link,
+and the purpose-based **Development and automation** technical section. All five
+Home tasks, global/contextual navigation, technical filenames, forms and active
+recording/review/Result lifetimes remain. See the
+[map](home_and_recorded_review_navigation.md#recording-entry-and-settingsabout-navigation-issue-265)
+and [installed comparison](unified_workflow_visual_contract.md#recording-entry-and-settingsabout-navigation-issue-265).
+Inventory stays 67/112/1,805. #264 and R01b remain completed; both exact merged-#265
+CI jobs gate manual closure. #208, R01f/g, R07f, R13g and automatic-Learning decisions
+remain open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
+No whole-R01/UAT acceptance or release readiness follows.
+
 Issue #264 implements R11d only: the existing prepared-decision selector is followed
 by its one native Analyze action, then advanced settings, in the same shared Match
 form. Closed settings still submit their current values; availability, exact-source

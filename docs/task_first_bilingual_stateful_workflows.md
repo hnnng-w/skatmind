@@ -95,6 +95,15 @@ never translated.
 
 ## Session
 
+Issue #265 makes the Home Session task and landing introduction describe recording
+or opening a saved recording. The separate recorded-review Home task and active
+saved-own-decision review retain their purpose and lifetime; independent manual
+analysis remains distinct. Accurate headings/actions, knowledge modes and all forms
+remain. Settings/About lose only three redundant body shortcuts; About's existing
+secondary technical section is called **Development and automation**. See the
+[R01a/c/d/e map](home_and_recorded_review_navigation.md#recording-entry-and-settingsabout-navigation-issue-265).
+R01f/g capture-preference/reset work is separate, as are R07f/R13g and automatic Learning.
+
 The active page starts with its accepted path, phase and perspective, then one
 task at `session-recording`: initial hand, declarer, declaration, known Skat,
 discards, required public hand, observed Card, or explicit Game End. An ended

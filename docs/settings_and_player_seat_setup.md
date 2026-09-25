@@ -19,7 +19,7 @@ below remain. See [Local time entry](local_time_entry.md) for compatibility and 
 2. Use **Add player** to enter a name and, optionally, one complete account
    platform/ID pair. Only the selected Add/Edit view expands.
 3. Choose **Your player**, or explicitly leave it unset.
-4. Open Session or Match creation. Own perspective supplies that identity, with
+4. Open Session or Match creation through Home or the shared navigation. Own perspective supplies that identity, with
    **no seat selected**. For a Match, the seat explicitly means **game 1**.
 5. Select a seat and fill the other two seats in saved-Player or new-name mode,
    then use **Update setup and review roster** once. Issue #242 shows the free
@@ -42,9 +42,25 @@ grants no additional hidden-card knowledge beyond the existing capture-mode cont
 ## Private routes and forms
 
 `GET /settings` is the eighth **shell page**, not an eighth Root workflow. About
-retains Product/version/license/privacy/installation information and a Settings
-link. Profile mutation forms are rendered only on Settings; the global language
+retains Product/version/license/privacy/installation information and the shared
+Settings navigation entry. Profile mutation forms are rendered only on Settings; the global language
 form remains on every page.
+
+Issue #265 removes the normal in-content Create Game/Create Match paragraph between
+Time zone and Recommended defaults, and About's extra generic Settings paragraph.
+The actual creation routes, global navigation, footer About, contextual invalid-profile
+Settings remedy and all semantic returns remain. Settings still renders Players,
+Creation defaults, Time zone, Recommended-default reset, local-profile information,
+then full-profile reset in the same order. Both reset consents remain initially
+unchecked and required; Player/account previews, warnings, field associations,
+repeated-form identities and capture-disclosure preference/default remain unchanged.
+R01f/g reset hierarchy and disclosure preferences remain separate open work.
+
+About's existing secondary section is now **Development and automation**, with one
+short explanation that CLI/Python-API script/tool access is optional for ordinary
+browser use. Its four literal documentation filenames remain non-clickable and in
+their original order; its storage disclosure is separate. See the
+[exact caller/target map](home_and_recorded_review_navigation.md#recording-entry-and-settingsabout-navigation-issue-265).
 
 Existing profile action routes remain:
 

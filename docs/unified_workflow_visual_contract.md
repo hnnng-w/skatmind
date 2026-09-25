@@ -2745,3 +2745,139 @@ remain. R15a/c/d presentation is repaired; R15b was already correct; R15e is pre
 Both exact merged-#261 CI jobs gate closure. #260 remains completed; #208 and other
 residues/automatic-Learning questions remain open. UAT-01 unaccepted, UAT-02–12
 paused, B-09/B-07 open, B-06 closed; no whole-UAT or release-readiness claim.
+
+## Recording entry and Settings/About navigation (Issue #265)
+
+Starting clean `bug/265-entry-settings-navigation` HEAD was
+`4d0c0a9209210067b9ba2526c7528f65496bc593`, integrated #264. The actual #265 acceptance
+specification, #208 comment `5740775548` and its supplied post-#259 R01a/c/d/e audit
+references were read; the old `6477188` coordinates are not current geometry.
+Current renderers reproduced both recording/review captions, Settings' two loose
+creation links, About's extra Settings link and its unclear technical heading.
+Ten new literal de/en cases failed before repair; three genuine validation/state
+cases already passed. The [caller/target map](home_and_recorded_review_navigation.md#recording-entry-and-settingsabout-navigation-issue-265)
+records the four-file Product change. `entry_rendering.py` requires no edit.
+
+`scripts/verify_recording_entry_settings_navigation.py` reuses the dependency-free
+DevTools transport and existing short legal HTTP fixtures. Separate temporary venvs
+install baseline and repaired Wheels; loaded resources are byte-equal to their
+Wheel and LF-normalized baseline HEAD/current source. Served CSS/JavaScript bytes
+are checked independently. All roots, browser profiles and recordings are disposable
+synthetic data under the approved temporary directory. No maintainer/default/UAT
+data or original exports are used.
+
+Completed evidence: `265-before-02/evidence.json` and
+`265-after-final/evidence.json`. Each Wheel covers Home, Session landing, Settings
+and About in both languages and both JavaScript modes at 390px. German/no-JavaScript
+also covers 1365px, 320px and 320px with doubled computed text: **28 surface cells
+per Wheel**, with additional native validation and focus screenshots. Environment:
+Windows 11 build **26200**, CPython **3.13.7**, Package **0.17.0**, Edge
+**153.0.4234.48**, pytest **9.1.1**, jsonschema **4.26.0**, referencing **0.37.0**,
+tzdata **2026.4**. Browser evidence is separate from the complete-check environment.
+
+Screenshots and DOM observations show the literal recording/opening sentence,
+unchanged task headings/actions, five ordered Home cards, removed body paragraphs,
+complete technical explanation/filenames and Settings warnings/unchecked consents.
+Methods/actions, control order, types, names, required/max-length attributes,
+defaults and repeated-form instances compare exactly across the 28 cells. Only
+independent process-local language/setup secret values are normalized; raw setup
+tokens remain recorded and are validated as one stable hidden 64-hex token per run.
+Native payloads retain the actual authority fields; no helper completes omitted
+fields to make a successful operation valid.
+
+| German, no JavaScript | Baseline document height | Repaired height |
+| --- | ---: | ---: |
+| Home, 390px | 2165px | 2091px |
+| Session landing, desktop | 2704px | 2704px |
+| Session landing, 390px | 3659px | 3609px |
+| Settings, 390px | 2811px | 2738px |
+| About, 390px | 1767px | 1747px |
+
+Shorter text does not guarantee a shorter page: desktop Session height is unchanged.
+Normal body text stays 16px and becomes 32px only in the computed-text experiment;
+no Product CSS, font, overflow-hiding or JavaScript changes were made. Home, Session
+and Settings fit all measured widths. German About has an **existing unchanged**
+minimum-content width: 432px scroll width against 375px/305px client widths at
+390px/320px; at doubled text it is 811px against 305px. The same limitation occurs
+in the baseline's installation/local-operation/technical grid, before the changed
+caption. English About at 390px fits at 375px. This bounded copy repair does not
+claim to resolve that separate narrow-About layout limitation.
+
+Native Tab/Enter reaches Session through the Home card and Settings through the
+global header. Pointer actions use remaining Home/About controls. Actual URLs,
+active elements and next Tab are recorded; no verifier calls `focus()` or scripts
+form submission. Visible focus is blue on the Home action and gold in the header.
+The technical section is already visible, with no technical disclosure or commands
+to execute. Native Tab/Enter opens the existing **storage-path** disclosure; focus
+stays on its summary and next Tab reaches footer About. Its four technical filenames
+remain non-clickable, with zero hrefs/commands before and after.
+
+Each Wheel uses **17 setup POSTs**, **4 matrix-language POSTs**, and **19 later native
+POSTs**. Setup performs 8 Session saves, 7 Match saves and 2 profile label writes
+using a three-Play Session and three-Play Match. Existing discovery is counted
+separately: 6 setup, 7 passive matrix, 8 native-flow calls. Three explicit recorded
+chooser opens reuse the same active Session; one ordinary Match open performs a
+strict source load. One native saved-decision action executes one genuine Session
+Result. There are no recording saves during later navigation, language or review.
+Native Settings validation/recovery runs once per script mode: an incomplete account
+pair gets 400, language returns to `/settings` retaining submitted values, the field
+link reaches the error, and a real corrected Add saves the escaped user name/account.
+Supported unsent account input survives language with JavaScript and reverts to the
+submitted value without it. Profile-information opening retains reset form order;
+next Tab reaches unchecked full-reset consent, which is never submitted here.
+
+There are 12 explicit language POSTs: 9 real language preference writes and 3
+unchanged no-ops; with the 2 setup label writes and 2 genuine Player saves there
+are **13 profile writes per Wheel**. Passive actions compare exact profile bytes.
+Source-bound Result/execution identities and Session/Match file bytes remain exact
+through applicable Home/Settings/About/language and same-source chooser returns.
+The source fixture is not rebuilt for every copy assertion. New-source/fresh-process
+invalidation is covered by the reused navigation regression tests, not represented
+as persistent Reports. Existing #245 receipt tests and the new short Session case
+verify unrelated navigation does not consume pending success or regenerate it.
+
+| Repaired evidence | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Session source | 11202 | `db7857aa29238c2c6746ea3605cba887570152c8e69d7f404c7beed448197789` |
+| Match source | 11284 | `22b723b4e2f9c5985b702f23f5657d5c572c9b0e5654b1b2226377ce5ea3bb7c` |
+| Retained Request download | 887 | `b56173dfcecf2b65ac9d61bc9fc5ee6878731310d8fa89807fe0a7ec35d23776` |
+| Retained Result download | 10751 | `080006282bb7fd09d9e9b633a233f58b8001525a3e5fcad585ed766210ed0e5a` |
+| Baseline Wheel | — | `1156d30f21cc30c0a10045f2242189048caf2075484c1a838615736507a87c78` |
+| Repaired Wheel | — | `f916e622483c8ea60db747a6b38c9603bb359ccab7c3b482efc9066e4f565f4e` |
+| Repaired `rendering.py` | — | `3debded9e5cdc52b8f23878a1aefa2ec1ea3bb085753c49107e1f447ac381ae7` |
+| Repaired `profile_settings_rendering.py` | — | `0d9536197d349c78a021f04f3fb2c9a9184528bff2010286ed0ce6fe0945e3c6` |
+| Unchanged served CSS | — | `c4afe934ad5e13223374ae450ceb0a887cb9077bddf67bb720f5a5fc52b2f621` |
+| Unchanged served JavaScript | — | `aa3871d9880326fc27590d80f7f0bf9ebc0a7cf31fd64fc2fd04a1e3932efce1` |
+
+All loaded resource/catalog hashes, per-action native payloads, response status/URL,
+focus chains and geometry remain in the evidence JSON. Authenticated HTTP download
+bytes are not Save-dialog tests; computed text scaling is not browser zoom. No
+external technical destination, additional service, physical device, screen reader,
+destructive reset, broad second UAT or separate installation matrix was exercised.
+
+Retained tooling failures were a missing repository import path before browser
+startup, pointer interception by an already-focused skip link (corrected by native
+Tab before pointer input), and cross-install equality of the random setup token
+(diagnosed explicitly, with every other form field equal). No Product change was
+made for them. A focused run hit its tool timeout; no worker remained before the
+complete corrected run. Focused selections passed **35**, **182** and **80** tests
+(overlapping selections, not additive full-suite totals), including catalog
+key/order/placeholder parity, Settings resets/Player confirmation compatibility,
+language, knowledge-based entry, review lifetime, #245 and #264 contracts.
+
+The established detached logger proof captured both native streams and actual child
+exit 23 in `265-proof-20260925T092814Z.{log,json}`. All edits, docs and browser evidence
+precede the final prescribed full check. The first complete run,
+`265-full-check-20260925T093517Z.{log,json}`, passed every preceding stage and ended
+with actual child exit 1: **2 failed, 9,905 passed, 3 skipped in 4894.02s**. Both
+failures were existing literal expectations for the replaced Session introduction
+and About technical description. Those tests now assert the new literal meaning;
+their empty-state, navigation, storage, legal and installation checks remain intact.
+The failed run was allowed to finish and retained before the correction. The
+corrected-tree complete check's stage/test/skip totals and child exit belong to the
+final implementation report. Inventory stays **67 POST routes / 112
+forms / 1,805 paired keys**, Package **0.17.0**, Python **>=3.13**, **AGPL-3.0-only**,
+unchanged dependency floors including **tzdata>=2026.4**, and **98 scenarios**.
+R01a/c/d/e only; R01b and #264 remain completed. R01f/g, R07f, R13g and automatic
+Learning remain separate. Both exact merged-#265 CI jobs gate manual closure; #208
+stays open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
