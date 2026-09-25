@@ -1898,6 +1898,19 @@ and [evidence](unified_workflow_visual_contract.md#optional-learning-report-atta
 remaining R13/R14 and automatic-use decisions stay open. UAT-01 unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
 
+Issue #266 implements R01f only: one visibly headed lower Settings reset area,
+recommended defaults first and full local profile second, after profile information.
+Existing independent forms/consents and exact profile/source lifetimes remain;
+copy distinguishes retained timezone/Players/labels from full-profile clearing and
+unchanged recordings/independent copies. See the [map](settings_and_player_seat_setup.md#grouped-reset-presentation-issue-266)
+and [installed comparison](unified_workflow_visual_contract.md#grouped-settings-resets-issue-266).
+The interrupted Build's correct work was retained at unchanged HEAD `ea5fbe8`;
+documentation and final verification complete the continuation. Inventory stays
+67/112/1,805. #265 remains completed; exact merged-#266 `check` and
+`v1-supported-platform-matrix` gate manual closure. #208, R01g/R07f/R13g, separate
+About overflow and automatic-Learning decisions remain open; UAT-01 unaccepted,
+UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness follows.
+
 Issue #265 implements R01a/c/d/e only: recording-focused Session Home/landing copy,
 removal of the two loose Settings creation links and About's extra Settings link,
 and the purpose-based **Development and automation** technical section. All five

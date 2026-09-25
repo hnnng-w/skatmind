@@ -11,6 +11,7 @@ from .frontend_profile_operations import (
     FRONTEND_PROFILE_PLAYER_UPDATE_ACTION_ROUTE,
     FRONTEND_PROFILE_PREFERENCES_ACTION_ROUTE,
     FRONTEND_PROFILE_RECOMMENDED_RESET_ACTION_ROUTE,
+    FRONTEND_PROFILE_RESET_ACTION_ROUTE,
 )
 from .local_time_rendering import render_time_zone_settings
 from .profile_driven_creation import FRIENDLY_GAME_PLATFORMS
@@ -284,6 +285,24 @@ def _recommended_reset(*, generation: int, locale: str) -> str:
     )
 
 
+def render_settings_resets_v1(*, generation: int, profile_valid: bool, locale: str) -> str:
+    return (
+        '<section class="local-settings" aria-labelledby="settings-reset-heading">'
+        f'<h2 id="settings-reset-heading">{_t(locale, "common.action.reset")}</h2>'
+        + (_recommended_reset(generation=generation, locale=locale) if profile_valid else "")
+        + f'<form class="reset-form" method="post" '
+        f'action="{FRONTEND_PROFILE_RESET_ACTION_ROUTE}">'
+        + _generation(generation)
+        + '<input type="hidden" name="return_to" value="/settings">'
+        f'<h3>{_t(locale, "profile.reset.submit")}</h3>'
+        f"<p>{_t(locale, 'profile.reset.description')}</p>"
+        f'<label><input type="checkbox" name="confirm_reset" value="on" required> '
+        f"{_t(locale, 'profile.reset.confirm')}</label>"
+        f'<button type="submit">{_t(locale, "profile.reset.submit")}</button>'
+        "</form></section>"
+    )
+
+
 def render_local_settings_v1(
     *,
     profile: LocalFrontendProfileV1 | None,
@@ -312,6 +331,5 @@ def render_local_settings_v1(
             locale=locale,
         )
         + render_time_zone_settings(profile, profile_generation, locale)
-        + _recommended_reset(generation=profile_generation, locale=locale)
         + "</div>"
     )

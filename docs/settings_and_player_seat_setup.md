@@ -49,12 +49,14 @@ form remains on every page.
 Issue #265 removes the normal in-content Create Game/Create Match paragraph between
 Time zone and Recommended defaults, and About's extra generic Settings paragraph.
 The actual creation routes, global navigation, footer About, contextual invalid-profile
-Settings remedy and all semantic returns remain. Settings still renders Players,
+Settings remedy and all semantic returns remain. At #265, Settings rendered Players,
 Creation defaults, Time zone, Recommended-default reset, local-profile information,
-then full-profile reset in the same order. Both reset consents remain initially
+then full-profile reset. Issue #266 moves both resets after profile information into
+one lower Reset section, with recommended defaults first. Both reset consents remain initially
 unchecked and required; Player/account previews, warnings, field associations,
 repeated-form identities and capture-disclosure preference/default remain unchanged.
-R01f/g reset hierarchy and disclosure preferences remain separate open work.
+The bounded R01f presentation is implemented by #266; R01g disclosure preferences
+remain separate open work.
 
 About's existing secondary section is now **Development and automation**, with one
 short explanation that CLI/Python-API script/tool access is optional for ordinary
@@ -237,12 +239,71 @@ are unchanged. Historical #219/#225 evidence below remains historical.
 The Advanced creation-details checkbox retains its stored meaning: optional Match
 details start expanded. It does not make those details mandatory. Recommended
 reset still clears platform, legacy preferred perspective and Advanced expansion;
-it retains own Player, directory, language and labels. Complete profile reset
-clears the profile, including labels, but changes no Product document or artifact.
+it retains own Player, directory, language, timezone and labels. Complete profile
+reset clears the profile, including labels, but changes no Product document or artifact.
 
-No-ops write nothing. A profile conflict, capacity limit or storage failure after
+Recommended-default no-ops write nothing. Full-profile reset publishes a fresh
+revision even when its user fields already have default values. A profile conflict,
+capacity limit or storage failure after
 successful Product creation retains the valid Product and reports unsaved enrichment.
 There is no retry, merge, automatic reload, deletion rollback or analysis side effect.
+
+### Grouped reset presentation (Issue #266)
+
+Normal Settings now ends with one visible **Reset** section after Players, Creation
+defaults, Time zone and local-profile information, before the footer. **Restore
+recommended defaults** comes first; **Reset entire local profile** comes second.
+Each retains its own form, initially unchecked required consent and distinct action.
+The full reset keeps its destructive border/button. Existing headings, grid spacing
+and panel styles suffice; there is no additional disclosure or stylesheet change.
+
+The verified current operations, rather than the older #219 inventory, determine
+the copy:
+
+| Profile field or lifecycle | Recommended defaults | Entire local profile |
+| --- | --- | --- |
+| Saved language | Preserved | Cleared to null; the next response resolves usable browser language, then English fallback |
+| Known Players, names, aliases and account IDs | Preserved exactly | Directory cleared |
+| Own Player | Preserved | Cleared |
+| Compatible preferred perspective | Cleared | Cleared |
+| Preferred platform | Cleared | Cleared |
+| Advanced Match-detail expansion | False | False |
+| Explicit timezone | Preserved | Cleared; future unset-zone input uses Europe/Berlin |
+| Workflow preferences | Preserved; both supported analysis fields are null | Both remain null; no new analysis defaults |
+| Managed display labels, including Match date-only labels | Preserved | Cleared; later discovery may display fallback names/dates |
+| Revision, fingerprint, process generation | A changed operation increments revision/generation once and rebuilds the fingerprint; an absent/already-reset profile returns unchanged without saving | Canonical replacement increments valid revision/generation once, even at default values; absent/invalid recovery writes revision zero |
+| Pending Settings and creation presentation | Existing generation-bound confirmations become stale on a saved reset; changed setup-key values invalidate pending creation setup on next use | Same rules, with broader profile changes; old source-bound language overlays cannot restore cleared references |
+| Active Product state and retained outputs | No direct reset of active Session/Match/Corpus, independent manual Review draft, or retained Request/Result bytes | Same non-cascading operation boundary; this does not promise preservation of every unsent browser edit or pending setup |
+
+Private recording labels are separate from Session/Match files, independent Corpus
+Catalog/Snapshot copies and exported files. Clearing those labels neither deletes
+recordings nor regenerates profile labels from them. No backup or Undo is introduced.
+Future explicit work can use changed defaults; retained Requests are not recalculated.
+
+The transport remains exactly:
+
+* `POST /actions/profile/recommended-defaults/reset`: `profile_generation` and
+  `confirm_recommended_reset=on`; absent/valid profiles only.
+* `POST /actions/profile/reset`: `profile_generation`, `return_to=/settings` and
+  `confirm_reset=on`; also the existing invalid-profile recovery.
+* Both retain optional `_frontend_form_instance`, the **1,052,672-byte** body limit,
+  strict form parsing, current-generation checks and authenticated same-origin POST.
+  No recording-deletion token or lifetime is added. Ordinary Save remains independent,
+  including native implicit Enter.
+* Success/unchanged returns `303 /settings`; malformed/missing consent returns `400`,
+  stale generation or external CAS conflict `409`, and storage failure keeps its
+  existing `500` response. External profile conflict requires restart, not GET repair.
+* Canonical persistence retains the two observations, fingerprint/invalid-digest CAS,
+  same-directory temporary write and atomic replacement. Full reset is not generally
+  file unlink. Invalid-profile warnings remain above recovery; ordinary Settings and
+  recommended reset are unavailable in that state.
+
+The reset forms have no safe editable language-manifest values. Consent and hidden
+authority are excluded; independent forms retain their instrumentation identities.
+Successful redirects clear only their existing feedback family (`local_settings`
+for recommended defaults, `profile` for full reset). Viewing Settings and resetting
+do not consume another workflow's pending #245 acknowledgement or create a reset
+receipt. See [bounded installed evidence](unified_workflow_visual_contract.md#grouped-settings-resets-issue-266).
 
 ## Verification and visual evidence
 

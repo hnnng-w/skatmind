@@ -2894,6 +2894,22 @@ gate manual #259 closure. #208, remaining R13/R14 and automatic-use questions st
 open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 No whole-UAT acceptance or release-readiness claim follows.
 
+Issue #266 implements only R01f on `bug/266-settings-reset-presentation`. Original
+starting and continuation HEAD are both `ea5fbe8d2f1e5313b85b138df7f06714845dc2ab`,
+the integrated #265 commit. The continuation preserved four Product-file edits,
+the focused tests and independent-Wheel probe; no earlier #266 full check existed
+and no old #266 worker remained. Settings now groups the two independent reset
+forms after profile information, with precise default/profile/recording scope.
+Canonical effects, transport/consent, invalid recovery, language, #245 receipts
+and retained source bytes remain. See the [map](settings_and_player_seat_setup.md#grouped-reset-presentation-issue-266)
+and [evidence](unified_workflow_visual_contract.md#grouped-settings-resets-issue-266).
+Inventory stays 67/112/1,805, Package 0.17.0 and 98 scenarios. Final full-check
+native output and actual child exit accompany the implementation report. Both
+`check` and `v1-supported-platform-matrix` must pass on the exact merged #266 commit
+before manual closure. #265 stays completed; #208, R01g/R07f/R13g, About overflow
+and automatic-Learning decisions remain open. UAT-01 unaccepted, UAT-02–12 paused,
+B-09/B-07 open, B-06 closed; no whole-R01/UAT acceptance or release readiness.
+
 Issue #265 implements only R01a/c/d/e from clean `bug/265-entry-settings-navigation`
 at integrated #264 HEAD `4d0c0a9209210067b9ba2526c7528f65496bc593`. Session entry now
 describes recording/opening; Settings loses its two loose creation shortcuts and

@@ -23,6 +23,13 @@ are paired catalog edits; all 1,805 keys, ordering and placeholders remain. Prof
 operations, reset/capture preferences, explicit language write/no-op rules and GET
 non-migration remain unchanged. See the [navigation map](home_and_recorded_review_navigation.md#recording-entry-and-settingsabout-navigation-issue-265).
 
+Issue #266 implements only R01f's reset presentation: one lower Settings section
+after profile information, with recommended defaults first and entire local profile
+second. Five existing dedicated messages per locale clarify the different effects;
+all **1,805** keys, ordering and placeholders remain. Both independent forms and
+unchecked required consents are retained. See the [current field/transport/lifecycle
+map](settings_and_player_seat_setup.md#grouped-reset-presentation-issue-266).
+
 Issue #230 intentionally extends only `interface_preferences` with optional
 `time_zone` after `advanced_settings_expanded`, and adds `tzdata>=2026.4`. The old
 one-key and new ordered two-key shapes are accepted; present null/extra keys are
@@ -224,7 +231,12 @@ external lock; the focused contract explicitly adds no coordination outside the
 profile file boundary.
 
 Initial explicit profile creation uses revision zero. A changed valid profile
-increments revision once. An unchanged operation writes nothing. The app context
+increments revision once. An operation that returns unchanged writes nothing.
+Recommended-default reset returns unchanged for absent profiles or when preferred
+perspective/platform are null and Advanced expansion is false, independently of
+retained language, timezone, directory and labels. Full reset constructs a new
+revision even when user fields already have defaults, so repeated explicit full
+resets save again. The app context
 uses a separate profile-operation lock and a process-local profile generation so
 profile persistence does not hold or mutate Product workflow contexts.
 
@@ -240,6 +252,16 @@ until explicit reset. The reset action compares the
 retained valid fingerprint or invalid raw-file digest and atomically publishes
 the canonical empty profile. It changes no Session, Match, Learning Corpus,
 Result, Report, source, prepared artifact, discovery, or active selection.
+
+Those are direct operation effects. Later discovery can drop cleared private names
+and Match dates from presentation while the recording bytes remain identical.
+Pending creation setup is regenerated on next use if its existing profile setup
+key changed; saved profile-generation confirmations become stale. Source-bound
+language restoration continues to reject incompatible pre-reset overlays. Neither
+reset secretly resaves the former language: after full reset, null saved language
+uses the normal browser/application fallback. The invalid-profile warning and
+full-reset recovery remain accessible above ordinary workflow availability; no
+recommended-default action is fabricated for invalid input.
 
 ## Browser state
 

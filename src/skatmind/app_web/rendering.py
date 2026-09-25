@@ -10,7 +10,6 @@ from .entry_rendering import render_entry_introduction_v1
 from .frontend_profile_contracts import LocalFrontendProfileV1
 from .frontend_profile_operations import (
     FRONTEND_LANGUAGE_ACTION_ROUTE,
-    FRONTEND_PROFILE_RESET_ACTION_ROUTE,
     is_safe_frontend_return_path_v1,
 )
 from .guided_rendering import render_analyze_workflow_v1, render_review_workflow_v1
@@ -21,7 +20,7 @@ from .information_architecture import (
     validate_frontend_information_architecture_v1,
 )
 from .localization_contracts import BrowserSafeFrontendProfileStateV1
-from .profile_settings_rendering import render_local_settings_v1
+from .profile_settings_rendering import render_local_settings_v1, render_settings_resets_v1
 from .translation_catalog import translate_frontend_message_v1
 from .workflow_state import ProcessLocalFrontendWorkflowStateV1
 
@@ -228,16 +227,11 @@ def _profile_settings_section(
         f"<dd>{status}</dd></dl>"
         f"<p>{_translated(frontend, 'about.profile.future')}</p>"
         + '</details>'
-        + f'<form class="reset-form" method="post" '
-        f'action="{FRONTEND_PROFILE_RESET_ACTION_ROUTE}">'
-        f'<input type="hidden" name="profile_generation" '
-        f'value="{frontend.profile_generation}">'
-        '<input type="hidden" name="return_to" value="/settings">'
-        f"<p>{_translated(frontend, 'profile.reset.description')}</p>"
-        f'<label><input type="checkbox" name="confirm_reset" value="on" required> '
-        f"{_translated(frontend, 'profile.reset.confirm')}</label>"
-        f'<button type="submit">{_translated(frontend, "profile.reset.submit")}</button>'
-        "</form>"
+        + render_settings_resets_v1(
+            generation=frontend.profile_generation,
+            profile_valid=frontend.profile_status != "invalid",
+            locale=frontend.locale,
+        )
     )
 
 

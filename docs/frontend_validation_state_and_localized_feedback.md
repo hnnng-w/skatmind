@@ -48,6 +48,20 @@ controls and editor/setup transport selections are excluded from the language
 envelope. Collision feedback retains independent seat input without swapping Players.
 See [Settings and Player seat setup](settings_and_player_seat_setup.md).
 
+Issue #266 moves both existing profile reset forms into one lower Settings section,
+after ordinary controls and profile information. The forms remain independent of
+Save and each other. Both destructive confirmations start unchecked, remain native
+`required`, require literal `on` server-side and are excluded from #223 restoration.
+Neither reset has safe editable fields in the language manifest; hidden generations,
+return authority and optional repeated-form instrumentation retain their existing
+rules. Rejections still render with the matching form; a moved reset cannot orphan
+its error link. Invalid profiles retain their warning and only full-reset recovery.
+Existing `400`/`409` diagnostics, external-conflict restart guidance, `500` storage
+failures and `303 /settings` success are unchanged. Reset redirects clear only their
+own existing feedback family; unrelated #245 receipts and persistent warnings are
+not consumed or reconstructed. See the [verified scope map](settings_and_player_seat_setup.md#grouped-reset-presentation-issue-266)
+and [native-browser evidence](unified_workflow_visual_contract.md#grouped-settings-resets-issue-266).
+
 Issue #242 adds the exact-saved-own exception during setup Update, with localized
 independent-own-duplicate and conflicting-explicit-account feedback through the
 existing `SeatSetupError` mapping. The renderer keeps one successful control per

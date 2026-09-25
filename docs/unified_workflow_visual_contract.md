@@ -2881,3 +2881,161 @@ unchanged dependency floors including **tzdata>=2026.4**, and **98 scenarios**.
 R01a/c/d/e only; R01b and #264 remain completed. R01f/g, R07f, R13g and automatic
 Learning remain separate. Both exact merged-#265 CI jobs gate manual closure; #208
 stays open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
+## Grouped Settings resets (Issue #266)
+
+The original clean branch and the later continuation both use
+`bug/266-settings-reset-presentation` at **`ea5fbe8d2f1e5313b85b138df7f06714845dc2ab`**,
+the integrated #265 commit. The actual #266 specification and #208 comment
+`5740775548` were read. #266 reproduces the post-#259 R01f audit row at historical
+`6477188`: profile information separated the resets, while consequences/consent
+already existed. Neither those source coordinates nor #265's reported 9,907 passes
+are #266 runtime evidence. Original maintainer UAT exercised no reset.
+
+Before Product edits, all six new cases failed: four locale/population composition
+cases and two independent literal scope cases. The four Product changes move the
+existing markup once, add a lower Reset heading and full-reset subheading, and edit
+five existing dedicated messages in each catalog. Ordinary Settings/Player order,
+profile information, shell navigation and independent forms remain. Existing panel
+and destructive styles suffice; CSS and JavaScript bytes are unchanged. The
+[field, form and lifecycle map](settings_and_player_seat_setup.md#grouped-reset-presentation-issue-266)
+documents the actual operations, including timezone and the full reset's non-no-op
+revision behavior.
+
+The interruption left those four Product files and two verification files, with
+no staged changes. Recovery inspected their full diffs/content and retained the
+correct work. Process command lines/start times and logger metadata established
+that no old #266 worker remained and no #266 full check had started. The previously
+completed `266-before-final/` and `266-after-final/` browser evidence was retained.
+The continuation added explicit native error-link/next-Tab reachability and the
+missing scoped documentation; it did not redo the historical audit.
+
+### Independent installed evidence
+
+`scripts/verify_settings_reset_presentation.py` reuses the optional standard-library
+DevTools harness and genuine short HTTP recording fixtures. The separate baseline
+and repaired venvs load independent Wheels, reject checkout Product imports, and
+compare **18** installed modules/resources to Wheel bytes and LF-normalized starting
+HEAD/current source. Authenticated served CSS and JavaScript bytes are checked
+separately. All profile, recording, Corpus, export and browser roots are newly
+created disposable synthetic data under the approved temporary directory.
+
+Completed continuation evidence is in:
+
+```text
+<temporary-directory>/opencode/266-before-complete/evidence.json
+<temporary-directory>/opencode/266-after-complete/evidence.json
+```
+
+Each Wheel has **13 layout measurements**: populated de/en Settings with JavaScript
+on/off at 390px; German/no-JavaScript additionally at 1365px, 320px and doubled
+computed text at 320px; before/after reset at 390px in both script modes; and
+invalid-profile recovery at 320px/doubled text/no-JavaScript and 390px/JavaScript.
+Height is 900px, device scale 1, browser zoom unchanged. Environment: Windows 11
+build **26200**, CPython **3.13.7**, Edge **153.0.4234.48**, Package **0.17.0**;
+installed probe pytest **9.1.1**, jsonschema **4.26.0**, referencing **0.37.0** and
+tzdata **2026.4**. This is distinct from the full-check pytest environment.
+
+The seven original populated form inventories compare exactly after normalizing
+only independent process-local language bindings and generated Player handles,
+preserving repeated identity patterns. Raw submitted authority remains in the
+evidence. Both reset controls stay required and unchecked on each fresh response.
+Repaired document/client widths agree throughout (**1350**, **375** or **305** px).
+Normal full-page screenshots and readable enlarged-text slices show all warnings,
+scope, distinct headings/buttons and consent; enlarged German text needs substantial
+vertical scrolling and wraps long words rather than clipping them. Representative
+inspected files include `populated-de-0-390-1.png`, `populated-de-0-1365-1.png`,
+`populated-en-1-390-1.png`, `enlarged-reset-0.png` through `enlarged-reset-5.png`,
+`invalid-en-0-320-2.png`, `stale-error-1.png` and `error-target-0.png`/`-1.png`.
+
+Native Tab/Enter/Space and pointer input distinguish ordinary Save from each reset.
+Enter in the ordinary custom-platform input submits only preferences. Unchecked
+reset submission is blocked by native validation with the checkbox as activeElement;
+next Tab reaches its own button. Checking consent and opening profile information
+perform zero POSTs/resets. A language action after checking both controls clears
+both consents. Competing genuine language writes make the retained browser form
+stale; its checked submission gets `409` at the action URL with the same-form error.
+With JavaScript the error summary receives focus; its next Tab reaches the error
+link. Native error-link activation uses its actual fragment and next Tab reaches
+the recommended-reset checkbox in both modes. A non-focusable fragment target can
+leave activeElement at BODY without losing native sequential focus navigation.
+No verifier assigns focus, edits hidden fields or bypasses validation. Successful
+explicit resets return exactly `/settings`; activeElement is BODY and next Tab is
+the skip link. Full reset clears saved German and resolves English from the supplied
+browser header; invalid recovery resolves German from its different browser header.
+
+### Exact operations and retained data
+
+Per completed Wheel run:
+
+| Category | Observed count |
+| --- | ---: |
+| Recommended-reset POSTs | 6: 2 applied, 2 unchanged, 2 stale/rejected |
+| Full-reset POSTs | 3 applied, including 1 invalid-profile recovery |
+| Native unchecked attempts blocked before POST | 5 |
+| Ordinary implicit-Enter preference POSTs | 2 unchanged |
+| Explicit language operations | 10: 8 saved, 2 unchanged |
+| Profile saves across all phases | 27: 14 non-language fixture writes, 8 language writes, 5 applied resets |
+| Existing discovery calls | 11, all fixture/setup phases; zero during passive/reset phases |
+| Session / Match fixture saves | 8 / 7 |
+| Genuine retained Session analysis | 1, in fixture setup only |
+
+The 16 fixture/refill profile saves include two of the language writes above; they
+are not added again. The controlled invalid-profile raw write and two independent
+export-file writes are separate fixture operations. Counting wrappers call the real
+operations and persistence; successful outcomes are never mocked. Normal populated
+profiles include three Players, own and different compatible preferred perspective,
+custom platform, Advanced expansion, America/New_York and managed recording labels,
+including a Match date-only label. Workflow preferences only support null values.
+
+Session/Match files, independently saved Corpus Catalog/Snapshot and both exported
+Request/Result files remain byte-identical across real resets. The exact source and
+profile before/after hashes are retained in evidence. The one retained analysis and
+source identity remain exact through passive, rejected and successful reset paths;
+downloads are compared via authenticated HTTP. Profile bytes legitimately change,
+while tests separately verify label fallback, pending setup regeneration, stale
+Settings confirmation and rejected old language-overlay behavior. A separate real
+pending Session acknowledgement survives Settings/rejected/successful resets and
+is consumed only on its owning Session view. This does not claim all unsent edits
+or pending setups survive.
+
+| Installed artifact | SHA-256 |
+| --- | --- |
+| Baseline Wheel | `1d4a52c147d440486fe34d12cace9385147684d4249a48992a53f4a5e3a0bbc1` |
+| Repaired Wheel | `5549743b23e6f0e5fc8a0f95c189ebe201a667e6a70d8f0e314af6985dda5d38` |
+| Repaired `rendering.py` | `0850e22f6dae0de189b5acc99be20bbe04b6ea3e5c0bf6f36af2ce87444a53fa` |
+| Repaired `profile_settings_rendering.py` | `22d681fc72cd032d792e80f598ceba4ae42ec920dcf28808f8f8e1c991c10bc1` |
+| Unchanged served CSS | `c4afe934ad5e13223374ae450ceb0a887cb9077bddf67bb720f5a5fc52b2f621` |
+| Unchanged served JavaScript | `aa3871d9880326fc27590d80f7f0bf9ebc0a7cf31fd64fc2fd04a1e3932efce1` |
+
+The 15 focused #266 tests cover composition, literal scope, missing/incorrect consent,
+stale forms, successful narrower/full effects, strict reload, absent/default cases,
+real external CAS conflict, controlled atomic-write failure and invalid-profile
+recovery. Earlier focused selections passed **166** and **194** tests; the continuation
+passed **37** reset/catalog cases. These overlapping selections are not additive.
+The three existing Windows symlink probes retain their actual skips: Learning source
+errno **22**, recording deletion **1314**, and managed direct-child link privilege.
+No new skip is introduced. Scoped catalogs retain **1,805** matching sorted keys and
+placeholders; inventory is **67 POST routes / 112 forms / 98 generated scenarios**.
+Package **0.17.0**, Python **>=3.13**, **AGPL-3.0-only**, direct dependency floors
+including **tzdata>=2026.4**, public contracts and persistence are unchanged.
+
+Retained verifier failures were an incomplete competing-client language PRG and an
+overly strict assumption that a native non-focusable fragment target becomes
+activeElement. The first was corrected by completing that client's existing redirect;
+the second by checking actual fragment/next-Tab reachability. Neither changed Product
+behavior. Earlier test-fixture corrections respected Match-only date labels and the
+absence of reset forms from the safe language-value manifest. All failed evidence
+directories remain. The established logger proof captured both native streams and
+actual child exit **23** in `266-proof-20260925T131526Z.{log,json}`. All edits, focused
+checks, documentation and browser evidence precede the final prescribed full check;
+its full log, actual child exit, stages and test totals accompany the completion report.
+
+Authenticated HTTP bytes are not native Save-dialog testing; doubled computed text
+is not browser zoom. No physical device, screen reader, other browser engine or
+maintainer UAT is claimed. #265's separate German About overflow remains documented,
+not repaired here. #265 stays completed; #208, R01g/R07f/R13g and automatic-Learning
+decisions stay open. Both `check` and `v1-supported-platform-matrix` must pass on the
+exact merged #266 implementation commit before manual closure. UAT-01 is unaccepted,
+UAT-02–12 paused, B-09/B-07 open and B-06 closed. This is bounded R01f implementation,
+not whole-R01/UAT acceptance or release readiness.
