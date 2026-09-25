@@ -23,7 +23,7 @@ def localized_server(tmp_path):
     yield from _localized_server.__wrapped__(tmp_path)
 
 
-def record_context_match(browser, *, names=("B", "C", "A")):
+def record_context_match(browser, *, names=("B", "C", "A"), with_hand=True):
     """Returned native forms, only C's hand and the complete three-Play partial trace."""
     page = browser.page("/matches/new")
     page = follow(browser, browser.submit(Forms(page).find("/matches/api/v1/create"),
@@ -40,6 +40,8 @@ def record_context_match(browser, *, names=("B", "C", "A")):
         declarer_player_id=declarer, game_type="grand", bid_value="18"))
     for card in ("CK", "C7", "C10"):
         page = follow(browser, browser.submit(operation_form(page, "append_plays"), cards=card))
+    if not with_hand:
+        return page
     return follow(browser, browser.submit(operation_form(page, "set_perspective_hand"),
                                           card_evidence_mode="exact", cards=MATCH_HAND))
 

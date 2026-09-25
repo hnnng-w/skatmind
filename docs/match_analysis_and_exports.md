@@ -82,6 +82,17 @@ existing values and executes no Root workflow.
 
 ## One-Decision Position analysis
 
+Issue #263 adds a conditional unified review link to the selected Game's existing
+named initial-hand summary. Only a skipped `acting_hand_unavailable` row whose
+actor is that accepted editor's perspective, with absent initial-hand evidence,
+offers the shared action. Other actors, public-hand blockers, already supplied
+hands and prepared decisions retain their own explanations. The selected Report
+does not choose this destination. See the
+[state/owner/reason map](match_game_navigation.md#discoverable-match-evidence-issue-263).
+Navigation and hand Save execute no analysis. The original ten dealt Cards include
+played Cards from that hand; they are not the remaining hand. Existing preparation,
+complete-trace reconstruction, explicit execution and Report lifetimes are unchanged.
+
 Issue #253 adds unified selected-Report explanations through the exact typed Report
 already captured by `build_task_first_match_page_state_v1`. Its narrow app-owned
 `match_analysis_explanation` adapter projects only safe explanation scalars from the

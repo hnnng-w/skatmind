@@ -155,6 +155,19 @@ execution, Result lifetime, and contextual bilingual feedback are documented in
 
 ## Match
 
+Issue #263 addresses R07d/e only: genuinely empty Skat/discard disclosures are
+omitted, and the existing optional initial-hand summary names its accepted Game
+perspective and provides a native target for conditional missing-hand guidance.
+Unknown-but-editable evidence stays available. The link follows structured skipped
+reasons and exact actor/owner identity, not a Report, next actor or Settings Player.
+Original dealt-hand evidence includes already played Cards from that hand; Save
+and explicit review/analysis remain separate. See the
+[state/owner/target map](match_game_navigation.md#discoverable-match-evidence-issue-263).
+The normal/native disclosure needs one explicit opening after arrival. #223
+restoration, #245 receipts, #247 caption, #248 ordering and #249–#262 remain.
+Current inventory is 67 routes / 112 forms / 1,805 paired keys. Unknown/Exact and
+global disclosure preferences are separate work, not part of this repair.
+
 Issue #238 supersedes the old progress → suggestion → full overview → task order
 and normal Position labels. Compact started/complete-trace/passed counts now precede
 the selected **Game N of 36**, accepted progress, named seats and existing recording

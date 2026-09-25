@@ -115,6 +115,22 @@ retry, rollback write, or stronger cross-process transaction is claimed.
 
 ## Match replacement and truthful Play scope
 
+Issue #263 makes this existing evidence entry discoverable. Empty/passed positions
+omit the empty Skat/discard wrapper; started Games retain usable unknown evidence,
+known-empty modes, real diagnostics and clear actions. The separate initial-hand
+summary names its accepted perspective owner and has the native destination
+`/matches/position/N#match-initial-hand`. Applicable missing-hand review offers one
+shared action to it. One native summary activation may be needed to open it;
+there is no second editor, automatic selection, evidence submission or analysis.
+See the [conditional remedy map](match_game_navigation.md#discoverable-match-evidence-issue-263).
+
+Initial-hand evidence means the original ten dealt Cards **before pickup/discard**,
+including already played Cards from that original set. A non-Hand declarer may
+still need original Skat and discard evidence to reconstruct the playable hand.
+The existing full-deck candidate domain, replacement/no-op/clear behavior, explicit
+modes and `/matches/cards` transport below remain unchanged. Complete-trace review
+does not acquire an explicit-hand prerequisite.
+
 Match retains existing `set_perspective_hand`, `set_original_skat`, and
 `set_discarded_cards` operations. These replace evidence sets, not Session Commands.
 Whole-candidate validation, canonical set representation, single-save/no-op behavior,

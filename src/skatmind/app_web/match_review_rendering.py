@@ -4,7 +4,13 @@ from __future__ import annotations
 from .compact_declaration_rendering import accepted_declaration_summary
 from .recorded_trick_rendering import render_recorded_history, render_recorded_summary
 from .stateful_localization import text, translated
-from .task_first_match_rendering import _named_seat, _reports, operation_form
+from .task_first_match_rendering import (
+    _hand_editor_owner,
+    _name,
+    _named_seat,
+    _reports,
+    operation_form,
+)
 from .task_first_rendering import disclosure, hidden, paragraph, section, select_field
 from .unplayed_card_rendering import render_unplayed_cards
 
@@ -36,6 +42,12 @@ def render_match_analysis_v1(state, view, handle, locale):
             skipped += ' — ' + translated(locale, f"recordings.skip.{row['reason']}") + '</li>'
     if skipped:
         content += disclosure(locale, "recordings.match.skipped", '<ul>' + skipped + '</ul>')
+    owner = _hand_editor_owner(state)
+    if (owner is not None and game["perspective_initial_hand"] is None and any(
+            row["state"] == "skipped" and row["reason"] == "acting_hand_unavailable"
+            and row["acting_player_id"] == owner for row in preparation["decisions"])):
+        content += '<p><a href="/matches/position/' + str(view.selected_position) + '#match-initial-hand">' + translated(
+            locale, "task.match.initial_hand_remedy", player=_name(state, locale, owner)) + '</a></p>'
     evidence = view.selected.evidence_summary
     historical_ready = (evidence is not None and evidence.complete_initial_deal_reconstructable
                         and state["match"]["played_at"] is not None)

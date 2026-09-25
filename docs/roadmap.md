@@ -1898,6 +1898,18 @@ and [evidence](unified_workflow_visual_contract.md#optional-learning-report-atta
 remaining R13/R14 and automatic-use decisions stay open. UAT-01 unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
 
+Issue #263 implements R07d/e only: omit genuinely empty Match evidence wrappers
+and link applicable missing-hand review to the existing named perspective-hand
+summary. Native opening, original ten dealt Cards, explicit replacement evidence
+Save, source guards and separate analysis remain. See
+[mapping](match_game_navigation.md#discoverable-match-evidence-issue-263) and
+[installed evidence](unified_workflow_visual_contract.md#match-evidence-entry-issue-263).
+Inventory is 67 routes / 112 forms / 1,805 paired keys. #262 stays completed; both
+exact merged-#263 CI jobs gate manual closure. #208, other R01/R07/R11/R13 residues,
+Unknown/Exact/global capture-disclosure work and automatic-Learning questions stay
+open. UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed; no whole-R07,
+UAT or release-readiness claim follows.
+
 Issue #262 implements only R07a/b: a container-bounded, text-relative optional
 Matador input and concise bilingual help in Session/Match declaration entry and
 the staged Session editor. Existing input/number/evidence/source/correction

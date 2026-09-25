@@ -79,6 +79,77 @@ the existing JavaScript enhancement; submitted safe input survives natively.
 
 ## Focused verification
 
+### Discoverable Match evidence (Issue #263)
+
+The clean starting branch was `bug/263-match-evidence-entry`, full HEAD
+`2ea5e90a695d1c047693a471498ca1d91989d59c`, with #262 integrated. The actual #263
+specification, #208's consolidated R07 evidence and the supplied post-#259 R07d/e
+audit rows were read. Current regressions reproduced the empty wrapper and absent
+targeted hand remedy: **five new tests failed before the repair**. This confirms
+those current seams, not the precise cause of every original UAT observation.
+R07c's #247 Skat/discard caption was already correct; #262 stays completed.
+
+| Captured selected-Game state / reason | Existing editor owner / domain | Presentation |
+| --- | --- | --- |
+| Empty or passed Slot, `game is None` | No evidence editor | Omit the entire empty Skat/discard disclosure; keep the actual recording task/status |
+| Started Game with unknown evidence, even zero prepared decisions | Accepted Game perspective for initial hand; existing separate Skat/discard forms | Keep useful Unknown/Exact/known-empty controls and clearing |
+| Skipped `acting_hand_unavailable`, actor ID equals editor owner, `perspective_initial_hand is None` | That Game's perspective, original ten dealt Cards | One named action to `/matches/position/N#match-initial-hand` after the skipped-reasons disclosure |
+| Several matching skipped decisions | Same editor / target | One shared action, not one per row |
+| Another actor, `required_public_hand_unavailable`, or an already supplied initial hand | No demonstrated hand-entry remedy for that cause | Keep the actual reason without this action |
+| Prepared decision, no observation, or missing owner/editor | No applicable missing-hand remedy | No action or invented prerequisite |
+
+`task_first_match_state.py` captures one private `hand_editor_player_id` directly
+from the selected accepted Game alongside its existing summary. The renderers use
+that scalar, participant identity and existing structured decision rows only.
+The selected Report, Settings own Player, next actor and displayed seat/name do
+not choose the owner. Equal labels are not identity; fallback labels and escaping
+reuse the existing name helper. No standalone/public/browser-state contract is
+extended. Missing-owner cases are defensive scalar tests: valid Match definitions
+already require a perspective.
+
+The existing optional hand disclosure has the visible native summary
+`#match-initial-hand`, captioned **Initial hand for {player}** (paired German).
+It remains one editor with the original fields and full-deck domain. Native
+fragment navigation reaches the summary while closed; **one explicit summary
+activation opens it**. It is not automatic reveal. Closed-summary Tab continues to
+the existing Undo control; after opening, Tab reaches `card_evidence_mode`.
+Installed measurements found the new summary flush with the viewport top before
+styling. Adding this exact ID to the existing Match scroll-margin rule gives the
+focus ring room. No fragment/focus allowlist conflict was observed or changed.
+
+These are active-context URLs, not immutable cross-tab sources. Same-Game navigation
+keeps recovery and Results; a real Game/source switch retains normal invalidation.
+Stale evidence cannot recreate a removed Game. Existing validation opens the real
+failed form, or falls back to `#match-recording` when its exact source/form is gone.
+Language/error priority and source-bound receipt delivery remain unchanged.
+
+The temporal input is the original **ten dealt Cards before Skat pickup/discard**,
+including already played Cards belonging to that hand, not the current remaining
+hand. Non-Hand declarer reconstruction still uses original hand plus original Skat
+minus discards; the hand alone may not suffice. Complete traces can already prepare
+decisions without explicit hand entry. Saving does not analyze, switch perspective
+or return through a wizard; the existing recording-to-review link and analysis POST
+remain separate.
+
+`test_match_evidence_navigation.py` adds 23 focused cases, including canonical
+unknown/complete states, actual mixed skip reasons, duplicate labels and rotated
+Games, defensive missing owners, a retained other-Game Report, and real HTTP
+rejection/retry/no-op/reopen/source switching. The established B/C/A CK/C7/C10 trace
+is **0/3 → 1/3** only after C's valid ten-Card hand including C7. A remains the next
+actor and winner of 14 points. C's explicit Report retains CK, all ten C Cards and
+no later C10 in its historical prefix. Exact independent Session Request/Result
+and frozen Checkpoints survive the Match work. Existing compact-entry, recovery,
+navigation, validation/language and recorded-context tests remain in use.
+
+See [installed evidence and limits](unified_workflow_visual_contract.md#match-evidence-entry-issue-263).
+Inventory remains **67 POST routes / 112 forms**; three captions increase the paired
+catalogs from **1,802 to 1,805**, preserving sorted keys and placeholders. Package
+0.17.0, Python >=3.13, AGPL-3.0-only, dependency floors including tzdata>=2026.4,
+98 scenarios and all public/persistence contracts remain. Unknown/Exact redesign,
+global capture-disclosure preferences, other R01/R11/R13 residues and automatic
+Learning decisions stay separate. Both exact merged-#263 CI jobs gate manual closure;
+#208 stays open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
 ### Saved progress presentation (Issue #260)
 
 Starting clean `bug/260-match-progress-presentation` HEAD:

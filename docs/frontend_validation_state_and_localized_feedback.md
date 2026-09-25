@@ -149,6 +149,21 @@ The standalone Capture and Corpus renderers are not modified.
 
 ## Accepted And Submitted State
 
+Issue #263's named Match initial-hand summary is navigation only. The existing
+source-bound hand form keeps its exact identity, hidden transport, safe visible
+Cards/mode and explicit Save. Actual field errors open its disclosure and retain
+native error-summary focus; language changes preserve rejected safe values, and
+enhanced changes additionally preserve supported unsent selections/disclosures.
+Hidden transport and destructive consent are still regenerated/excluded.
+
+An empty/passed selected position no longer renders an empty Skat/discard wrapper.
+If a stale evidence form has disappeared, existing validation retains its contextual
+summary and live `#match-recording` fallback, never a dead hand-field link or a
+fabricated Game. The pure owner/target rendering does not consume feedback or
+mint success from `last_result`. No validation, route, form, status, read-limit,
+language-return or receipt mechanism changes. See
+[native target evidence](unified_workflow_visual_contract.md#match-evidence-entry-issue-263).
+
 Issue #259 reuses `learning.operation.import_strategy_teacher_report` and its
 unchanged multipart fields/limit. A sole offered Current Snapshot is now hidden
 transport with a visible `learning-report-target` description (`tabindex=-1`),

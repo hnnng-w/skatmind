@@ -53,6 +53,7 @@ def build_task_first_match_page_state_v1(context, view, *, report_id=None):
         "progress": view.selected.workspace_progress.to_dict(),
         "position_view": view.selected.to_dict(),
         "game": _game_summary(game),
+        "hand_editor_player_id": None if game is None else game.perspective_player_id,
         "decision_preparation": _decision_preparation_summary(workspace, view.selected_position),
         "reports": [build_match_analysis_report_summary_v1(report, selected=report is selected)
                     for report in reports],

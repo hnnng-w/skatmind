@@ -2894,6 +2894,20 @@ gate manual #259 closure. #208, remaining R13/R14 and automatic-use questions st
 open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 No whole-UAT acceptance or release-readiness claim follows.
 
+Issue #263 implements only R07d/e from clean `bug/263-match-evidence-entry` at
+`2ea5e90a695d1c047693a471498ca1d91989d59c`. Empty/passed Skat/discard wrappers are
+omitted; structured applicable missing-hand reasons link once to the selected
+Game's existing named perspective-hand summary. Original dealt-hand semantics,
+explicit modes/Save/review, source binding, recovery and Report lifetimes remain.
+See [mapping](match_game_navigation.md#discoverable-match-evidence-issue-263) and
+[installed evidence](unified_workflow_visual_contract.md#match-evidence-entry-issue-263).
+Inventory remains 67/112; paired keys become 1,805. #262 remains completed. Both
+`check` and `v1-supported-platform-matrix` must pass on the exact merged #263
+implementation commit before manual closure. #208, other R01/R07/R11/R13 residues,
+Unknown/Exact/global disclosure work and automatic-Learning decisions remain open.
+UAT-01 unaccepted; UAT-02–12 paused; B-09/B-07 open; B-06 closed. No whole-R07/UAT
+acceptance or release-readiness claim follows.
+
 Issue #262 implements only R07a/b optional Matador sizing and concise bilingual
 help from clean `bug/262-optional-matador-entry` at
 `4cd274db3df883b29d021de6ec78f01fda6d245a`. The native text field is `7em`/container-

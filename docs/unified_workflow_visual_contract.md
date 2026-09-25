@@ -2227,6 +2227,144 @@ completed; #208 and other residues/product questions remain open. UAT-01 unaccep
 UAT-02–12 paused, B-09/B-07 open, B-06 closed. Both exact merged-#260 CI jobs remain
 manual closure gates; implementation verification is not whole-R12 human acceptance.
 
+## Match evidence entry (Issue #263)
+
+Started on clean `bug/263-match-evidence-entry` at
+`2ea5e90a695d1c047693a471498ca1d91989d59c`, with #262 integrated. Actual #263,
+#208 R07 and the supplied post-#259 R07d/e audit references were read. Five new
+pre-fix regressions reproduced empty/passed evidence wrappers and absent targeted
+guidance. This is separate from the older static audit and original UAT report.
+The [state/owner/reason map](match_game_navigation.md#discoverable-match-evidence-issue-263)
+defines the bounded repair; R07c and #262 were already correct.
+
+`scripts/verify_match_evidence_navigation.py` uses independent baseline/repaired
+Wheels, existing dependency-free DevTools, returned native forms and disposable
+synthetic roots. Successful persistence, preparation and execution are real; spies
+count actual calls rather than replace their results. It verifies 14 installed
+module/resource hashes against Wheel bytes and HEAD/repaired source, plus served
+authenticated CSS/script bytes. No runtime/browser dependency is added.
+
+```powershell
+& PATH_TO_INSTALLED_PYTHON scripts/verify_match_evidence_navigation.py `
+    --browser PATH_TO_EDGE --output FRESH_SCRATCH_DIRECTORY `
+    --wheel PATH_TO_WHEEL --phase before
+```
+
+Use `--phase after` for the repaired Wheel. Completed evidence under
+`%TEMP%\opencode\` is `263-before-final/evidence.json` and
+`263-after-02/evidence.json`, with exact synthetic artifacts and inspected PNGs.
+Separate `263-baseline-env` and `263-repaired-env` installations use Windows
+**Python 3.13.7**, SkatMind **0.17.0**, pytest **9.1.1**, jsonschema **4.26.0**,
+referencing **0.37.0**, tzdata **2026.4**, and headless Edge **153.0.4234.48**.
+
+Each Wheel completes **30 measurements**: four empty, four passed, seven native
+arrivals, seven opened editors, four real rejections and four rejection-language
+returns. All four de/en × JavaScript on/off cells have the complete short Match
+workflow. German/no-script adds **1365×900, 390×844, 320×800 and 200% computed text**
+arrival/editor measurements; other cells use 390×844. Computed font sizes double
+once without browser zoom/device scaling. The enlarged target is revisited by an
+actual emitted native fragment link after font reflow. This is a bounded matrix,
+not every workflow at every viewport.
+
+The baseline has the empty Skat/discard wrappers and no missing-hand remedy. Its
+generic recording backlink focuses `match-recording`, then Tab reaches the next
+Play's Card input. Locating/opening the old generic hand disclosure afterward is
+recorded as verifier-assisted inspection, not successful targeted navigation.
+
+The repair follows the actual review href without manually scrolling/focusing the
+destination first. The URL becomes `/matches/position/1#match-initial-hand` and
+`activeElement` is the visible named **summary**. It remains closed. Exactly one
+native pointer activation opens it; the next Tab then reaches `card_evidence_mode`.
+Before opening, Tab instead reaches the existing Undo button. These are distinct
+observations, not automatic reveal. No focus/fragment allowlist override was found.
+
+An initial repaired run measured the new summary at **−0.03125px** from the top,
+leaving the focus ring against the viewport edge. The only CSS repair adds this
+exact Match ID to the existing `1rem` scroll-margin/word-wrap rule. Final summary
+tops are **15.97 / 16.45 / 16.03px** at desktop/390/320, and **16.30px** with enlarged
+text; English 390px is **15.66px**. The blue 3px outline remains. Document/client
+widths agree at **1350/1350, 375/375 and 305/305**. Full long labels wrap, including
+within words at narrow enlarged sizes. The complete editor captures retain every
+native Card control and Save; long enlarged help still needs vertical scrolling.
+No one-screen, automatic-open or smaller-font claim is made.
+
+Native Exact selection with only C7 produces a genuine rejection. The error summary
+receives focus, next Tab reaches its field link, and the hand disclosure opens.
+Language return keeps this priority and the submitted C7/mode. Adding unsent C8
+before another language change retains it with JavaScript and loses only that
+unsent addition without JavaScript, while retaining submitted C7. Hidden transport
+is regenerated. Selecting Cards sends no POST; explicit Save accepts all ten C
+Cards including played C7. Review changes from **0/3 to 1/3** for this fixture;
+only the subsequent explicit C analysis executes. Its historical context has CK,
+the ten C Cards and no later C10. The accepted first Trick still belongs to A for
+14 points, with A next; A never becomes the hand-editor owner.
+
+Each completed run records **132 named actions** (58 passive, 74 native-control)
+and **82 POSTs** (54 fixture setup, 28 native). The native POSTs are four rejected
+hand saves, four valid hand saves, four explicit analyses and sixteen language
+changes. Instrumented totals match both installations:
+
+| Operation | Fixture setup | Native interaction | Passive navigation |
+| --- | ---: | ---: | ---: |
+| Session saves | 8 | 0 | 0 |
+| Match saves | 32 | 4 | 0 |
+| Session analysis | 1 | 0 | 0 |
+| Match analysis | 0 | 4 | 0 |
+| Profile writes | 13 | 16 | 0 |
+| Existing Match page preparations | 36 | 28 | 46 |
+
+Selection, summary opening and layout measurement add no Product save/analysis.
+Page preparation and explicit language profile writes are counted separately.
+Route/operation/Card/mode/language payload sequences match; generated authority
+fields belong to independent roots and are not compared as equal identities.
+Each source, Report, Request, Result and download remains byte-identical through
+its own passive views, links and language changes. Actual sources have independent
+generated IDs; Match Result metadata can therefore differ across roots. A genuine
+independent three-Play Session Result and its frozen Checkpoints are retained
+unchanged throughout, without another thirty-Card replay or knowledge promotion.
+
+| Artifact (repaired German/native specimen unless noted) | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Session source | 11202 | `e91aacb15a21dd4804c5e67c044daf65f941a62b101d034274e8a85229b4ee53` |
+| Session Request, equal across installations | 887 | `b56173dfcecf2b65ac9d61bc9fc5ee6878731310d8fa89807fe0a7ec35d23776` |
+| Session Result, equal across installations | 10751 | `080006282bb7fd09d9e9b633a233f58b8001525a3e5fcad585ed766210ed0e5a` |
+| Match source after hand save | 11311 | `06d21ed8099fe40dfb550e22c57e77dd2c5baef4b9240030886d0ff89992d7ad` |
+| Complete retained Match Report | 13744 | `a45ee9db7b7b2e3de01fe30becfd266ee68289c6a76e14f76f79f1f0037dc7be` |
+| Match Result download | 8737 | `69ad849e8e403f1ad854b07f561662f07290b9ac6346865702c3902210cbc990` |
+| Match Request wrapper, equal across installations | 1135 | `f0cc7858a5fbbf3ef77fad455f1e3d8c7292df0c88428282cc25837a7899abaf` |
+| Baseline Wheel | 1751381 | `bf9f07fa0e46b360eacc188bc261b2623dfaa6b9e816988dc9e75b05a25e43ef` |
+| Final repaired Wheel | 1751963 | `a6b3dc29ca934dacefd0e49b19bf5a516234c89f492acf3feebc3831a5d17d72` |
+| Final served CSS | 42792 | `c4afe934ad5e13223374ae450ceb0a887cb9077bddf67bb720f5a5fc52b2f621` |
+| Unchanged served script | 5626 | `aa3871d9880326fc27590d80f7f0bf9ebc0a7cf31fd64fc2fd04a1e3932efce1` |
+
+Focused corrected selections passed **183 tests in 117.64s**, then **82 in 70.98s**
+after adding the other-Game Report case; these overlap and are not added together.
+Catalog key/order/placeholder checks passed before the full suite. Early test
+development failures were fixture-constructor/attribute/one-value-parser assumptions,
+corrected without weakening Product checks. The first baseline browser attempt used
+the wrong error CSS selector; `263-before-02` then completed, and the final matched
+run adds complete-editor screenshots and retained-language checks. The first repaired
+attempt exposed the target margin issue above. Only the named completed final
+authorities describe the final production tree.
+
+The final scoped catalog/skip check passed **22 tests / three existing skips in
+4.68s**. The skips are `test_actual_file_boundaries_fail_before_import[symlink]`
+(OS error 22), `test_real_symlink_is_not_followed` (OS error 1314), and
+`test_managed_direct_child_validation_rejects_escape_and_links` (this Windows
+account cannot create symbolic links). No skip was introduced. Ruff passed.
+The established detached native-output logger was separately proven to capture
+both streams and propagate actual child exit **23** before the prescribed full run.
+
+All edits and evidence precede the prescribed unchanged-tree full check; its actual
+child exit, complete log and stages/tests/skips belong to the implementation report.
+Authenticated HTTP downloads are not Save-dialog tests; computed text is not browser
+zoom. No physical-device, screen-reader or maintainer-UAT acceptance is claimed.
+Package/license/dependency/public/persistence contracts and 98 scenarios remain;
+inventory is **67 / 112 / 1,805**. #262 stays completed. Both `check` and
+`v1-supported-platform-matrix` must pass on the exact merged #263 implementation
+commit before manual closure. #208, other residues and automatic-Learning decisions
+remain open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
+
 ## Optional Matador entry (Issue #262)
 
 Started on clean `bug/262-optional-matador-entry` at

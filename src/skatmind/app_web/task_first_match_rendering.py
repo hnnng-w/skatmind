@@ -51,6 +51,15 @@ def _hidden(state, handle, operation):
             + hidden("expected_revision", state["workspace_revision"]))
 
 
+def _hand_editor_owner(state):
+    """The captured selected Game owns this editor, independently of any Report."""
+    owner = state.get("hand_editor_player_id")
+    if state["game"] is not None and owner and any(
+            player["player_id"] == owner for player in state["participants"]):
+        return owner
+    return None
+
+
 def _options(state, locale, field, default=None):
     name = field.field_key
     game = state["game"]
@@ -152,7 +161,7 @@ def _evidence(state, handle, locale, bindings, *, hand=False):
     game = state["game"]
     if game is None:
         return ""
-    content = paragraph(locale, "task.match.evidence_help")
+    content = paragraph(locale, "task.match.initial_hand_help" if hand else "task.match.evidence_help")
     for operation, name in (("set_perspective_hand", "perspective_initial_hand"),
                              ("set_original_skat", "original_skat"),
                              ("set_discarded_cards", "discarded_cards")):
@@ -323,15 +332,20 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
                                              _named_seat(state, locale, game["declarer_player_id"]))
         task += render_unplayed_cards(state.get("unplayed_cards"), locale,
             original_skat=game["original_skat"], discarded_cards=game["discarded_cards"])
-        task += disclosure(locale, "compact.optional_hand", _evidence(
-            state, handle, locale, card_bindings, hand=True))
+        owner = _hand_editor_owner(state)
+        if owner is not None:
+            task += '<details class="advanced-settings"><summary id="match-initial-hand">' + translated(
+                locale, "task.match.initial_hand", player=_name(state, locale, owner)) + '</summary>'
+            task += _evidence(state, handle, locale, card_bindings, hand=True) + '</details>'
     if game is not None:
         task += (recovery[1] if recovery is not None else "" if recorded is None
                  else render_recorded_history(recorded, locale))
     body += '<section id="match-recording" class="panel" tabindex="-1" aria-labelledby="match-recording-heading">' + task + '</section>'
     body += _game_overview(state, view, locale)
     body += transfer
-    body += disclosure(locale, "task.match.evidence", '<div id="match-evidence">' + _evidence(state, handle, locale, card_bindings) + '</div>')
+    evidence = _evidence(state, handle, locale, card_bindings)
+    if evidence:
+        body += disclosure(locale, "task.match.evidence", '<div id="match-evidence">' + evidence + '</div>')
     body += disclosure(locale, "task.match.annotations", _annotations(state, handle, locale))
     metadata = {**state["match"], **state["source"],
         "match_timecode_start": state["source"]["match_timecode"]["start"],
