@@ -2227,6 +2227,143 @@ completed; #208 and other residues/product questions remain open. UAT-01 unaccep
 UAT-02–12 paused, B-09/B-07 open, B-06 closed. Both exact merged-#260 CI jobs remain
 manual closure gates; implementation verification is not whole-R12 human acceptance.
 
+## Match decision action placement (Issue #264)
+
+Started on the clean required `bug/264-match-analysis-action-placement` branch at
+`06d1fc1e5aefea92ff03eacc577fc9d830dbb995`, the integrated #263 inspection baseline.
+Actual #264 and the consolidated #208 observation were read. The original UAT
+installation `483e51269d0206d29d9f73001dfadf8f0e7b2f32` and #263's pre-implementation
+`2ea5e90...` remain separate historical evidence. The supplied placement inspection
+ran no browser/tests: its matched #263 hashes and hand-entry screenshots did not
+establish R11d geometry. Its historical 9,870 passes/three skips are not #264 checks.
+
+Six pre-fix de/en emitted-caller tests failed on selector → disclosure → button;
+five helper-tail cases failed on the absent opt-in. The repaired private helper
+places internally rendered trailing content after its own unchanged button, inside
+the same form. Only decision analysis opts in. The
+[caller/field/default map](match_analysis_and_exports.md#unified-decision-action-placement-issue-264)
+defines the narrow boundary; no CSS/catalog/registry/parser/server/script changes
+were needed. Focused coverage has 24 new passing cases plus 189 passing existing
+navigation, #263 evidence, context, language, validation/catalog, Session and
+Learning compatibility cases. Genuine HTTP includes non-first selection in the
+existing six-Play fixture, exact Application Request/options, default/nondefault
+profiles, recovery, strict transport, stale selection and one complete last-Trick
+Search with `interactive_v1`.
+
+### Independent installations and bounded coverage
+
+`scripts/verify_match_analysis_action_placement.py` reuses the existing optional
+dependency-free DevTools transport, native input helpers and returned-form fixtures.
+Both Wheels were separately built/installed into disposable `264-baseline-env` and
+`264-repaired-env` virtual environments under `%TEMP%\opencode`; inherited installed
+verification dependencies were used, with Package imports explicitly verified
+outside the checkout. The final evidence is `264-before-final/evidence.json` and
+`264-after-final/evidence.json` in that temporary root, alongside screenshots and
+canonical synthetic artifacts. Each run verified installed bytes against its Wheel
+and baseline HEAD/repaired source, and the actually served CSS/workflow script.
+Of fourteen checked resources, only the two authorized renderer/helper modules differ.
+
+Environment: CPython 3.13.7, Windows 10.0.26200, headless Edge 153.0.4234.48;
+Package 0.17.0, pytest 9.0.3, jsonschema 4.26.0, referencing 0.37.0, tzdata 2026.4.
+The unchanged inventory is 67 POST routes / 112 forms / 1,805 paired catalog keys.
+Python >=3.13, AGPL-3.0-only, dependency floors and 98 generated scenarios remain.
+
+| Per-installation coverage | States |
+| --- | --- |
+| Recording, focused review, retained Report; de/no-script | Closed/open at 1365, 390, 320px and 320px with doubled computed text |
+| All three callers; en/script, de/script, en/no-script | Closed/open at 390px |
+| Real invalid advanced input and recovery | Additional 320px de/no-script and 390px en/script-origin measurements; language return also exercised |
+| Native operations in all four language/script modes | Select another decision; type seeds/count; checkbox Space; close details; invalid and successful explicit POSTs |
+| Normal and invalid language returns | Unsent fields/open state in enhanced mode; server-safe defaults/submitted values without script; invalid opening overrides closure |
+
+There are 46 measured states per installation, not a screenshot quota. One six-Play
+partial Match is reused across views. Recording measurements explicitly open the
+existing outer disclosure after confirming that it starts closed. Screenshots were
+inspected for desktop open settings, narrow Report settings, doubled-text captions,
+error summary, linked invalid field and recovery. All measured pages fit their
+client width. Native selects retain normal narrow selected-caption truncation;
+full offered labels remain in their options. At 320px/32px text the German button
+wraps to three lines and the summary wraps within its border; no type is reduced.
+
+### Geometry and native behavior
+
+Representative focused-review selector-bottom to button-top distances (CSS pixels):
+
+| de/no-script state | Baseline closed / open | Repaired closed / open |
+| --- | --- | --- |
+| 1365px, 16px text | 133.188 / 621.500 | 12 / 12 |
+| 390px, 16px text | 113.969 / 751.063 | 12 / 12 |
+| 320px, 16px text | 138.766 / 825.453 | 12 / 12 |
+| 320px, 32px computed text | 237.953 / 2350.875 | 12 / 12 |
+
+Retained Report measurements have the same observed gaps; recording's repaired
+gap is 12.797px under its existing container styling. These are observations for
+the measured states, not a universal spacing requirement. At 390px the review
+selector/button/summary widths are 320.219/266.313/297.438px in German. At 320px
+with doubled text they are 250.219/250.219/227.438px; the button is 168.375px high.
+Opening settings no longer separates the decision from its action.
+
+Native Tab reaches select → Analyze → advanced summary; Shift+Tab returns normally,
+summary Space opens settings and the next Tab enters the method selector. Baseline
+Tab reached the summary first. Associated native labels, one submitter, exact field
+multimaps/options/defaults and all six advanced controls were checked. No target
+was programmatically focused to claim keyboard success. Pointer default submission,
+keyboard Enter after closing changed settings, and one text-input implicit Enter
+on a retained Report all use native submission. Thirteen native analysis POSTs per
+installation produce nine 303 Report redirects and four 400 rejections, with nine
+actual Application executions. Immediate receives seed `None` after normalizing
+submitted Search seed 91. Unchecked profiles are genuinely absent from the payload.
+
+Error summary focus and its link to the invalid field remain; language return uses
+`#match-review`. Successful Report navigation in both installations leaves
+`activeElement=BODY`, with the next Tab reaching the skip link. This records existing
+focus behavior rather than claiming a new Result-focus feature. Changing controls
+or disclosures alone performs no POST, execution or Product save.
+
+### Work accounting and retained bytes
+
+Per installation: synthetic setup performs 10 Match saves, one creation-profile
+write and 10 existing page preparations. Locale setup performs eight preparations
+and one actual profile write. Passive navigation performs 29 preparations, zero
+executions and zero saves. The native interaction phase performs nine analyses /
+nine Application invocations, 33 existing page preparations and 20 explicit language
+profile writes, with **zero Match saves**. Baseline and repaired counts are exact
+matches. Rendering adds no preparation, reconstruction or file access.
+
+Same-execution Report/Request/Result and download bytes remain exact through passive
+navigation and language changes. Fresh executions and independent synthetic identities
+are not required to share IDs or timing. No timing field or producer clock is altered.
+Representative final repaired SHA-256 values:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Baseline Wheel | `a6c10205f3c102151324db12a6c40cb0fd31fb07c5d47a98c780f722f8d7b87e` |
+| Repaired Wheel | `a5b596ffa70b7d2c04773243205e944b8a9e9c169b80733721e103d51bd1a85f` |
+| Form helper | `f5cc07712743489dd94dbe52f0de7f83b34004f6cfb5524659d53b19ec6d2b2c` |
+| Match renderer | `a46f6901f9dcdc270036f5ed83c2564f6ac4d21f59db5bb6f7c181c326436066` |
+| Unchanged CSS | `c4afe934ad5e13223374ae450ceb0a887cb9077bddf67bb720f5a5fc52b2f621` |
+| Unchanged workflow script | `aa3871d9880326fc27590d80f7f0bf9ebc0a7cf31fd64fc2fd04a1e3932efce1` |
+| Workspace, 12,140 bytes | `d40d371071ab77bfeac84d3a601fb4b4d10e038baeb9c2bc514011f4583648d1` |
+| Retained default download, 8,737 bytes | `ac11a44895c33149012bb950398a8db4d56afff01140bff44037258bb97a0a18` |
+| Enhanced recovery Request wrapper, 1,384 bytes | `aa073500ea10ce8d3619f2920954218cd3d345c678c5930da3302229505a20ae` |
+| Recovery Result wrapper, 9,455 bytes | `9558682caa51697b883536719392f2db28e6341bcb295b0e0b26276c2a40c2c4` |
+| Recovery Report, 14,099 bytes | `35f933c5feed3c96bb5e3a17fb34465c447cfe5b9aa059b7d2c772739f61043e` |
+| Recovery download, 8,753 bytes | `92bdfe07182e8fbf58e7987d5bcb112dfed9fb80f8a04204a72911d657bf7849` |
+
+An earlier retained probe selected `report_store.list()[-1]` after an identical
+execution reused an existing insertion position. The verifier was corrected to use
+the actual redirect's Report ID; Product lifecycle and equality were not changed.
+Earlier successful runs precede the added normal-language/error geometry coverage;
+the final directories above contain the complete bounded evidence.
+
+Computed text enlargement is not browser zoom; authenticated HTTP bytes are not a
+physical Save-dialog test. Physical devices, screen readers and maintainer UAT are
+unperformed. All evidence/docs precede the prescribed final complete check; both
+`check` and `v1-supported-platform-matrix` must pass on the exact merged #264 commit
+before manual closure. #263 remains completed; #208, other residues and automatic-
+Learning decisions remain open. UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open,
+B-06 closed. No whole-R11/UAT acceptance or release readiness is claimed.
+
 ## Match evidence entry (Issue #263)
 
 Started on clean `bug/263-match-evidence-entry` at

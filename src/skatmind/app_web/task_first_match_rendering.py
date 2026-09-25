@@ -131,12 +131,13 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
             advanced += control
         else:
             fields += control
-    if advanced:
-        fields += disclosure(locale, "recordings.match.advanced", paragraph(locale, "task.analysis_help") + advanced)
+    trailing_content = (disclosure(locale, "recordings.match.advanced", paragraph(locale, "task.analysis_help") + advanced)
+                        if advanced else "")
     if technical:
         fields += disclosure(locale, "task.technical", technical, technical=True)
     return form(locale, f"/matches/api/v1/{'analysis' if analysis else 'operation'}", fields,
                 f"task.match.action.{operation}", primary=primary, disabled=disabled,
+                trailing_content=trailing_content,
                 confirm_key="task.match.remove_note_help" if operation == "remove_commentary" else None)
 
 

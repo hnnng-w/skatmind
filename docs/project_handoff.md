@@ -2894,6 +2894,19 @@ gate manual #259 closure. #208, remaining R13/R14 and automatic-use questions st
 open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 No whole-UAT acceptance or release-readiness claim follows.
 
+Issue #264 implements only R11d from clean `bug/264-match-analysis-action-placement`
+at integrated #263 HEAD `06d1fc1e5aefea92ff03eacc577fc9d830dbb995`. Two private
+renderer modules group decision selection, the existing Analyze button and advanced
+options inside one form. Defaults, closed-details submission, validation/language,
+source/Report ownership and other helper callers remain. See the
+[map](match_analysis_and_exports.md#unified-decision-action-placement-issue-264) and
+[fresh Wheel evidence](unified_workflow_visual_contract.md#match-decision-action-placement-issue-264).
+Inventory stays 67/112/1,805; #263 remains completed. Both `check` and
+`v1-supported-platform-matrix` must pass on the exact merged #264 implementation
+commit before manual closure. #208 and other residues/product decisions stay open;
+UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed. No whole-R11/UAT
+acceptance or release readiness follows.
+
 Issue #263 implements only R07d/e from clean `bug/263-match-evidence-entry` at
 `2ea5e90a695d1c047693a471498ca1d91989d59c`. Empty/passed Skat/discard wrappers are
 omitted; structured applicable missing-hand reasons link once to the selected

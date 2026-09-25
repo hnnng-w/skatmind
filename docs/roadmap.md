@@ -1898,6 +1898,17 @@ and [evidence](unified_workflow_visual_contract.md#optional-learning-report-atta
 remaining R13/R14 and automatic-use decisions stay open. UAT-01 unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
 
+Issue #264 implements R11d only: the existing prepared-decision selector is followed
+by its one native Analyze action, then advanced settings, in the same shared Match
+form. Closed settings still submit their current values; availability, exact-source
+guards, retained Reports and other helper callers remain. See the
+[map](match_analysis_and_exports.md#unified-decision-action-placement-issue-264) and
+[installed comparison](unified_workflow_visual_contract.md#match-decision-action-placement-issue-264).
+Inventory stays 67 routes / 112 forms / 1,805 paired keys. #263 stays completed;
+both exact merged-#264 CI jobs gate manual closure. #208, other R01/R07f/R11c/R13
+residues and automatic-Learning decisions remain open; UAT-01 unaccepted, UAT-02–12
+paused, B-09/B-07 open, B-06 closed. No whole-R11/UAT or release-readiness claim.
+
 Issue #263 implements R07d/e only: omit genuinely empty Match evidence wrappers
 and link applicable missing-hand review to the existing named perspective-hand
 summary. Native opening, original ten dealt Cards, explicit replacement evidence

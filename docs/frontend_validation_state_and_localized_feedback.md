@@ -149,6 +149,26 @@ The standalone Capture and Corpus renderers are not modified.
 
 ## Accepted And Submitted State
 
+Issue #264 moves the Match decision form's existing six advanced controls after
+its existing Analyze button through an opt-in helper tail, still before `</form>`.
+Complete-form instrumentation retains `_frontend_form_instance`, safe-field lists,
+language identity/choices and repeated-form disambiguation. No control becomes
+external or disabled. The actual analysis-route body limit remains **1,048,576
+bytes**, with strict URL encoding, at most 256 fields, single-valued controls,
+unsupported-field and malformed-encoding rejection. This is independent of the
+8,192-byte correction-route limit above.
+
+Invalid advanced input still receives associated field messages and summary links,
+opens containing details and retains safe submitted values. The summary remains
+before its form. Native language return retains submitted/server-safe values;
+enhanced return additionally retains bounded unsent fields and disclosure state.
+Invalid-field opening overrides requested closure. Hidden source authority and
+destructive consent remain excluded. Normal Tab reaches Analyze after the decision
+select, before the advanced summary; later settings still submit when details are
+closed. Source errors keep contextual handling. No registry, parser, language,
+workflow-script or status change is introduced. See
+[installed native evidence](unified_workflow_visual_contract.md#match-decision-action-placement-issue-264).
+
 Issue #263's named Match initial-hand summary is navigation only. The existing
 source-bound hand form keeps its exact identity, hidden transport, safe visible
 Cards/mode and explicit Save. Actual field errors open its disclosure and retain

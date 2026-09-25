@@ -155,6 +155,16 @@ execution, Result lifetime, and contextual bilingual feedback are documented in
 
 ## Match
 
+Issue #264 groups the shared prepared-decision selector with its existing Analyze
+button, before Advanced analysis options, inside the same POST form. Recording's
+outer analysis disclosure remains initially closed; focused review and retained
+Report pages reuse the same composition. Closed Advanced options still submit
+their current values. No second action, settings persistence or automatic execution
+is added. The typed helper tail defaults to empty for Session, Learning, recovery
+and other Match forms; validation/language instrumentation includes the entire
+tail. See the [caller/field/default map](match_analysis_and_exports.md#unified-decision-action-placement-issue-264).
+Inventory remains 67 routes / 112 forms / 1,805 paired keys, preserving #238–#263.
+
 Issue #263 addresses R07d/e only: genuinely empty Skat/discard disclosures are
 omitted, and the existing optional initial-hand summary names its accepted Game
 perspective and provides a native target for conditional missing-hand guidance.

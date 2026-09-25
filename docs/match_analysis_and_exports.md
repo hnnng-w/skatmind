@@ -82,6 +82,49 @@ existing values and executes no Root workflow.
 
 ## One-Decision Position analysis
 
+### Unified decision action placement (Issue #264)
+
+The shared unified form now reads **Recorded decision → Analyze recorded decision
+→ Advanced analysis options** in native DOM and keyboard order. The private
+`task_first_rendering.form()` helper accepts an empty-default typed
+`trailing_content` argument after its own submitter, inside the closing form.
+Only `task_first_match_rendering.operation_form()`'s `analysis=True` /
+`analyze_decision` branch supplies the existing rendered advanced disclosure there.
+Other helper calls retain their exact default output.
+
+`render_match_analysis_v1()` supplies this form to recording (`/matches/current`
+and `/matches/position/N`), focused review (`/matches/review/N`), and retained
+Report pages (`/matches/reports/{report_id}`). Recording keeps its initially closed
+outer analysis disclosure: opening it remains explicit. The separate GET Game
+selector, Historical/materialization forms, #263's conditional remedy, accepted
+history, transfer and corrections retain their boundaries. No prepared decisions
+means no decision form; empty/passed/no-observation and Historical readiness stay
+separate.
+
+The URL-encoded `POST /matches/api/v1/analysis` still has one unnamed primary
+native submitter and hidden `operation=analyze_decision`, `managed_handle`,
+`match_position`, `expected_revision`, plus `review_binding` in focused review
+and Report forms. Existing instrumentation remains inside the same form.
+
+| Control | Default and unchanged offered values |
+| --- | --- |
+| `decision_index` | Prepared decisions in existing order; native first option absent safe restoration |
+| `recommendation_method` | `immediate_expected_value`; also `bounded_search`, `auto`, `information_set_search` |
+| `immediate_sample_count` / `immediate_random_seed` | `100` / `0` |
+| `search_random_seed` | `0`; existing browser parser normalizes to `None` for Immediate |
+| `search_budget_profile` | `historical_review_v1`; also `interactive_v1` (requires a Search method) |
+| `use_profile_presets` | Checked sends `on`; unchecked is omitted |
+
+Closing Advanced options neither disables nor resets them. The earlier button
+submits the **currently entered settings**, including changed values inside closed
+details. Selecting, opening or typing performs no execution or save. Existing
+strict parsing, source/fingerprint/selection-generation checks and success return
+to `/matches/reports/{report_id}` remain. Selected Game owns preparation; a Report
+owns its retained context/downloads, not the new selector's initial decision or
+settings. Reopen restores recording, not durable Reports. Rendering adds no work.
+See [validation and language](frontend_validation_state_and_localized_feedback.md#accepted-and-submitted-state)
+and [fresh installed evidence](unified_workflow_visual_contract.md#match-decision-action-placement-issue-264).
+
 Issue #263 adds a conditional unified review link to the selected Game's existing
 named initial-hand summary. Only a skipped `acting_hand_unavailable` row whose
 actor is that accepted editor's perspective, with absent initial-hand evidence,
