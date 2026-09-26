@@ -84,7 +84,9 @@ facts. The two redundant instruction panels are removed from markup, not hidden 
 CSS. Native Advanced disclosures hold
 specialist evidence, analysis parameters, corrections, source editing, and conflict
 choices. Native Technical disclosures hold IDs, revisions, raw Commands, exact
-machine values, and retained diagnostic data. Disclosures begin closed; an explicit
+machine values, and retained diagnostic data. Disclosures generally begin closed;
+#267's sole exception is the existing outer Advanced Match details on `/matches/new`,
+which starts open independently of the retained profile compatibility Boolean. An explicit
 language change can retain their current presentation state. Validation opens every
 containing disclosure needed to reach an invalid field.
 
@@ -102,7 +104,10 @@ analysis remains distinct. Accurate headings/actions, knowledge modes and all fo
 remain. Settings/About lose only three redundant body shortcuts; About's existing
 secondary technical section is called **Development and automation**. See the
 [R01a/c/d/e map](home_and_recorded_review_navigation.md#recording-entry-and-settingsabout-navigation-issue-265).
-R01f/g capture-preference/reset work is separate, as are R07f/R13g and automatic Learning.
+R01f's reset grouping is implemented by #266; #267 implements only R01g's fresh-open
+Match creation and retired Settings toggle. R07f/R13g and automatic Learning remain
+separate. See the [one-section state map](profile_driven_stateful_creation.md#default-open-match-details-issue-267)
+and [hidden compatibility transport](settings_and_player_seat_setup.md#default-open-match-details-and-hidden-compatibility-issue-267).
 
 The active page starts with its accepted path, phase and perspective, then one
 task at `session-recording`: initial hand, declarer, declaration, known Skat,

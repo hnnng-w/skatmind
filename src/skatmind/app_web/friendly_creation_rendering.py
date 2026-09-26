@@ -119,11 +119,6 @@ def render_profile_driven_match_creation_v1(
         time_context = LocalTimeFormContext("match-create", "", b"unbound-rendering",
             profile_generation, "Europe/Berlin" if profile is None else
             profile.interface_preferences.time_zone or "Europe/Berlin")
-    advanced_open = (
-        " open"
-        if profile is not None and profile.interface_preferences.advanced_settings_expanded
-        else ""
-    )
     preferred_platform = None if profile is None else profile.preferred_game_platform
     known_platforms = {value for _choice, value in FRIENDLY_GAME_PLATFORMS}
     custom_platform = (
@@ -160,7 +155,7 @@ def render_profile_driven_match_creation_v1(
         + f"<label>{_t(locale, 'creation.match.source_url')} "
         '<input type="url" name="source_url" maxlength="2048"></label>'
         + _save_controls(locale, match=True)
-        + f'<details class="advanced-settings"{advanced_open}><summary>'
+        + '<details class="advanced-settings" open><summary>'
         f"{_t(locale, 'creation.advanced.heading')}</summary>"
         f"<p>{_t(locale, 'creation.advanced.help')}</p>"
         f"<label>{_t(locale, 'creation.advanced.external_match_id')} "

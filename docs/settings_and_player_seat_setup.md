@@ -54,9 +54,8 @@ Creation defaults, Time zone, Recommended-default reset, local-profile informati
 then full-profile reset. Issue #266 moves both resets after profile information into
 one lower Reset section, with recommended defaults first. Both reset consents remain initially
 unchecked and required; Player/account previews, warnings, field associations,
-repeated-form identities and capture-disclosure preference/default remain unchanged.
-The bounded R01f presentation is implemented by #266; R01g disclosure preferences
-remain separate open work.
+repeated-form identities and capture-disclosure preference/default remained unchanged
+in #266. Issue #267 now implements R01g's one-section display supersession below.
 
 About's existing secondary section is now **Development and automation**, with one
 short explanation that CLI/Python-API script/tool access is optional for ordinary
@@ -236,9 +235,9 @@ its accepted values, rejected input, revision/CAS and Report lifecycle remain
 distinct. The template, account ownership, game-1 mapping and Games 2–36 rotation
 are unchanged. Historical #219/#225 evidence below remains historical.
 
-The Advanced creation-details checkbox retains its stored meaning: optional Match
-details start expanded. It does not make those details mandatory. Recommended
-reset still clears platform, legacy preferred perspective and Advanced expansion;
+Issue #267 retires the Advanced creation-details checkbox. Optional Match details
+start open independently of its retained compatibility Boolean and remain optional.
+Recommended reset still clears platform, legacy preferred perspective and that Boolean;
 it retains own Player, directory, language, timezone and labels. Complete profile
 reset clears the profile, including labels, but changes no Product document or artifact.
 
@@ -267,7 +266,7 @@ the copy:
 | Own Player | Preserved | Cleared |
 | Compatible preferred perspective | Cleared | Cleared |
 | Preferred platform | Cleared | Cleared |
-| Advanced Match-detail expansion | False | False |
+| Compatibility Boolean `interface_preferences.advanced_settings_expanded` | False | False; neither reset controls the fresh Match-creation disclosure default after #267 |
 | Explicit timezone | Preserved | Cleared; future unset-zone input uses Europe/Berlin |
 | Workflow preferences | Preserved; both supported analysis fields are null | Both remain null; no new analysis defaults |
 | Managed display labels, including Match date-only labels | Preserved | Cleared; later discovery may display fallback names/dates |
@@ -304,6 +303,54 @@ Successful redirects clear only their existing feedback family (`local_settings`
 for recommended defaults, `profile` for full reset). Viewing Settings and resetting
 do not consume another workflow's pending #245 acknowledgement or create a reset
 receipt. See [bounded installed evidence](unified_workflow_visual_contract.md#grouped-settings-resets-issue-266).
+
+### Default-open Match details and hidden compatibility (Issue #267)
+
+Only `/matches/new`'s existing **Advanced Match details** disclosure starts open
+independently of the profile. Its fields, summary, position and native structure
+remain. The nested read-only Technical details and preceding exact-time disclosure
+remain closed. See the [creation/state map](profile_driven_stateful_creation.md#default-open-match-details-issue-267).
+
+Ordinary Settings no longer exposes the expansion checkbox, its label or help.
+The same `POST /actions/profile/preferences` form regenerates exactly one hidden
+`advanced_settings_expanded` input from the accepted profile:
+
+| Accepted state | Old native successful field | Current native successful field |
+| --- | --- | --- |
+| True | `advanced_settings_expanded=on` | `advanced_settings_expanded=on`, hidden |
+| False | Omitted unchecked checkbox | `advanced_settings_expanded=`, hidden |
+| Absent profile file | Omitted unchecked checkbox | `advanced_settings_expanded=`, hidden |
+| Invalid existing profile | No eligible preferences form | No eligible preferences form |
+
+False/absence therefore changes field **presence**, not parser meaning. Existing
+`keep_blank_values=True` parsing preserves the empty value. Legacy omission, explicit
+empty and `on` remain accepted; a valid legacy change need not equal today's displayed
+hidden value. Other values, duplicates, stale generations and external CAS conflicts
+remain rejected. Hidden data is neither authentication nor a signature.
+`profile_generation`, `own_player_handle`, `platform_choice`, `custom_platform` and
+optional `_frontend_form_instance` keep their existing meanings. No helper supplies
+missing fields on behalf of successful Settings submissions.
+
+The private v1 Boolean stays mandatory, exactly typed, default False, in the same
+ordered codec/fingerprint. Absence of the file is supported; absence of the field in
+an existing file is invalid. GET performs no repair. Both resets still set it to
+False, with their existing consents, no-op/replacement behavior, scope and generation
+rules. The two current explanatory reset messages no longer promise display collapse;
+#266's historical evidence remains evidence of #266 only.
+
+The field is removed from `profile.preferences` safe editable metadata, its checkbox
+override and the unused dedicated label map. `profile_generation` metadata remains;
+actual hidden controls remain excluded from language capture. Three unused paired
+catalog keys are removed: `settings.preferences.advanced`,
+`settings.preferences.advanced_help`, `validation.field.advanced_settings_expanded`.
+The current inventory is **67 POST routes / 112 forms / 1,802 paired keys**.
+Shared diagnostics, server parsing and direct preference operations are unchanged.
+
+Full `interface_preferences` remains in both setup and language-source keys. Explicit
+legacy changes or resets may still invalidate pending Session/Match setup; a closed
+disclosure cannot clear fields or authorize changed values for final Create.
+The [installed comparison](unified_workflow_visual_contract.md#default-open-match-creation-details-issue-267)
+records actual saves, redirects, focus, bytes and independent fixture operations.
 
 ## Verification and visual evidence
 

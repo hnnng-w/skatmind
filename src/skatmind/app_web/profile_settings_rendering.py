@@ -101,10 +101,8 @@ def _preferences(
         f"{_player_options(profile, selected_id=own_player_id, locale=locale)}"
         "</select></label>"
         + _platform_fields(profile, locale=locale)
-        + f'<label><input type="checkbox" name="advanced_settings_expanded" value="on"'
-        f"{' checked' if advanced else ''}> "
-        f"{_t(locale, 'settings.preferences.advanced')}</label>"
-        f"<p>{_t(locale, 'settings.preferences.advanced_help')}</p>"
+        + '<input type="hidden" name="advanced_settings_expanded" '
+        f'value="{"on" if advanced else ""}">'
         f'<button type="submit">{_t(locale, "settings.preferences.save")}</button>'
         "</form></section>"
     )

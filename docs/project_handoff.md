@@ -2894,6 +2894,22 @@ gate manual #259 closure. #208, remaining R13/R14 and automatic-use questions st
 open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 No whole-UAT acceptance or release-readiness claim follows.
 
+Issue #267 implements only R01g on `bug/267-match-capture-details`. Original clean
+starting HEAD and resumption HEAD are `082c7fb1997fcba801663577233350436fe9d351`, the
+integrated #266 baseline. Resumption retained the intended untracked focused test
+and independent baseline Wheel; no prior #267 full check/browser worker was active.
+The outer Match-creation disclosure now starts open independently, and ordinary
+Settings emits one hidden accepted-profile compatibility Boolean. Profile/parser/
+reset/setup/source contracts remain; current reset copy supersedes only the obsolete
+display effect. Inventory is 67/112/1,802 and 98 scenarios. See the
+[map](settings_and_player_seat_setup.md#default-open-match-details-and-hidden-compatibility-issue-267)
+and [fresh installed evidence](unified_workflow_visual_contract.md#default-open-match-creation-details-issue-267).
+Final native full-check log/child exit accompany the completion report. #266 stays
+completed; exact merged-#267 `check` and `v1-supported-platform-matrix` gate manual
+closure. #208, R07f/R13g, About overflow and automatic-Learning decisions remain open.
+UAT-01 unaccepted; UAT-02–12 paused; B-09/B-07 open; B-06 closed. No whole-R01/UAT
+acceptance or release readiness follows.
+
 Issue #266 implements only R01f on `bug/266-settings-reset-presentation`. Original
 starting and continuation HEAD are both `ea5fbe8d2f1e5313b85b138df7f06714845dc2ab`,
 the integrated #265 commit. The continuation preserved four Product-file edits,

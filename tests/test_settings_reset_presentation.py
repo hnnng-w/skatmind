@@ -112,6 +112,9 @@ def test_literal_copy_distinguishes_profile_labels_from_recordings(localized_ser
         assert escape(statement) in page
     assert "factory reset" not in page.lower()
     assert "delete all Games" not in page
+    assert "collapses optional Match details" not in page
+    assert "Match-Details beginnen wieder eingeklappt" not in page
+    assert "display preferences" not in page and "Anzeigevorgaben" not in page
 
 
 def saved_sources(browser):
@@ -214,6 +217,7 @@ def test_real_resets_keep_exact_sources_and_retained_result_with_actual_lifecycl
     assert reset.own_player_id == profile.own_player_id
     assert reset.interface_preferences.time_zone == "America/New_York"
     assert reset.interface_preferences.advanced_settings_expanded is False
+    assert '<details class="advanced-settings" open>' in browser.page("/matches/new")
     assert reset.preferred_perspective_player_id is None and reset.preferred_game_platform is None
     assert reset.workflow_preferences.to_dict() == {"position_analysis": None,
                                                    "historical_review": None}
@@ -241,6 +245,7 @@ def test_real_resets_keep_exact_sources_and_retained_result_with_actual_lifecycl
     assert full.known_players == () and full.own_player_id is None
     assert full.preferred_perspective_player_id is None and full.preferred_game_platform is None
     assert full.interface_preferences.to_dict() == {"advanced_settings_expanded": False}
+    assert '<details class="advanced-settings" open>' in browser.page("/matches/new")
     assert full.workflow_preferences.to_dict() == {"position_analysis": None,
                                                   "historical_review": None}
     assert full.managed_item_display_labels == ()

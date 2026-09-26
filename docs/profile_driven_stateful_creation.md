@@ -33,7 +33,8 @@ unchanged. The profile may now retain:
 * known Players with a display name, aliases, and optional platform Player IDs;
 * one own Player and one preferred perspective Player;
 * one preferred friendly game platform;
-* the existing Advanced-settings display preference;
+* the mandatory Advanced-settings compatibility Boolean, whose display use is
+  superseded by #267;
 * Issue #230's optional independently saved timezone for new exact-time entry;
 * private display names for managed Sessions, Matches, and Learning collections;
 * an optional date-only Match display label.
@@ -176,6 +177,50 @@ Safe submitted values survive localized `400` and `409` responses and language
 changes. Field-specific errors attach to the exact form and open their containing
 Advanced disclosure when necessary. Opaque handles are retained only as bounded
 hidden or select identity values and are never included in visible error text.
+
+### Default-open Match details (Issue #267)
+
+`render_profile_driven_match_creation_v1()` supplies `open` directly on the existing
+`<details class="advanced-settings">` with summary key `creation.advanced.heading`.
+Its sole profile-derived visibility decision is removed. Normal creation remains
+`POST /matches/api/v1/create`, registry `match.local_create`, `time_form=match-create`;
+legacy `match.create` remains supported. The exact included fields stay:
+
+```text
+external_match_id
+forehand_platform_id, middlehand_platform_id, rearhand_platform_id
+source_kind, source_title, source_channel_name
+match_timecode_start, match_timecode_end
+```
+
+They remain optional and unpopulated until explicitly entered. Visibility invents no
+source metadata, time, identity, knowledge or analysis. The preceding exact-local-time
+editor and nested read-only Technical details retain their closed defaults. Generic
+`disclosure()` is unchanged, as are Session metadata/knowledge, active Match correction
+and evidence, optional Matador, analysis/Results, import, reset and deletion. #263's
+`#match-initial-hand` still reaches a closed named summary requiring one activation;
+#264's analysis controls retain their same-form order.
+
+| Event | Existing precedence with the new default |
+| --- | --- |
+| Fresh GET, stored True/False or supported absent file | Outer Match details open |
+| Native summary activation | Local close/reopen; no request/write, value clearing or revision change |
+| Valid enhanced language return | Exact-source manifest/document-order state can restore closure, unless a field error requires exposure |
+| Native/no-script language return | No arbitrary unsent DOM collapse is conveyed; fresh open default applies alongside retained submitted/setup values and errors |
+| Successful Update | `303 /matches/new`; accepted setup values retained, fresh disclosure open |
+| Create after editing any advanced value | Existing exact reviewed-value comparison rejects until another explicit Update |
+| Reload/new navigation | Fresh default; consumed language overlay is not persistence |
+| Back/Forward | Cached browser documents may retain DOM state; no universal history guarantee |
+| Stale/foreign/expired binding | Existing rejection/conflict handling, never another source's closure |
+
+Error-required visibility wins over valid same-source language restoration, then the
+fresh default applies. No DOM IDs, storage, listener or preservation framework is added.
+The [hidden Settings compatibility value](settings_and_player_seat_setup.md#default-open-match-details-and-hidden-compatibility-issue-267)
+stays False by default in profile v1 even though this one section opens. Successful
+creation preserves an existing True or False and uses canonical False for absence.
+Complete interface preferences remain source/setup dependencies, including both
+creation families. Invalid profiles retain warnings and reject creation Update with
+`409`; the visible Match form is not a recovery authorization.
 
 ## Persistence ordering
 

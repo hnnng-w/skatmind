@@ -43,7 +43,8 @@ summary and evidence/change-selection actions. See [Session Card feedback](sessi
 Issue #225 adds exact Settings editor/preview/confirmation routes and changes the
 two private creation forms to seat-named fields and setup-only/final submitters.
 Operational profile origins are `/settings`. New native save-Players, save-platform
-and Advanced-expansion checkboxes preserve unchecked omission as false. Confirmation
+checkboxes preserve unchecked omission as false. #225's former Advanced-expansion
+checkbox is superseded by #267's hidden compatibility input below. Confirmation
 controls and editor/setup transport selections are excluded from the language
 envelope. Collision feedback retains independent seat input without swapping Players.
 See [Settings and Player seat setup](settings_and_player_seat_setup.md).
@@ -88,6 +89,31 @@ for [knowledge-based entry](session_knowledge_based_entry.md). Its missing-persp
 message identifies the Player whose initial hand is known, during or after a Game.
 Field targeting, accepted values, safe roster/radio retention and regenerated
 language/setup bindings are unchanged; no invalid setup generates IDs or saves data.
+
+## Match disclosure compatibility (Issue #267)
+
+The ordinary preference parser is unchanged: omission and explicit empty mean False;
+`on` means True. Normal Settings now sends exactly one hidden field regenerated from
+the accepted profile. Explicit empty-field presence is intentional, not byte-identical
+to the earlier unchecked submission. Safe editable metadata no longer includes
+`advanced_settings_expanded`; its obsolete checkbox override/label entry are removed.
+The remaining `profile_generation` registry metadata and all other fields retain
+their existing treatment. No hidden registry control type is introduced.
+
+Hidden compatibility data is excluded from visible safe-value replacement and language
+capture. Injection into `_frontend_language_values` is rejected, and an unrelated
+validation error cannot reflect an unaccepted compatibility override. Other visible
+values and feedback still survive the existing source-bound language return. Legacy
+omitted/empty/on requests, strict duplicates/invalids, stale generation and CAS behavior
+remain. The complete interface preferences are retained in both setup/source keys.
+
+Only the creation outer Match disclosure gains the fresh open default. Applicable
+field-error ancestors still open first, then valid same-source language restoration
+may restore closure. A normal no-script return conveys no arbitrary unsent collapse;
+Update's `303 /matches/new` retains values and renders open. Exact reviewed-value Create
+checks remain. Native toggling adds no request or write. See the [full state map](profile_driven_stateful_creation.md#default-open-match-details-issue-267).
+Current inventory is 67 POST routes, 112 forms and 1,802 paired catalog keys; #266's
+reset semantics, recovery, generation and pending-state behavior are unchanged.
 
 ## Canonical Form Registry
 

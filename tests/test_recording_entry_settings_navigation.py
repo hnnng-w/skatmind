@@ -93,14 +93,14 @@ def test_settings_removes_only_loose_body_creation_links(localized_server, local
         "/actions/profile/players/edit", "/actions/profile/preferences",
         "/actions/profile/time-zone", "/actions/profile/recommended-defaults/reset",
         "/actions/profile/reset"]
-    assert "advanced_settings_expanded" not in Forms(page).find(
-        "/actions/profile/preferences")["values"]
+    assert Forms(page).find("/actions/profile/preferences")["values"][
+        "advanced_settings_expanded"] == ""
     for name in ("confirm_recommended_reset", "confirm_reset"):
         assert re.search(rf'<input type="checkbox" name="{name}" value="on" required', page)
         assert all(name not in f["values"] for f in forms)
     assert Forms(page).find("/actions/profile/reset")["values"]["return_to"] == "/settings"
     assert escape(t(locale, "profile.reset.description")) in page
-    assert escape(t(locale, "settings.preferences.advanced_help")) in page
+    assert '<input type="hidden" name="advanced_settings_expanded" value="">' in page
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))

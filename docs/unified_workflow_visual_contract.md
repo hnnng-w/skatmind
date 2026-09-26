@@ -3039,3 +3039,166 @@ decisions stay open. Both `check` and `v1-supported-platform-matrix` must pass o
 exact merged #266 implementation commit before manual closure. UAT-01 is unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. This is bounded R01f implementation,
 not whole-R01/UAT acceptance or release readiness.
+
+## Default-open Match creation details (Issue #267)
+
+Original clean branch `bug/267-match-capture-details` and resumption HEAD were both
+**`082c7fb1997fcba801663577233350436fe9d351`**, the integrated #266 baseline. The actual
+#267 and #208 consolidated observation `5740775548` were read. The supplied inspection
+summary described a read-only review: no Product execution, tests, browser or installs.
+Its reported #266 **9,922 passes / three skips / exit 0** are historical reported
+evidence, not #267 validation or current CI. The separately named inspection text file
+was unavailable locally; the original Build prompt and actual #267 contain its detailed
+findings. No separate reconciliation artifact or new UAT export was assumed.
+
+The initial 23 new assertions reproduced **18 failures / 5 passes** before Product
+edits: false/absent profiles rendered closed, Settings exposed a checkbox, and its
+editable overlay metadata remained. One registry expectation additionally needed to
+retain existing `profile_generation` metadata. True-profile openness, native toggling,
+error exposure and bounded language restoration were already supported. The interrupted
+Build left only that intended test file plus a completed independent baseline Wheel;
+resumption found no live #267 test/browser/check worker. Correct work was retained.
+
+Production changes are limited to `friendly_creation_rendering.py`,
+`profile_settings_rendering.py`, `form_registry.py` and paired catalogs. Whole-Wheel
+comparison found exactly those five changed members plus the derived `RECORD` hashes;
+every other member, including metadata, parser, profile codec/operations/bindings,
+server, CSS and JavaScript, was byte-identical. See the
+[one-section state map](profile_driven_stateful_creation.md#default-open-match-details-issue-267)
+and [hidden multimap/reset compatibility](settings_and_player_seat_setup.md#default-open-match-details-and-hidden-compatibility-issue-267).
+
+### Installed environment and bounded matrix
+
+The optional dependency-free CDP driver `scripts/verify_match_creation_details.py`
+ran independently installed baseline/repaired Wheels under CPython **3.13.7**, Windows
+11 **10.0.26200**, Microsoft Edge headless **153.0.4234.48**
+(`@cf31d6623d8718e7a3c3e181e55e59c1aae57a73`). Each installation used Package 0.17.0,
+pytest 9.1.1, jsonschema 4.26.0, referencing 0.37.0 and tzdata 2026.4. Six fresh
+synthetic roots per installation used this bounded selection, not a full cross-product:
+
+| Initial profile | Initial locale | JavaScript | Width | Computed text |
+| --- | --- | --- | --- | --- |
+| Absent | English | On | 1280px | 1× |
+| False | German | Off | 390px | 1× |
+| True, short retained sources | English | On | 320px | 2× |
+| False | English | Off | 320px | 2× |
+| True | German | Off | 1280px | 1× |
+| Absent | German | On | 390px | 2× |
+
+Each visits Match creation before any Settings Save, then Settings and Match creation
+again, with 22 measured page states per installation. Screenshots were inspected for
+readable optional inputs, the native summary, closed exact-time/Technical siblings,
+field errors and reachable Update/Create actions. Tested input/action/summary bounds
+fit the viewport; expansion legitimately adds vertical height. Doubled computed text
+wraps extensively, including Settings headings; it is not browser zoom or a physical
+device test. No sections were hidden to compensate and About overflow was not changed.
+
+Every row includes a real no-op Settings Save, an unrelated platform Save, pointer
+close, Space reopen, Enter close and language return. The enhanced return retains
+closure and unsent source title; no-script return does not transmit that unsent state.
+Two paths, one with and one without JavaScript, enter an invalid source-kind combination,
+close before Update, observe `400` and error-first reopening, switch language, repair
+the source kind, Update, alter an advanced value, observe stale-reviewed-value `400`,
+Update again and Create. Successful Update returns `303 /matches/new`; Create returns
+`303 /matches/position/1#match-recording`. Native error-summary autofocus works in both
+script modes. Actual URLs, focused elements and next Tab are retained without assigning
+focus programmatically. The short-source case explicitly executes each real reset,
+then checks fresh Match rendering open despite stored False.
+
+### Bytes, payloads and operation accounting
+
+Per installation, **32 actual native POSTs** comprise 12 preference submissions,
+8 language changes, 10 setup/Create submissions and 2 resets. Six no-op Saves write
+nothing; six unrelated Saves write once each and preserve the Boolean. Eight language
+changes write eight times; the two Creates add two profile label saves and exactly two
+Match creation/preparation/save calls. Their paths account for four existing discovery
+calls. Ten setup submissions include two source errors, two changed-review rejections,
+four accepted Updates and two final Creates. Both resets save once. These explicit
+effects are separate from passive rendering and **23 repaired native disclosure
+activations**, which send no requests, write nothing and invoke none of the monitored
+operations. Baseline needs seven extra opening activations for its closed defaults.
+
+Fixture preparation is counted separately: seven profile saves, four setup submissions,
+eight Session saves, one Match preparation/creation, seven Match saves, nine discovery
+calls and one genuine Session analysis execution. One short three-Play Session and one
+short Match with an independent Corpus copy are reused. No 30-Play layout fixture or
+automatic workflow is introduced. The baseline and repaired monitored operation counts
+are identical. The two independent roots generate different Product IDs; byte
+preservation is checked within each root, not claimed across generated identities.
+
+Settings successful-field multimaps have the same other values/ordering and optional
+instrumentation. Stored True continues to send one `on`; False/absence changes from
+omission to one explicit empty field. Current manifests preserve only the three visible
+ordinary preference controls; hidden data is regenerated, not editable. The native
+payloads and HTTP tests use real emitted fields and genuine persistence operations.
+Initial False/True profiles are respectively 551/550 bytes and remain identical through
+load, GET and no-op Save. Profile snapshots retain exact hashes, revisions, generations
+and explicit Save/language/reset/Create effects.
+
+Repaired retained artifacts stayed byte-identical through these unrelated operations:
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Session recording | 11202 | `c505914c463206b3f68608b50029400b1d541c4cb067d3dd93d631f6f4fc9b9f` |
+| Match recording | 11284 | `3e97195570b8a4627c98845369b9f773387c9725395a9006bcec66dab5f64f93` |
+| Independent Corpus Catalog | 2147 | `590921ab938fe44fb11d8ecdb7ff1b7d41b19d603bb052bd6ed7b901876d36f5` |
+| Independent Match Snapshot | 16334 | `dbe227be993ae7ef3c2ba3205f19784d14e049cf2ef4e6ebfaa8807f275107ec` |
+| Retained Request / independent export | 887 | `b56173dfcecf2b65ac9d61bc9fc5ee6878731310d8fa89807fe0a7ec35d23776` |
+| Retained Result / independent export | 10751 | `080006282bb7fd09d9e9b633a233f58b8001525a3e5fcad585ed766210ed0e5a` |
+
+The Result object remains retained; authenticated Request/Result HTTP bytes match their
+independent exports. These are not native Save-dialog tests. Resets retain Product
+sources/outputs but can invalidate pending setup; no universal unsent-edit preservation
+claim follows.
+
+### Evidence and checks
+
+Complete source/resource hashes, native payloads/statuses, focus/next-Tab observations,
+screenshots, profile snapshots and operation counts are retained at:
+
+```text
+<temporary-directory>/opencode/267-before-verified/evidence.json
+<temporary-directory>/opencode/267-after-verified/evidence.json
+<temporary-directory>/opencode/267-resume/recovery.md
+```
+
+Both browser verifiers completed and closed their own browsers with exit 0. Earlier
+incomplete runs remain: tool assumptions about Custom's option index, an invented error
+summary ID, the JavaScript asset route and no-script autofocus were corrected against
+actual markup/HTTP evidence. An early malformed-profile test also incorrectly expected
+Match markup to be absent; it now verifies the existing warning plus `409` mutation
+rejection. No production acceptance rule was relaxed. A mistyped optional catalog-test
+filename ran no tests; the exact inventory assertion was subsequently updated from
+1,805 to the verified 1,802, with explicit retired-key absence and unchanged parity tests.
+
+| Evidence/resource | SHA-256 |
+| --- | --- |
+| Baseline Wheel | `c64bdaacdaab0f90b2521ea02e9ff52da44f5070b556dd2776b759d597834218` |
+| Repaired Wheel | `1952635294d62d957e0ff19252993c1826e69878b88ef22d08a6a90f0ddbc712` |
+| Baseline evidence | `e42e9cc93396c56795d8eab49a2d2c9ae3994ff353eaeea0d903aee6d6b7ed03` |
+| Repaired evidence | `680eccc5fcbb05a4731677732e06fbd64ec181c5264e247de95ef733e97fbe65` |
+| Unchanged served CSS | `c4afe934ad5e13223374ae450ceb0a887cb9077bddf67bb720f5a5fc52b2f621` |
+| Unchanged served workflow JavaScript | `aa3871d9880326fc27590d80f7f0bf9ebc0a7cf31fd64fc2fd04a1e3932efce1` |
+
+The ten-file focused profile/creation/Settings/language/reset selection passed **178
+tests**, including 38 new #267 cases. It covers optional-timezone profiles, malformed or
+missing mandatory Boolean rejection, strict legacy/invalid/duplicate/stale/CAS inputs,
+current hidden regeneration, overlay injection rejection and both creation-family
+binding dependencies. The existing #263/#264 and catalog/localization selection passed
+**73 tests**, including exact key/order/placeholder parity and retired-key absence.
+The updated Settings/navigation selection passed **13 tests**. Existing symlink probes
+reported the actual Windows limitations: Learning source errno 22, recording deletion
+WinError 1314, and managed direct-child symbolic-link privilege. No skips or dependencies
+are added. The detached logger proof retained stdout/stderr and actual child exit 23 in
+`267-proof-20260926T082810Z.{log,json}`. Final complete check logs, exact tracked/untracked
+tree receipts, stage totals and actual child exit accompany the completion report after
+all edits and browser work.
+
+Current inventory is **67 POST routes / 112 forms / 1,802 paired keys / 98 scenarios**.
+Package 0.17.0, Python >=3.13, AGPL-3.0-only, dependency floors including tzdata>=2026.4,
+profile/public/persistence/source/format contracts remain. Both `check` and
+`v1-supported-platform-matrix` must pass on the exact merged #267 implementation commit
+before manual closure. #266 stays completed; #208, R07f/R13g, About overflow and automatic
+Learning decisions stay open. No other browser engine, physical device, screen reader,
+maintainer UAT or release readiness is claimed. UAT-01 remains unaccepted, UAT-02–12
+paused, B-09/B-07 open and B-06 closed.

@@ -63,7 +63,6 @@ _CARD_FIELDS = {
     "skat",
 }
 _CHECKBOX_FIELDS = {
-    "advanced_settings_expanded",
     "save_players",
     "save_platform",
     "compare_policies",
@@ -139,7 +138,6 @@ _LABEL_KEYS = {
     "game_type": "validation.field.game_type",
     "language": "validation.field.language",
     "aliases": "validation.field.aliases",
-    "advanced_settings_expanded": "validation.field.advanced_settings_expanded",
     "custom_platform": "validation.field.custom_platform",
     "display_name": "validation.field.display_name",
     "external_match_id": "validation.field.external_match_id",
@@ -878,7 +876,6 @@ _FORMS: list[FrontendFormDefinitionV1] = [
             "own_player_handle",
             "platform_choice",
             "custom_platform",
-            "advanced_settings_expanded",
             "profile_generation",
         ),
         page="/settings",
@@ -887,7 +884,6 @@ _FORMS: list[FrontendFormDefinitionV1] = [
         control_overrides={
             "own_player_handle": "select",
             "platform_choice": "select",
-            "advanced_settings_expanded": "checkbox",
         },
         choice_overrides={
             "platform_choice": ("", *FRIENDLY_GAME_PLATFORM_VALUES),

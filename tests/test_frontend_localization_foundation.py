@@ -121,7 +121,9 @@ def test_catalog_resources_are_strict_ordered_and_have_exact_parity() -> None:
     assert tuple(catalogs) == ("de", "en")
     assert tuple(catalogs["de"]) == tuple(catalogs["en"])
     assert tuple(catalogs["en"]) == tuple(sorted(catalogs["en"]))
-    assert len(catalogs["en"]) == 1805
+    assert len(catalogs["en"]) == 1802
+    assert not {"settings.preferences.advanced", "settings.preferences.advanced_help",
+                "validation.field.advanced_settings_expanded"} & catalogs["en"].keys()
     assert {key.removeprefix("trick_progress.null.") for key in catalogs["en"]
             if key.startswith("trick_progress.null.")} == {
         "many", "none_completed", "one", "zero",

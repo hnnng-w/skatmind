@@ -30,6 +30,20 @@ all **1,805** keys, ordering and placeholders remain. Both independent forms and
 unchecked required consents are retained. See the [current field/transport/lifecycle
 map](settings_and_player_seat_setup.md#grouped-reset-presentation-issue-266).
 
+Issue #267 supersedes only the Match-creation display consumer of
+`interface_preferences.advanced_settings_expanded`: the outer Advanced Match details
+now starts open independently. The mandatory exact Boolean remains in profile version
+1 with default False and identical codec/fingerprint rules. Ordinary Settings emits
+one regenerated hidden `on`/empty value instead of its former checkbox. Invalid files
+remain invalid; missing-file absence remains supported. Both resets still clear the
+compatibility Boolean to False, with existing pending-setup consequences. Error and
+language returns regenerate the accepted hidden value; it cannot enter editable
+language overlays. Full interface preferences remain in source keys. See the
+[transport and lifecycle map](settings_and_player_seat_setup.md#default-open-match-details-and-hidden-compatibility-issue-267).
+Three unused dedicated keys are retired, leaving 1,802 paired keys; shared diagnostics
+and the #266 reset grouping/consents remain. Earlier counts and browser evidence above
+describe their historical slices.
+
 Issue #230 intentionally extends only `interface_preferences` with optional
 `time_zone` after `advanced_settings_expanded`, and adds `tzdata>=2026.4`. The old
 one-key and new ordered two-key shapes are accepted; present null/extra keys are

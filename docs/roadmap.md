@@ -1898,6 +1898,18 @@ and [evidence](unified_workflow_visual_contract.md#optional-learning-report-atta
 remaining R13/R14 and automatic-use decisions stay open. UAT-01 unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
 
+Issue #267 implements R01g only: fresh-open outer Advanced Match details on
+`/matches/new`, native local toggling, and one regenerated hidden Settings compatibility
+value in place of the visible preference. Mandatory False-default profile-v1 storage,
+legacy parser/CAS, complete setup/source bindings and both #266 reset operations remain.
+Only obsolete display-effect guidance is superseded. Inventory is 67/112/1,802;
+Package 0.17.0, dependencies and 98 scenarios remain. See the
+[map](settings_and_player_seat_setup.md#default-open-match-details-and-hidden-compatibility-issue-267)
+and [independent-Wheel evidence](unified_workflow_visual_contract.md#default-open-match-creation-details-issue-267).
+#266 remains completed. Both exact merged-#267 CI jobs gate manual closure; #208,
+R07f/R13g, About overflow and automatic-Learning decisions remain open. UAT-01 is
+unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness.
+
 Issue #266 implements R01f only: one visibly headed lower Settings reset area,
 recommended defaults first and full local profile second, after profile information.
 Existing independent forms/consents and exact profile/source lifetimes remain;
