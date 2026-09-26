@@ -28,6 +28,15 @@ CARD_ENTRY_ROUTES = ("/sessions/cards", "/sessions/play", "/matches/cards")
 MATCH_CARD_OPERATIONS = (
     "set_perspective_hand", "set_original_skat", "set_discarded_cards", "append_plays",
 )
+MATCH_EVIDENCE_FORMS = {
+    "perspective_hand_selected": ("set_perspective_hand", "exact"),
+    "perspective_hand_unknown": ("set_perspective_hand", "unknown"),
+    "original_skat_selected": ("set_original_skat", "exact"),
+    "original_skat_unknown": ("set_original_skat", "unknown"),
+    "discarded_cards_selected": ("set_discarded_cards", "exact"),
+    "discarded_cards_unknown": ("set_discarded_cards", "unknown"),
+    "discarded_cards_empty": ("set_discarded_cards", "known_empty"),
+}
 
 
 class CardEntryConflict(StaleFrontendWorkflowRevisionError):
@@ -160,8 +169,18 @@ def _match_entry(active, values):
     if operation not in MATCH_CARD_OPERATIONS:
         raise CardEntryError("fields")
     allowed = {"managed_handle", "card_selection", "operation", "cards"}
+    mode = values.get("card_evidence_mode")
     if operation != "append_plays":
-        allowed.add("card_evidence_mode")
+        if "card_evidence_form" in values:
+            allowed.add("card_evidence_form")
+            intent = MATCH_EVIDENCE_FORMS.get(values["card_evidence_form"])
+            if intent is None or intent[0] != operation:
+                raise CardEntryError("fields")
+            mode = intent[1]
+            if mode != "exact":
+                allowed.remove("cards")
+        else:
+            allowed.add("card_evidence_mode")
     if set(values) - allowed:
         raise CardEntryError("fields")
     _require_binding(values.get("card_selection"), match_card_binding(active, operation))
@@ -171,7 +190,6 @@ def _match_entry(active, values):
         validate_card_selection(cards, capacity=1)
     elif cards:
         validate_card_selection(cards, capacity=10 if operation == "set_perspective_hand" else 2)
-    mode = values.get("card_evidence_mode")
     if operation != "append_plays":
         permitted = ("unknown", "exact", "known_empty") if operation == "set_discarded_cards" else (
             "unknown", "exact")

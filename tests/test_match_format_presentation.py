@@ -194,7 +194,7 @@ def test_metadata_platform_edit_preserves_play_prefix_noop_stale_and_passive_con
     page = follow(browser, browser.submit(operation_form(page, "set_declaration"),
         declarer_player_id=declarer, game_type="grand", hand_game="true"))
     page = follow(browser, browser.submit(operation_form(page, "set_perspective_hand"),
-        card_evidence_mode="exact", cards="SA CA C10 CK CQ C9 C8 C7 H10 H9".split()))
+        cards="SA CA C10 CK CQ C9 C8 C7 H10 H9".split()))
     for card in ("SA", "S9", "S7"):
         page = follow(browser, browser.submit(operation_form(page, "append_plays"), cards=card))
     page = browser.page("/matches/review/1")

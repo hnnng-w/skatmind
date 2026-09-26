@@ -10,7 +10,7 @@ from skatmind.capture_web.contracts import (
 from skatmind.corpus_web.contracts import LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES
 from skatmind.session_commands import SESSION_COMMAND_KINDS
 
-from .card_entry_http import CARD_ENTRY_ROUTES, MATCH_CARD_OPERATIONS
+from .card_entry_http import CARD_ENTRY_ROUTES, MATCH_CARD_OPERATIONS, MATCH_EVIDENCE_FORMS
 from .compact_declaration_form import DECLARATION_FIELDS
 from .form_parsing import FormValuesV1, FormValueV1
 from .frontend_profile_operations import (
@@ -1166,6 +1166,14 @@ for action in ("cards", "play"):
         body_limit=8192,
         cardinality_overrides={"cards": "single" if action == "play" else "repeated"},
     ))
+for marker, (_operation, mode) in MATCH_EVIDENCE_FORMS.items():
+    _FORMS.append(_definition(
+        f"match.evidence.{marker}", "/matches/cards",
+        ("card_selection", "cards") if mode == "exact" else ("card_selection",),
+        page="/matches/current", active="matches", success="contextual", body_limit=8192,
+        discriminator=("card_evidence_form", marker),
+        cardinality_overrides={"cards": "repeated"},
+    ))
 for operation in MATCH_CARD_OPERATIONS:
     _FORMS.append(_definition(
         f"match.cards.{operation}", "/matches/cards",
@@ -1544,7 +1552,8 @@ def resolve_frontend_form_v1(
         if supplied.get(form.discriminator_field or "") == form.discriminator_value
     )
     compact = tuple(form for form in matches
-                    if form.discriminator_field in {"declaration_form", "time_form"})
+                    if form.discriminator_field in {
+                        "declaration_form", "time_form", "card_evidence_form"})
     if len(compact) == 1:
         return compact[0]
     if len(matches) == 1:

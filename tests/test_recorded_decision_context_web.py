@@ -43,7 +43,7 @@ def record_context_match(browser, *, names=("B", "C", "A"), with_hand=True):
     if not with_hand:
         return page
     return follow(browser, browser.submit(operation_form(page, "set_perspective_hand"),
-                                          card_evidence_mode="exact", cards=MATCH_HAND))
+                                          cards=MATCH_HAND))
 
 
 def record_second_context_game(browser):
@@ -57,7 +57,7 @@ def record_second_context_game(browser):
     for card in ("H7", "HK", "HA"):
         page = follow(browser, browser.submit(operation_form(page, "append_plays"), cards=card))
     return follow(browser, browser.submit(operation_form(page, "set_perspective_hand"),
-                                          card_evidence_mode="exact", cards=MATCH_HAND))
+                                          cards=MATCH_HAND))
 
 
 def test_real_match_normal_pre_card_context(localized_server, monkeypatch):

@@ -135,12 +135,21 @@ Server-rendered forms cover:
 * unknown or exact ten-Card Perspective hand evidence;
 * Declarer, Game Type, Hand, Ouvert, announcements, optional Matadors, and bid;
 * unknown or exact two-Card original Skat evidence;
-* unknown, known-empty Hand, or exact two-Card Discard evidence.
+* unknown, explicit-empty before declaration or in Hand, or exact two-Card Discard
+  evidence (nonempty is forbidden in Hand).
 
 The setup forms render canonical local Card selectors. The server sends selected
 Card codes to the existing Capture Application functions. It does not duplicate
 Declaration, Card reconciliation, ownership, trace, or timecode rules and never
 infers a hidden Card.
+
+Issue #268 changes the **unified** selected-Game evidence editors to direct native
+selection plus Save, with separate withdrawal and eligible no-discards forms. It
+does not change these standalone forms or canonical setters. The unified hand
+still belongs to the accepted Game perspective and includes its original dealt
+Cards even after play. Empty selection rejects rather than clearing knowledge;
+secondary actions do not submit neighboring unsent grid edits. See the
+[exact state/action and new-versus-legacy transport map](compact_card_entry.md#direct-match-evidence-actions-issue-268).
 
 ## Card entry and correction
 

@@ -1898,6 +1898,17 @@ and [evidence](unified_workflow_visual_contract.md#optional-learning-report-atta
 remaining R13/R14 and automatic-use decisions stay open. UAT-01 unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
 
+Issue #268 implements R07f: direct native Match hand/Skat/discard Save, separate
+saved-evidence withdrawal and eligible explicit-empty forms, strict seven-variant
+dispatch plus legacy compatibility, and source-safe visible feedback/language
+restoration. Undeclared empty discards remain legal; Hand omits only nonempty
+discard entry. Canonical validation, persistence and analysis boundaries remain.
+Inventory is 67/119/1,811; Package 0.17.0 and 98 scenarios remain. See
+[contract and evidence](compact_card_entry.md#direct-match-evidence-actions-issue-268).
+#267 remains completed; exact merged-#268 `check` and `v1-supported-platform-matrix`
+gate manual closure. #208, R13g, About overflow and automatic-Learning decisions
+remain open. UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
+
 Issue #267 implements R01g only: fresh-open outer Advanced Match details on
 `/matches/new`, native local toggling, and one regenerated hidden Settings compatibility
 value in place of the visible preference. Mandatory False-default profile-v1 storage,

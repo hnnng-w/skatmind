@@ -458,7 +458,7 @@ def test_real_sj_result_survives_preview_cancel_noop_then_equal_revision_edit_in
                       for name in ("request", "result", "session"))
     page = corrected_match_setup(browser)
     page = follow(browser, browser.submit(operation_form(page, "set_perspective_hand"),
-                                          cards=MATCH_HAND, card_evidence_mode="exact"))
+                                          cards=MATCH_HAND))
     match = localized_server.app_context.managed_stateful.active_match
     page = browser.page("/matches/review/1")
     analysis = next(f for f in Forms(page).forms if f["action"] == "/matches/api/v1/analysis"

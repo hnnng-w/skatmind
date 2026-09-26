@@ -128,7 +128,8 @@ def map_frontend_exception_v1(
     if isinstance(error, CardEntryConflict):
         return (_issue(None, f"validation.card_entry.{error.reason}"),)
     if isinstance(error, ObservedTraceError) and definition.active_context_requirement == "matches":
-        return (_issue(None, "validation.message.match_recording_conflict"),)
+        return (_issue("cards" if definition.form_key.endswith("_selected") else None,
+                       "validation.message.match_recording_conflict"),)
     if isinstance(error, MatchRecoveryConflict):
         return (_issue(None, f"validation.message.match_recovery_{error.reason}"),)
     if isinstance(error, SeatSetupError):
@@ -166,6 +167,8 @@ def map_frontend_exception_v1(
         return (_issue(field, key),)
     if isinstance(error, SkatMindWorkflowError):
         return (_issue(field, "validation.message.unsupported_workflow"),)
+    if definition.discriminator_field == "card_evidence_form":
+        field = "cards" if definition.discriminator_value.endswith("_selected") else None
     return (_mapped_message(field, str(error)),)
 
 

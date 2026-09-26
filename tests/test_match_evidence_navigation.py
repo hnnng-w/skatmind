@@ -66,7 +66,13 @@ def test_unknown_editors_do_not_depend_on_cards_or_prepared_count(kind):
     for operation in ("set_perspective_hand", "set_original_skat", "set_discarded_cards"):
         form = operation_form(page, operation)
         assert form["action"] == "/matches/cards"
-        assert form["values"]["card_evidence_mode"] == "unknown"
+        marker = form["values"]["card_evidence_form"]
+        expected = ("discarded_cards_empty" if operation == "set_discarded_cards"
+                    and state["game"]["declaration"] is not None
+                    and state["game"]["declaration"]["hand_game"] else
+                    operation.removeprefix("set_") + "_selected")
+        assert marker == expected
+        assert "card_evidence_mode" not in form["values"]
         assert not form["values"].get("cards")
     review = render_match_analysis_v1(state, view, "a" * 64, "en")
     if kind == "complete":
@@ -208,9 +214,9 @@ def test_returned_remedy_retry_save_review_lifecycle_and_frozen_session(
     page = browser.page(urlsplit(href).path)
     form = operation_form(page, "set_perspective_hand")
     assert set(form["values"]) == {
-        "managed_handle", "operation", "card_selection", "card_evidence_mode",
+        "managed_handle", "operation", "card_selection", "card_evidence_form",
         "_frontend_form_instance"}
-    status, _, body = browser.submit(form, card_evidence_mode="exact", cards=["C7"])
+    status, _, body = browser.submit(form, cards=["C7"])
     assert status == 400
     page = body.decode()
     assert 'autofocus' in page and 'aria-invalid="true"' in page
@@ -221,7 +227,7 @@ def test_returned_remedy_retry_save_review_lifecycle_and_frozen_session(
     retry = operation_form(page, "set_perspective_hand")
     assert retry["values"]["cards"] == "C7"
     assert active.path.read_bytes() == original and not saves and not executions
-    response = browser.submit(retry, card_evidence_mode="exact", cards=MATCH_HAND)
+    response = browser.submit(retry, cards=MATCH_HAND)
     assert response[1]["location"] == "/matches/position/1#match-recording"
     page = follow(browser, response)
     assert len(saves) == 1 and not executions

@@ -297,7 +297,7 @@ def test_match_observations_preparation_report_and_pass_are_independent(
     assert not any(f["values"].get("operation") == "analyze_decision" for f in Forms(review).forms)
     page = browser.page("/matches/position/1")
     page = follow(browser, browser.submit(operation_form(page, "set_perspective_hand"),
-        card_evidence_mode="exact", cards=MATCH_HAND))
+        cards=MATCH_HAND))
     assert calls == {"save": 6, "execute": 0}
     assert text("en", "recordings.match.open", number=1) in page
     review = browser.page("/matches/review/1")

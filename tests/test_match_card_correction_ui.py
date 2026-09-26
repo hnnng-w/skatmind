@@ -193,7 +193,7 @@ def test_real_named_apply_cancel_noop_report_retention_and_reopen(localized_serv
     browser = Browser(localized_server)
     page = corrected_match_setup(browser)
     page = follow(browser, browser.submit(operation_form(page, "set_perspective_hand"),
-        card_evidence_mode="exact", cards=MATCH_HAND))
+        cards=MATCH_HAND))
     page = follow(browser, browser.submit(operation_form(browser.page("/matches/review/1"),
                                                         "analyze_decision")))
     active = localized_server.app_context.managed_stateful.active_match
@@ -257,7 +257,7 @@ def test_retained_suffix_annotations_timecodes_evidence_and_rewind(localized_ser
     browser = Browser(localized_server)
     page = corrected_match_setup(browser)
     page = follow(browser, browser.submit(operation_form(page, "set_perspective_hand"),
-        card_evidence_mode="exact", cards=MATCH_HAND))
+        cards=MATCH_HAND))
     for index, card in enumerate(("SK", "S7", "S10"), 4):
         # Existing advanced chronological entry carries an actual media timecode.
         form = next(f for f in Forms(page).forms if f["action"] == "/matches/api/v1/operation"

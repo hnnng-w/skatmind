@@ -141,21 +141,26 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
                 confirm_key="task.match.remove_note_help" if operation == "remove_commentary" else None)
 
 
-def _card_form(state, handle, locale, operation, binding, *, cards=(), mode="exact", play=False):
+def _card_form(state, handle, locale, operation, binding, *, cards=(), play=False):
     fields = hidden("managed_handle", handle) + hidden("operation", operation)
     fields += hidden("card_selection", binding)
     if not play:
-        modes = ("unknown", "known_empty", "exact") if operation == "set_discarded_cards" else ("unknown", "exact")
-        fields += select_field(locale, "card_evidence_mode", "task.field.card_evidence_mode",
-            tuple((value, text(locale, f"task.value.{value}")) for value in modes), mode)
-        fields += paragraph(locale, "compact.replace")
+        fields += hidden("card_evidence_form", operation.removeprefix("set_") + "_selected")
+        fields += paragraph(locale, "compact.evidence.replace")
     game = state["game"]
     fields += compact_card_selector(locale, mode="play" if play else "set",
         cards=cards if play else None, selected=() if play else cards,
         game_type=None if not game or game["declaration"] is None else game["declaration"]["game_type"],
         capacity=1 if play else 10 if operation == "set_perspective_hand" else 2)
     return form(locale, "/matches/cards", fields, "compact.record" if play else "compact.save",
-                primary=play)
+                primary=True)
+
+
+def _evidence_action(handle, locale, operation, binding, intent):
+    marker = operation.removeprefix("set_") + "_" + intent
+    fields = (hidden("managed_handle", handle) + hidden("operation", operation)
+              + hidden("card_selection", binding) + hidden("card_evidence_form", marker))
+    return form(locale, "/matches/cards", fields, "compact.evidence." + marker)
 
 
 def _evidence(state, handle, locale, bindings, *, hand=False):
@@ -169,10 +174,23 @@ def _evidence(state, handle, locale, bindings, *, hand=False):
         if (operation == "set_perspective_hand") != hand:
             continue
         cards = game[name]
-        mode = "unknown" if cards is None else "known_empty" if not cards else "exact"
-        content += section(locale, f"task.match.action.{operation}", card_set_summary(locale, cards)
-            + _card_form(state, handle, locale, operation, bindings.get(operation, ""),
-                         cards=cards, mode=mode), level=3)
+        declaration = game["declaration"]
+        discard = operation == "set_discarded_cards"
+        hand_discards = discard and declaration is not None and declaration["hand_game"]
+        empty_allowed = discard and (declaration is None or declaration["hand_game"])
+        binding = bindings.get(operation, "")
+        editor = paragraph(locale, "compact.evidence.accepted") + card_set_summary(locale, cards)
+        if hand_discards:
+            editor += paragraph(locale, "compact.evidence.hand_discards")
+        else:
+            editor += _card_form(state, handle, locale, operation, binding, cards=cards)
+        if cards is not None or empty_allowed:
+            editor += paragraph(locale, "compact.evidence.secondary_scope")
+        if cards is not None:
+            editor += _evidence_action(handle, locale, operation, binding, "unknown")
+        if empty_allowed:
+            editor += _evidence_action(handle, locale, operation, binding, "empty")
+        content += section(locale, f"task.match.action.{operation}", editor, level=3)
     return content
 
 

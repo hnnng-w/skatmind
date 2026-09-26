@@ -115,6 +115,31 @@ checks remain. Native toggling adds no request or write. See the [full state map
 Current inventory is 67 POST routes, 112 forms and 1,802 paired catalog keys; #266's
 reset semantics, recovery, generation and pending-state behavior are unchanged.
 
+## Direct Match evidence feedback (Issue #268)
+
+Seven `card_evidence_form` variants precede legacy operation resolution on the
+existing `/matches/cards` route. Inventory is now **67 routes / 119 definitions /
+1,811 paired keys**. New selection forms expose only `cards` as editable metadata;
+`card_selection` is retained solely for feedback identity. Secondary forms have no
+editable controls, and only an explicit action button. Hidden authority and intent
+are regenerated, never restored as consent. Marker-plus-mode and secondary Cards
+payloads reject; legacy ignored-Card mode semantics remain separately supported.
+
+Count/Card/candidate failures link to the visible fieldset, with trace diagnosis
+retained. Secondary failures name the attempted action and link to visible feedback.
+Legacy feedback bridges only to the matching current-source action; missing/stale
+or externally changed sources fall back to recording without transplanting input.
+No links target removed selects or hidden transport. Wording describes this request's
+non-mutation, not a claim that an externally modified recording is unchanged.
+
+Native language return keeps saved evidence and safe submitted selections; existing
+enhanced language additionally supports unsent repeated/zero Cards under exact-source
+and manifest checks. It rejects injected mode, discriminator, binding and consent.
+Neighboring unsent grid edits are not submitted by a secondary form and are not
+promised across its POST/rejection. No-op preserves Report/recovery selection and
+preview, but service entry can clear/replace the prior diagnostic. See the
+[state/action and transport maps](compact_card_entry.md#direct-match-evidence-actions-issue-268).
+
 ## Canonical Form Registry
 
 `FRONTEND_FORM_REGISTRY` covers all 59 unified frontend POST routes through 103

@@ -1,5 +1,109 @@
 # Unified Match and Learning visual contract
 
+## Direct Match evidence (Issue #268)
+
+Starting clean branch `bug/268-direct-match-evidence-entry` and full HEAD were
+`523d7142fe00c9cbe08e37604ba9330d8464b1e2`, the integrated #267 baseline. Actual #268
+and #208 comment `5740775548` were read. The separately named design attachment
+was not found in the repository; its details reproduced in #268 and the supplied
+Build instructions were used. The separate historical reconciliation artifact
+was not independently located. #267's checks/screenshots are historical evidence.
+
+The pre-fix direct-form test failed on the emitted `unknown` mode selector; the
+legacy compatibility test passed, demonstrating that selected valid Cards were
+deliberately ignored by that mode. This is an interaction trap, not a canonical
+unknown-semantics defect. See the [implemented state/action and seven-variant map](compact_card_entry.md#direct-match-evidence-actions-issue-268).
+
+`scripts/verify_direct_match_evidence.py` reuses optional dependency-free DevTools,
+real returned forms/setters/saves, short undeclared/Hand fixtures and the three-Play
+Grand B / perspective C context. Separate baseline/repaired Wheels and installations
+use dedicated synthetic roots only. Completed authorities are:
+
+```text
+<temporary-directory>/opencode/268-before-complete/
+<temporary-directory>/opencode/268-after-complete/
+```
+
+Each contains `evidence.json`, retained source/download bytes and native viewport
+PNG slices covering complete editor controls. Early probe attempts exposed a helper
+name collision and unsupported nested `:has`; later beyond-viewport screenshots
+removed the scrollbar and reflowed the page while cropping. The completed runs use
+ordinary viewport slices instead. Those earlier artifacts are retained but are not
+the screenshot authority. No Product CSS was required or changed.
+
+Both installations ran Windows 11, **Python 3.13.7**, Package **0.17.0**, headless
+**Edge 153.0.4234.48**, pytest **9.1.1**, jsonschema **4.26.0**, referencing **0.37.0**,
+and tzdata **2026.4**. Installed module/catalog/resource bytes are compared with their
+Wheel and baseline HEAD/repaired checkout; served CSS/JavaScript match installed
+bytes. The six Product modules and paired catalogs are the only Product changes.
+
+| Scoped observation | Baseline | Repair |
+| --- | --- | --- |
+| Inventory: routes / forms / paired keys | 67 / 112 / 1,802 | 67 / 119 / 1,811 |
+| Editor measurements | 49 | 53, including four stale-secondary returns |
+| Native POSTs | 116 | 108 |
+| Native responses | 104 × 303; 12 × 400 | 92 × 303; 12 × 400; 4 × 409 |
+| Native Match saves | 32 | 32 |
+| Native language-profile writes | 48 | 48 |
+| Fixture POSTs / Match saves | 56 / 27 | 60 / 27, including four explicit Reloads |
+| Fixture Session saves / Session executions | 8 / 1 | 8 / 1 |
+| Fixture Match executions | 1 | 1 |
+| Existing Match page preparations: fixture / passive / native | 30 / 39 / 128 | 38 / 39 / 120 |
+
+The matrix covers all three editors in **de/en × script off/on**, with desktop
+1365×900, 390×844, 320×800 and doubled computed text at 320px for the German no-script
+editor set; the other language/script cells use 390px. Document/client widths agree
+at **1350/1350, 375/375 and 305/305**. Full native slices were inspected for accepted
+labels, complete Card faces, Save and secondary scope, field errors and action
+errors. Enlarged prose wraps and takes substantial vertical space; independent
+secondary actions can add height. There is no universal height-reduction claim.
+
+Native clicks/Space change selections without a request. In all twelve editor
+cells in each installation, Enter on a checkbox made **zero POSTs**; keyboard
+Enter on the sole Save button saved the selected set. The baseline required its
+mode change and first ignored one selected Card under unknown. The repair instead
+rejected incomplete exact input, retained it through native language return and
+accepted the complete retry directly. Equal-set Save retained exact recording
+bytes. Explicit withdrawal and undeclared no-discards operated despite unsent
+neighboring grid changes; new secondary payloads contain no Cards. Hand shows
+only its eligible discard actions, retaining the other editors.
+
+Native language checks retain server-rejected Cards with script off/on. The
+enhanced path also retains explicit zero unsent selection; no-script language
+return restores accepted saved Cards instead. Native Reload invalidates a previously
+rendered secondary action: its 409 names the failed withdrawal at current recording
+feedback. Error focus is the actual alert section, and next Tab reaches its visible
+error link. No probe assigns focus programmatically. The closed named initial-hand
+summary and one native opening remain. Choice, disclosure and passive navigation
+perform no Product save or analysis; existing page preparations and explicit profile
+writes are counted separately.
+
+The genuine Grand fixture retains A's 14-point CK/C7/C10 Trick and C's exact original
+hand. C7-only Save rejects; ten-Card Save makes one mutation, changing preparation
+from 0/3 to 1/3 in the focused HTTP lifecycle test. Only explicit Analyze executes;
+the Report's historical C context contains preceding CK and excludes later C10.
+Each installation retains the same real independent Session Result, frozen Requests
+and source bytes through the Match work. Reports are compared to their own retained
+execution without timing-field removal or changed producer clocks.
+
+```text
+Baseline Wheel SHA-256 c00d2a932c359dd6541ed22b7fb4bcfe4c418852d29353adb9cb5033d39592b7
+Repaired Wheel SHA-256 03b6f1fd7bbda86b107932931abc0cdfdc964d62c4aa2c166bd69b17a5e098ef
+Session Request, 887 bytes: b56173dfcecf2b65ac9d61bc9fc5ee6878731310d8fa89807fe0a7ec35d23776
+Session Result, 10,751 bytes: 080006282bb7fd09d9e9b633a233f58b8001525a3e5fcad585ed766210ed0e5a
+```
+
+The deterministic Session Request/Result bytes match across installations. Each
+11,202-byte Session recording, 11,284-byte Grand Match and 8,737-byte Grand Report
+is preserved against its own retained bytes; independent generated identities
+produce distinct source/Report hashes, recorded in the evidence. Authenticated
+downloads are byte checks, not physical Save-dialog tests. Doubled computed fonts
+are not browser zoom. No device, screen-reader, maintainer UAT or whole-R07 acceptance
+is claimed. #267 remains completed; #208 and other residues remain open. Exact
+merged-#268 `check` and `v1-supported-platform-matrix` gate manual closure.
+
+## Earlier scoped visual work
+
 Issue #261 clarifies the shared deletion confirmation and dedicated list/chooser
 captions. See [installed evidence](#recording-deletion-confirmation-issue-261) and
 the [scope/consequence map](managed_recording_deletion.md#confirmation-presentation-issue-261).

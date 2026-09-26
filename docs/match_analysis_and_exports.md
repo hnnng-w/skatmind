@@ -136,6 +136,15 @@ Navigation and hand Save execute no analysis. The original ten dealt Cards inclu
 played Cards from that hand; they are not the remaining hand. Existing preparation,
 complete-trace reconstruction, explicit execution and Report lifetimes are unchanged.
 
+Issue #268 removes the mode prerequisite from that hand editor and the separate
+Skat/discard editors. Exact ten-Card Save can resolve the fixture's missing C hand
+without an extra mode choice; it still executes no analysis. Empty selection is
+invalid; explicit withdrawal/eligible no-discards use independent saved-evidence
+actions. A real successful mutation invalidates Reports/recovery only after Save;
+an equal-set no-op retains Report bytes and recovery selection/preview, while an
+old diagnostic may be cleared on service entry. No inferred evidence is populated
+from a Report or complete trace. See [direct evidence](compact_card_entry.md#direct-match-evidence-actions-issue-268).
+
 Issue #253 adds unified selected-Report explanations through the exact typed Report
 already captured by `build_task_first_match_page_state_v1`. Its narrow app-owned
 `match_analysis_explanation` adapter projects only safe explanation scalars from the

@@ -196,7 +196,7 @@ def test_real_corrected_match_cancel_apply_noop_rewind_hand_pass_reopen(
         if hand:
             page = browser.page("/matches/position/1")
             page = follow(browser, browser.submit(operation_form(page, "set_perspective_hand"),
-                card_evidence_mode="exact", cards=MATCH_HAND))
+                cards=MATCH_HAND))
         review = browser.page("/matches/review/1")
         assert_party_score(review, (0, 0), (14, 1))
         assert_match_cards(review, ["CK", "C7", "C10"], review=True)

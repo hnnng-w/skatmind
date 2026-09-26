@@ -127,8 +127,8 @@ See the [conditional remedy map](match_game_navigation.md#discoverable-match-evi
 Initial-hand evidence means the original ten dealt Cards **before pickup/discard**,
 including already played Cards from that original set. A non-Hand declarer may
 still need original Skat and discard evidence to reconstruct the playable hand.
-The existing full-deck candidate domain, replacement/no-op/clear behavior, explicit
-modes and `/matches/cards` transport below remain unchanged. Complete-trace review
+The existing full-deck candidate domain and canonical replacement/no-op/clear behavior
+remain. Issue #268 supersedes the normal mode selector as described below. Complete-trace review
 does not acquire an explicit-hand prerequisite.
 
 Match retains existing `set_perspective_hand`, `set_original_skat`, and
@@ -136,11 +136,12 @@ Match retains existing `set_perspective_hand`, `set_original_skat`, and
 Whole-candidate validation, canonical set representation, single-save/no-op behavior,
 and Report invalidation remain authoritative.
 
-`unknown` means absent knowledge. `exact` requires ten initial-hand Cards or two
+On the legacy transport, `unknown` means absent knowledge. `exact` requires ten initial-hand Cards or two
 Skat/discard Cards. `known_empty` is offered only for discards, subject to existing
 declaration validation. Empty checkboxes never implicitly select a mode. Changing
 mode alone saves nothing; explicit Save applies that mode's existing semantics.
-Rejected saves retain useful safe input.
+Rejected saves retain useful safe input. These legacy mode controls are no longer
+the normal evidence editor after Issue #268.
 
 Issue #247 corrects the adjacent disclosure caption to **Original Skat and discard
 evidence**, matching its actual controls. The separate perspective **initial-hand**
@@ -177,6 +178,98 @@ identities, submission/save counts and Checkpoint behavior remain intact. Runnin
 totals ignore pending/rejected Cards. Its 24 additional catalog keys bring the
 current total to 1,318 without changing the 57-route/93-definition registry.
 
+## Direct Match evidence actions (Issue #268)
+
+The normal selected-Game editors show **Saved evidence** separately from pending
+native checkboxes. The selection form has one primary **Save selected Cards**
+submitter and no prerequisite mode selector. Selection/toggling makes no request.
+The accepted observed Game owns all three operations; its perspective owns the
+initial hand, independently of the next actor, Settings and Reports. Empty/passed
+Slots have no editors. Later evidence replacement remains supported under full
+candidate validation, including complete-trace reconciliation.
+
+| Evidence/context | Selection Save | Separate secondary actions |
+| --- | --- | --- |
+| Perspective original dealt hand | Exact ten, including already played original Cards | Withdraw when recorded |
+| Original Skat, including Hand | Exact two | Withdraw when recorded |
+| Undeclared discards | Exact two | Record no discards; withdraw when recorded |
+| Hand discards | No nonempty grid or Save | Record no discards; withdraw when recorded |
+| Non-Hand discards | Exact two | Withdraw when recorded |
+
+Known-empty discards **before declaration are already legal**. Withdrawal writes
+`None`/JSON `null`; the explicit no-discards action writes `()`/JSON `[]`. Required
+keys, `_RETAIN` versus `None`, ownership/overlap rules and source attribution are
+unchanged. A derived final pair or complete trace never backfills recorded evidence.
+
+Zero-selection Save rejects for both unknown and recorded evidence, including
+undeclared explicit-empty discards. It never withdraws or asserts emptiness. A
+valid equal-set Save is a no-op. Invalid codes, counts, duplicates, ownership and
+trace conflicts reject the entire candidate and retain applicable safe submitted
+Cards. Secondary forms contain only regenerated hidden transport plus their explicit
+button. They change saved evidence, **not the neighboring grid selection**. Unsent
+grid changes need not survive their POST or rejection. There is no new consent,
+clear-checkbox, autosave, radio wizard or automatic retry.
+
+### Seven private variants and compatibility
+
+All forms retain URL-encoded `POST /matches/cards`, an **8,192-byte read bound**,
+256-field parsing, strict singular fields, optional `_frontend_form_instance`,
+authorization and `303 /matches/position/N#match-recording`. Initial boundary
+verification found the baseline registry declared 8,192 bytes while its actual
+Match read used the generic limit; #268 enforces the specified bound in `server.py`.
+
+Common fields are `managed_handle`, `card_selection`, and `operation`. The new
+forms add exactly one `card_evidence_form`, without `card_evidence_mode`:
+
+| Operation | Discriminator | Existing internal mode | Cards |
+| --- | --- | --- | --- |
+| `set_perspective_hand` | `perspective_hand_selected` | `exact` | Repeated, exact ten |
+| `set_perspective_hand` | `perspective_hand_unknown` | `unknown` | Forbidden |
+| `set_original_skat` | `original_skat_selected` | `exact` | Repeated, exact two |
+| `set_original_skat` | `original_skat_unknown` | `unknown` | Forbidden |
+| `set_discarded_cards` | `discarded_cards_selected` | `exact` | Repeated, exact two |
+| `set_discarded_cards` | `discarded_cards_unknown` | `unknown` | Forbidden |
+| `set_discarded_cards` | `discarded_cards_empty` | `known_empty` | Forbidden |
+
+Only selection forms permit `cards`. Omission is invalid exact input; `cards=[""]`
+is invalid Card input. Secondary requests forbid **any** Cards key, including blank.
+Mixed marker/mode, wrong operation pairing, unknown markers/fields, duplicate
+singular fields/instrumentation, and missing marker plus mode reject. Player,
+position and revision remain derived from the strict source binding, not submitted.
+The discriminator identifies an action; the existing operation/content/position-
+generation HMAC and persistence CAS remain authority.
+
+All legacy definitions and mode-based parsing remain. Legacy unknown/known-empty
+may deliberately ignore valid within-capacity Cards; invalid/duplicate/excess Cards
+still fail preliminary checks. The lower mapping's exact-empty discard convergence
+is unchanged and is not authorization for normal exact-empty Save. Match Play,
+Session and correction keep their shared selector behavior.
+
+New selection registry metadata has only editable `cards`, plus internal feedback
+identity `card_selection`; secondary forms have no editable fields. Hidden operation,
+handle, discriminator and binding are regenerated and excluded from language overlays.
+Current-source legacy rejection bridges to its matching new editor/action, otherwise
+to recording feedback. Count/Card/candidate errors target the visible fieldset;
+secondary errors name the action and target visible form feedback. Trace diagnostics
+and error-first opening/focus remain. External changes are not described as unchanged
+merely because this request saved nothing.
+
+Without JavaScript, accepted facts and safe rejected selections survive language
+return; arbitrary unsent input does not. Existing enhanced language can additionally
+retain repeated Cards, explicit zero selection and local disclosure state under the
+same manifest/source/lifetime checks. This is not a general draft store.
+
+Genuine mutation keeps one revision/one successful save, then clears Reports and
+recovery. Equal-set no-op keeps accepted bytes, Reports and recovery selection/preview;
+service entry may clear or replace an old diagnostic. Reload renews the secret and
+clears process-local state; real Game switching keeps existing generation rules.
+Rendering adds no preparation, inference, execution, Checkpoints, locks or saves.
+
+Inventory changes from **67 routes / 112 forms / 1,802 paired keys** to **67 / 119 /
+1,811**, with ordered-key and placeholder parity. Package 0.17.0, Python >=3.13,
+AGPL-3.0-only, dependencies, public/persistence contracts and 98 scenarios remain.
+See [installed evidence](unified_workflow_visual_contract.md#direct-match-evidence-issue-268).
+
 ## Exact private HTTP contract
 
 Issue #237 adds [source-bound Session Card feedback](session_card_feedback.md) to
@@ -198,7 +291,7 @@ The three new URL-encoded routes have an **8,192-byte** body bound:
 | --- | --- | --- |
 | `POST /sessions/cards` | `managed_handle`, `card_selection`, repeated `cards` | Current append task |
 | `POST /sessions/play` | `managed_handle`, `card_selection`, one `cards` | Current actor's Play |
-| `POST /matches/cards` | `managed_handle`, `card_selection`, `operation`, `cards`; evidence also requires `card_evidence_mode` | Existing evidence set operation or one `append_plays` |
+| `POST /matches/cards` | `managed_handle`, `card_selection`, `operation`; evidence uses one new discriminator above or legacy `card_evidence_mode`; permitted selections use `cards` | Existing evidence set operation or one `append_plays` |
 
 `_frontend_form_instance` remains optional renderer instrumentation. Other fields
 are rejected. Repeated single-Play values and duplicate batch Cards are errors.

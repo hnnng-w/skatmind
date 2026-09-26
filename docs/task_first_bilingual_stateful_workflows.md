@@ -169,6 +169,16 @@ execution, Result lifetime, and contextual bilingual feedback are documented in
 
 ## Match
 
+Issue #268 implements direct selected-Game hand/Skat/discard Save and separate
+saved-evidence withdrawal/eligible explicit-empty actions. It preserves #263's owner
+and destination and #267's creation defaults. Known-empty discards are legal before
+declaration or in Hand; only Hand's nonempty discard grid is omitted. Normal empty
+Save rejects. Secondary forms neither submit nor preserve neighboring unsent edits.
+The new discriminator-first forms coexist with legacy mode requests; no generic
+language machinery or shared Card component is redesigned. Current inventory is
+**67 routes / 119 forms / 1,811 paired keys**. See the
+[complete private contract](compact_card_entry.md#direct-match-evidence-actions-issue-268).
+
 Issue #264 groups the shared prepared-decision selector with its existing Analyze
 button, before Advanced analysis options, inside the same POST form. Recording's
 outer analysis disclosure remains initially closed; focused review and retained

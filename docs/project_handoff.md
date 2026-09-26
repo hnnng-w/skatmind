@@ -2894,6 +2894,20 @@ gate manual #259 closure. #208, remaining R13/R14 and automatic-use questions st
 open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 No whole-UAT acceptance or release-readiness claim follows.
 
+Issue #268 implements R07f on `bug/268-direct-match-evidence-entry`, starting clean
+at integrated #267 HEAD `523d7142fe00c9cbe08e37604ba9330d8464b1e2`. Native selection
+Save replaces the mode prerequisite; independent withdrawal/eligible no-discards
+forms preserve canonical evidence and legacy mode semantics. Only the six private
+render/dispatch/feedback modules and paired catalogs change Product behavior.
+The actual Match read now enforces its registered 8,192-byte bound. Inventory is
+67/119/1,811 with 98 scenarios. See [contract](compact_card_entry.md#direct-match-evidence-actions-issue-268)
+and [installed evidence](unified_workflow_visual_contract.md#direct-match-evidence-issue-268).
+Final exact-tree native full-check evidence accompanies the completion report.
+#267 remains completed. Both exact merged-#268 `check` and
+`v1-supported-platform-matrix` must pass before manual closure. #208, R13g, About
+overflow and automatic-Learning decisions remain open; UAT-01 unaccepted,
+UAT-02–12 paused, B-09/B-07 open, B-06 closed. No whole-R07/UAT or release claim.
+
 Issue #267 implements only R01g on `bug/267-match-capture-details`. Original clean
 starting HEAD and resumption HEAD are `082c7fb1997fcba801663577233350436fe9d351`, the
 integrated #266 baseline. Resumption retained the intended untracked focused test

@@ -197,7 +197,8 @@ def test_match_real_completion_report_preview_correction_rewind_and_selection(
     assert not evidence.complete_initial_deal_reconstructable
     for op, original in editors.items():
         current = operation_form(page, op)["values"]
-        assert original["card_evidence_mode"] == current["card_evidence_mode"] == "unknown"
+        assert original["card_evidence_form"] == current["card_evidence_form"]
+        assert "card_evidence_mode" not in current and "card_evidence_mode" not in original
         assert "cards" not in current and "cards" not in original
     source, source_bytes = active.workspace, active.path.read_bytes()
     page = browser.page("/matches/review/1")

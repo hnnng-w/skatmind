@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from html import escape
 
+from .card_entry_http import MATCH_EVIDENCE_FORMS
 from .form_parsing import FormValuesV1
-from .form_registry import FrontendFormDefinitionV1, FrontendFormFieldV1
+from .form_registry import (
+    FrontendFormDefinitionV1,
+    FrontendFormFieldV1,
+    get_frontend_form_by_key_v1,
+)
 from .translation_catalog import translate_frontend_message_v1
 from .validation_contracts import FrontendSubmittedFormStateV1
 
@@ -331,7 +337,9 @@ def _render_summary(
         if state.status == "conflict"
         else "validation.summary.heading"
     )
-    guidance_key = "validation.session_card.no_save" if session_card else (
+    guidance_key = "validation.match_evidence.no_save" if (
+        state.originating_route == "/matches/cards" and not state.form_key.endswith("append_plays")
+    ) else "validation.session_card.no_save" if session_card else (
         "validation.summary.conflict_guidance"
         if state.status == "conflict"
         else "validation.summary.guidance"
@@ -366,6 +374,11 @@ def _render_summary(
         else ""
     )
     locale_attribute = escape(locale, quote=True)
+    evidence_action = ""
+    if state.form_key.startswith("match.evidence.") and not state.form_key.endswith("_selected"):
+        evidence_action = '<p><strong>' + escape(translate_frontend_message_v1(
+            locale, "compact.evidence." + state.form_key.removeprefix("match.evidence.")))
+        evidence_action += '</strong></p>'
     summary_identity = ' id="session-card-error"' if session_card else ""
     actions = ""
     if session_card:
@@ -383,7 +396,7 @@ def _render_summary(
         f'lang="{locale_attribute}">'
         f'<h2 id="validation-summary-heading-{state.feedback_generation}">'
         f"{escape(translate_frontend_message_v1(locale, heading_key))}</h2>"
-        f"<p>{escape(translate_frontend_message_v1(locale, guidance_key))}</p>"
+        f"{evidence_action}<p>{escape(translate_frontend_message_v1(locale, guidance_key))}</p>"
         f"<ul>{''.join(items)}</ul>{actions}{reload_guidance}{retained_result}</section>"
     )
 
@@ -414,6 +427,22 @@ def apply_validation_feedback_to_html_v1(
         raise ValueError("Validation rendering requires HTML and one registered form.")
     if type(state) is not FrontendSubmittedFormStateV1 or state.form_key != definition.form_key:
         raise ValueError("Submitted form state must match the registered form key.")
+    # Legacy feedback can target a new action only on the same emitted source.
+    # Its mode is never restored as hidden authority, nor are disregarded Cards
+    # transferred from a withdrawal/empty request to the selection form.
+    if definition.form_key.startswith("match.cards."):
+        mode = state.safe_visible_values.singular("card_evidence_mode")
+        marker = next((marker for marker, intent in MATCH_EVIDENCE_FORMS.items()
+                       if intent == (definition.discriminator_value, mode)), None)
+        if marker is not None:
+            definition = get_frontend_form_by_key_v1("match.evidence." + marker)
+            fields = {field.field_key for field in definition.safe_fields}
+            state = replace(state, form_key=definition.form_key, form_instance=None,
+                safe_visible_values=FormValuesV1(tuple(entry for entry in
+                    state.safe_visible_values.entries if entry.field in fields)),
+                validation_issues=tuple(replace(issue, field_key=(
+                    "cards" if mode == "exact" and issue.field_key != "card_selection" else None))
+                    for issue in state.validation_issues))
     translated: list[tuple[str | None, str, str]] = []
     field_messages: dict[str, list[tuple[str, str]]] = {}
     rendered_fields: dict[str, str] = {}
@@ -473,7 +502,13 @@ def apply_validation_feedback_to_html_v1(
     # today's actor merely because its old form happened to have the same ordinal.
     correction_entry = definition.form_key.startswith("session.correction.")
     source_bound = card_entry or declaration_entry or time_entry or correction_entry
-    bounds = (None if source_bound and not form_identity else
+    changed_evidence_source = (definition.action_route == "/matches/cards" and any(
+        issue.message_key == "validation.card_entry.file_changed"
+        for issue in state.validation_issues))
+    unresolved_legacy = (definition.form_key.startswith("match.cards.")
+                         and not definition.form_key.endswith("append_plays"))
+    bounds = (None if (source_bound and not form_identity) or changed_evidence_source
+              or unresolved_legacy else
               _find_form_bounds(html, definition, form_instance, form_identity))
     learning_report = definition.form_key == "learning.operation.import_strategy_teacher_report"
     if bounds is None:
@@ -579,7 +614,15 @@ def apply_validation_feedback_to_html_v1(
         control_id = f"validation-field-{state.feedback_generation}-{field}"
         singleton_target = (learning_report and field == "match_snapshot_id"
                             and '<select ' not in block)
-        if singleton_target:
+        if (definition.discriminator_field == "card_evidence_form" and field == "cards"
+                and 'class="compact-cards"' in block):
+            rendered_control_id = control_id
+            block = re.sub(r'<fieldset\b[^>]*class="compact-cards"[^>]*>',
+                lambda match, control_id=control_id, described_by=described_by:
+                _set_attribute(_set_attribute(_set_attribute(_set_attribute(
+                    match[0], "id", control_id), "aria-invalid", "true"),
+                    "aria-describedby", described_by), "tabindex", "-1"), block, count=1)
+        elif singleton_target:
             rendered_control_id = "learning-report-target"
             block = block.replace('<div id="learning-report-target" tabindex="-1">',
                 '<div id="learning-report-target" tabindex="-1" '

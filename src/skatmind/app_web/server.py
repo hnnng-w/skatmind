@@ -1008,7 +1008,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             ):
                 matches.append(definition)
         compact = [form for form in matches
-                   if form.discriminator_field in {"declaration_form", "time_form"}]
+                   if form.discriminator_field in {
+                       "declaration_form", "time_form", "card_evidence_form"}]
         if len(compact) == 1:
             matches = compact
         if len(matches) == 1:
@@ -3221,8 +3222,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     max_bytes = CORRECTION_BODY_LIMIT
                 elif parsed.path in {"/sessions/import", "/matches/import"}:
                     max_bytes = _MANAGED_IMPORT_MAX_REQUEST_BYTES
-                elif parsed.path in {"/sessions/cards", "/sessions/play"}:
-                    key = "session.play" if parsed.path == "/sessions/play" else "session.cards"
+                elif parsed.path in CARD_ENTRY_ROUTES:
+                    key = ("match.cards.append_plays" if parsed.path == "/matches/cards" else
+                           "session.play" if parsed.path == "/sessions/play" else "session.cards")
                     max_bytes = get_frontend_form_by_key_v1(key).body_limit
                 elif parsed.path == "/learning/api/v1/operations":
                     max_bytes = LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES

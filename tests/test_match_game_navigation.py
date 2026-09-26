@@ -99,10 +99,20 @@ def test_selected_identity_controls_seats_and_single_overview(mixed, selected, a
     assert overview.count('class="round-slots"') == 12
     assert html.count('aria-current="page"') == 1
     assert len(re.findall(r'\bid="([^"]+)"', html)) == len(set(re.findall(r'\bid="([^"]+)"', html)))
+    hand_editor = re.search(
+        r'<details class="advanced-settings"><summary id="match-initial-hand">.*?</details>',
+        recording, re.S)
+    assert bool(hand_editor) == (state["game"] is not None)
+    current_task = recording
+    if hand_editor:
+        assert hand_editor[0].count('class="primary"') == 1
+        assert 'name="card_evidence_form" value="perspective_hand_selected"' in hand_editor[0]
+        current_task = recording.replace(hand_editor[0], "")
     if action:
-        assert f'value="{action}"' in recording and recording.count('class="primary"') == 1
+        assert f'value="{action}"' in current_task and current_task.count('class="primary"') == 1
     else:
-        assert 'class="primary"' not in recording
+        assert 'class="primary"' not in current_task
+    assert recording.count('class="primary"') == int(action is not None) + int(bool(hand_editor))
     if selected in (1, 5):
         assert recording.index('class="recorded-history"') > recording.index(
             'recording-progress-layout')

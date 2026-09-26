@@ -150,6 +150,16 @@ global capture-disclosure preferences, other R01/R11/R13 residues and automatic
 Learning decisions stay separate. Both exact merged-#263 CI jobs gate manual closure;
 #208 stays open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 
+### Direct evidence interaction (Issue #268)
+
+Issue #268 supersedes only the normal evidence-mode interaction described in the
+#263 historical section above. The closed named summary and one native opening
+remain; the first editable hand control is now a Card checkbox rather than the
+removed mode selector. Owner/remedy selection, original-hand temporal meaning,
+same-Game lifetimes and real-switch generation invalidation remain. Hand discards
+omit the unusable nonempty grid, while original-Skat/initial-hand editors remain.
+See [direct state/action map](compact_card_entry.md#direct-match-evidence-actions-issue-268).
+
 ### Saved progress presentation (Issue #260)
 
 Starting clean `bug/260-match-progress-presentation` HEAD:

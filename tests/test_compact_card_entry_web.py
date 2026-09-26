@@ -288,15 +288,14 @@ def test_match_evidence_after_play_noop_modes_stale_position_and_real_recovery(l
     page = follow(browser, browser.submit(operation_form(page, "append_plays"), cards=card))
     assert card not in choice_codes(page)
     form = operation_form(page, "set_perspective_hand")
-    page = follow(browser, browser.submit(form, card_evidence_mode="exact", cards=hand))
+    page = follow(browser, browser.submit(form, cards=hand))
     assert card in active.workspace.slots[0].observed_game.perspective_initial_hand
     saved, revision = active.path.read_bytes(), active.workspace.revision
     form = operation_form(page, "set_perspective_hand")
     assert set(form["values"]["cards"]) == set(hand)
-    assert form["values"]["card_evidence_mode"] == "exact"
+    assert form["values"]["card_evidence_form"] == "perspective_hand_selected"
     assert card in form["values"]["cards"]  # INITIAL evidence still includes the played Card.
-    page = follow(browser, browser.submit(form, card_evidence_mode="exact",
-                                          cards=list(reversed(hand))))
+    page = follow(browser, browser.submit(form, cards=list(reversed(hand))))
     assert active.path.read_bytes() == saved and active.workspace.revision == revision
     status, _, body = browser.submit(operation_form(page, "append_plays"), cards=card)
     assert status == 400 and text("en", "recovery.reason.duplicate") in body.decode()
@@ -309,11 +308,12 @@ def test_match_evidence_after_play_noop_modes_stale_position_and_real_recovery(l
     assert set(operation_form(page, "set_perspective_hand")["values"]["cards"]) == set(hand)
     # Evidence clear is explicit; merely unchecking an Exact hand fails.
     form = operation_form(page, "set_perspective_hand")
-    assert browser.submit(form, cards=[], card_evidence_mode="exact")[0] == 400
-    page = follow(browser, browser.submit(form, cards=[], card_evidence_mode="unknown"))
+    assert browser.submit(form, cards=[])[0] == 400
+    withdrawal = next(form for form in Forms(page).forms
+                      if form["values"].get("card_evidence_form") == "perspective_hand_unknown")
+    page = follow(browser, browser.submit(withdrawal))
     assert active.workspace.slots[0].observed_game.perspective_initial_hand is None
-    page = follow(browser, browser.submit(operation_form(page, "set_discarded_cards"),
-                                          cards=[], card_evidence_mode="known_empty"))
+    page = follow(browser, browser.submit(operation_form(page, "set_discarded_cards")))
     assert active.workspace.slots[0].observed_game.discarded_cards == ()
     stale = operation_form(page, "append_plays")
     browser.page("/matches/position/2")
@@ -357,8 +357,7 @@ def test_real_match_overlap_single_save_and_advanced_trace_order(localized_serve
                              ("set_original_skat", ["D7", "H7"]),
                              ("set_discarded_cards", ["D7", "CA"])):
         count = len(saves)
-        response = browser.submit(operation_form(page, operation),
-                                  cards=cards, card_evidence_mode="exact")
+        response = browser.submit(operation_form(page, operation), cards=cards)
         assert response[0] == 303, (operation, re.findall(
             r'<section class="error-summary".*?</section>', response[2].decode(), re.S))
         page = follow(browser, response)
@@ -383,7 +382,7 @@ def test_real_match_report_noop_retention_and_success_invalidation(localized_ser
     active = localized_server.app_context.managed_stateful.active_match
     hand = get_full_deck()[:10]
     page = follow(browser, browser.submit(operation_form(page, "set_perspective_hand"),
-                                          card_evidence_mode="exact", cards=hand))
+                                          cards=hand))
     page = follow(browser, browser.submit(operation_form(page, "append_plays"), cards="CA"))
     analysis = operation_form(page, "analyze_decision")
     response = browser.submit(analysis, immediate_sample_count="1")
@@ -397,7 +396,7 @@ def test_real_match_report_noop_retention_and_success_invalidation(localized_ser
     recording = re.search(r'href="(/matches/position/1)#match-recording"', page)[1]
     page = browser.page(recording)
     page = follow(browser, browser.submit(operation_form(page, "set_perspective_hand"),
-                                          card_evidence_mode="exact", cards=list(reversed(hand))))
+                                          cards=list(reversed(hand))))
     assert active.capture.report_store.list() == reports and active.path.read_bytes() == before
     assert browser.submit(operation_form(page, "append_plays"), cards="CA")[0] == 400
     assert active.capture.report_store.list() == reports
