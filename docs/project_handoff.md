@@ -2894,6 +2894,19 @@ gate manual #259 closure. #208, remaining R13/R14 and automatic-use questions st
 open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 No whole-UAT acceptance or release-readiness claim follows.
 
+Issue #269 implements only R13g on `bug/269-learning-source-navigation`, starting
+clean at integrated #268 HEAD `ac8b77d1f0fa83704f56bdda92deb70ec64674fc`. One renderer
+omits the ordinary source-list Match-entry paragraph while retaining its existing
+no-usable-source remedy. Source/Add/refresh, global/Home entry, versions, receipts,
+explicit preparation and ten exports retain their contracts. Inventory stays
+67/119/1,811, Package 0.17.0 and 98 scenarios. See [map](learning_direct_match_entry.md#source-navigation-issue-269)
+and [independent installed evidence](unified_workflow_visual_contract.md#learning-source-navigation-issue-269).
+Final exact-tree full-check log/child exit accompany the completion report. #268
+remains completed; both `check` and `v1-supported-platform-matrix` must pass on the
+exact merged #269 commit before manual closure. #208, separate About overflow and
+automatic-Learning decisions remain open; UAT-01 unaccepted, UAT-02–12 paused,
+B-09/B-07 open, B-06 closed. No whole-R13/UAT or release-readiness claim follows.
+
 Issue #268 implements R07f on `bug/268-direct-match-evidence-entry`, starting clean
 at integrated #267 HEAD `523d7142fe00c9cbe08e37604ba9330d8464b1e2`. Native selection
 Save replaces the mode prerequisite; independent withdrawal/eligible no-discards

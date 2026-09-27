@@ -105,8 +105,8 @@ remain. Settings/About lose only three redundant body shortcuts; About's existin
 secondary technical section is called **Development and automation**. See the
 [R01a/c/d/e map](home_and_recorded_review_navigation.md#recording-entry-and-settingsabout-navigation-issue-265).
 R01f's reset grouping is implemented by #266; #267 implements only R01g's fresh-open
-Match creation and retired Settings toggle. R07f/R13g and automatic Learning remain
-separate. See the [one-section state map](profile_driven_stateful_creation.md#default-open-match-details-issue-267)
+Match creation and retired Settings toggle. #268 implements R07f; #269's R13g change
+is described below. Automatic Learning remains separate. See the [one-section state map](profile_driven_stateful_creation.md#default-open-match-details-issue-267)
 and [hidden compatibility transport](settings_and_player_seat_setup.md#default-open-match-details-and-hidden-compatibility-issue-267).
 
 The active page starts with its accepted path, phase and perspective, then one
@@ -283,6 +283,15 @@ are now 97 form definitions on the same 57 routes. Bilingual narrow/enlarged for
 wrap guidance without shrinking text; actual browser measurements are linked above.
 
 ## Explicit transfer and Learning
+
+Issue #269 removes only the ordinary recorded-source area's generic Match-entry
+paragraph when an available source can be selected. With no usable source, the
+existing create/open remedy remains. Local refresh, source choice, explicit Add,
+affected-version/result returns and global/Home navigation retain their existing
+targets. The one renderer change adds no discovery, import or evaluation; native
+Tab order simply omits the removed link. See the [condition/target map](learning_direct_match_entry.md#source-navigation-issue-269).
+Inventory remains **67 routes / 119 forms / 1,811 paired keys**. #255–#259 behavior,
+#268's seven evidence variants/read bound and #245 exact-source feedback remain.
 
 Issue #259 clarifies optional attachment of an existing executed Match Decision
 Report's specialized source JSON. Current-only offered targets determine the

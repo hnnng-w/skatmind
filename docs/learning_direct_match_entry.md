@@ -95,6 +95,36 @@ incorporation and future recommendation-adaptation questions remain open.
 
 ## Native routes and discovery
 
+### Source navigation (Issue #269)
+
+R13g removes the redundant **Record or open a Match** paragraph only when the
+opened collection lists at least one available source. The existing paragraph
+remains a recovery action when there are no actionable saved Matches (including
+an all-invalid/duplicate-identity list). Mixed lists keep their individual failure
+explanations beside the usable selector. Nothing is hidden with CSS or relocated.
+
+| Region / condition | Existing target / caption key | Current behavior |
+| --- | --- | --- |
+| `learning-recorded-matches`, available source | `/matches`, `task.learning.open_matches` | Ordinary duplicate paragraph omitted |
+| Same region, no available source | Same href/key | Existing create/open remedy retained; Add stays disabled |
+| Same region, every state | `/learning/recorded-matches/refresh`, `task.learning.refresh_recorded` | Local explicit discovery; returns to the source anchor, never imports |
+| Source selector / explicit Add | `/learning/add-recorded-match` | Same exact fields, source guards and affected-Match return |
+| Global navigation / Home Match task | `/matches` | Existing create/open entry remains; `/matches/new` and saved-recording Open remain there |
+| Added Match/version and optional Report remedies | Existing `learning-match-…`, `learning-version-…`, `insight-versions`, `learning-sources` targets | Unchanged |
+
+`server._learning_page` supplies the captured discovery and outcome to the same
+renderer. The availability decision reuses its existing options list, including
+the placeholder; it adds no discovery or Product operation. The retained recovery
+caller still uses the catalog key, so both catalogs remain byte-identical.
+
+The installed check follows global/Home links to the actual Match entry and native
+browser Back to the current collection. These entry visits do not open a Match.
+The Learning list's Open form instead performs a strict reopen; it must not be
+treated as a passive current-page link or promise retained process-local results.
+Unsent choices have only the existing enhanced-language restoration guarantee.
+Opening a recording does not update an already imported version. Add and evaluation
+remain separate explicit operations. See [bounded installed evidence](unified_workflow_visual_contract.md#learning-source-navigation-issue-269).
+
 Issue #259 repairs the separate optional Report attachment inside the opened
 collection. It does not change direct Add or `render_task_first_transfer_v1`.
 Only captured Current Snapshots are upload targets. A singleton shows its exact

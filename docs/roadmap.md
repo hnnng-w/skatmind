@@ -1898,6 +1898,15 @@ and [evidence](unified_workflow_visual_contract.md#optional-learning-report-atta
 remaining R13/R14 and automatic-use decisions stay open. UAT-01 unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
 
+Issue #269 implements R13g only: omit the redundant generic Match-entry paragraph
+beside usable Learning sources, retain the existing no-source remedy, and preserve
+source choice/Add/local refresh, global/Home navigation and all ten retained exports.
+Only the Learning renderer changes Product code; inventory remains 67/119/1,811,
+Package 0.17.0 and 98 scenarios. See [map and installed evidence](learning_direct_match_entry.md#source-navigation-issue-269).
+#268 remains completed. Exact merged-#269 `check` and `v1-supported-platform-matrix`
+gate manual closure. #208, separate About overflow and automatic-Learning decisions
+remain open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed.
+
 Issue #268 implements R07f: direct native Match hand/Skat/discard Save, separate
 saved-evidence withdrawal and eligible explicit-empty forms, strict seven-variant
 dispatch plus legacy compatibility, and source-safe visible feedback/language

@@ -218,7 +218,8 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
     if not accepted_entry:
         available += outcome_notice
     available += '<p><a href="/learning/recorded-matches/refresh">' + translated(locale, "task.learning.refresh_recorded") + '</a></p>'
-    available += '<p><a href="/matches">' + translated(locale, "task.learning.open_matches") + '</a></p>'
+    if len(options) == 1:
+        available += '<p><a href="/matches">' + translated(locale, "task.learning.open_matches") + '</a></p>'
     body += '<div id="learning-recorded-matches" tabindex="-1">' + (
         '' if accepted_entry else '<!-- entry-operation-feedback -->') + section(locale, "task.learning.recorded", available) + '</div>'
     selections = paragraph(locale, "task.learning.versions_help")
