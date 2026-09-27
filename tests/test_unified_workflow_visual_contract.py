@@ -88,6 +88,19 @@ def assert_app_assets(browser, page):
     assert "access-control-allow-origin" not in headers
 
 
+def test_about_intrinsic_sizing_contract_is_local_to_its_panels():
+    """Source regression only; installed native layout is measured separately."""
+    css = files("skatmind.app_web").joinpath("assets/app.css").read_text(encoding="utf-8")
+    panel = re.search(r"^\.about-grid > section \{([^}]+)\}", css, re.M)
+    assert panel and "overflow-wrap: anywhere;" in panel[1]
+    summary = re.search(r"^\.storage-disclosure summary \{([^}]+)\}", css, re.M)[1]
+    assert "width: auto;" in summary and "width: max-content;" not in summary
+    assert "cursor: pointer;" in summary and "font-weight: 700;" in summary
+    assert not re.search(r"display:|list-style:|outline:|overflow:", summary)
+    assert ".about-grid {\n    grid-template-columns: repeat(2, minmax(0, 1fr));" in css
+    assert ".about-grid > section:last-child {\n    grid-column: 1 / -1;" in css
+
+
 @pytest.mark.parametrize("locale", ("de", "en"))
 def test_all_unified_routes_and_contextual_errors_use_app_resources(localized_server, locale):
     browser = Browser(localized_server)

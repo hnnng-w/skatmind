@@ -1898,6 +1898,16 @@ and [evidence](unified_workflow_visual_contract.md#optional-learning-report-atta
 remaining R13/R14 and automatic-use decisions stay open. UAT-01 unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
 
+Issue #270 repairs only About reflow: available-width storage summary and inherited
+panel wrapping, preserving content, native controls, desktop layout and Settings'
+shared list. Independent installed closed/open de/en/script/narrow/enlarged evidence
+supersedes the #265 About overflow finding; see [results](unified_workflow_visual_contract.md#about-reflow-issue-270).
+Product is CSS-only; inventory stays 67/119/1,811 and 98 scenarios. #269 remains
+completed. Exact merged-#270 `check` and `v1-supported-platform-matrix` gate manual
+closure. Learning caption/popup readability and automatic-Learning decisions remain
+open separately, as do #208 and B-09/B-07; UAT-01 unaccepted, UAT-02–12 paused,
+B-06 closed. No whole-UAT or release-readiness claim follows.
+
 Issue #269 implements R13g only: omit the redundant generic Match-entry paragraph
 beside usable Learning sources, retain the existing no-source remedy, and preserve
 source choice/Add/local refresh, global/Home navigation and all ten retained exports.

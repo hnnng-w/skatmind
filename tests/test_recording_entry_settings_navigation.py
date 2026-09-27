@@ -113,6 +113,32 @@ def test_about_removes_only_generic_body_settings_link(localized_server, locale)
     assert "Python &gt;=3.13" in page and "CPython 3.13" in page
     assert '<details class="storage-disclosure"><summary>' in page
     assert [f["action"] for f in Forms(page).forms] == ["/actions/profile/language"]
+    assert re.findall(r'<section aria-labelledby="([^"]+)"', main_content(page)) == [
+        "installation-heading", "operation-heading", "interfaces-heading"]
+    assert re.findall(r'<h2 id="([^"]+)"', main_content(page)) == [
+        "installation-heading", "operation-heading", "interfaces-heading"]
+    assert not re.search(r'<(?:a|button|input|form)\b', main_content(page))
+    assert page.count('<details class="storage-disclosure"><summary>') == 1
+    for key in ("about.local.description", "about.local.managed_home", "about.local.storage_show"):
+        assert escape(t(locale, key)) in main_content(page)
+    assert "\u00ad" not in main_content(page)
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+def test_about_long_configured_storage_value_is_complete_and_escaped(tmp_path, locale):
+    root = tmp_path / ("synthetic-long-storage-" * 4 + "&-evidence")
+    fixture = _localized_server.__wrapped__(root)
+    server = next(fixture)
+    try:
+        browser = Browser(server)
+        page = browser.request("GET", "/about", headers={"Accept-Language": locale})[2].decode()
+        expected = escape(str(server.app_context.managed_home.root), quote=True)
+        assert f'<code>{expected}</code></details>' in page
+        assert page.count(expected) == 1 and "&amp;-evidence" in page
+        assert re.findall(r'<code>(.*?)</code>', technical_section(page)) == TECHNICAL_FILES
+        assert not server.app_context.frontend_profile.profile_path.exists()
+    finally:
+        fixture.close()
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))

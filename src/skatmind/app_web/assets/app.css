@@ -1401,6 +1401,10 @@ thead {
   margin-top: 2rem;
 }
 
+.about-grid > section {
+  overflow-wrap: anywhere;
+}
+
 .about-grid h2 {
   margin-top: 0;
 }
@@ -1597,7 +1601,7 @@ main:is([data-workflow="matches"], [data-workflow="learning"]) form:has(
 }
 
 .storage-disclosure summary {
-  width: max-content;
+  width: auto;
   max-width: 100%;
   cursor: pointer;
   font-weight: 700;

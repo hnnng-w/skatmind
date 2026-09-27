@@ -28,6 +28,24 @@ explanation beneath the page title. Actual recovery, transfer, prerequisite,
 source-selection, and return links remain; Learning's explicit-operation
 explanation is retained beside its existing preparation controls.
 
+### About reflow (Issue #270)
+
+About retains its three sections in order: Installation; Local operation with the
+initially closed native storage-location disclosure; Development and automation.
+The four non-clickable filenames below, all facts/prose, IDs, hrefs and language
+controls remain exact. About panels now inherit `overflow-wrap: anywhere`, and the
+storage summary uses available-width `auto` sizing. This About-only CSS correction
+keeps the desktop two-column/full-width-last-section arrangement and shared Settings
+description-list rules. At narrow/enlarged text sizes, complete content is available
+through ordinary vertical scrolling, including the actual long configured path.
+
+Native marker, pointer/keyboard activation, focus and next Tab to footer About
+remain. Existing language restoration keeps open storage with JavaScript and reloads
+closed without it. Local disclosure toggles make no request/write; ordinary navigation
+and explicit language operations retain their own existing work. See the
+[independent installed geometry and native evidence](unified_workflow_visual_contract.md#about-reflow-issue-270).
+Learning caption/popup readability and automatic-Learning decisions remain separate.
+
 ### Recording entry and Settings/About navigation (Issue #265)
 
 This implements only #208 R01a/c/d/e. Starting clean branch

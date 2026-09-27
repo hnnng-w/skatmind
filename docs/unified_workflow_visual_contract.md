@@ -1,5 +1,141 @@
 # Unified Match and Learning visual contract
 
+## About reflow (Issue #270)
+
+Initial entry was clean `bug/270-about-responsive-layout` at full HEAD
+`cc16df1a9af76123c31ba9d784ff775e712fc89b`, integrated #269. Actual #270 and relevant
+#208 layout/UAT context were read. The named `Eingefügter Text(20260927-135226).txt`
+was not located in the checkout; its reproduced findings in the issue/Build request
+were available. That read-only report is historical source inspection, not browser,
+installation, CI or test execution. Its About segments/catalogs matched, while the
+whole renderer had later Settings changes; no whole-module equality is claimed.
+
+Fresh independent baseline/repaired Wheels reproduce and repair the intrinsic
+summary sizing pressure. Only `src/skatmind/app_web/assets/app.css` changes Product:
+`.storage-disclosure summary` now uses `width: auto` instead of `max-content`, and
+`.about-grid > section` inherits `overflow-wrap: anywhere` into its prose/code.
+Both selectors have only About callers. The shared Settings `.about-list`, desktop
+two-column grid and last full-width section retain their existing rules. No further
+track correction was needed. No font reduction, overflow suppression or horizontal
+scroll container is introduced. The unchanged renderer retains all three sections,
+all facts/prose/IDs/hrefs, initially closed native storage disclosure and four exact
+non-clickable filenames; see the [About contract](home_and_recorded_review_navigation.md#about-reflow-issue-270).
+
+`scripts/verify_about_reflow.py` reuses the optional dependency-free browser harness
+and native keyboard/pointer helpers, with one short genuine Session fixture per
+installation. Evidence authorities, retained downloads and ordinary viewport PNGs:
+
+```text
+<temporary-directory>/opencode/270-resume/before-04/evidence.json
+<temporary-directory>/opencode/270-resume/after-01/evidence.json
+```
+
+Each contains **32 measurements**: de/en × JavaScript off/on × 1365×900, 390×844,
+320×800 and 320×800 with doubled computed fonts × storage closed/open. Paths are
+actual supported relative managed-root configurations beneath a dedicated disposable
+cwd, with a long synthetic component and `&`; rendered text equals each run's own
+configured path exactly. Paths are neither shortened nor replaced for screenshots.
+The independent roots, generated Session IDs and security bindings legitimately
+differ. No normalized full-dynamic-HTML equality is used.
+
+| Language / viewport / computed text | Before document client/scroll | After client/scroll |
+| --- | ---: | ---: |
+| German / desktop / normal | 1350/1350 | 1350/1350 |
+| German / 390px / normal | 375/432 | 375/375 |
+| German / 320px / normal | 305/432 | 305/305 |
+| German / 320px / doubled | 305/811 | 305/305 |
+| English / desktop / normal | 1350/1350 | 1350/1350 |
+| English / 390px / normal | 375/375 | 375/375 |
+| English / 320px / normal | 305/336 | 305/305 |
+| English / 320px / doubled | 305/619 | 305/305 |
+
+These widths hold with both script modes and storage closed/open. The pre-fix
+German ordinary summary is 378.734375px, panel 415.921875px at x=16; doubled they are
+757.5px and 794.6875px. Fresh repaired narrow panels are 343px/273px at 390px/320px,
+with summary/content widths 305.8125px/235.8125px. Desktop panels remain 600px;
+the summary now occupies their available 540.40625px content width. The closed
+path was not the original cause. The opened long path and technical filenames
+wrap after the panels shrink. German doubled open-page height increases from
+3769px to 6486px; complete normal vertical reading is the intended tradeoff.
+
+Evidence retains main/grid/panel/summary/description-list/code/path client/scroll
+widths, computed styles, text fragments and child bounds. Assertions allow at most
+**1 CSS pixel** rounding; the strongest retained-text audit finds a maximum
+**0.00625px** excursion beyond inner panel/path reading boxes. No visible component
+has horizontal scroll loss, clipping or hidden overflow. Exact text/facts/order and
+sole summary control compare across installations; text nodes preserve filename/path
+characters without inserted spaces or soft hyphens. Representative Home, Settings
+(including its opened shared description list), Session, Match and Learning landing
+geometry/styles compare exactly and match neither changed selector.
+
+Ordinary viewport screenshots were inspected for the failed baseline and repaired
+closed/open summary, marker/focus, installation facts, long path, technical prose,
+all filenames and real footer, including native wheel-scrolled later slices.
+Geometry is collected before captures; captures retain the actual viewport/client
+width, with no full-document resize. A top/bottom image-boundary cut is an ordinary
+viewport crop, not Product clipping; adjacent slices expose the continuation. The
+#265 beyond-viewport images remain historical and their pre-capture JSON remains
+their width authority. Early #270 probes are retained: native smooth-scroll settling,
+a scaled-markup regex assumption and the baseline offscreen pointer midpoint needed
+verifier corrections. Those incomplete runs are not passing evidence.
+
+Native Tab/Shift+Tab, Enter/Space and visible-surface pointer activation preserve
+summary state and the native triangle; observed focus is the existing 3px blue
+outline. Next Tab reaches the real footer About link. Footer and global Home/Settings
+actions record actual URLs, active elements and next Tab; no focus assignment is
+used. Storage starts closed on a new About navigation. Same/changed language returns
+restore an opened disclosure with JavaScript and reload it closed without JavaScript,
+as before. These actions add no state mechanism.
+
+Each installation records 139 native actions, including 54 language POSTs: **37
+actual profile saves and 17 unchanged no-ops**. Storage toggles and passive geometry/
+scroll/capture send **zero requests and zero Product operations**. Representative
+entry navigation performs three existing discovery calls, counted separately.
+Fixture setup performs ten HTTP POSTs, eight Session saves, one creation-label
+profile save, four discovery calls and one explicit genuine decision execution.
+No full Game or Learning preparation is needed. A pending Session receipt survives
+unrelated Home/Settings/About GETs; the actual Session view consumes it normally.
+Active Session/source/execution identity and its 11,202-byte recording, 887-byte
+Request and 10,751-byte Result remain exact through applicable native navigation
+and language changes, compared to their own retained source context. There are no
+source loads or recording saves during those later actions. This does not promise
+Report survival through unrelated source loads or restarts.
+
+Both installations use Windows 11 build **26200**, **CPython 3.13.7**, Package
+**0.17.0**, headless **Edge 153.0.4234.48**, pytest **9.1.1**, jsonschema **4.26.0**,
+referencing **0.37.0** and tzdata **2026.4**. Loaded resources match their independent
+Wheel and baseline HEAD/repaired source; served CSS/script match installed bytes.
+All Wheel members compare equal except `skatmind/app_web/assets/app.css` and derived
+`RECORD`. Metadata remains Python `>=3.13`, `AGPL-3.0-only` and identical dependency
+floors, including `tzdata>=2026.4`. Inventory stays **67 POST routes / 119 forms /
+1,811 paired keys / 98 generated scenarios**.
+
+```text
+Baseline Wheel 1ce411e24ca506234a3135d9cfa169736781f1545157b4df50790667238cce2a
+Repaired Wheel bc751d560cc478c390a820e27686ac041db1d381f17a9b92958925c3144dadab
+Baseline CSS  c4afe934ad5e13223374ae450ceb0a887cb9077bddf67bb720f5a5fc52b2f621
+Repaired CSS  fd96646bae3960a662b6ad391ed0271c87b21bbfc8b799ce243bd8fbd37e5083
+Served script aa3871d9880326fc27590d80f7f0bf9ebc0a7cf31fd64fc2fd04a1e3932efce1
+Request       b56173dfcecf2b65ac9d61bc9fc5ee6878731310d8fa89807fe0a7ec35d23776
+Result        080006282bb7fd09d9e9b633a233f58b8001525a3e5fcad585ed766210ed0e5a
+```
+
+The scoped pre-fix CSS assertion failed independently of the browser reproduction;
+15 content/navigation cases passed. After repair, the unified visual-contract, About
+web, #265 navigation and language suite passes **84 tests, no skips**. Both completed
+browser workers exit 0 and servers stop normally. Final exact-tree full-check log,
+stage results, actual child exit and tracked/untracked receipt accompany the completion
+report; #269's historical full-check figures are not reused. Computed text enlargement
+is not browser zoom; authenticated retained HTTP bytes are not Save-dialog tests.
+There is no physical-device, assistive-technology, whole-UAT or release-readiness claim.
+
+This supersedes only the specific #265 narrow-About overflow finding. #238–#269,
+including #269 completion, remain preserved. Learning source-caption readability,
+long/equal-title/native-popup readability and automatic-Learning decisions remain
+separate and open. Both `check` and `v1-supported-platform-matrix` must pass on the
+exact merged #270 implementation commit before manual closure. #208 remains open,
+UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
+
 ## Learning source navigation (Issue #269)
 
 Starting clean branch `bug/269-learning-source-navigation`, full HEAD
@@ -3022,6 +3158,10 @@ minimum-content width: 432px scroll width against 375px/305px client widths at
 in the baseline's installation/local-operation/technical grid, before the changed
 caption. English About at 390px fits at 375px. This bounded copy repair does not
 claim to resolve that separate narrow-About layout limitation.
+
+These historical #265 measurements are retained. The fresh independent installed
+[Issue #270 evidence](#about-reflow-issue-270) above supersedes this specific About
+overflow finding, including new English 320px/enlarged and opened-path checks.
 
 Native Tab/Enter reaches Session through the Home card and Settings through the
 global header. Pointer actions use remaining Home/About controls. Actual URLs,

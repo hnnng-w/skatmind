@@ -2894,6 +2894,19 @@ gate manual #259 closure. #208, remaining R13/R14 and automatic-use questions st
 open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 No whole-UAT acceptance or release-readiness claim follows.
 
+Issue #270 contains narrow/enlarged About content with two About-owned CSS rules,
+starting clean at integrated #269 HEAD `cc16df1a9af76123c31ba9d784ff775e712fc89b`
+on `bug/270-about-responsive-layout`. Fresh independent Wheels reproduce German
+432/811px document expansion and English 320px overflow; all 32 repaired closed/open,
+de/en, script off/on geometry cells fit. Exact content, native disclosure/navigation,
+long synthetic storage values and applicable retained Session bytes remain. See
+[evidence](unified_workflow_visual_contract.md#about-reflow-issue-270). Inventory is
+67/119/1,811 with 98 scenarios; Product changes only `app.css`. Final exact-tree
+full-check log/actual child exit accompany the completion report. #269 remains
+completed; both exact merged-#270 CI jobs gate manual closure. Learning caption/popup
+readability and automatic-Learning decisions remain separate. #208 open, UAT-01
+unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed; no release-readiness claim.
+
 Issue #269 implements only R13g on `bug/269-learning-source-navigation`, starting
 clean at integrated #268 HEAD `ac8b77d1f0fa83704f56bdda92deb70ec64674fc`. One renderer
 omits the ordinary source-list Match-entry paragraph while retaining its existing
