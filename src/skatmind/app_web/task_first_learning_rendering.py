@@ -190,6 +190,11 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
     if candidate_limit_reached:
         available += paragraph(locale, "task.learning.discovery_limit")
     if learning_selection is not None:
+        captured_options = tuple(options)
+        description_id = "learning-recorded-source-captions" if len(captured_options) > 1 else None
+        captions = ('<ul id="' + description_id + '">' + ''.join(
+            '<li>' + escape(label) + '</li>' for value, label in captured_options if value != "")
+            + '</ul>') if description_id else ''
         resolution = disclosure(locale, "task.advanced", _conflict_choices(locale, "learning-add-conflict"))
         if entry_outcome is not None and entry_outcome.result.status == "resolution_required":
             resolution = resolution.replace('<details', '<details open', 1)
@@ -197,8 +202,9 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
             hidden("managed_handle", handle) + hidden("learning_selection", learning_selection)
             + hidden("source_generation", source_generation)
             + hidden("expected_catalog_revision", revision)
-            + select_field(locale, "source_handle", "task.learning.saved_match", tuple(options), required=True)
-            + resolution,
+            + select_field(locale, "source_handle", "task.learning.saved_match", captured_options,
+                           required=True, described_by=description_id)
+            + captions + resolution,
             "task.learning.add_recorded", primary=not state["matches"], disabled=len(options) == 1)
     accepted_entry = (entry_outcome is not None
                       and entry_outcome.result.status in {"applied", "unchanged"}

@@ -284,6 +284,18 @@ wrap guidance without shrinking text; actual browser measurements are linked abo
 
 ## Explicit transfer and Learning
 
+Issue #271 adds a noninteractive wrapping reference immediately after the native
+recorded-Match selector's label/control wrapper. Both use the same captured options;
+every offered non-placeholder caption appears, including a singleton. Empty/invalid
+discovery keeps #269's remedy and emits no empty description. The list describes
+offers, not accepted input; Add and refresh retain their distinct operations. Its
+extra height is intentional, and the native closed value/popup is not made multiline.
+See [ownership, lifecycle and evidence](learning_direct_match_entry.md#complete-offered-source-captions-issue-271).
+Only Learning rendering, list-scoped CSS and an opt-in select-description hook change
+Product code. Default helper output, validation/language associations, #245 receipts,
+#256 returns, #257 Current/variants, #258 exports, #259 Report attachment and #270
+About wrapping remain. Inventory stays **67 / 119 / 1,811**, with no catalog edits.
+
 Issue #269 removes only the ordinary recorded-source area's generic Match-entry
 paragraph when an available source can be selected. With no usable source, the
 existing create/open remedy remains. Local refresh, source choice, explicit Add,

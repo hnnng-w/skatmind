@@ -249,6 +249,18 @@ mint success from `last_result`. No validation, route, form, status, read-limit,
 language-return or receipt mechanism changes. See
 [native target evidence](unified_workflow_visual_contract.md#match-evidence-entry-issue-263).
 
+Issue #271 associates the recorded-Match native selector with the unique visible
+`learning-recorded-source-captions` list, outside the implicit label. The small typed
+`described_by` select-helper opt-in leaves other callers' default output byte-identical.
+Existing `_add_control_accessibility` merges this ID with help/field-error IDs. Actual
+generic Add failures remain form-level: summary focus, retained safe choice, refreshed
+hidden bindings and error priority are preserved. No validation-layer change is needed.
+Options and rows regenerate from one captured sequence after errors, refresh and
+language return; unavailable choices are not invented. The list adds no control,
+manifest entry, hidden field, live region or tab stop. Enhanced valid unsent selection
+and no-script submitted-state preservation keep their existing separate guarantees.
+See [caption ownership](learning_direct_match_entry.md#complete-offered-source-captions-issue-271).
+
 Issue #259 reuses `learning.operation.import_strategy_teacher_report` and its
 unchanged multipart fields/limit. A sole offered Current Snapshot is now hidden
 transport with a visible `learning-report-target` description (`tabindex=-1`),

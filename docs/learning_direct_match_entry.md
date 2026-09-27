@@ -95,6 +95,48 @@ incorporation and future recommendation-adaptation questions remain open.
 
 ## Native routes and discovery
 
+### Complete offered-source captions (Issue #271)
+
+The native required `source_handle` selector retains its empty placeholder, exact
+opaque values, captions, order and selection policy. Immediately after its implicit
+label/control wrapper, an ordinary `ul#learning-recorded-source-captions` repeats
+every offered non-placeholder caption once. It is outside the label and before
+Advanced conflict choices and Add. A singleton also has one row; empty, invalid-only
+and ambiguous-identity-only discovery has neither list nor dangling description.
+#269's existing no-source remedy and Add availability remain authoritative.
+
+| Ownership | Captured input / effect |
+| --- | --- |
+| Option and reference text | One captured options tuple in `task_first_learning_rendering.py`; filter only value `""` for rows |
+| Friendly name | Existing profile label, discovered title, localized fallback; existing HTML escaping |
+| Display ordinal / listed revision | Existing discovery order and observed revision; neither durable identity nor a latest-disk guarantee |
+| Accessible description | Typed opt-in `select_field(..., described_by=...)`; default markup unchanged; unique private list ID |
+| Accepted selection/import | Existing opaque field and explicit Add guards, not a caption or list row |
+
+Equal-title/equal-revision recordings remain separate options/rows. Reading the list
+or changing the native selection sends no request and does not highlight a row,
+import, prepare or modify Current. The reference describes **offered** sources, not
+an accepted import or the collection's selected Snapshots. It uses no Report-target
+or retained Snapshot caption. Refresh replaces discovery explicitly; rendering and
+language/error returns regenerate options and rows together without another scan.
+
+List-only CSS permits exact long/escaped captions to wrap without changing type size,
+contrast, native controls or About/Settings. All rows stay in normal vertical flow:
+there is no second numbering system, interactive row, collapse, filtering or fixed
+scroll box. More sources deliberately move Add lower. The native closed value remains
+single-line and may hide its suffix; this does not make the popup multiline. See the
+[fresh installed measurements and limits](unified_workflow_visual_contract.md#recorded-source-captions-issue-271).
+
+The existing generic Add rejection remains form-level and retains summary focus.
+Field-level validation appends diagnostic description IDs rather than replacing the
+list reference. Safe `source_handle` and `same_revision_resolution`, repeated-form
+identity, hidden exclusions, receipts and redirects are unchanged. Enhanced language
+can retain a valid unsent selection; no-script language retains supported submitted
+state, not arbitrary browser-only choices. No new field, catalog key or request
+authority is introduced. The actual Learning-owned Add reader/registry bound remains
+8,192 bytes; refresh remains a GET link without a payload. Inventory stays
+**67 POST routes / 119 forms / 1,811 paired keys / 98 generated scenarios**.
+
 ### Source navigation (Issue #269)
 
 R13g removes the redundant **Record or open a Match** paragraph only when the

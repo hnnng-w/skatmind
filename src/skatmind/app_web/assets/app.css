@@ -127,6 +127,18 @@ body:has(#task-first-learning) .language-buttons {
 #learning-report-targets { list-style: none; padding: 0; }
 #learning-report-targets li { margin-block: 0.5rem; }
 
+/* Offered recording captions remain readable independently of the native select. */
+#learning-recorded-source-captions {
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+
+#learning-recorded-source-captions li { margin-block: 0.5rem; }
+
 @media (max-width: 35rem) {
   #task-first-learning #learning-results {
     margin-inline: -0.5rem;

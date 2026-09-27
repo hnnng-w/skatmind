@@ -2894,6 +2894,20 @@ gate manual #259 closure. #208, remaining R13/R14 and automatic-use questions st
 open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 No whole-UAT acceptance or release-readiness claim follows.
 
+Issue #271 adds complete wrapping offered-source captions beside Learning's native
+selector, starting clean at `f76b3adefd87eac9f9af7e018976581dae7255c6` on
+`bug/271-learning-source-captions` (integrated #270). One captured options sequence
+owns both selector and reference rows; a typed opt-in description hook preserves
+other helper output and existing validation. No routes/forms/catalogs or source
+semantics change (67/119/1,811; 98 scenarios). Fresh independent installed de/en,
+script off/on evidence includes long equal-title choices, genuine non-first Add,
+one preparation per run, ten retained exports, error/language/remedy and larger-list
+scrolling. Extra height and native-control limits are [measured](unified_workflow_visual_contract.md#recorded-source-captions-issue-271).
+Final full-check log/child exit/exact-tree receipt accompany the completion report.
+#270 stays completed; both CI jobs must pass on the exact merged #271 implementation
+commit before manual closure. #208/automatic-Learning decisions stay open; UAT-01
+unaccepted, UAT-02–12 paused, B-09/B-07 open, B-06 closed; no release-readiness claim.
+
 Issue #270 contains narrow/enlarged About content with two About-owned CSS rules,
 starting clean at integrated #269 HEAD `cc16df1a9af76123c31ba9d784ff775e712fc89b`
 on `bug/270-about-responsive-layout`. Fresh independent Wheels reproduce German

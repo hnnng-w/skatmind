@@ -1,11 +1,18 @@
 """R13g: ordinary source controls and existing no-source recovery, using real files."""
 
 from collections import Counter
+from types import SimpleNamespace
 
 import pytest
 from test_frontend_language_switching import localized_server as _localized_server
 from test_language_switch_context import switch
-from test_learning_direct_entry_web import create_collection, downloads, saved_bytes, source_handle
+from test_learning_direct_entry_web import (
+    create_collection,
+    downloads,
+    independent_workspace,
+    saved_bytes,
+    source_handle,
+)
 from test_learning_outcome_navigation import match_target, node
 from test_match_recording_recovery_web import follow, operation_form
 from test_recorded_review_navigation import external_pass, saved_partial_match
@@ -16,10 +23,16 @@ from test_session_recorded_review_web import Browser, Forms
 import skatmind.app_web.learning_frontend as learning
 import skatmind.learning_corpus_import as corpus_import
 from skatmind.app_web.learning_direct_entry import LEARNING_ENTRY_FIELDS
+from skatmind.app_web.task_first_learning_rendering import render_task_first_learning_v1
+from skatmind.app_web.task_first_rendering import select_field
 from skatmind.app_web.translation_catalog import translate_frontend_message_v1 as t
+from skatmind.app_web.validation_rendering import _add_control_accessibility
+from skatmind.match_workspace_persistence import save_match_workspace_file_v1
+from skatmind.match_workspace_persistence_codec import build_match_workspace_persistence_document_v1
 
 ADD = "/learning/add-recorded-match"
 REFRESH = "/learning/recorded-matches/refresh"
+DESCRIPTION = "learning-recorded-source-captions"
 CAPTIONS = {
     "de": ("Match erfassen oder öffnen", "Gespeichertes Match",
            "Match zur Sammlung hinzufügen", "Gespeicherte Matches aktualisieren"),
@@ -36,6 +49,38 @@ def localized_server(tmp_path):
 def source_body(page):
     return page.split('<div id="learning-recorded-matches" tabindex="-1">', 1)[1].split(
         '</section></div>', 1)[0]
+
+
+def assert_references(page, expected=None):
+    tree = Hierarchy(page)
+    selectors = [n for n in tree.within("learning-recorded-matches", "select")
+                 if n["attrs"].get("name") == "source_handle"]
+    assert len(selectors) == 1
+    selector = selectors[0]
+    options = [(n["attrs"]["value"], n["text"]) for n in tree.nodes
+               if n["tag"] == "option" and any(p is selector for p in n["parents"])]
+    if expected is not None:
+        assert options == expected
+    offered = [caption for value, caption in options if value != ""]
+    lists = [n for n in tree.nodes if n["attrs"].get("id") == DESCRIPTION]
+    if not offered:
+        assert lists == [] and DESCRIPTION not in selector["attrs"].get("aria-describedby", "")
+        return options
+    assert len(lists) == 1 and lists[0]["tag"] == "ul"
+    assert DESCRIPTION in selector["attrs"]["aria-describedby"].split()
+    label = selector["parents"][-1]
+    assert label["tag"] == "label" and "aria-label" not in selector["attrs"]
+    assert lists[0]["parents"] == label["parents"]  # Outside the implicit name.
+    siblings = [n for n in tree.nodes if n["parents"] == label["parents"]]
+    assert siblings[siblings.index(label) + 1] is lists[0]
+    assert siblings[siblings.index(lists[0]) + 1]["tag"] == "details"
+    rows = tree.within(DESCRIPTION, "li")
+    assert [row["text"] for row in rows] == offered
+    for n in [lists[0], *[n for n in tree.nodes if any(p is lists[0] for p in n["parents"])]]:
+        assert n["tag"] in {"ul", "li"}
+        assert not {"tabindex", "aria-live", "hidden", "name"} & n["attrs"].keys()
+        assert Hierarchy.visible(n)
+    return options
 
 
 def assert_controls(page, locale, *, recovery):
@@ -56,8 +101,94 @@ def assert_controls(page, locale, *, recovery):
     selector = next(n for n in nodes if n["tag"] == "select"
                     and n["attrs"].get("name") == "source_handle")
     assert "required" in selector["attrs"]
+    assert_references(page)
     assert_shell(page)
     return form
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+@pytest.mark.parametrize("count", (0, 1, 2, 12))
+def test_exact_captured_captions_and_fallbacks(localized_server, locale, count):
+    browser = Browser(localized_server)
+    create_collection(browser)
+    active = localized_server.app_context.managed_stateful.active_learning
+    state = learning.build_unified_learning_state_v1(active)
+    long_name = '<Same & "caption">' + 'UnbrokenName' * 15
+    recorded = [SimpleNamespace(status="invalid", semantic_product_id=None, display_label=None)]
+    expected = [("", "Gespeichertes Match auswählen" if locale == "de" else "Choose a saved Match")]
+    for index in range(count):
+        handle = f"opaque-source-{index}"
+        name = long_name if index < 2 else None
+        recorded.append(SimpleNamespace(status="available", handle=handle,
+            semantic_product_id=f"private-product-{index}", display_label=name, revision=123))
+        resolved = name or ("Erfasstes Match" if locale == "de" else "Recorded Match")
+        expected.append((handle, f"{index + 2}. {resolved} — " + (
+            "aufgelistete Revision 123" if locale == "de" else "listed revision 123")))
+    page = render_task_first_learning_v1(state, managed_handle=active.handle,
+        locale=locale, recorded=tuple(recorded), learning_selection="binding")
+    assert_references(page, expected)
+    body = source_body(page)
+    assert 'private-product-' not in body and '<Same' not in body
+    if count:
+        assert '&lt;Same &amp; &quot;caption&quot;&gt;' in body
+        profile = SimpleNamespace(managed_item_display_labels=(SimpleNamespace(
+            family="matches", product_id="private-product-0", display_name="Profile <name>"),))
+        page = render_task_first_learning_v1(state, managed_handle=active.handle,
+            locale=locale, recorded=tuple(recorded), profile=profile, learning_selection="binding")
+        expected[1] = (expected[1][0], expected[1][1].replace(long_name, "Profile <name>"))
+        assert_references(page, expected)
+    no_form = render_task_first_learning_v1(state, managed_handle=active.handle,
+        locale=locale, recorded=tuple(recorded))
+    assert DESCRIPTION not in no_form and f'action="{ADD}"' not in no_form
+
+
+def test_select_helper_default_is_byte_identical_and_description_is_opt_in():
+    expected = ('<label>Saved Match <select name="source_handle" required>'
+                '<option value="">Choose</option><option value="opaque&amp;value" selected>'
+                '&lt;caption&gt;</option></select></label>')
+    args = ("en", "source_handle", "task.learning.saved_match",
+            (("", "Choose"), ("opaque&value", "<caption>")), "opaque&value")
+    assert select_field(*args, required=True) == expected
+    assert select_field(*args, required=True, described_by=None) == expected
+    assert select_field(*args, required=True, described_by='private"id') == expected.replace(
+        ' required>', ' required aria-describedby="private&quot;id">')
+    markup = select_field(*args, required=True, described_by=DESCRIPTION + " existing-help")
+    marked, control_id = _add_control_accessibility(
+        markup, "source_handle", "field-error", "source-control")
+    assert control_id == "source-control"
+    assert f'aria-describedby="{DESCRIPTION} existing-help field-error"' in marked
+    assert 'aria-invalid="true"' in marked
+
+
+def test_references_regenerate_with_errors_language_and_discovery(localized_server):
+    browser = Browser(localized_server)
+    path, _ = saved_partial_match(localized_server)
+    page = create_collection(browser)
+    options = assert_references(page)
+    # Existing generic rejection is form-level; retain its actual choice and summary.
+    response = browser.submit(Forms(page).find(ADD), source_handle=source_handle(path),
+                              same_revision_resolution="invalid")
+    assert response[0] == 400
+    page = response[2].decode()
+    assert_references(page, options)
+    assert Forms(page).find(ADD)["values"]["source_handle"] == source_handle(path)
+    selector = next(n for n in Hierarchy(page).nodes if n["tag"] == "select"
+                    and n["attrs"].get("name") == "source_handle")
+    descriptions = selector["attrs"]["aria-describedby"].split()
+    assert descriptions == [DESCRIPTION]
+    for identity in descriptions:
+        assert sum(n["attrs"].get("id") == identity for n in Hierarchy(page).nodes) == 1
+    assert 'class="error-summary"' in page and 'autofocus' in page
+    page = switch(browser, page, "de")
+    translated = assert_references(page)
+    assert [v for v, _ in translated] == [v for v, _ in options]
+    assert translated != options
+    assert Forms(page).find(ADD)["values"]["source_handle"] == source_handle(path)
+    # A duplicate identity is excluded on explicit refresh, never given a reference row.
+    path.with_name("duplicate.json").write_bytes(path.read_bytes())
+    page = follow(browser, browser.request("GET", REFRESH))
+    assert_controls(page, "de", recovery=True)
+    assert len(assert_references(page)) == 1
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))
@@ -106,6 +237,12 @@ def test_retained_evaluation_survives_navigation_refresh_language_duplicate_and_
 ):
     browser = Browser(localized_server)
     path, workspace = saved_partial_match(localized_server)
+    # Import the non-first of two real equal-title/equal-revision sources.
+    first = independent_workspace(workspace, "first-same-title")
+    first_path = path.with_name("aaa.json")
+    assert save_match_workspace_file_v1(first_path,
+        build_match_workspace_persistence_document_v1(first),
+        expected_content_fingerprint=None).status == "saved"
     original = path.read_bytes()
     calls = Counter()
 
@@ -123,12 +260,15 @@ def test_retained_evaluation_survives_navigation_refresh_language_duplicate_and_
     ):
         monkeypatch.setattr(module, name, counted(label, getattr(module, name)))
     page = create_collection(browser)
+    options = assert_references(page)
+    assert [v for v, _ in options] == ["", source_handle(first_path), source_handle(path)]
     active = localized_server.app_context.managed_stateful.active_learning
     response = browser.submit(assert_controls(page, "en", recovery=False),
                               source_handle=source_handle(path))
     assert response[1]["location"] == "/learning/current#" + match_target(
         active, workspace.match_definition.match_id)
     page = follow(browser, response)
+    assert active.corpus.store.match_snapshots[0].workspace == workspace
     assert calls == Counter(imports=1, catalog_saves=1)
     response = browser.submit(operation_form(page, "prepare_learning_artifacts"))
     assert response[1]["location"] == "/learning/current#learning-results"

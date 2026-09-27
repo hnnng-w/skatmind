@@ -1,5 +1,163 @@
 # Unified Match and Learning visual contract
 
+## Recorded-source captions (Issue #271)
+
+Initial entry was clean `bug/271-learning-source-captions` at full HEAD
+`f76b3adefd87eac9f9af7e018976581dae7255c6`, integrated #270. Actual #271 and #208's
+relevant Learning/layout context were read. The separately named inspection attachment
+was not available in the workspace; its reproduced findings in #271/the Build request
+were used. That read-only inspection at `cc16df1...` and #270's historical full-check
+receipt are not this Build's browser/test evidence. Historical sections below remain.
+
+Before Product edits, independent literal option assertions passed, while six
+singleton/multiple list assertions failed because the reference was absent; the new
+description opt-in also failed as absent. Empty cases passed. This establishes missing
+markup separately from fresh closed-caption clipping in the baseline screenshots.
+The repair is [one captured option/reference sequence](learning_direct_match_entry.md#complete-offered-source-captions-issue-271),
+three Product files, and no catalog, registry, parser, projection, script or persistence
+change. About's `storage-summary` width and `.about-grid > section` wrapping remain.
+
+### Independent installed evidence
+
+`scripts/verify_learning_source_navigation.py --captions` reuses the #269 disposable
+fixture, native Tab/Enter and pointer input, and optional dependency-free DevTools
+harness. Original #269 mode remains available. Retained evidence:
+
+```text
+<temporary-directory>/opencode/271-resume/before-02/evidence.json
+<temporary-directory>/opencode/271-resume/after-01/evidence.json
+```
+
+Both Wheels were independently built/installed in separate temporary environments.
+Windows 11 build 26200, CPython **3.13.7**, Edge **153.0.4234.48** headless, Package
+**0.17.0**, pytest **9.1.1**, jsonschema **4.26.0**, referencing **0.37.0**, tzdata
+**2026.4**. Metadata requires Python `>=3.13`, `AGPL-3.0-only`, and unchanged direct
+floors. Each installed run verifies **67 POST routes / 119 forms**, strict catalog
+key/order/placeholder parity and **1,811 keys per locale**. Generated scenario count
+remains 98. Wheel resources match installed files, current repaired source or actual
+starting HEAD as appropriate; authenticated served CSS/script bytes match installed
+resources. Whole Wheel hashes are freshly computed here:
+
+| Resource | Baseline SHA-256 | Repaired SHA-256 |
+| --- | --- | --- |
+| Wheel | `ddf266c04cb3af628a6b59ebae8d9b4c13eabeab74c32302b0ea4718e9df09bc` | `fc0c8955eb8cf29a9bdc673db824057e62d97ee36bd8aae7f1f3b74ad6742737` |
+| Served CSS | `fd96646bae3960a662b6ad391ed0271c87b21bbfc8b799ce243bd8fbd37e5083` | `76dd2c5e889e338e353f8cb51a2c9544a19c45ef1b6a1340e7269760ae8c4200` |
+| Learning renderer | `6df407d0cfa87aeb0193d3460d2d65f6f03016df83f82014a6eafa71124993a2` | `dbf1a037d938fb32b9a1a5db46030224a2e13085d229d9cb1f65ee914f0e9996` |
+| Select helper | `f5cc07712743489dd94dbe52f0de7f83b34004f6cfb5524659d53b19ec6d2b2c` | `251ee79e5e2424f338488d75ecfdafbf777eded3566b593c647f8d6e0c7f4054` |
+
+The unchanged script hash is `aa3871d9880326fc27590d80f7f0bf9ebc0a7cf31fd64fc2fd04a1e3932efce1`.
+Both catalogs are byte-identical across installations. The initial `before-01` probe
+stopped during synthetic fixture setup because Workspace construction requires its
+focused builder rather than `dataclasses.replace`; it is retained as an incomplete
+tooling run, with browser/server stopped. The corrected builder uses real validation
+and Save. No Product failure, mocked persistence or check relaxation was introduced.
+
+Each phase has four de/en × script-off/on runs and **37 measured states**: all four
+include empty, singleton, long equal-title/equal-revision placeholder and pending
+choice, retained results, rejected Add, and language return. German/no-script also
+covers 1365×900, 390×844, 320×800, doubled computed text at 320, and one twelve-source
+specimen (within the existing 2,048-candidate discovery bound). This is representative
+coverage, not every combination. All measured document widths match client widths:
+**1350/1350**, **375/375**, **305/305**. Select, label, list, every row's full text ranges
+and final 24-character suffix ranges, and following Add bounds are retained.
+
+### Visible text, height and native behavior
+
+Ordinary viewport screenshots were inspected through native mouse-wheel scrolling,
+not just HTML or document-width checks. Both complete long captions and their final
+revision are visible before Add in de/en and with scripts disabled. Doubled text
+requires several viewport slices; overlap exposes text cut by a screenshot boundary.
+Such viewport-edge cuts are not Product clipping. Normal row font is 16px, enlarged
+32px; wrapping keeps exact characters without inserted hyphens or clipping.
+
+| German specimen | Reference height | Added distance before Add | Select / row width |
+| --- | ---: | ---: | ---: |
+| Empty, 390px | 0 | 0 | 329.81px / no rows |
+| Singleton, 390px | 65.59px | 78.39px | 329.81px / 329.81px |
+| Two long captions, 1365px | 172.78px | 185.58px | 672px / 1040px |
+| Two long captions, 390px | 271.97px | 284.77px | 329.81px / 329.81px |
+| Two long captions, 320px | 321.56px | 334.36px | 259.81px / 259.81px |
+| Same, doubled computed text | 1214.25px | 1227.05px | 259.81px / 259.81px |
+| Twelve offered sources, 320px | 897.50px | 910.30px | 259.81px / 259.81px |
+
+The larger set keeps all twelve rows in order, including two long captions and the
+later source's newly listed revision 2, followed by Advanced and reachable Add. This
+is intentionally more vertical content, not universal compactness. Normal text and
+contrast are inherited. No row adds a focus stop or alternative selection mechanism.
+
+Tab reaches the native selector; a pointer click opens it, keyboard Home/Down/Enter
+selects **ordinal 2**, and the next Tab reaches Advanced directly. The corresponding
+static row remains unchanged and all offered rows stay visible. Exact payload handle
+`67e1a203043d50aa23fd9986dc708e0d4ddfa7eb85af1bdf8e81ef75fb7f8fe9` imports the intended
+`match-160`, not `first-equal-title`. Ordinals correlate choices within this offered
+sequence; they are not durable identity or a guarantee against all ambiguity.
+
+The baseline closed pending/rejected value visibly omits its long suffix. The repaired
+closed value still does. Native popup pixels appeared in the bounded pointer captures,
+but `Page.captureScreenshot` is restricted to the viewport and does not establish the
+popup's complete off-viewport bounds/readability. No popup-clipping or popup-fix claim
+follows. Acceptance concerns the always-available wrapping reference.
+
+Actual native Add submits once (`303`) and reaches its exact affected-Match fragment;
+explicit evaluation (`303`) reaches `#learning-results`. The source rejection is
+`409` at `/learning/add-recorded-match`, preserving actual choice and error-summary
+focus. Language return keeps that summary and choice. Enhanced unsent language return
+retains ordinal 2; no-script unsent return keeps the placeholder until chosen again.
+Refresh is its existing GET/303 source-anchor return. Returned-form tests independently
+assert actual Location headers, hidden field inventory and selected imported Workspace.
+
+### Operations and retained bytes
+
+Per phase, action/operation-record counts are **36/65, 34/53, 35/54, 34/53** for German
+off/on, English off/on. Setup is labelled separately: create an empty collection,
+Save one six-Play partial source, change its synthetic title, Save a distinct same-title
+source, invalidate/restore only the disposable source, then Save a genuine later
+revision. Only German/off adds ten more synthetic sources for the larger specimen.
+No full Game replay or new analysis is needed.
+
+Each run records **4 import invocations, 2 Catalog saves, 1 explicit preparation,
+4 source revalidations, 0 Current-selection operations and 0 source activations**.
+Five Add submissions comprise first Add, duplicate, invalid-source rejection, remedied
+duplicate and genuine later Add. Existing navigation discovery counts are **12** for
+German/off and **11** otherwise, including fixture/remedy/global navigation and explicit
+refresh. Profile saves are **8**: seven explicit language operations plus collection
+creation. These are separate from passive reading/rendering. Every choice-only
+operation and geometry/scroll capture has **zero requests and zero counted operations**.
+The list itself performs no I/O, locking, selection, import or preparation.
+
+One genuine preparation per run produces **6 observed / 2 usable / 4 skipped** decisions.
+Its ten exact exports are compared nine times (initial plus eight applicable
+navigation/refresh/language/no-op/remedy checkpoints), preserving complete bytes and
+filenames without stripping identities or timing. `application/json; charset=utf-8`,
+`nosniff`, `no-store`, and Content-Disposition are retained/checked. The chosen source
+is **11,378 bytes**, SHA-256 `aaf12c5f51632c8fa8e2397673476bc2cbab727df0cdea8eaef51087b06b27ae`;
+its genuine later revision is **11,465 bytes**, SHA-256
+`62c135381d5ff28ebd7e61c788ee468f982ca5544c7dec3ef078adde4c897de8`.
+Catalog/Snapshot bytes and Current remain identical through applicable passive/no-op
+paths. Genuine Add preserves Current but normally invalidates prepared artifacts.
+Independent installations' generated collection identities are not asserted equal.
+
+Repaired German/no-script retained export sizes, in canonical kind order:
+**6,873 / 1,291 / 1,755 / 19,270 / 1,948 / 1,960 / 30,269 / 13,090 / 414,257 / 10,837
+bytes**. Exact filenames, per-artifact SHA-256 values, headers and raw files are in the
+retained evidence; other runs preserve their own source-bound originals. Native OS
+Save dialogs were not exercised. All eight completed-run browser children exited 0
+and all server threads stopped.
+
+Focused navigation/markup/helper tests pass, as do existing direct-entry guards,
+outcome/version/Report/language/validation tests. An initial test incorrectly expected
+a generic Add rejection to be field-level; inspection confirmed existing form-level
+behavior, and the corrected test separately exercises additive field descriptions.
+No Product validation change was made. Full-check native output, actual child exit and
+tracked/untracked exact-tree receipt accompany the completion report; all edits and
+browser work precede that gate. This evidence claims no device, screen-reader,
+other-engine, browser-zoom or maintainer UAT verification.
+
+#270 stays completed. Both `check` and `v1-supported-platform-matrix` must pass on the
+exact merged #271 implementation commit before manual closure. #208 and automatic-
+Learning decisions remain open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open,
+B-06 closed. No whole-UAT or release-readiness conclusion follows.
+
 ## About reflow (Issue #270)
 
 Initial entry was clean `bug/270-about-responsive-layout` at full HEAD

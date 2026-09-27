@@ -42,8 +42,12 @@ def input_field(
             f'{" required" if required else ""}></label>')
 
 
-def select_field(locale: str, name: str, key: str, options, current: object = None, *, required=False) -> str:
-    return (f'<label>{translated(locale, key)} <select name="{escape(name)}"{" required" if required else ""}>'
+def select_field(
+    locale: str, name: str, key: str, options, current: object = None, *, required=False,
+    described_by: str | None = None,
+) -> str:
+    description = f' aria-describedby="{escape(described_by, quote=True)}"' if described_by else ""
+    return (f'<label>{translated(locale, key)} <select name="{escape(name)}"{" required" if required else ""}{description}>'
             + ''.join(f'<option value="{escape(str(value), quote=True)}"'
                       f'{" selected" if value == current else ""}>{escape(label)}</option>'
                       for value, label in options) + '</select></label>')

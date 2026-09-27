@@ -1898,6 +1898,17 @@ and [evidence](unified_workflow_visual_contract.md#optional-learning-report-atta
 remaining R13/R14 and automatic-use decisions stay open. UAT-01 unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
 
+Issue #271 implements the separate Learning caption slice: a static wrapping list
+from the native selector's exact offered options, including singleton and empty-state
+handling, with preserved source/form/validation/language semantics. The list adds
+vertical content before Add; native closed-value/popup limits remain. Fresh installed
+comparison, non-first same-title import and ten-export retention are documented in
+the [visual evidence](unified_workflow_visual_contract.md#recorded-source-captions-issue-271).
+Inventory stays 67/119/1,811 and 98 scenarios; Package 0.17.0 and #270 About CSS remain.
+Exact merged-#271 `check` and `v1-supported-platform-matrix` gate manual closure.
+#208/automatic-Learning decisions remain open, UAT-01 unaccepted, UAT-02–12 paused,
+B-09/B-07 open and B-06 closed. This adds no UAT or release-readiness claim.
+
 Issue #270 repairs only About reflow: available-width storage summary and inherited
 panel wrapping, preserving content, native controls, desktop layout and Settings'
 shared list. Independent installed closed/open de/en/script/narrow/enlarged evidence
