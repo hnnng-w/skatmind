@@ -67,7 +67,7 @@ def current_selection(context, selection):
         and selection.handle == context.handle and selection.generation == context.generation
         and selection.source == context.document
         and accepted_record(context, selection.record.command.kind) == selection.record
-        and time.monotonic() - selection.created_at < 1800)
+        and time.monotonic() < selection.created_at + 1800)
 
 
 def correction_entries(context):

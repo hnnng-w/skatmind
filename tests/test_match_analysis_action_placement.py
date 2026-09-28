@@ -1,11 +1,12 @@
 """One native decision action, with its settings retained inside the same form."""
 
+import json
 import re
 from collections import Counter
 from html import escape
 
 import pytest
-from test_frontend_language_switching import localized_server as _localized_server
+from early_rejection_observer import observe_early_response
 from test_match_game_navigation import rendered, workspace_for
 from test_match_recording_recovery_web import follow, operation_form
 from test_recorded_decision_context_web import record_context_match
@@ -13,14 +14,18 @@ from test_recorded_review_navigation import chooser_form, home_chooser, saved_pa
 from test_recording_task_focus import Hierarchy
 from test_session_recorded_review_web import Browser, Forms
 from test_task_first_language_preservation import enhanced_switch, envelope
+from test_unified_rejection_transport import Handler, Lifecycle, wire_request
+from test_unified_rejection_transport import localized_server as _localized_server
 
 import skatmind.capture_web.analysis as analysis
 import skatmind.capture_web.context as capture
+import skatmind.capture_web.state as capture_state
 import skatmind.match_decision_analysis as decision_analysis
 from skatmind.app_web.form_registry import get_frontend_form_by_key_v1
 from skatmind.app_web.json_transfer import canonical_frontend_json_bytes_v1 as canonical
 from skatmind.app_web.language_form_preservation import instrument_language_forms_v1
 from skatmind.app_web.match_review_rendering import render_match_review_v1
+from skatmind.app_web.security import app_web_security_headers_v1
 from skatmind.app_web.stateful_localization import text
 from skatmind.app_web.task_first_rendering import disclosure, form, hidden, input_field
 from skatmind.app_web.validation_rendering import instrument_registered_forms_v1
@@ -269,7 +274,7 @@ def test_emitted_settings_keep_method_normalization(method, seed, normalized):
     assert options.recommendation_method == method and options.use_profile_presets
 
 
-def test_actual_analysis_route_bounds_and_strict_fields(localized_server):
+def test_actual_analysis_route_bounds_and_strict_fields(localized_server, monkeypatch):
     from test_frontend_language_switching import _request
 
     from skatmind.capture_web.contracts import MATCH_CAPTURE_WEB_MAX_REQUEST_BYTES
@@ -285,10 +290,76 @@ def test_actual_analysis_route_bounds_and_strict_fields(localized_server):
                "Content-Type": "application/x-www-form-urlencoded"}
     assert _request(localized_server, "POST", offered["action"], headers=headers,
                     body=b"operation=analyze_decision&search_random_seed=%ZZ")[0] == 400
-    assert _request(localized_server, "POST", offered["action"], headers=headers,
-                    body=b"x" * (definition.body_limit + 1))[0] == 413
+    assert_early_analysis_rejection(browser, offered, monkeypatch, full_upload=True)
     active = localized_server.app_context.managed_stateful.active_match
     assert not active.capture.report_store.list()
+
+
+def test_analysis_header_first_rejection_without_upload(localized_server, monkeypatch):
+    browser = Browser(localized_server)
+    offered = operation_form(record_context_match(browser), "analyze_decision")
+    assert_early_analysis_rejection(browser, offered, monkeypatch, full_upload=False)
+
+
+def assert_early_analysis_rejection(browser, offered, monkeypatch, *, full_upload):
+    server = browser.server
+    active = server.app_context.managed_stateful.active_match.capture
+    workspace, fingerprint = active.workspace, active.content_fingerprint
+    before = active.workspace_path.read_bytes()
+    accepted = canonical(workspace.to_dict())
+    calls = Counter()
+    for owner, name, key in (
+        (Handler, "_prepare_form_submission", "form_parsing"),
+        (Handler, "_stateful_post", "dispatch"),
+        (capture_state, "build_match_decision_review_preparation_v1", "page_preparation"),
+        (decision_analysis, "build_match_decision_position_request_v1", "decision_preparation"),
+        (analysis, "execute_match_decision_analysis_v1", "analysis"),
+        (capture, "save_match_workspace_file_v1", "save"),
+    ):
+        real = getattr(owner, name)
+
+        def counted(*args, _key=key, _real=real, **kwargs):
+            calls[_key] += 1
+            return _real(*args, **kwargs)
+
+        monkeypatch.setattr(owner, name, counted)
+    # Count real page preparation separately, before the rejected request interval.
+    offered = operation_form(browser.page("/matches/current"), "analyze_decision")
+    page_calls = dict(calls)
+    assert calls["page_preparation"] > 0
+    calls.clear()
+    lifecycle = Lifecycle(server, monkeypatch)
+    limit = get_frontend_form_by_key_v1("match.analysis.analyze_decision").body_limit
+    assert offered["action"] == "/matches/api/v1/analysis"
+    assert limit == 1_048_576
+    payload = b"x" * (limit + 1)
+    observation = observe_early_response(server.port, wire_request(
+        browser, offered["action"], payload), payload=payload if full_upload else None,
+        connected=lambda port: setattr(lifecycle, "client_port", port))
+    print(json.dumps({"mode": "full_upload" if full_upload else "header_first",
+        "page_calls": page_calls, "rejection_calls": dict(calls), **observation.summary()}))
+    content = observation.assert_complete_html(413, app_web_security_headers_v1())
+    assert b"The submitted request is too large." in content
+    assert b"analyze_decision" not in content
+    if full_upload:
+        assert observation.supplied_bytes == observation.attempted_bytes == len(payload)
+        assert observation.send_calls >= 1
+        assert 0 < observation.sent_bytes <= len(payload)
+        assert observation.sender_outcome in {"complete", "stopped_by_receiver", "error"}
+    else:
+        assert observation.supplied_bytes == observation.attempted_bytes == 0
+        assert observation.sent_bytes == observation.send_calls == 0
+        assert observation.sender_outcome == "not_requested"
+    assert lifecycle.closed.wait(2), observation.summary()
+    assert lifecycle.statuses == [413]
+    assert lifecycle.body_reads == []
+    assert len(lifecycle.discarded) <= 65_536
+    assert calls == Counter()
+    assert active.workspace is workspace
+    assert canonical(active.workspace.to_dict()) == accepted
+    assert active.content_fingerprint == fingerprint
+    assert active.workspace_path.read_bytes() == before
+    assert not active.report_store.list()
 
 
 def test_returned_form_executes_small_late_search(localized_server):

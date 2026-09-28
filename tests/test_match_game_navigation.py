@@ -177,7 +177,7 @@ def progress_workspace():
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))
-@pytest.mark.parametrize("number,kind", enumerate(PROGRESS["en"], 1))
+@pytest.mark.parametrize("number,kind", tuple(enumerate(PROGRESS["en"], 1)))
 def test_literal_accepted_progress(progress_workspace, number, kind, locale):
     view, _, html = rendered(progress_workspace, number, locale)
     caption = PROGRESS[locale][kind]

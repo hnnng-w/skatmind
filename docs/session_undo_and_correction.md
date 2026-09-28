@@ -30,6 +30,26 @@ rotates the editor identity and revokes old Apply without extending that deadlin
 Invalid re-preview also revokes old Apply. Cancel must match the current editor;
 stale Cancel cannot discard newer work. Drafts and discarded suffixes are not saved.
 
+Issue #272 repairs only the exact deadline predicate: validity is
+`time.monotonic() < selection.created_at + 1800`, anchored to the original rendered
+entry. Equality rejects. Subtracting a fractional creation timestamp could instead
+round an exact deadline age below 1800; the controlled `3010.4` / `4810.4` specimen
+really saved bid 18 to 20 at unchanged revision 13. Those are synthetic timestamps,
+not recovered timestamps or file outcomes from the earlier CI failure. Select copies
+the timestamp, and a later Preview does not renew it. Existing guard locations,
+locks, replay, consent and CAS remain; this adds no mid-Save deadline cancellation.
+
+Eight fresh emitted-form HTTP cases use a correction-module-only clock installed
+before first rendering: integer/fractional creation and immediately preceding,
+equal, immediately following representable deadlines plus clearly expired values.
+The preceding values save once; equality and later return 409 with zero Save calls.
+Response/Location, accepted content/fingerprint, file bytes and strict reopened bid
+are checked separately. Preview remains write-free at a later controlled time.
+Existing no-op, partial-removal, source-lifecycle, Result and Checkpoint tests remain.
+The new fractional equality case failed against the old guard (seven others passed).
+Focused Windows and matching Ubuntu evidence is recorded with the
+[early-rejection observer repair](session_card_feedback.md#issue-272-early-rejection-test-observation).
+
 Preview invokes the existing public immutable `correct_session_command()` once. It
 does not call the guided saving adapter, collect Checkpoints, change accepted bytes,
 publish `last_operation`, execute analysis, or clear a valid Result. Rendering uses

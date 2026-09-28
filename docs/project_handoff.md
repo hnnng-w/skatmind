@@ -2894,6 +2894,26 @@ gate manual #259 closure. #208, remaining R13/R14 and automatic-use questions st
 open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 No whole-UAT acceptance or release-readiness claim follows.
 
+Issue #272 follows integrated #271 at `6e23b38ce9a22449471eab80d801e9e2f7dfee30`
+on `bug/272-expiry-http-boundaries`. Only the Session correction Product guard changes:
+strict comparison to the original computed deadline replaces subtractive age.
+Fresh integer/fractional real-Apply regressions verify nonrenewal, actual Save count,
+accepted/file fingerprints and strict reopen. A tests-only response-aware observer
+retains distinct header-first/full-upload analysis rejection and the genuine 400
+cases; the server transport is unchanged. Windows and matching Ubuntu 24.04.5 /
+CPython 3.13.15 / pytest 9.1.1 each passed 179 focused cases with actual complete 413
+receipt; 40 Linux cases cover the final test-accounting refinement. The independent
+enumerate maintenance preserves all 20 node IDs and removes the pytest 9.1.1 warning.
+See [boundaries and evidence](session_card_feedback.md#issue-272-early-rejection-test-observation).
+Inventory remains 67/119/1,811, Package 0.17.0, Python >=3.13, AGPL-3.0-only, unchanged
+dependency floors including tzdata>=2026.4, and 98 scenarios. Final complete-check
+native output, actual child exit and exact-tree receipts accompany the report.
+Historical A/B failures and C's real success remain; #271 stays completed. #272 stays
+open for both exact merged-commit CI jobs. UAT installation is paused pending those
+gates and must use the new validated repair commit. #208 remains open, UAT-01
+unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed; no automatic-Learning
+decision, UAT acceptance or release-readiness claim follows.
+
 Issue #271 adds complete wrapping offered-source captions beside Learning's native
 selector, starting clean at `f76b3adefd87eac9f9af7e018976581dae7255c6` on
 `bug/271-learning-source-captions` (integrated #270). One captured options sequence

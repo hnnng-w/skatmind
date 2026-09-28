@@ -120,6 +120,69 @@ Linux/Python 3.13 pass is claimed. #238's completion gate and #208 UAT-01 approv
 remain blocked until `check` and `v1-supported-platform-matrix` pass on the exact
 corrected merged commit. This correction is not maintainer UAT.
 
+### Issue #272 early-rejection test observation
+
+The later #272 repair keeps this Product response lifecycle intact. Its separate
+analysis route is `/matches/api/v1/analysis`, with a **1,048,576-byte** limit and
+**1,048,577-byte** test payload; `/matches/cards` retains its independent 8,192-byte
+limit. The ordinary shared request helper still has its original semantics.
+
+`tests/early_rejection_observer.py` is an opt-in tests-only observer: a bounded
+nonblocking upload worker attempts the supplied payload while the caller receives
+independently of sender completion. It records supplied/attempted/actually sent
+bytes, send calls and separate sender/receiver outcomes. An early complete response
+may stop sending. Only actual status, unambiguous Content-Length framing, complete
+HTML and required headers satisfy the assertion; a send error never supplies a
+response. One absolute deadline, response-size bounds and finally-close/join cleanup
+apply. Separate synthetic-peer self-checks reject wrong status, missing/truncated
+responses, absent/duplicate length and timeout; they are not real-server evidence.
+
+The original strict-field/duplicate/invalid-seed/malformed-percent 400 cases remain.
+The full-upload case and independent header-first case use a synthetic accepted
+Match and freshly emitted action. Real page preparation is counted separately from
+zero rejection-time body reads, form parsing, dispatch, Decision preparation,
+analysis and Save; accepted memory/fingerprint, source bytes and Reports remain
+unchanged. Existing cleanup-byte/deadline and usable-server tests are reused,
+including joining request workers. No Product server, limit, header, body or cleanup
+timeout changes were needed.
+
+Both affected modules, the pure correction tests, observer self-checks, cleanup
+regressions and navigation module passed **179 tests** without skips or warnings
+on Windows 11 / CPython **3.13.7** / pytest **9.0.3** (176.06s), and Ubuntu
+**24.04.5** / CPython **3.13.15** / pytest **9.1.1** / pluggy **1.6.0** (173.92s).
+After tightening actual Save-call accounting and synthetic-peer cleanup, **40**
+affected Linux cases passed (79.88s). Each execution has tracked-and-new-file SHA-256
+receipts; the later receipt covers the two refined test files, and all other tested
+source/test bytes match. Linux used the existing WSL2 kernel
+`6.6.87.2-microsoft-standard-WSL2` and a disposable user-owned environment with
+upstream-digest-verified `python-build-standalone` release `20260924`; this is matching
+user-space evidence, not a claim of the identical hosted runner image.
+
+On both platforms the header-first and full-upload cases received **413**, actual
+Content-Length **2047** and exactly **2047** body bytes, complete HTML, security
+headers and `Connection: close`. Full uploads attempted and sent all **1,048,577**
+bytes with no sender error; header-first sent no body. The tests compare the actual
+framed length, not a hardcoded 2047. This supports the test-only disposition of B.
+The separate navigation maintenance materializes `tuple(enumerate(PROGRESS["en"], 1))`:
+before/after pytest 9.1.1 collection has identical ordered **20** node IDs and removes
+the observed `PytestRemovedIn10Warning` without suppressing it.
+
+Historical attempt-1 push runs remain distinct: A `36278184069` failed expiry,
+B `36332974314` failed during upload, and C `36344970448` genuinely passed both jobs
+and all six matrix cells. Relevant blobs were identical, so C did not repair A or B;
+the matrix does not execute these pytest targets. A's original timestamps/file
+outcome and B's original Linux packet receipt remain unknown. The earlier controlled
+Windows backpressure send/read failures also remain failed response observations.
+The new tests do not retrospectively turn server-side writes into client receipt.
+
+External `272-resume` receipts retain focused output, runtime provenance, inventory,
+warning collection and the final exact-tree full-check log/actual child exit.
+#271 remains completed. #272 stays open until `check` and
+`v1-supported-platform-matrix` pass on its exact merged implementation commit.
+UAT installation remains paused and must subsequently target that new validated
+commit. #208 remains open; UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and
+B-06 closed. No UAT acceptance or release-readiness claim follows.
+
 ## Verification and fixture boundaries
 
 `tests/test_session_card_feedback.py` and `tests/test_session_card_feedback_web.py`

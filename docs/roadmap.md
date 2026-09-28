@@ -1898,6 +1898,19 @@ and [evidence](unified_workflow_visual_contract.md#optional-learning-report-atta
 remaining R13/R14 and automatic-use decisions stay open. UAT-01 unaccepted,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No release readiness is claimed.
 
+Issue #272 repairs the original Session correction deadline with direct strict
+comparison and deterministic genuine-Apply cases. A tests-only concurrent response
+observer verifies complete early analysis rejection on Windows and matching Ubuntu
+24.04.5 / CPython 3.13.15 / pytest 9.1.1, without changing the Product transport.
+Separate enumerate maintenance retains the 20-case navigation collection and removes
+its warning. See [verification](session_card_feedback.md#issue-272-early-rejection-test-observation).
+Inventory remains 67/119/1,811 and 98 scenarios, with unchanged Package/dependencies.
+#271 remains completed; historical A/B failures and C's real success are preserved.
+#272 requires both exact merged-commit CI jobs before manual closure. UAT installation
+remains paused and must then target the new validated integrated repair. #208 and
+automatic-Learning decisions stay open, UAT-01 unaccepted, UAT-02–12 paused,
+B-09/B-07 open and B-06 closed. This is engineering evidence, not UAT acceptance.
+
 Issue #271 implements the separate Learning caption slice: a static wrapping list
 from the native selector's exact offered options, including singleton and empty-state
 handling, with preserved source/form/validation/language semantics. The list adds

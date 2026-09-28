@@ -1,5 +1,7 @@
 """Real returned-form Session correction; literal R06 suffix expectations."""
 
+import json
+import math
 import re
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
@@ -302,14 +304,17 @@ def test_no_default_confirmation(localized_server, confirmation):
 @pytest.mark.parametrize("change", (
     "expiry", "reload", "reopen", "external", "foreign", "mutation"))
 def test_source_lifecycle_rejects_apply(localized_server, monkeypatch, change):
+    now = 3010.4
+    if change == "expiry":
+        monkeypatch.setattr(correction_module, "time", SimpleNamespace(monotonic=lambda: now))
     browser = Browser(localized_server)
     record_score_review_game(browser, play_count=0)
     active = localized_server.app_context.managed_stateful.active_session
     page = preview(browser, bid_value="20")
     form = activated_form(page, PREFIX + "apply")
     if change == "expiry":
+        assert active.declaration_correction.selected.created_at == now
         now = active.declaration_correction.selected.created_at + 1800
-        monkeypatch.setattr(correction_module, "time", SimpleNamespace(monotonic=lambda: now))
     elif change == "reload":
         follow(browser, browser.submit(Forms(page).find("/sessions/reload")))
     elif change == "reopen":
@@ -330,7 +335,100 @@ def test_source_lifecycle_rejects_apply(localized_server, monkeypatch, change):
         assert saved.status == "saved"
         assert document.state.revision == active.state.revision
     before = active.path.read_bytes()
-    assert browser.submit(form)[0] == 409 and active.path.read_bytes() == before
+    assert browser.submit(form)[0] == 409
+    assert active.path.read_bytes() == before
+
+
+@pytest.mark.parametrize("created_at", (3010.0, 3010.4))
+@pytest.mark.parametrize("boundary", ("before", "equal", "after", "expired"))
+def test_original_entry_deadline_controls_real_apply(
+    localized_server, monkeypatch, created_at, boundary,
+):
+    # Replace only this module's binding, before any entry is rendered. Sockets,
+    # pytest and persistence continue to use their real clocks.
+    now = created_at
+    monkeypatch.setattr(correction_module, "time", SimpleNamespace(monotonic=lambda: now))
+    browser = Browser(localized_server)
+    record_score_review_game(browser, play_count=0)
+    app = localized_server.app_context
+    active = app.managed_stateful.active_session
+    page = browser.page()
+    entry, = [s for s in active.declaration_correction.entries
+              if s.record.command.kind == "set_declaration"]
+    assert entry.created_at == created_at
+    document, before = active.document, active.path.read_bytes()
+    fingerprint = document.content_fingerprint
+    assert entry.source is document
+    assert entry.record.command.declaration.bid_value == 18
+    attempts, saves = [], []
+    real_save = session_files.save_session_file
+
+    def save(*args, **kwargs):
+        assert active.lock._is_owned()
+        assert app.managed_stateful.session_lifecycle_lock._is_owned()
+        assert not app.lock._is_owned()
+        assert kwargs["expected_content_fingerprint"] == fingerprint
+        attempts.append(args)
+        result = real_save(*args, **kwargs)
+        saves.append(result.value.status)
+        return result
+
+    monkeypatch.setattr(session_files, "save_session_file", save)
+    now = created_at + 10
+    _, editor = select(browser, "set_declaration", page)
+    selected = active.declaration_correction.selected
+    assert selected.created_at == entry.created_at
+    assert selected.source is document
+    assert selected.token != entry.token
+    now = created_at + 50
+    page = follow(browser, browser.submit(editor, bid_value="20"))
+    assert active.declaration_correction.selected is selected
+    assert selected.created_at == created_at
+    candidate = active.declaration_correction.preview.result
+    assert candidate.status == "applied"
+    assert attempts == []
+    assert saves == []
+    assert active.document is document
+    assert active.path.read_bytes() == before
+    apply = activated_form(page, PREFIX + "apply")
+    deadline = created_at + 1800
+    now = {"before": math.nextafter(deadline, -math.inf), "equal": deadline,
+           "after": math.nextafter(deadline, math.inf), "expired": deadline + 60}[boundary]
+    status, headers, body = browser.submit(apply)
+    if boundary == "before":
+        assert status == 303
+        assert headers["location"] == "/sessions/current#session-recording"
+        assert body == b""
+        assert len(attempts) == 1
+        assert saves == ["saved"]
+        assert active.state == candidate.state
+        assert active.document != document
+        assert active.document.content_fingerprint != fingerprint
+        assert active.path.read_bytes() != before
+    else:
+        assert status == 409
+        assert "location" not in headers
+        assert body.rstrip().endswith(b"</html>")
+        assert attempts == []
+        assert saves == []
+        assert active.state == document.state
+        assert active.document is document
+        assert active.document.content_fingerprint == fingerprint
+        assert active.path.read_bytes() == before
+    # Equal revision does not imply equal content: the valid correction keeps 13.
+    assert active.state.revision == document.state.revision == 13
+    reopened = session_files.load_session_file(active.path).value.document
+    assert reopened == active.document
+    assert reopened.content_fingerprint == active.document.content_fingerprint
+    declaration, = [r.command.declaration for r in reopened.state.command_log
+                    if r.command.kind == "set_declaration"]
+    assert declaration.bid_value == (20 if boundary == "before" else 18)
+    print(json.dumps({"created_at": created_at, "deadline": deadline, "now": now,
+        "boundary": boundary, "status": status, "location": headers.get("location"),
+        "save_calls": len(attempts), "save_results": saves, "accepted_fingerprint_changed":
+        active.document.content_fingerprint != fingerprint,
+        "file_bytes_changed": active.path.read_bytes() != before,
+        "reopened_bid": declaration.bid_value}))
 
 
 def test_competing_apply_and_pre_save_failure_are_single_save(localized_server, monkeypatch):
