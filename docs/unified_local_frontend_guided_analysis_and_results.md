@@ -122,6 +122,51 @@ declaration dependencies, Trick order and winners, Turn Phase, all three
 remaining hand sizes, information visibility, and actual-Card legality. The
 frontend does not infer hidden ownership or calculate Game value independently.
 
+### Completed-trick input grouping (Issue #273)
+
+Each of the nine numbered fieldsets contains four local input wrappers in the
+existing order: leader, Card 1, Card 2, Card 3. Each wrapper keeps its visible
+label directly above its native select. The row uses wrapping flex layout with
+intrinsic option widths; the wrappers use a single-column grid. Start alignment
+and a consistent select font weight preserve natural control heights. This fixes
+the former separate-label/separate-select grid items without clipping overflow
+or using fixed heights. The leader's implicit label and Cards' explicit IDs,
+the shared `_card_select()` helper, and other selector layouts are unchanged.
+
+`tests/test_completed_trick_input_grouping.py` covers all rows in German/English,
+empty and populated drafts, unique IDs, associations, option/order/value parity,
+final HTTP validation responses, retained accepted Results, safe rejected input,
+native and enhanced language returns, and neighboring current/actual/manual-review
+Card selectors. These are structural and HTTP checks, not visual-layout proof.
+
+Developer browser evidence on 2026-09-29 used the uncommitted Issue #273 repair
+over base `471f0d5fde08e827d60e3157dd795dafa8fd6713`, working-tree resources,
+disposable synthetic drafts, and a separate headless Microsoft Edge
+`154.0.4258.37` profile through the existing local DevTools helper. All 30
+German/English combinations of empty, populated, and native submitted-error
+states passed at these actual window/viewport conditions:
+
+| Window (pixels) | Reported CSS viewport | Zoom condition |
+| --- | --- | --- |
+| 1440 x 1000 | 1406 x 903 | Default 100% |
+| 1200 x 1000 | 1166 x 903 | Default 100% |
+| 1000 x 1000 | 966 x 903 | Default 100% |
+| 800 x 1000 | 766 x 903 | Default 100% |
+| 552 x 1000 | 518 x 903 | Default 100% |
+
+Measured label/control containment, complete-group wrapping, selected-text room,
+and equal 42.39 CSS-pixel control heights passed, with no detected row or document
+horizontal overflow. Native Tab/ArrowDown selection and visible focus passed;
+current-Trick/actual-Card readability and manual-review native selection passed.
+Representative rendered screenshots were also inspected. No viewport emulation,
+CSS zoom, transform, or text enlargement supplied these results.
+
+Actual **200% browser zoom remains outstanding**: the disposable profile zoom
+probe did not change the measured zoom. Interactive Edge GUI and installed-package
+browser verification were not performed. This developer evidence does not replace
+the required focused maintainer retest; Issue #273 remains open pending that
+retest and outstanding acceptance checks.
+
 Normal Position translation preserves:
 
 ```text

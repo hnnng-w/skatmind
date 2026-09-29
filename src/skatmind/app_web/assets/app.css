@@ -960,13 +960,32 @@ details[open] > summary {
 }
 
 .completed-trick-row {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.65rem;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  align-items: flex-start;
 }
 
-.completed-trick-row legend {
-  grid-column: 1 / -1;
+/* Wrap whole fields using their native option widths, without stretching controls. */
+.completed-trick-row > .completed-trick-field {
+  flex: 1 1 max-content;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.3rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.completed-trick-field > label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.completed-trick-field select {
+  width: 100%;
+  min-width: 0;
+  align-self: start;
+  font-weight: 400;
 }
 
 .card-choice {

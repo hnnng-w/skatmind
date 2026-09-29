@@ -295,15 +295,16 @@ def _completed_trick_controls(
         cards = trick.cards if trick else ()
         rows.append(
             f'<fieldset class="completed-trick-row"><legend>{_t("guided.trick_number", number=trick_number)}</legend>'
+            '<div class="completed-trick-field">'
             f'<label>{_t("guided.leader")}<select name="completed_trick_{trick_number}_leader">'
-            f'{_options(leader_options, leader)}</select></label>'
+            f'{_options(leader_options, leader)}</select></label></div>'
             + "".join(
-                _card_select(
+                '<div class="completed-trick-field">' + _card_select(
                     f"completed_trick_{trick_number}_card_{card_number}",
                     cards[card_number - 1] if len(cards) >= card_number else None,
                     label=_m("guided.card_number", number=card_number),
                     field_id=f"completed-trick-{trick_number}-card-{card_number}",
-                )
+                ) + '</div>'
                 for card_number in range(1, 4)
             )
             + "</fieldset>"
