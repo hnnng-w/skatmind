@@ -85,6 +85,11 @@ def map_form_field_errors_v1(
     definition: FrontendFormDefinitionV1,
 ) -> tuple[FrontendValidationIssueV1, ...]:
     return tuple(
+        FrontendValidationIssueV1(
+            field_key=error.position_feedback.fields[0],
+            message_key=error.position_feedback.message_key,
+            position_feedback=error.position_feedback,
+        ) if definition.form_key == "analyze.run_guided" and error.position_feedback else
         _mapped_message(
             _known_field(definition, None if error.field == "_form" else error.field),
             error.message,

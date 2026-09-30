@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from .position_form_feedback import PositionFormFeedbackV1
+
 
 @dataclass(frozen=True, slots=True)
 class FormValueV1:
@@ -55,12 +57,18 @@ class FormFieldErrorV1:
 
     field: str
     message: str
+    position_feedback: PositionFormFeedbackV1 | None = None
 
     def __post_init__(self) -> None:
         if type(self.field) is not str or not self.field:
             raise ValueError("Form error field must be non-empty text.")
         if type(self.message) is not str or not self.message:
             raise ValueError("Form error message must be non-empty text.")
+        if self.position_feedback is not None and (
+                type(self.position_feedback) is not PositionFormFeedbackV1
+                or self.field != ("hand" if self.position_feedback.reason == "empty_hand"
+                                  else "completed_tricks")):
+            raise ValueError("Position feedback must match its diagnostic field.")
 
 
 @dataclass(frozen=True, slots=True)

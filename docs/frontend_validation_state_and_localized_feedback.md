@@ -377,6 +377,53 @@ Closing the process discards all feedback.
 
 ## HTTP And Rendering
 
+### Guided Analyze omission feedback (Issue #274)
+
+The actual `/actions/analyze/run-guided` rejection path retains a private immutable
+`PositionFormFeedbackV1` alongside `FormFieldErrorV1`, then through
+`FrontendValidationIssueV1`. Its two finite reasons distinguish an empty required
+remaining hand from an incomplete completed Trick. Row context is limited to the
+nine existing displayed numbers and an ordered subset of missing leader/Card
+controls. Mapping is scoped to `analyze.run_guided`; it does not infer these reasons
+from English exception substrings. Existing diagnostic prose, count limits,
+duplicate/invalid-Card checks and chronological acceptance remain unchanged.
+
+Render-time German/English translation names the actual row and all identified
+missing controls. The row must be completed with its leader and three Cards;
+clearing all four controls is offered only for an unused row. Entirely unused rows
+produce no omission issue. Multiple incomplete rows and an independent empty hand
+retain separate messages and destinations.
+
+Only Analyze opts into explicit palette group targets and feedback insertion
+boundaries. Hand, visible Skat and public-hand messages sit inside their own
+fieldset **after** the Card grid. The fieldset retains its unique ID, existing
+help associations, `aria-invalid`, error descriptions and a visible programmatic
+focus indicator (`tabindex=-1`, without a new sequential Tab stop). Its selected
+count reflects the safe rejected selection rather than an older accepted draft.
+Completed-Trick feedback sits immediately after the affected fieldset, outside
+the four input groups preserved from #273. Its summary link targets the first
+missing native selector; all identified missing selectors describe the same row
+message. Explicit current-Trick/actual-Card boundaries also keep neighboring
+feedback outside label/control pairs.
+
+The hidden `completed_tricks` aggregate is still excluded from editable safe
+fields. No field name, value, route, request bound, HTTP status, source binding,
+safe-value rule or language-envelope contract changes. The registry retains
+67 routes / 119 definitions; seven added paired keys bring the catalogs to 1,818.
+Ordinary fields, Session/Match compact Card controls and manual Review retain
+their existing rendering paths. Focused regression coverage exercises those
+callers, existing help associations, and final HTTP Analyze responses rather than
+assuming initial-renderer output proves later feedback placement.
+
+Tests cover the reported CK/C7/empty third Card with an empty hand, each failure
+alone against an otherwise valid fixture, all nine row numbers and every omission
+combination, multiple rows, valid unused rows and corrected execution, unchanged
+other Card rejections, resolvable links/IDs/descriptions and native rejected-state
+language return. Explicit empty values, ordered neighboring Cards, accepted state
+identity and exact previous Request/Result download bytes survive rejection;
+invalid selections do not invoke analysis. See the
+[bounded Edge evidence and outstanding acceptance](unified_local_frontend_guided_analysis_and_results.md#guided-analysis-validation-feedback-issue-274).
+
 ### Completed-operation receipts (Issue #245)
 
 Routine success is separate from both rejected-form state and retained operation

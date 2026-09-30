@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 
 from .form_parsing import FormValuesV1
+from .position_form_feedback import PositionFormFeedbackV1
 from .session_card_feedback import SessionCardFeedback
 
 FRONTEND_VALIDATION_PRESERVATION_VERSION = 1
@@ -33,8 +34,15 @@ class FrontendValidationIssueV1:
     message_key: str
     interpolation_arguments: tuple[tuple[str, str], ...] = ()
     session_card_feedback: SessionCardFeedback | None = None
+    position_feedback: PositionFormFeedbackV1 | None = None
 
     def __post_init__(self) -> None:
+        if self.position_feedback is not None and (
+                type(self.position_feedback) is not PositionFormFeedbackV1
+                or self.field_key != self.position_feedback.fields[0]
+                or self.message_key != self.position_feedback.message_key
+                or self.interpolation_arguments or self.session_card_feedback is not None):
+            raise ValueError("Position feedback requires its exact field and message key.")
         if self.session_card_feedback is not None and (
                 type(self.session_card_feedback) is not SessionCardFeedback
                 or self.field_key != "cards" or self.interpolation_arguments

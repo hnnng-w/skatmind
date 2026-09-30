@@ -1,4 +1,5 @@
 from dataclasses import FrozenInstanceError
+from itertools import combinations
 
 import pytest
 
@@ -16,6 +17,10 @@ from skatmind.app_web.position_form import (
     PositionFormError,
     build_guided_position_execution_v1,
     parse_position_form_v1,
+)
+from skatmind.app_web.position_form_feedback import (
+    COMPLETED_TRICK_CONTROLS,
+    PositionFormFeedbackV1,
 )
 from skatmind.deck import get_full_deck
 from skatmind.rules import get_card_name, get_legal_cards
@@ -244,6 +249,36 @@ def test_incomplete_guided_completed_trick_has_one_field_local_error() -> None:
     assert error.value.field_messages["completed_tricks"] == (
         "Completed Trick 1 requires one leader and three Cards.",
     )
+    assert error.value.errors[0].position_feedback == PositionFormFeedbackV1(
+        "incomplete_trick", 1, ("card_2", "card_3"))
+
+
+@pytest.mark.parametrize("number", range(1, 10))
+@pytest.mark.parametrize("missing", tuple(combination for size in range(1, 4)
+    for combination in combinations(COMPLETED_TRICK_CONTROLS, size)))
+def test_every_displayed_row_and_omission_combination_keeps_bounded_context(number, missing):
+    values = {f"completed_trick_{number}_{name}": ["" if name in missing else value]
+              for name, value in zip(COMPLETED_TRICK_CONTROLS, ("me", "CK", "C7", "C8"),
+                                     strict=True)}
+    with pytest.raises(PositionFormError) as caught:
+        parse_position_form_v1(_form(**values))
+    assert len(caught.value.errors) == 1
+    assert caught.value.errors[0].position_feedback == PositionFormFeedbackV1(
+        "incomplete_trick", number, missing)
+
+
+@pytest.mark.parametrize("updates", (
+    {"hand": ["bad"]}, {"hand": ["CJ", "CJ"]}, {"hand": list(get_full_deck()[:11])},
+    {"completed_trick_1_leader": ["me", "me"], "completed_trick_1_card_1": ["C7"]},
+    {"completed_trick_1_leader": ["invalid"], "completed_trick_1_card_1": ["C7"]},
+    {"completed_trick_1_leader": ["me"], "completed_trick_1_card_1": ["invalid"]},
+    {"completed_trick_1_leader": ["me"], "completed_trick_1_card_1": ["C7"],
+     "completed_trick_1_card_2": ["C8"], "completed_trick_1_card_3": ["invalid"]},
+))
+def test_non_omission_errors_do_not_acquire_omission_diagnostics(updates):
+    with pytest.raises(PositionFormError) as caught:
+        parse_position_form_v1(_form(**updates))
+    assert all(error.position_feedback is None for error in caught.value.errors)
 
 
 def test_explicit_hand_size_must_match_attributed_history() -> None:

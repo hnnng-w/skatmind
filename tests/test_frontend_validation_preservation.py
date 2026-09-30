@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 
 import pytest
+from test_recording_task_focus import Hierarchy
 
-from skatmind.app_web.form_parsing import FormValuesV1, FormValueV1
+from skatmind.app_web.compact_card_rendering import compact_card_selector
+from skatmind.app_web.form_parsing import FormFieldErrorV1, FormValuesV1, FormValueV1
 from skatmind.app_web.form_registry import (
     FRONTEND_FORM_REGISTRY,
     UNIFIED_FRONTEND_POST_ROUTES,
@@ -13,12 +15,13 @@ from skatmind.app_web.form_registry import (
     validate_frontend_form_registry_v1,
 )
 from skatmind.app_web.form_state import ProcessLocalFrontendFeedbackStateV1
+from skatmind.app_web.position_form_feedback import PositionFormFeedbackV1
 from skatmind.app_web.validation_contracts import (
     FRONTEND_VALIDATION_PRESERVATION_VERSION,
     FrontendSubmittedFormStateV1,
     FrontendValidationIssueV1,
 )
-from skatmind.app_web.validation_mapping import map_frontend_exception_v1
+from skatmind.app_web.validation_mapping import map_form_field_errors_v1, map_frontend_exception_v1
 from skatmind.app_web.validation_rendering import (
     apply_validation_feedback_to_html_v1,
     instrument_registered_forms_v1,
@@ -132,6 +135,87 @@ def test_validation_contracts_are_immutable_and_strict() -> None:
         state.status = "conflict"  # type: ignore[misc]
     with pytest.raises(ValueError, match="translation key"):
         FrontendValidationIssueV1(field_key=None, message_key="raw error")
+
+
+@pytest.mark.parametrize("reason, number, missing", (
+    ("unknown", None, ()), ("empty_hand", 1, ()), ("empty_hand", None, ("leader",)),
+    ("incomplete_trick", 0, ("leader",)), ("incomplete_trick", 10, ("leader",)),
+    ("incomplete_trick", True, ("leader",)), ("incomplete_trick", 1, ()),
+    ("incomplete_trick", 1, ("leader", "card_1", "card_2", "card_3")),
+    ("incomplete_trick", 1, ("card_2", "leader")),
+    ("incomplete_trick", 1, ("card_1", "card_1")),
+    ("incomplete_trick", 1, ("private arbitrary text",)),
+))
+def test_position_feedback_rejects_unbounded_or_inconsistent_context(reason, number, missing):
+    with pytest.raises(ValueError):
+        PositionFormFeedbackV1(reason, number, missing)
+
+
+def test_position_feedback_mapping_is_private_scoped_and_independent_of_raw_prose():
+    detail = PositionFormFeedbackV1("incomplete_trick", 9, ("leader", "card_3"))
+    with pytest.raises(FrozenInstanceError):
+        detail.reason = "empty_hand"
+    diagnostic = FormFieldErrorV1("completed_tricks", "private arbitrary text", detail)
+    definition = resolve_frontend_form_v1("/actions/analyze/run-guided")
+    issue, = map_form_field_errors_v1((diagnostic,), definition)
+    assert issue.field_key == "completed_trick_9_leader"
+    assert issue.message_key == "validation.position.incomplete_trick"
+    assert issue.position_feedback is detail and not issue.interpolation_arguments
+    assert "private arbitrary text" not in repr(issue)
+    with pytest.raises(ValueError):
+        replace(issue, field_key="completed_tricks")
+    with pytest.raises(ValueError):
+        replace(issue, interpolation_arguments=(("number", "999"),))
+    generic, = map_form_field_errors_v1((diagnostic,),
+                                       resolve_frontend_form_v1("/actions/review/update-deal"))
+    assert generic.position_feedback is None and generic.field_key is None
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+@pytest.mark.parametrize("route, discriminator", (
+    ("/sessions/cards", {}),
+    ("/matches/cards", {"card_evidence_form": "perspective_hand_selected"}),
+))
+def test_compact_card_feedback_remains_outside_native_tiles(locale, route, discriminator):
+    definition = resolve_frontend_form_v1(route, discriminator)
+    binding = "a" * 64
+    html = (f'<form action="{route}"><input type="hidden" name="card_selection" '
+            f'value="{binding}">' + ''.join(f'<input type="hidden" name="{key}" value="{value}">'
+                for key, value in discriminator.items())
+            + compact_card_selector(locale, mode="set", cards=("CA", "CK")) + '</form>')
+    state = replace(_state(), form_key=definition.form_key, originating_route=route,
+        safe_visible_values=FormValuesV1((FormValueV1("card_selection", (binding,)),
+                                         FormValueV1("cards", ("CK",)))),
+        validation_issues=(_issue("cards"),))
+    rendered = apply_validation_feedback_to_html_v1(html, definition, state, locale=locale)
+    tree = Hierarchy(rendered)
+    message = tree.by_id("validation-message-1-1")
+    assert message["parents"][-1]["tag"] == "form"
+    target = tree.by_id(next(node["attrs"]["href"][1:] for node in tree.nodes
+                            if node["tag"] == "a"))
+    assert target["attrs"]["aria-describedby"] == message["attrs"]["id"]
+    assert target["tag"] == ("fieldset" if discriminator else "input")
+    assert sum("checked" in node["attrs"] for node in tree.nodes) == 1
+    assert next(node for node in tree.nodes if "checked" in node["attrs"])["attrs"]["value"] == "CK"
+
+
+def test_explicit_group_target_and_ordinary_control_keep_existing_help():
+    definition = resolve_frontend_form_v1("/actions/analyze/run-guided")
+    html = ('<form action="/actions/analyze/run-guided">'
+            '<fieldset id="hand-target" data-validation-group="hand" aria-describedby="hand-help">'
+            '<legend>Hand</legend><p id="hand-help">Existing help</p><div class="card-grid">'
+            '<label><input name="hand" type="checkbox" value="CA">Ace</label></div>'
+            '<!-- validation-messages:hand --></fieldset><label>Samples'
+            '<input id="samples" name="sample_count" aria-describedby="sample-help"></label>'
+            '<p id="sample-help">Sample help</p></form>')
+    state = replace(_state(), validation_issues=(_issue("hand"), _issue("sample_count")))
+    tree = Hierarchy(apply_validation_feedback_to_html_v1(html, definition, state, locale="en"))
+    for identity, help_id, message_id in (("hand-target", "hand-help", "validation-message-1-1"),
+                                         ("samples", "sample-help", "validation-message-1-2")):
+        assert tree.by_id(identity)["attrs"]["aria-describedby"].split() == [help_id, message_id]
+        assert tree.by_id(message_id)["text"]
+    assert tree.by_id("validation-message-1-1")["parents"][-1] is tree.by_id("hand-target")
+    assert tree.by_id("validation-message-1-2")["parents"][-1]["tag"] == "form"
 
 
 def test_safe_capture_is_allowlisted_bounded_and_clears_omitted_groups() -> None:

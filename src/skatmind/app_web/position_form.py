@@ -38,11 +38,15 @@ from .form_parsing import (
     parse_integer_text_v1,
 )
 from .guided_contracts import GUIDED_POSITION_FORM_VERSION
+from .position_form_feedback import (
+    COMPLETED_TRICK_CONTROLS,
+    POSITION_COMPLETED_TRICK_ROW_COUNT_V1,
+    PositionFormFeedbackV1,
+)
 
 DEFAULT_POSITION_SAMPLE_COUNT_V1 = 1000
 DEFAULT_POSITION_RANDOM_SEED_V1 = 42
 DEFAULT_POSITION_SEARCH_SEED_V1 = 42
-POSITION_COMPLETED_TRICK_ROW_COUNT_V1 = 9
 
 POSITION_COMPLETED_TRICK_SELECTOR_FIELDS_V1 = tuple(
     field
@@ -245,8 +249,11 @@ def _has_error(errors: list[FormFieldErrorV1], field: str) -> bool:
     return any(error.field == field for error in errors)
 
 
-def _add_error(errors: list[FormFieldErrorV1], field: str, message: str) -> None:
-    error = FormFieldErrorV1(field=field, message=message)
+def _add_error(
+    errors: list[FormFieldErrorV1], field: str, message: str,
+    *, position_feedback: PositionFormFeedbackV1 | None = None,
+) -> None:
+    error = FormFieldErrorV1(field=field, message=message, position_feedback=position_feedback)
     if error not in errors:
         errors.append(error)
 
@@ -339,7 +346,8 @@ def _cards(
             message = f"Select exactly {minimum} Cards."
         else:
             message = f"Select from {minimum} through {maximum} Cards."
-        _add_error(errors, field, message)
+        _add_error(errors, field, message, position_feedback=(
+            PositionFormFeedbackV1("empty_hand") if field == "hand" and not cards else None))
     invalid = tuple(card for card in cards if not is_canonical_card_code_v1(card))
     if invalid:
         _add_error(errors, field, f"Unknown Card codes: {', '.join(invalid)}.")
@@ -422,10 +430,21 @@ def _completed_trick_selector_text(
         if not supplied:
             continue
         if len(supplied) != 4:
+            # Malformed/repeated controls retain their existing generic diagnosis.
+            missing = tuple(name for name, value in zip(
+                COMPLETED_TRICK_CONTROLS, (leader, *cards), strict=True) if not value)
+            identifiable = (
+                all(not _has_error(errors, f"completed_trick_{trick_number}_{name}")
+                    for name in COMPLETED_TRICK_CONTROLS)
+                and leader in ("", *CONCRETE_PLAYERS)
+                and all(not card or is_canonical_card_code_v1(card) for card in cards)
+            )
             _add_error(
                 errors,
                 "completed_tricks",
                 f"Completed Trick {trick_number} requires one leader and three Cards.",
+                position_feedback=(PositionFormFeedbackV1(
+                    "incomplete_trick", trick_number, missing) if identifiable else None),
             )
             continue
         lines.append(f"{leader}|{','.join(cards)}")

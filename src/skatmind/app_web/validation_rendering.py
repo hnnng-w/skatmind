@@ -150,6 +150,9 @@ def _open_field_details(block: str, field: str) -> str:
 
 
 def _insert_field_messages(block: str, field: str, messages: str) -> str:
+    boundary = f'<!-- validation-messages:{field} -->'
+    if boundary in block:
+        return block.replace(boundary, messages + boundary, 1)
     if field in {"card", "cards"} and 'class="compact-cards"' in block:
         return block.replace('</fieldset>', '</fieldset>' + messages, 1)
     field_pattern = re.escape(field)
@@ -345,11 +348,14 @@ def _render_summary(
         else "validation.summary.guidance"
     )
     items = []
-    for field, _identifier, message in translated:
+    for issue, (field, _identifier, message) in zip(
+            state.validation_issues, translated, strict=True):
         href = f"#{rendered_fields.get(field or '', fallback_anchor)}"
         label = ""
         field_definition = field_definitions.get(field or "")
-        if field_definition is not None:
+        if (field_definition is not None and not (
+                issue.position_feedback is not None
+                and issue.position_feedback.reason == "incomplete_trick")):
             label = (
                 translate_frontend_message_v1(locale, field_definition.field_label_key) + ": "
             )
@@ -449,10 +455,21 @@ def apply_validation_feedback_to_html_v1(
     field_definitions = {field.field_key: field for field in definition.safe_fields}
     evidence_anchor = None
     for index, issue in enumerate(state.validation_issues, start=1):
+        arguments = issue.interpolation_values()
+        position_feedback = issue.position_feedback
+        if position_feedback is not None and position_feedback.reason == "incomplete_trick":
+            arguments = {
+                "number": str(position_feedback.trick_number),
+                "missing": ", ".join(
+                    translate_frontend_message_v1(locale, "guided.leader") if name == "leader"
+                    else translate_frontend_message_v1(
+                        locale, "guided.card_number", number=name[-1])
+                    for name in position_feedback.missing_controls),
+            }
         message = translate_frontend_message_v1(
             locale,
             issue.message_key,
-            **issue.interpolation_values(),
+            **arguments,
         )
         feedback = issue.session_card_feedback
         if (session_card_details is not None and feedback is not None
@@ -606,6 +623,15 @@ def apply_validation_feedback_to_html_v1(
         return html
     form_start, form_end = bounds
     block = _replace_values(html[form_start:form_end], state)
+    for entry in state.safe_visible_values.entries:
+        count_marker = f'<p data-validation-card-count="{entry.field}">'
+        if count_marker not in block:
+            continue
+        count_pattern = rf'({re.escape(count_marker)}).*?(</p>)'
+        count_text = escape(translate_frontend_message_v1(
+            locale, "guided.cards_selected", count=len(set(entry.values) - {""})))
+        block = re.sub(count_pattern, lambda match, text=count_text:
+                       match[1] + text + match[2], block, flags=re.DOTALL)
     if learning_report:
         block = _learning_report_feedback(block, state, locale)
     for field, messages in field_messages.items():
@@ -613,8 +639,19 @@ def apply_validation_feedback_to_html_v1(
         described_by = " ".join(identifier for identifier, _message in messages)
         control_id = f"validation-field-{state.feedback_generation}-{field}"
         singleton_target = (learning_report and field == "match_snapshot_id"
-                            and '<select ' not in block)
-        if (definition.discriminator_field == "card_evidence_form" and field == "cards"
+                             and '<select ' not in block)
+        group = re.search(
+            rf'<fieldset\b(?=[^>]*\bdata-validation-group="{re.escape(field)}")[^>]*>', block)
+        if group is not None:
+            tag = group[0]
+            rendered_control_id = _attribute(tag, "id") or control_id
+            existing = (_attribute(tag, "aria-describedby") or "").split()
+            for name, value in (("id", rendered_control_id), ("tabindex", "-1"),
+                                ("aria-invalid", "true"), ("aria-describedby", " ".join(
+                                    dict.fromkeys((*existing, *described_by.split()))))):
+                tag = _set_attribute(tag, name, value)
+            block = block[:group.start()] + tag + block[group.end():]
+        elif (definition.discriminator_field == "card_evidence_form" and field == "cards"
                 and 'class="compact-cards"' in block):
             rendered_control_id = control_id
             block = re.sub(r'<fieldset\b[^>]*class="compact-cards"[^>]*>',
@@ -630,6 +667,11 @@ def apply_validation_feedback_to_html_v1(
         else:
             block, rendered_control_id = _add_control_accessibility(
                 block, field, described_by, control_id)
+            for issue in state.validation_issues:
+                if issue.field_key == field and issue.position_feedback is not None:
+                    for related in issue.position_feedback.fields[1:]:
+                        block, _ = _add_control_accessibility(block, related, described_by,
+                            f"validation-field-{state.feedback_generation}-{related}")
         if rendered_control_id is None:
             continue
         rendered_fields[field] = rendered_control_id

@@ -13,15 +13,27 @@ from test_recording_task_focus import Hierarchy
 from test_session_recorded_review_web import Browser
 from test_task_first_language_preservation import enhanced_switch, envelope
 
+import skatmind.app_web.workflow_operations as operations
 from skatmind.app_web.card_form import CANONICAL_CARD_CONTROLS_V1
+from skatmind.app_web.form_parsing import FormValuesV1
+from skatmind.app_web.form_registry import resolve_frontend_form_v1
 from skatmind.app_web.guided_rendering import (
     render_analyze_workflow_v1,
     render_review_workflow_v1,
 )
 from skatmind.app_web.historical_form import build_historical_play_view_v1
-from skatmind.app_web.position_form import CompletedTrickFormValueV1, parse_position_form_v1
+from skatmind.app_web.position_form import (
+    CompletedTrickFormValueV1,
+    build_guided_position_execution_v1,
+    parse_position_form_v1,
+)
 from skatmind.app_web.stateful_localization import card_name
 from skatmind.app_web.translation_catalog import translate_frontend_message_v1 as text
+from skatmind.app_web.validation_contracts import (
+    FrontendSubmittedFormStateV1,
+    FrontendValidationIssueV1,
+)
+from skatmind.app_web.validation_rendering import apply_validation_feedback_to_html_v1
 from skatmind.app_web.workflow_state import ProcessLocalFrontendWorkflowStateV1
 
 ACTION = "/actions/analyze/run-guided"
@@ -102,7 +114,10 @@ def assert_completed_rows(page, locale, values):
                 assert_card_select(tree, select, locale, values.get(field, ""))
             else:
                 assert select["parents"][-1] is label
-                assert "id" not in select["attrs"]
+                if select["attrs"].get("aria-invalid") == "true":
+                    assert tree.by_id(select["attrs"]["id"]) is select
+                else:
+                    assert "id" not in select["attrs"]
                 assert label["text"].startswith(text(locale, "guided.leader"))
                 options = descendants(tree, select, "option")
                 assert [option["attrs"]["value"] for option in options] == [
@@ -134,6 +149,238 @@ def assert_neighbor_selects(tree, locale, current=("", ""), actual=""):
         assert_card_select(tree, select, locale, value)
         assert not any(parent["attrs"].get("class") == "completed-trick-row"
                        for parent in select["parents"])
+
+
+def assert_accessibility_references(tree):
+    assert_ids_and_labels(tree)
+    for node in tree.nodes:
+        for attribute in ("aria-describedby", "aria-labelledby"):
+            for identity in node["attrs"].get(attribute, "").split():
+                assert tree.by_id(identity)["text"]
+    summary = next(node for node in tree.nodes
+                   if node["attrs"].get("class") == "error-summary")
+    for link in descendants(tree, summary, "a"):
+        target = tree.by_id(link["attrs"]["href"][1:])
+        assert tree.visible(target) and target["attrs"].get("type") != "hidden"
+        assert target["attrs"]["aria-invalid"] == "true"
+    for message in (node for node in tree.nodes if node["attrs"].get("class") == "field-error"):
+        assert not any(parent["attrs"].get("class") in {
+            "card-grid", "card-choice", "completed-trick-row", "completed-trick-field"}
+            for parent in message["parents"])
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+def test_reported_empty_hand_and_incomplete_trick_post_feedback(
+    localized_server, locale, monkeypatch,
+):
+    browser = Browser(localized_server)
+    page = follow(browser, browser.request("POST", ACTION,
+                  {**_position_values(0), "sample_count": "1"}))
+    switch(browser, page, locale)
+    accepted = localized_server.app_context.analyze_state
+    assert accepted.latest_successful_result is not None
+    calls = []
+    def forbidden(*args, **kwargs):
+        calls.append(args)
+        raise AssertionError("Rejected selection must not execute analysis")
+    monkeypatch.setattr(operations, "execute_guided_frontend_analysis_v1", forbidden)
+    values = {**_position_values(accepted.revision), "hand": [],
+              "completed_trick_1_leader": "me", "completed_trick_1_card_1": "CK",
+              "completed_trick_1_card_2": "C7", "completed_trick_1_card_3": ""}
+    status, _, body = browser.request("POST", ACTION, values)
+    assert status == 400
+    page = body.decode()
+    retained = localized_server.app_context.form_feedback._feedback["analyze"]
+    assert retained[1].safe_visible_values.all("hand") == ("",)
+    assert "completed_tricks" not in {
+        field.field_key for field in resolve_frontend_form_v1(ACTION).safe_fields}
+    for index, language in enumerate((locale, "en" if locale == "de" else "de", locale)):
+        if index:
+            page = switch(browser, page, language)
+        tree = assert_completed_rows(page, language, values)
+        assert_accessibility_references(tree)
+        assert_neighbor_selects(tree, language)
+        messages = [node for node in tree.nodes if node["attrs"].get("class") == "field-error"]
+        assert len(messages) == 2
+        hand, trick = messages
+        hand_group = tree.by_id("field-hand")
+        assert hand["parents"][-1] is hand_group
+        assert hand_group["attrs"]["tabindex"] == "-1"
+        assert hand_group["attrs"]["aria-describedby"] == hand["attrs"]["id"]
+        assert text(language, "guided.cards_selected", count=0) in hand_group["text"]
+        assert len(descendants(tree, hand_group, "input")) == 32
+        assert trick["parents"][-1] is tree.by_id("field-completed_tricks")
+        assert hand["text"] != trick["text"]
+        assert hand["text"] == text(language, "validation.position.empty_hand")
+        assert trick["text"] == text(language, "validation.position.incomplete_trick", number=1,
+                                     missing=text(language, "guided.card_number", number=3))
+        summary = next(node for node in tree.nodes
+                       if node["attrs"].get("class") == "error-summary")
+        links = descendants(tree, summary, "a")
+        assert [link["attrs"]["href"] for link in links] == [
+            "#field-hand", "#completed-trick-1-card-3"]
+        assert text(language, "guided.hand") in links[0]["text"]
+        assert text(language, "guided.trick_number", number=1) in links[1]["text"]
+        assert not any(node["attrs"].get("name") == "hand" and "checked" in node["attrs"]
+                       for node in tree.nodes)
+        assert localized_server.app_context.analyze_state is accepted
+        assert localized_server.app_context.form_feedback._feedback["analyze"] is retained
+        assert text(language, "validation.last_valid_result") in page
+    assert (browser.request("GET", "/downloads/analyze/request.json")[2]
+            == accepted.request_json_bytes)
+    assert browser.request("GET", "/downloads/analyze/result.json")[2] == accepted.result_json_bytes
+    assert calls == []
+
+
+def completed_values(number=1):
+    return {**_position_values(0), "sample_count": "1",
+            "hand": ["CJ", "CA", "C10", "CQ", "C9", "SA", "S10", "HA", "H10"],
+            **{f"completed_trick_{number}_{name}": value for name, value in (
+                ("leader", "me"), ("card_1", "CK"), ("card_2", "C7"), ("card_3", "C8"))}}
+
+
+def assert_builds(values):
+    build_guided_position_execution_v1(parse_position_form_v1({
+        name: value if isinstance(value, list) else [value]
+        for name, value in values.items() if name != "revision"}))
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+@pytest.mark.parametrize("number", (1, 5, 9))
+@pytest.mark.parametrize("missing", (("leader",), ("card_1",), ("card_2",), ("card_3",),
+                                      ("leader", "card_2"), ("card_1", "card_2", "card_3")))
+def test_incomplete_row_alone_targets_each_missing_control(
+    localized_server, locale, number, missing,
+):
+    browser = Browser(localized_server)
+    switch(browser, browser.page("/analyze"), locale)
+    values = completed_values(number)
+    assert_builds(values)
+    values.update({f"completed_trick_{number}_{name}": "" for name in missing})
+    status, _, body = browser.request("POST", ACTION, values)
+    assert status == 400
+    tree = assert_completed_rows(body.decode(), locale, values)
+    assert_accessibility_references(tree)
+    messages = [node for node in tree.nodes if node["attrs"].get("class") == "field-error"]
+    assert len(messages) == 1
+    expected_missing = ", ".join(text(locale, "guided.leader") if name == "leader" else
+                                 text(locale, "guided.card_number", number=name[-1])
+                                 for name in missing)
+    assert messages[0]["text"] == text(locale, "validation.position.incomplete_trick",
+                                        number=number, missing=expected_missing)
+    invalid = [node for node in tree.nodes if node["attrs"].get("aria-invalid") == "true"]
+    assert [node["attrs"]["name"] for node in invalid] == [
+        f"completed_trick_{number}_{name}" for name in missing]
+    assert all(node["attrs"]["aria-describedby"] == messages[0]["attrs"]["id"] for node in invalid)
+    summary = next(node for node in tree.nodes
+                   if node["attrs"].get("class") == "error-summary")
+    assert descendants(tree, summary, "a")[0]["attrs"]["href"] == "#" + invalid[0]["attrs"]["id"]
+    assert messages[0]["parents"][-1] is tree.by_id("field-completed_tricks")
+    row = next(parent for parent in invalid[0]["parents"] if parent["tag"] == "fieldset")
+    siblings = children(tree, row["parents"][-1])
+    assert siblings[siblings.index(row) + 1] is messages[0]
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+def test_empty_hand_alone_and_corrected_form_with_unused_rows_are_valid(localized_server, locale):
+    browser = Browser(localized_server)
+    switch(browser, browser.page("/analyze"), locale)
+    values = {**_position_values(0), "sample_count": "1"}
+    values.update({f"completed_trick_{number}_{name}": "" for number in range(1, 10)
+                   for name in ("leader", "card_1", "card_2", "card_3")})
+    assert_builds(values)
+    status, _, body = browser.request("POST", ACTION, {**values, "hand": [""]})
+    assert status == 400
+    tree = assert_completed_rows(body.decode(), locale, values)
+    assert_accessibility_references(tree)
+    messages = [node for node in tree.nodes if node["attrs"].get("class") == "field-error"]
+    assert [message["text"] for message in messages] == [
+        text(locale, "validation.position.empty_hand")]
+    response = browser.request("POST", ACTION, values)
+    assert response[0] == 303
+    assert 'class="error-summary"' not in follow(browser, response)
+    assert localized_server.app_context.analyze_state.latest_successful_result is not None
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+def test_multiple_incomplete_rows_and_neighbor_values_survive_language_return(
+    localized_server, locale,
+):
+    browser = Browser(localized_server)
+    switch(browser, browser.page("/analyze"), locale)
+    values = {**_position_values(0), "analysis_mode": "post_game_review",
+              "actual_card_played": "CJ", "current_trick": ["", "H10"],
+              "completed_trick_2_leader": "me", "completed_trick_2_card_2": "C7",
+              "completed_trick_7_card_1": "D10", "completed_trick_7_card_3": "D7"}
+    status, _, body = browser.request("POST", ACTION, values)
+    assert status == 400
+    page = body.decode()
+    for index, language in enumerate((locale, "en" if locale == "de" else "de")):
+        if index:
+            page = switch(browser, page, language)
+        tree = assert_completed_rows(page, language, values)
+        assert_accessibility_references(tree)
+        assert_neighbor_selects(tree, language, ("", "H10"), "CJ")
+        messages = [node for node in tree.nodes if node["attrs"].get("class") == "field-error"]
+        assert len(messages) == 2
+        for message, number in zip(messages, (2, 7), strict=True):
+            assert message["text"].startswith(text(language, "guided.trick_number", number=number))
+        feedback = localized_server.app_context.form_feedback._feedback["analyze"][1]
+        assert feedback.safe_visible_values.all("current_trick") == ("", "H10")
+        assert [issue.field_key for issue in feedback.validation_issues] == [
+            "completed_trick_2_card_1", "completed_trick_7_leader"]
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+@pytest.mark.parametrize("updates, field", (
+    ({"hand": ["CA"]}, "hand"),
+    ({"hand": list(CARDS[:11])}, "hand"),
+    ({"hand": ["CA", "CA"]}, "hand"),
+    ({"hand": ["invalid"]}, "hand"),
+    ({"skat": ["D7"]}, "skat"),
+    ({"public_declarer_cards": ["H7"]}, "public_declarer_cards"),
+    ({"current_trick": ["CA", ""]}, "current_trick"),
+    ({"actual_card_played": "CJ"}, "actual_card_played"),
+))
+def test_other_analyze_card_rejections_keep_generic_reason_and_correct_group(
+    localized_server, locale, updates, field,
+):
+    browser = Browser(localized_server)
+    switch(browser, browser.page("/analyze"), locale)
+    status, _, body = browser.request("POST", ACTION, {**_position_values(0), **updates})
+    assert status == 400
+    tree = Hierarchy(body.decode())
+    assert_accessibility_references(tree)
+    feedback = localized_server.app_context.form_feedback._feedback["analyze"][1]
+    assert all(issue.position_feedback is None for issue in feedback.validation_issues)
+    assert field in {issue.field_key for issue in feedback.validation_issues}
+    group = tree.by_id(f"field-{field}")
+    errors = [node for node in children(tree, group) if node["attrs"].get("class") == "field-error"]
+    assert errors
+    assert all(node["text"] == text(locale, "validation.message.card_conflict") for node in errors)
+
+
+def test_correcting_incomplete_row_runs_once_and_clears_feedback(localized_server, monkeypatch):
+    browser = Browser(localized_server)
+    real_execute = operations.execute_guided_frontend_analysis_v1
+    calls = []
+    def execute(*args, **kwargs):
+        calls.append(args)
+        return real_execute(*args, **kwargs)
+    monkeypatch.setattr(operations, "execute_guided_frontend_analysis_v1", execute)
+    values = completed_values()
+    assert browser.request("POST", ACTION, {**values, "completed_trick_1_card_3": ""})[0] == 400
+    assert calls == []
+    response = browser.request("POST", ACTION, values)
+    assert response[0] == 303
+    page = follow(browser, response)
+    tree = assert_completed_rows(page, "en", values)
+    assert not any(node["attrs"].get("class") in {"error-summary", "field-error"}
+                   for node in tree.nodes)
+    assert len(calls) == 1
+    accepted = localized_server.app_context.analyze_state
+    assert accepted.draft.completed_tricks[0].cards == ("CK", "C7", "C8")
+    assert "analyze" not in localized_server.app_context.form_feedback._feedback
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))
@@ -178,7 +425,11 @@ def assert_feedback(tree):
             message = tree.by_id(identity)
             assert message["attrs"]["class"] == "field-error" and message["text"]
     assert any(target["attrs"].get("aria-invalid") == "true" for target in targets)
-    assert {"hand", "skat"} <= {target["attrs"].get("name") for target in targets}
+    assert {"field-hand", "field-skat"} <= {target["attrs"].get("id") for target in targets}
+    for identity in ("field-hand", "field-skat"):
+        group = tree.by_id(identity)
+        assert group["tag"] == "fieldset" and group["attrs"]["tabindex"] == "-1"
+        assert descendants(tree, group, "input")
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))
@@ -249,3 +500,28 @@ def test_manual_historical_legal_card_selector_keeps_its_association_and_options
     assert label["text"] == text(locale, "task.card.choose")
     first = next(card for card in CARDS if card in view.legal_cards)
     assert_card_select(tree, select, locale, first, allowed=view.legal_cards, empty=False)
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+def test_manual_review_card_feedback_keeps_native_label_control_and_target(locale):
+    draft = _draft_at_play()
+    page = render_review_workflow_v1(
+        ProcessLocalFrontendWorkflowStateV1(draft=draft), locale=locale)
+    definition = resolve_frontend_form_v1("/actions/review/append-play")
+    feedback = FrontendSubmittedFormStateV1(
+        contract_version=1, form_key=definition.form_key, originating_route=definition.action_route,
+        active_family_binding="review", review_wizard_step=5, form_instance=None,
+        safe_visible_values=FormValuesV1(), validation_issues=(FrontendValidationIssueV1(
+            field_key="card", message_key="validation.message.card_conflict"),),
+        status="invalid", feedback_generation=1)
+    tree = Hierarchy(apply_validation_feedback_to_html_v1(
+        page, definition, feedback, locale=locale))
+    assert_accessibility_references(tree)
+    control = tree.by_id("legal-card")
+    label, rendered_control, error = children(tree, control["parents"][-1])
+    assert rendered_control is control
+    assert label["attrs"]["for"] == control["attrs"]["id"]
+    assert error["attrs"]["id"] == control["attrs"]["aria-describedby"]
+    view = build_historical_play_view_v1(draft)
+    first = next(card for card in CARDS if card in view.legal_cards)
+    assert_card_select(tree, control, locale, first, allowed=view.legal_cards, empty=False)

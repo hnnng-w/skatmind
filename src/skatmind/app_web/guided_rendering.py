@@ -102,10 +102,13 @@ def _field_group(
     messages: dict[str, tuple[str, ...]],
     field: str,
     content: str,
+    *, feedback_boundary: bool = False,
 ) -> str:
     return (
         f'<div class="form-field" role="group" {_field_attributes(messages, field)}>'
-        f"{content}{_field_errors(messages, field)}</div>"
+        f"{content}{_field_errors(messages, field)}"
+        + (f'<!-- validation-messages:{_e(field)} -->' if feedback_boundary else "")
+        + "</div>"
     )
 
 
@@ -136,6 +139,7 @@ def _card_palette(
     legend: str,
     allowed_cards: tuple[str, ...] | None = None,
     messages: dict[str, tuple[str, ...]] | None = None,
+    feedback_target: bool = False,
 ) -> str:
     messages = messages or {}
     selected = set(selected_cards)
@@ -150,12 +154,15 @@ def _card_palette(
             f'{_checked(card.code in selected)}>'
             f'<span>{_e(localized_card_name(card.code))} <code>{_e(card.code)}</code></span></label>'
         )
+    target = f' data-validation-group="{_e(name)}"' if feedback_target else ""
+    boundary = f'<!-- validation-messages:{_e(name)} -->' if feedback_target else ""
+    count_target = f' data-validation-card-count="{_e(name)}"' if feedback_target else ""
     return (
-        f'<fieldset class="card-palette" {_field_attributes(messages, name)}>'
-        f'<legend>{_e(legend)}</legend><p>{_t("guided.cards_selected", count=len(selected))}</p>'
+        f'<fieldset class="card-palette"{target} {_field_attributes(messages, name)}>'
+        f'<legend>{_e(legend)}</legend><p{count_target}>{_t("guided.cards_selected", count=len(selected))}</p>'
         '<div class="card-grid">'
         + "".join(controls)
-        + f"</div>{_field_errors(messages, name)}</fieldset>"
+        + f"</div>{_field_errors(messages, name)}{boundary}</fieldset>"
     )
 
 
@@ -308,6 +315,8 @@ def _completed_trick_controls(
                 for card_number in range(1, 4)
             )
             + "</fieldset>"
+            + "".join(f'<!-- validation-messages:completed_trick_{trick_number}_{name} -->'
+                      for name in ("leader", "card_1", "card_2", "card_3"))
         )
     return (
         f'<div class="completed-tricks" role="group" '
@@ -439,19 +448,19 @@ def render_analyze_workflow_v1(state: ProcessLocalFrontendWorkflowStateV1) -> st
         _field_group(messages, "matadors", f'<label>{_t("task.field.matadors")}<input name="matadors" type="number" min="1" max="11" value="{_e(draft.matadors or "" if draft else "")}"></label>'),
         f'<p>{_t("guided.matadors_help")}</p></section>',
         f'<section aria-labelledby="visible-heading"><h2 id="visible-heading">{_t("guided.visible")}</h2>',
-        _card_palette("hand", draft.hand if draft else (), legend=_m("guided.hand"), messages=messages),
-        _card_palette("skat", draft.skat if draft else (), legend=_m("guided.skat"), messages=messages),
-        _card_palette("public_declarer_cards", draft.public_declarer_cards if draft else (), legend=_m("guided.public_hand"), messages=messages),
+        _card_palette("hand", draft.hand if draft else (), legend=_m("guided.hand"), messages=messages, feedback_target=True),
+        _card_palette("skat", draft.skat if draft else (), legend=_m("guided.skat"), messages=messages, feedback_target=True),
+        _card_palette("public_declarer_cards", draft.public_declarer_cards if draft else (), legend=_m("guided.public_hand"), messages=messages, feedback_target=True),
         f'<p>{_t("guided.hidden_help")}</p></section>',
         f'<section aria-labelledby="tricks-heading"><h2 id="tricks-heading">{_t("guided.tricks")}</h2>',
         _completed_trick_controls(draft, messages),
-        _field_group(messages, "current_trick", _card_select("current_trick", current[0] if current else None, label=_m("guided.current_first"), field_id="current-trick-first") + _card_select("current_trick", current[1] if len(current) > 1 else None, label=_m("guided.current_second"), field_id="current-trick-second")),
+        _field_group(messages, "current_trick", _card_select("current_trick", current[0] if current else None, label=_m("guided.current_first"), field_id="current-trick-first") + _card_select("current_trick", current[1] if len(current) > 1 else None, label=_m("guided.current_second"), field_id="current-trick-second"), feedback_boundary=True),
         _field_group(messages, "trick_leader", f'<label>{_t("guided.current_leader")}<select name="trick_leader">{_options(tuple((value, _m(f"task.value.{value}")) for value in ("me", "left", "right")), leader)}</select></label>'),
         f'<p>{_t("guided.rules_help")}</p></section>',
         f'<section aria-labelledby="score-heading"><h2 id="score-heading">{_t("guided.score")}</h2>',
         _field_group(messages, "declarer_points", f'<label>{_t("guided.declarer_points")}<input name="declarer_points" type="number" min="0" max="120" value="{draft.declarer_points if draft else 0}"></label>'),
         _field_group(messages, "defender_points", f'<label>{_t("guided.defender_points")}<input name="defender_points" type="number" min="0" max="120" value="{draft.defender_points if draft else 0}"></label>'),
-        _field_group(messages, "actual_card_played", _card_select("actual_card_played", draft.actual_card_played if draft else None, label=_m("guided.actual_card"), field_id="actual-card-played")),
+        _field_group(messages, "actual_card_played", _card_select("actual_card_played", draft.actual_card_played if draft else None, label=_m("guided.actual_card"), field_id="actual-card-played"), feedback_boundary=True),
         f'<p>{_t("guided.sizes_help")}</p></section>',
         _advanced_position(draft, messages),
         f'<section aria-labelledby="run-heading"><h2 id="run-heading">{_t("guided.run")}</h2>',

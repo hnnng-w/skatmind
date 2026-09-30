@@ -667,6 +667,8 @@ _FORMS: list[FrontendFormDefinitionV1] = [
             },
         },
         choice_overrides=_POSITION_CHOICE_OVERRIDES,
+        label_overrides={name: "validation.field." + name for name in (
+            "hand", "skat", "public_declarer_cards", "current_trick", "actual_card_played")},
     ),
     _definition(
         "analyze.import_json",

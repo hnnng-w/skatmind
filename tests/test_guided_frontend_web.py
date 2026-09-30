@@ -1069,7 +1069,9 @@ def test_public_execution_validation_is_400_and_retains_safe_field_message(
     html = body.decode()
     assert "The submitted hand is invalid." not in html
     assert "SkatMind could not apply these values" in html
-    assert 'id="validation-field-1-hand"' in html
+    assert 'data-validation-group="hand"' in html
+    assert 'id="field-hand" tabindex="-1"' in html
+    assert 'href="#field-hand"' in html
     assert 'aria-invalid="true"' in html
     assert 'aria-describedby="validation-message-1-1"' in html
 

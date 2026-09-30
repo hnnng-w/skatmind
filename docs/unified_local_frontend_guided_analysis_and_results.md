@@ -179,6 +179,59 @@ game_end_reason = not_ended
 validate_output = true
 ```
 
+### Guided-analysis validation feedback (Issue #274)
+
+Rejected Analyze input now distinguishes an empty remaining hand from an incomplete
+numbered completed Trick in German and English. The hand summary links to its
+visible palette fieldset, with feedback after the tiles; an incomplete row links
+to its first missing selector and names all missing inputs. The row message is
+after its four-group fieldset, preserving #273's layout and native controls. A used
+row requires its leader and all three Cards. Clearing the entire row is described
+only as an alternative for an unused row. Other Card-validation semantics are
+unchanged. The [validation guide](frontend_validation_state_and_localized_feedback.md#guided-analyze-omission-feedback-issue-274)
+records the bounded diagnostic and targeting mechanism.
+
+Developer browser evidence on **2026-09-30** used headless Microsoft Edge
+**154.0.4258.37**, the uncommitted #274 working-tree implementation over
+`edcb8f1ea1d57ab1a3e61cf5a718b1a1a925a4a7`, source-tree Python/resources and the
+existing local DevTools helper. This was not an installed-package browser check.
+A newly created disposable profile and synthetic managed home were used; the
+optional application script was disabled for native rejected-state language return.
+
+Both English and German passed empty, actual server-rejected, and corrected valid
+presentations at these native window sizes, without viewport emulation or CSS scaling:
+
+| Window (pixels) | Reported CSS viewport | Browser zoom |
+| --- | --- | --- |
+| 1440 x 1000 | 1406 x 903 | Fresh-profile default 100% |
+| 800 x 1000 | 766 x 903 | Fresh-profile default 100% |
+| 552 x 1000 | 518 x 903 | Fresh-profile default 100% |
+
+Device pixel ratio and visual viewport scale were both 1. The checks submitted
+the real form using native Enter, verified the POST and retained server feedback,
+and observed the two distinct correction messages. Hand feedback remained outside
+the Card grid; completed-Trick feedback remained outside all four input groups.
+Summary activation focused the intended fieldset and missing Card selector with
+visible outlines. Tab continued to the following row's leader, and native
+ArrowDown/Home selection remained usable. Unique IDs and all accessibility
+references resolved. No page/row horizontal overflow or selected-option clipping
+was detected at these sizes; representative normal/narrow screenshots were inspected.
+
+Native language switching retained the explicit empty hand and Card 3, CK/C7 order
+and translated feedback without another analysis submission. Additional rejection
+checks preserved an empty first current-Trick slot, second Card and actual Card;
+the previous valid accepted state remained identical. Correcting the row and hand
+produced a real valid Result. The neighboring manual Review legal-Card selector
+also retained native selection and visible keyboard focus at all tested sizes.
+
+**Outstanding:** actual **200% browser zoom**, interactive Edge GUI verification,
+and the focused maintainer retest on the identified integrated installed build.
+The available headless helper has no established real browser-zoom control;
+resizing/scaling is not counted as zoom evidence. Developer checks do not replace
+maintainer acceptance. Keep #274 open, with #273 and #208 unchanged, pending the
+required installed-build retest and outstanding evidence. This is not UAT-01
+acceptance or Release readiness.
+
 ## Advanced Settings
 
 Both workflows use the six initially collapsed groups:
