@@ -1119,6 +1119,59 @@ details[open] > summary {
   max-width: 100%;
 }
 
+/* Only the projected initial player hand opts in; the outer title is a sibling. */
+main:has(#session-recording.initial-hand-entry) > h1 {
+  max-width: none;
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  margin-bottom: 0.75rem;
+}
+
+#session-recording.initial-hand-entry > .panel {
+  padding: 0.75rem;
+}
+
+.initial-hand-entry > .panel > h2 {
+  margin-block: 0 0.75rem;
+  font-size: 1.5rem;
+}
+
+#session-app .initial-hand-entry .form-grid {
+  max-width: none;
+  gap: 0.6rem;
+}
+
+.initial-hand-entry .form-grid > p,
+.session-initial-accepted p {
+  margin: 0;
+}
+
+.initial-hand-entry .compact-card-groups {
+  container: initial-hand-suits / inline-size;
+}
+
+.initial-hand-entry .compact-card-choices {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Override the shared fixed tile width; preserve text, control size and focus room. */
+.initial-hand-entry .compact-card {
+  width: auto;
+  max-width: none;
+}
+
+@container initial-hand-suits (min-width: 12em) {
+  .initial-hand-entry .compact-card-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container initial-hand-suits (min-width: 24em) {
+  .initial-hand-entry .compact-card-choices { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@container initial-hand-suits (min-width: 48em) {
+  .initial-hand-entry .compact-card-choices { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+}
+
 /* Accepted Trick progress has no form, counter, or collapsed diagnostic targets. */
 /* Native declaration fields share layout, never change selection or rule semantics. */
 .compact-declaration,

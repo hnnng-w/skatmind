@@ -24,7 +24,8 @@ never be backfilled into earlier decisions.
 Reconstruction's complete-deal requirement applies with or without a local Player.
 Applicable discards follow later. Selecting this mode does not establish that the
 Cards have been entered or that export is ready. Direct entry names the current
-Player and lists all three hands in canonical Forehand/Middlehand/Rearhand order.
+Player and seat. The accepted overview lists all three hands in canonical
+Forehand/Middlehand/Rearhand order.
 
 Own/manual identity and explicit seats retain #225 setup review. Own identity never
 implies Forehand. Changing mode after roster review requires the same existing
@@ -43,9 +44,35 @@ exact time remain optional. Past `played_at`, language, zone and system time do 
 select the path. `/sessions/cards` retains its 8,192-byte bound.
 
 Opened, imported and reopened records display their effective accepted mode.
+During initial-hand entry, mode and phase share one secondary line in the accepted
+overview. Other phases retain their existing introductory context.
 A promoted record displays reconstruction even if its initial mode was `live`.
 Passive viewing, radio selection and disclosures cause no Product write, promotion,
 analysis or preparation. Language saving retains its separate profile operation.
+
+### Compact initial-hand task (Issue #275)
+
+Only the existing setup/deal task with `record_dealt_card` and destination
+`player_hand` opts into the compact presentation. The Game title is followed by
+one **Starting hand — Player · Seat** heading, brief capacity-aware guidance,
+native choices and explicit Save. Reconstruction shows a separate named and seated
+recording perspective beside the task when it differs from the target. It still
+requires all three hands and the original Skat in the existing order.
+
+Before any Cards are saved, there is no separate accepted-Card placeholder.
+Partial and reopened hands show **Saved starting cards** and a correction link;
+the selector offers only unassigned Cards and states the remaining capacity.
+Save appends the newly selected Cards; previously saved Cards need no reselection.
+The existing history, correction, Undo and recovery semantics remain authoritative.
+The revision/Checkpoint mechanics are documented in
+[Compact Card entry](compact_card_entry.md#session-append-candidate-first-save-last),
+outside the ordinary input instructions.
+
+The initial-hand panel uses its available width without an undeclared-score sidebar.
+Original-Skat, discard, declaration and Play tasks retain their existing layout and
+progress. The scoped title treatment also reaches the outer `main > h1`, rendered
+by the application shell. See the
+[matched browser evidence and remaining acceptance checks](compact_card_entry.md#compact-initial-session-hand-issue-275).
 
 ### Accepted seating and hand scope (Issue #247)
 

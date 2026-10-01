@@ -109,8 +109,19 @@ Match creation and retired Settings toggle. #268 implements R07f; #269's R13g ch
 is described below. Automatic Learning remains separate. See the [one-section state map](profile_driven_stateful_creation.md#default-open-match-details-issue-267)
 and [hidden compatibility transport](settings_and_player_seat_setup.md#default-open-match-details-and-hidden-compatibility-issue-267).
 
-The active page starts with its accepted path, phase and perspective, then one
-task at `session-recording`: initial hand, declarer, declaration, known Skat,
+Issue #275 gives initial player-hand entry a compact, full-width task: one named
+Player/seat heading, short remaining-capacity guidance, native selector and explicit
+Save. Mode/phase move to the accepted overview; a differing reconstruction
+perspective stays distinguishable beside the task. Empty accepted-Card placeholders
+and the undeclared-score sidebar are omitted for this task only. Saved Cards and
+correction access remain visible after partial Save/reopen. Container-sized suit rows
+use eight columns at the reference desktops and deliberate four/two/one-column
+fallbacks, with unchanged text/control sizing and source order. The outer Game title
+and local spacing opt in through the same task marker. See
+[scope and measured evidence](compact_card_entry.md#compact-initial-session-hand-issue-275).
+
+Other active tasks start with their accepted path, phase and perspective, then one
+task at `session-recording`: declarer, declaration, known Skat,
 discards, required public hand, observed Card, or explicit Game End. An ended
 recording has one normal ended heading and a history/correction link, with no empty
 Next step panel. Detailed accepted ending/history remains. German and English use
@@ -118,7 +129,7 @@ the same accepted facts and primary-action projection.
 Issue #233 supersedes During play / After the game with knowledge-based paths:
 Player-perspective recording (`live`) and complete-deal reconstruction (`retrospective`).
 The effective accepted mode is shown independently of timestamps and completeness,
-with localized explanations for all six existing phases: setup, deal, declaration,
+with localized context for all six existing phases: setup, deal, declaration,
 skat_and_discard, play, and ended. See [Knowledge-based Session entry](session_knowledge_based_entry.md).
 
 One replay provides the selected perspective, declaration, known remaining hands,

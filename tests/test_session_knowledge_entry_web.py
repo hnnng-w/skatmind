@@ -116,14 +116,12 @@ def test_complete_reconstruction_requires_all_named_hands_and_original_skat(
     page = create(browser, "retrospective", seat)
     active = localized_server.app_context.managed_stateful.active_session
     assert active.state.revision == 0 and active.state.phase == "setup"
-    players = ", ".join(p.player_label + " — " + text(locale, "creation.seat." + p.seat)
-                        for p in active.state.players)
-    guidance = escape(text(locale, "session.knowledge.all_hands", players=players))
     for index, player in enumerate(active.state.players):
-        assert guidance in page
+        assert escape(text(locale, "session.initial_hand.start", capacity=10)) in page
         assert project_session_card_task(active.state).player_id == player.player_id
-        assert escape(text(locale, "compact.for", player=player.player_label + " — "
-                           + text(locale, "creation.seat." + player.seat))) in page
+        heading = escape(text(locale, "session.initial_hand.title", player=player.player_label,
+                              seat=text(locale, "creation.seat." + player.seat)))
+        assert '<h2>' + heading + '</h2>' in page
         page = follow(browser, browser.submit(Forms(page).find("/sessions/cards"),
             cards=get_full_deck()[index * 10:(index + 1) * 10]))
         assert active.state.phase == "deal"

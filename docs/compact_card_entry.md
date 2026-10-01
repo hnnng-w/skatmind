@@ -19,8 +19,9 @@ only the already authorized subset. Printed-suit headings do not assert follow-s
 legality. DOM and keyboard order agree; `game_type` remains callable-compatible.
 Canonical deck order, trump/Null strengths and legal membership are independent.
 
-One shared **5em** interactive width accommodates the native control, suit and
-two-digit rank; tiles wrap without stretching per suit. The shared read-only face
+The default shared **5em** interactive width accommodates the native control, suit and
+two-digit rank; tiles wrap without stretching per suit. Issue #275's initial Session
+hand variant instead fills explicit grid tracks as described below. The shared read-only face
 has no input or checkbox-sized padding. Validated suit markers color Heart/Diamond
 symbols **and ranks** red, Club/Spade dark. Full localized accessible names, optional
 raw codes, native checked states and existing focus remain. Forced colors use system
@@ -112,6 +113,113 @@ Rejected input preserves valid Results. Candidate, Checkpoint, source, CAS, and
 pre-replacement save failures publish no prefix and preserve accepted bytes/state.
 The existing optimistic external-writer limitation remains: no distributed lock,
 retry, rollback write, or stronger cross-process transaction is claimed.
+
+## Compact initial Session hand (Issue #275)
+
+The normal setup/deal **player-hand** task has a local `initial-hand-entry` variant.
+The existing task projection and hand destination select it; original-Skat entry
+does not opt in. One heading names the target Player and original seat. A differing
+reconstruction perspective remains a separate, explicitly labelled context. The
+existing accepted overview retains effective mode/phase in one secondary line.
+Brief German/English guidance supplies remaining capacity and permits partial Save.
+Empty accepted-Card blocks are omitted; saved membership and a native correction
+link appear after partial Save/reopen. Background knowledge policy and ordinary
+Command/Checkpoint mechanics remain documented above and in
+[knowledge-based entry](session_knowledge_based_entry.md).
+
+The recording task uses the full panel width without rendering the undeclared-score
+placeholder. Other tasks retain their existing score/progress renderer and calculation.
+The marker scopes the smaller outer Game title through `main:has(...) > h1`, as that
+heading belongs to `templates/app.html`, not the recording panel. Local panel/form
+spacing is reduced; content height, feedback and navigation anchors stay natural.
+
+The suit container opts into explicit **8/4/2/1** grid tracks at **48/24/12em**
+minimum available widths. Tracks override the inherited fixed tile width, preserving
+the existing 16px normal Card text, 44px minimum tile height, native controls,
+focus room and selected cues. Filtered groups contain only offered Cards, without
+fabricated placeholders. Other Session/Match selectors keep their default layout.
+The shared helper adds only an optional localized-guidance parameter mapping;
+default guidance and other callers' labels/values remain the same. Four paired
+messages bring the catalog from 1,818 to **1,822** keys. Routes, form identities,
+bindings, Command order, persistence, information policy and explicit saving remain.
+
+### Developer evidence
+
+Preflight was clean on `bug/275-compact-initial-hand-entry`, HEAD
+`b8d70925f6e55171ea64b68caefbe354dd1153c5`. Measurements were captured before source
+edits, then on the repaired working tree. Both runs used Windows CPython **3.13.7**,
+headless Microsoft Edge **154.0.4258.37**, the existing dependency-free DevTools
+harness, separate disposable profiles/data, and real final application responses.
+They use source-tree imports/assets, not an independently installed repair.
+
+Matched source-independent conditions: **Synthetic Game 275**, **Synthetic Alex**
+in Forehand, perspective recording, revision zero, empty hand, no pending choices
+or transient creation receipt, JavaScript disabled. The browser retained its fresh
+profile's **100%** zoom; measured DPR and visual scale were both 1. No viewport or
+CSS emulation was used in this comparison. CSS viewports came from `innerWidth` /
+`innerHeight`, not requested window bounds:
+
+| CSS viewport | Measured outer window |
+| --- | --- |
+| 1200 × 900 | 1234 × 997 |
+| 1440 × 1000 | 1474 × 1097 |
+| 520 × 844 | 554 × 941 |
+
+All distances below are CSS pixels, rounded to one decimal. Heading distance is
+Game-heading **top to first Card top**; Save Y is document-relative button top.
+
+| Locale / viewport | Heading distance before → after | Selector height before → after | Cards per suit row before → after | Save Y before → after |
+| --- | --- | --- | --- | --- |
+| German / 1200 × 900 | 897.1 → 203.6 | 700.1 → 454.5 | 6+2 → 8 | 1741.5 → 824.0 |
+| German / 1440 × 1000 | 897.1 → 203.6 | 700.1 → 454.5 | 7+1 → 8 | 1749.5 → 832.0 |
+| English / 1200 × 900 | 872.3 → 203.6 | 700.1 → 454.5 | 6+2 → 8 | 1716.8 → 824.0 |
+| English / 1440 × 1000 | 872.3 → 203.6 | 700.1 → 454.5 | 7+1 → 8 | 1708.6 → 815.9 |
+| German / 520 × 844 | 933.0 → 246.8 | 724.9 → 700.1 | 4+4 → 4+4 | 1834.3 → 1144.9 |
+| English / 520 × 844 | 883.4 → 246.8 | 724.9 → 700.1 | 4+4 → 4+4 | 1784.7 → 1144.9 |
+
+At the desktop references, heading-bottom-to-first-Card distance decreased from
+805.1px (German) / 780.3px (English) to **162.2px**. Normal tile text remains **16px**,
+tile height **44px**, and Save height **44.4px**. The Save button remains directly
+after the selector; narrow views intentionally require vertical scrolling.
+
+The completed before run has ten measurements; the repaired native run has eighteen,
+covering both languages, empty entry, partial Save/reopen, over-capacity rejection,
+and long Game/Player names. Native Space selection and Tab order, visible focus,
+Enter submission, saved-file preservation, one explicit batch POST, reopen,
+safe checked-value retention through rejection/language return, the existing error
+link to a Card control, and corrected one-Card append were exercised. Selection
+sent no POST. Representative desktop, narrow, saved, rejected and long-name
+screenshots were inspected. All repaired measured pages/selectors stayed within
+their available width, without clipped or overlapping controls.
+
+A separate four-measurement supplement used **emulated 320 × 800** viewports in
+German/English: two-column rows normally and one-column rows with **200% text**
+via the existing enlargement helper. Document/client and selector widths agreed.
+This is additional reflow evidence, **not actual 200% browser zoom**. An earlier
+attempt at a native 390px viewport hit Edge's minimum outer-window size; native
+narrow evidence therefore uses the measured 520px viewport above.
+
+Completed local artifacts are `issue-275-before-l_oiilpu/report.json`,
+`issue-275-after-iiw2hiax/report.json`, and
+`issue-275-supplement-aonluvo1/report.json` under the disposable evidence root.
+They retain source hashes, geometry and screenshots without publishing local
+authentication or recording paths. Earlier incomplete harness runs are not the
+completed authority: one encountered the minimum window size, and another assumed
+Session validation focused a fieldset rather than its existing first Card control.
+
+Focused tests inspect final HTTP output and real submissions: the new
+`tests/test_compact_initial_hand_web.py`, updated reconstruction expectations,
+compact entry/feedback, direct startup, printed-suit presentation, task composition,
+later progress/declaration, language preservation, localization and #273/#274 guided
+validation/grouping suites. Final full-check results belong to the completion report.
+
+**Outstanding:** actual **200% browser zoom** in both languages (the available
+headless harness has no verified real-zoom control), interactive Edge GUI checks,
+and the maintainer's installed-build affected-path retest. No new optional help is
+introduced; existing native disclosures remain available without JavaScript.
+Developer evidence does not establish maintainer acceptance. Keep **#275 open**
+pending that retest and outstanding evidence; #208 and overall UAT/release status
+are unchanged, and #273/#274 are not reopened.
 
 ## Match replacement and truthful Play scope
 

@@ -47,7 +47,7 @@ def card_set_display_order(cards):
 
 
 def compact_card_selector(locale, *, mode, cards=None, selected=(), game_type=None, capacity=1,
-                          name="cards", legend_key=None, guidance_key=None):
+                          name="cards", legend_key=None, guidance_key=None, guidance_values=None):
     if mode not in {"set", "play"}:
         raise ValueError("Card selector mode must be set or play.")
     cards = tuple(get_full_deck() if cards is None else cards)
@@ -80,6 +80,7 @@ def compact_card_selector(locale, *, mode, cards=None, selected=(), game_type=No
         '<legend>' + translated(locale, legend_key or "compact.choose_" + mode) + '</legend>'
         '<p class="compact-guidance">' + translated(
             locale, guidance_key or "compact.capacity_" + mode,
-            **({} if guidance_key else {"capacity": capacity})) + '</p>'
+            **(guidance_values if guidance_values is not None else
+               {} if guidance_key else {"capacity": capacity})) + '</p>'
         '<div class="compact-card-groups">' + ''.join(groups) + '</div>'
         + summary + '<p class="compact-rejected"></p></fieldset>')
