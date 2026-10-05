@@ -1,16 +1,21 @@
 "use strict";
 
-// Redundant accepted-outcome feedback only. No requests, storage, focus or scrolling.
+// Run in the head: no in-flow first paint, even while the DOM is still loading.
+document.documentElement.classList.add("operation-overlays");
+document.addEventListener("DOMContentLoaded", () => {
+
+// Redundant accepted-outcome feedback only. No requests, storage or scrolling.
 for (const notice of document.querySelectorAll("[data-operation-feedback]")) {
   if (notice.dataset.enhanced) continue;
   notice.dataset.enhanced = "true";
   let remaining = 8000, started = null, timer = null, finished = false;
+  let hovered = false, previousFocus = null, pointer = null;
   const dismiss = document.createElement("button");
   dismiss.type = "button";
   dismiss.className = "operation-dismiss";
   dismiss.textContent = notice.dataset.dismissLabel;
   notice.append(dismiss);
-  const paused = () => document.hidden || notice.matches(":hover, :focus-within");
+  const paused = () => document.hidden || hovered || notice.matches(":focus-within");
   const stop = () => {
     clearTimeout(timer);
     timer = null;
@@ -21,8 +26,17 @@ for (const notice of document.querySelectorAll("[data-operation-feedback]")) {
     stop();
     finished = true;
     notice.setAttribute("aria-live", "off");
-    // Preserve normal-flow geometry so the next input never jumps on disappearance.
-    notice.style.visibility = "hidden";
+    // Only an explicit dismissal/withdrawal of the focused button needs a handoff.
+    // Automatic expiry cannot reach this branch while focus is within the receipt.
+    if (notice.contains(document.activeElement)) {
+      const usable = element => element?.isConnected && !element.disabled &&
+        !notice.contains(element) && element.getClientRects().length > 0;
+      const target = (usable(previousFocus) ? previousFocus : null) ||
+        [...document.querySelectorAll('main input:not([type="hidden"]), main select, main button, main a[href]')]
+          .find(usable) || document.querySelector("main");
+      target?.focus({preventScroll: true});
+    }
+    notice.hidden = true;
   };
   const update = () => {
     stop();
@@ -31,28 +45,61 @@ for (const notice of document.querySelectorAll("[data-operation-feedback]")) {
     started = performance.now();
     timer = setTimeout(update, remaining);
   };
-  dismiss.addEventListener("click", () => {
-    stop();
-    finished = true;
-    notice.setAttribute("aria-live", "off");
-    notice.querySelector("span").style.visibility = "hidden";
-    if (document.activeElement === dismiss) {
-      // An explicit dismissal leaves its focused control usable until focus leaves.
-      dismiss.textContent = notice.dataset.dismissedLabel;
-      dismiss.setAttribute("aria-disabled", "true");
-    } else hide();
+  const overlaps = (a, b) => a.left < b.right && a.right > b.left &&
+    a.top < b.bottom && a.bottom > b.top;
+  const protectControl = target => {
+    const control = target?.closest?.('input, select, textarea, button, a[href], summary, label');
+    if (!finished && control && !notice.contains(control) &&
+        overlaps(notice.getBoundingClientRect(), control.getBoundingClientRect())) hide();
+  };
+  const updateHover = () => {
+    const rect = notice.getBoundingClientRect();
+    const inside = pointer !== null && pointer.x >= rect.left && pointer.x <= rect.right &&
+      pointer.y >= rect.top && pointer.y <= rect.bottom;
+    if (inside !== hovered) { hovered = inside; update(); }
+  };
+  const place = () => {
+    if (finished) return;
+    // Two bounded placements; the sole pointer-active area must not cover a control.
+    const top = Math.max(12, (document.querySelector(".site-header")?.getBoundingClientRect().bottom || 0) + 8);
+    notice.style.top = `${top}px`;
+    const rect = notice.getBoundingClientRect();
+    if (rect.height > innerHeight * 0.3 || rect.bottom > innerHeight - 12) { hide(); return; }
+    const controls = [...document.querySelectorAll('input:not([type="hidden"]), select, textarea, button, a[href], summary')]
+      .filter(control => !notice.contains(control));
+    const blocked = () => controls.some(control =>
+      overlaps(dismiss.getBoundingClientRect(), control.getBoundingClientRect()));
+    if (blocked()) {
+      notice.style.top = `${innerHeight - rect.height - 12}px`;
+      if (blocked()) { hide(); return; }
+    }
+    protectControl(document.activeElement);
+    updateHover();
+  };
+  dismiss.addEventListener("click", hide);
+  document.addEventListener("pointermove", event => {
+    if (finished) return;
+    pointer = {x: event.clientX, y: event.clientY};
+    updateHover();
+    protectControl(event.target);
   });
-  notice.addEventListener("pointerenter", update);
-  notice.addEventListener("pointerleave", update);
+  document.addEventListener("pointerdown", event => protectControl(event.target), true);
+  document.addEventListener("pointerleave", () => { pointer = null; updateHover(); });
+  document.addEventListener("focusin", event => {
+    if (!notice.contains(event.target)) {
+      previousFocus = event.target;
+      protectControl(event.target);
+    }
+  });
   notice.addEventListener("focusin", update);
-  notice.addEventListener("focusout", () => setTimeout(() => {
-    if (finished && !notice.contains(document.activeElement)) hide();
-    else update();
-  }, 0));
+  notice.addEventListener("focusout", () => setTimeout(update, 0));
   document.addEventListener("visibilitychange", update);
+  window.addEventListener("resize", place);
+  window.addEventListener("scroll", place, {passive: true});
   // A restored cached document must not mint a fresh announcement or timer.
   window.addEventListener("pagehide", hide);
   window.addEventListener("pageshow", event => { if (event.persisted) hide(); });
+  place();
   update();
 }
 
@@ -126,4 +173,5 @@ document.addEventListener("submit", (event) => {
     message.hidden = false;
     message.focus();
   }
+});
 });

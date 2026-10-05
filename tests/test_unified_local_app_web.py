@@ -269,7 +269,9 @@ def test_all_authenticated_routes_render_shared_navigation_and_one_h1(
             assert f'href="{route}" aria-current="page"' in html
         positions = [html.index(f">{escape(label)}</a>") for label in APP_NAVIGATION_LABELS]
         assert positions == sorted(positions)
-        assert '<script src="/matches/assets/capture.js" defer></script>' in html
+        script = '<script src="/matches/assets/capture.js"></script>'
+        assert html.count(script) == 1
+        assert html.index(script) < html.index("</head>")
         assert "<script>" not in html
         assert "http://" not in html and "https://" not in html
 

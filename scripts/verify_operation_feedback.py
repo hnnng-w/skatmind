@@ -1,5 +1,5 @@
 # ruff: noqa: E501 - Keep native selectors and browser measurements legible.
-"""Independent installed-Wheel operation-feedback evidence on disposable synthetic roots.
+"""Operation-feedback browser evidence on disposable synthetic roots.
 
 Optional dependency-free Chromium transport; never part of check.ps1 or maintainer UAT.
 """
@@ -22,10 +22,12 @@ from verify_unified_workflow_visuals import TEXT_ENLARGEMENT
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY / "tests"))
+sys.path.insert(1, str(REPOSITORY))
 
 from test_equal_best_immediate import assert_visible_equal_best  # noqa: E402
 from test_frontend_language_switching import localized_server  # noqa: E402
 from test_guided_frontend_result_presentation import assert_summary_points  # noqa: E402
+from test_local_time_entry_web import local_form  # noqa: E402
 from test_match_recording_recovery_web import follow  # noqa: E402
 from test_recorded_decision_context import SESSION_HAND  # noqa: E402
 from test_session_recorded_review_web import (  # noqa: E402
@@ -59,6 +61,8 @@ MEASURE = r"""(() => {
     role:n?.getAttribute('role'),live:n?.getAttribute('aria-live'),atomic:n?.getAttribute('aria-atomic'),
     focus:{id:document.activeElement.id,name:document.activeElement.name,tag:document.activeElement.tagName},inputs,
     page:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,
+    viewport:{innerWidth,innerHeight,outerWidth,outerHeight,devicePixelRatio,scale:visualViewport.scale},
+    height:document.documentElement.scrollHeight,count:document.querySelectorAll('[data-operation-feedback]').length,
     generic:[...document.querySelectorAll('p')].filter(e=>/^(The explicit operation completed\.|Der ausdrückliche Vorgang wurde abgeschlossen\.)$/.test(e.textContent)).length,
     error:document.querySelector('.error-summary[role="alert"]')?.innerText??null,fragment:location.hash,visibility:document.visibilityState};
 })()"""
@@ -68,15 +72,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--browser", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--wheel", type=Path, required=True)
+    installation = parser.add_mutually_exclusive_group(required=True)
+    installation.add_argument("--wheel", type=Path)
+    installation.add_argument("--source", action="store_true")
+    parser.add_argument("--overlay", action="store_true", help="Focused Issue #276 overlay checks")
     parser.add_argument("--phase", choices=("before", "after"), required=True)
     args = parser.parse_args()
     assert args.output.parent.is_dir() and not args.output.exists()
-    assert not Path(skatmind.__file__).resolve().is_relative_to(REPOSITORY)
+    assert Path(skatmind.__file__).resolve().is_relative_to(REPOSITORY) == args.source
     args.output.mkdir()
     repaired = args.phase == "after"
     evidence = {"completed": False, "phase": args.phase, "python": sys.version,
-        "package": skatmind.__version__, "wheel_sha256": hashlib.sha256(args.wheel.read_bytes()).hexdigest(),
+        "package": skatmind.__version__, "wheel_sha256": hashlib.sha256(args.wheel.read_bytes()).hexdigest() if args.wheel else None,
+        "installation": "source-tree" if args.source else "installed Wheel",
         "head": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=REPOSITORY, text=True).strip(),
         "registry": [len(UNIFIED_FRONTEND_POST_ROUTES), len(FRONTEND_FORM_REGISTRY)],
         "hashes": {}, "pages": [], "actions": [], "setup": [], "sources": {}, "timing": {},
@@ -87,7 +95,8 @@ def main():
         "card_entry_http.py", "match_recovery.py", "match_recovery_http.py", "match_recovery_rendering.py",
         "task_first_session_rendering.py", "task_first_match_rendering.py", "task_first_learning_rendering.py",
         "local_time_http.py", "language_context.py", "validation_rendering.py", "form_registry.py",
-        "locales/en.json", "locales/de.json", "assets/app.css", "assets/workflow.js")
+        "locales/en.json", "locales/de.json", "assets/app.css", "assets/workflow.js",
+        "rendering.py", "templates/app.html")
     if repaired:
         names += ("operation_feedback.py", "operation_feedback_mapping.py")
     for name in names:
@@ -168,7 +177,7 @@ def main():
             if success is True:
                 assert row["notice"]["visible"] and row["role"] == "status" and row["live"] == "polite", row
                 assert row["notice"]["x"] >= 0 and row["notice"]["x"] + row["notice"]["width"] <= row["client"] + 1
-                assert row["notice"]["position"] == "static"
+                assert row["notice"]["position"] == ("static" if cdp.script_disabled else "fixed")
                 assert row["dismiss"] is None if cdp.script_disabled else row["dismiss"]["visible"]
                 def contrast(foreground, background):
                     def light(color):
@@ -222,6 +231,12 @@ def main():
             cdp.call("Network.setCookie", name=client.cookie.split("=",1)[0], value=client.cookie.split("=",1)[1], url=server.origin, httpOnly=True, sameSite="Strict")
             for route, resource in (("/assets/app.css", "assets/app.css"), ("/matches/assets/capture.js", "assets/workflow.js")):
                 assert hashlib.sha256(client.request("GET", route)[2]).hexdigest() == evidence["hashes"][resource]
+
+            if args.overlay:
+                verify_overlay(cdp, server, client, evidence, requests, calls, capture, action, click, key)
+                evidence["completed"] = True
+                print(json.dumps({"completed": True, "output": str(args.output)}, indent=2))
+                return
 
             for locale in ("de", "en"):
                 for script in (False, True):
@@ -375,7 +390,7 @@ def main():
                     before = requests.copy()
                     cdp.evaluate("document.querySelector('.operation-dismiss').focus()")
                     key("Enter", 13, text="\r")
-                    assert cdp.evaluate("document.activeElement.className") == "operation-dismiss"
+                    assert cdp.evaluate("document.activeElement.className") != "operation-dismiss"
                     key("Tab", 9)
                     time.sleep(.1)
                     assert not cdp.evaluate("document.querySelector('[data-operation-feedback]').checkVisibility({visibilityProperty:true})")
@@ -461,6 +476,276 @@ def main():
         except StopIteration:
             pass
     print(json.dumps({key: evidence[key] for key in ("completed", "phase", "counts", "native_post_count", "native_calls")}, indent=2))
+
+
+GEOMETRY = r"""(() => {
+  const box=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y+scrollY,width:r.width,height:r.height}};
+  const root=document.querySelector('#session-recording,#learning-results') ||
+    document.querySelector(location.hash==='#match-metadata'?'#match-metadata':'#match-recording');
+  return {height:document.documentElement.scrollHeight,task:box(root),
+    controls:[...root.querySelectorAll('input:not([type=hidden]),select,button')].filter(e=>e.getClientRects().length&&!e.closest('[data-operation-feedback]')).map(box)};
+})()"""
+
+
+def verify_overlay(cdp, server, client, evidence, requests, calls, capture, action, click, key):
+    """Real native final-Card returns, never recreated receipts or accelerated clocks."""
+    evidence["limitations"] = [
+        "Headless Edge/source or explicitly identified Wheel; no interactive GUI or maintainer UAT.",
+        "Actual 200% browser zoom unperformed: existing transport has no verified real-zoom control. No CSS/device scaling is represented as zoom.",
+        "No screen-reader test; accessibility tree inspection only.",
+    ]
+    evidence["zoom"] = "Fresh isolated profile default 100%; native window bounds, DPR/visual scale measured per capture."
+    window = cdp.call("Browser.getWindowForTarget")["windowId"]
+    cdp.call("Page.addScriptToEvaluateOnNewDocument", source=r"""
+      window.feedbackLoading=[];window.feedbackRestored=false;
+      new MutationObserver(()=>{
+        const n=document.querySelector('[data-operation-feedback]');
+        if(n&&feedbackLoading.length<30)feedbackLoading.push({ready:document.readyState,position:getComputedStyle(n).position});
+      }).observe(document,{childList:true,subtree:true});
+      addEventListener('pageshow',e=>{window.feedbackRestored=e.persisted});
+    """)
+
+    def resize(width, height):
+        cdp.call("Browser.setWindowBounds", windowId=window,
+                 bounds={"width": width, "height": height, "windowState": "normal"})
+        time.sleep(.2)
+        measured = cdp.evaluate("({innerWidth,innerHeight,outerWidth,outerHeight})")
+        cdp.call("Browser.setWindowBounds", windowId=window, bounds={
+            "width": width + measured["outerWidth"] - measured["innerWidth"],
+            "height": height + measured["outerHeight"] - measured["innerHeight"]})
+        time.sleep(.2)
+        assert cdp.evaluate("[innerWidth,innerHeight]") == [width, height], cdp.evaluate("({innerWidth,innerHeight,outerWidth,outerHeight})")
+
+    def create(locale, width, *, script=True, long=False, blocked=False, final=True):
+        cdp.call("Emulation.setScriptExecutionDisabled", value=not script)
+        cdp.call("Network.setBlockedURLs", urls=["*capture.js"] if blocked else [])
+        resize(width, 900 if width > 800 else 844)
+        page = client.page("/sessions")
+        page = follow(client, client.submit(Forms(page).find("/actions/profile/language"), language=locale))
+        page = follow(client, client.submit(Forms(page).find("/sessions/create"),
+            game_name="Synthetic overlay 276", forehand_name="Synthetic Alex <&> " + ("LongPlayerName" * 7 if long else ""),
+            middlehand_name="Synthetic Boris", rearhand_name="Synthetic Clara",
+            capture_mode="live", perspective_seat="forehand", setup_action="update"))
+        page = follow(client, client.submit(Forms(page).find("/sessions/create"), setup_action="create"))
+        if final:
+            follow(client, client.submit(Forms(page).find("/sessions/cards"),
+                cards=["CA", "C10", "CK", "CQ", "CJ", "C9", "C8", "C7", "SA"]))
+        cdp.navigate(server.origin + "/sessions/current")
+        click('#session-recording input[name="cards"][value="S10"]')
+        action('#session-recording button[type="submit"]', "/sessions/cards")
+        active = server.app_context.managed_stateful.active_session
+        if final:
+            assert active.state.revision == 11
+            assert cdp.evaluate("!!document.querySelector('#session-recording select[name=player_id]')")
+        return active
+
+    def visible():
+        return cdp.evaluate("document.querySelector('[data-operation-feedback]')?.checkVisibility({visibilityProperty:true}) ?? false")
+
+    def remove_compare(before):
+        cdp.evaluate("document.querySelector('[data-operation-feedback]').remove()")
+        absent = cdp.evaluate(GEOMETRY)
+        assert before == absent, {"before": before, "absent": absent}
+        return absent
+
+    def wait_expired():
+        cdp.call("Input.dispatchMouseEvent", type="mouseMoved", x=1, y=1)
+        start = time.monotonic()
+        while visible():
+            assert time.monotonic() - start < 10
+            time.sleep(.1)
+        return time.monotonic() - start
+
+    evidence["overlay_geometry"] = []
+    for locale in ("de", "en"):
+        for width in (1365, 600):
+            for mode in ("expiry", "dismissal"):
+                active = create(locale, width, long=True)
+                name = f"overlay-{locale}-{width}-{mode}"
+                capture(name + "-arrival", success=True)
+                # User scroll leaves room to exercise input during the full timed display.
+                # A separate overlap case below verifies immediate withdrawal on focus.
+                cdp.evaluate("window.scrollBy(0,-250)")
+                row = capture(name, success=True)
+                assert row["count"] == 1 and row["viewport"]["devicePixelRatio"] == 1
+                assert cdp.evaluate("(()=>{const n=document.querySelector('[data-operation-feedback]'),r=n.getBoundingClientRect();return !n.contains(document.elementFromPoint(r.x+3,r.y+3))})()")
+                loading = cdp.evaluate("feedbackLoading")
+                assert loading and all(item["position"] == "fixed" for item in loading), loading
+                assert any(item["ready"] == "loading" for item in loading), loading
+                geometry = cdp.evaluate(GEOMETRY)
+                saved, before_requests, before_calls = active.path.read_bytes(), requests.copy(), calls.copy()
+                selector = '#session-recording select[name="player_id"]'
+                cdp.evaluate(f"document.querySelector('{selector}').focus({{preventScroll:true}})")
+                assert visible()
+                key("ArrowDown", 40)
+                selected = cdp.evaluate(f"document.querySelector('{selector}').value")
+                if mode == "expiry":
+                    elapsed = wait_expired()
+                else:
+                    cdp.evaluate("document.querySelector('.operation-dismiss').focus({preventScroll:true})")
+                    assert cdp.evaluate("getComputedStyle(document.activeElement).outlineStyle") != "none"
+                    key("Enter", 13, text="\r")
+                    elapsed = None
+                assert not visible()
+                assert cdp.evaluate(f"document.activeElement===document.querySelector('{selector}')")
+                assert cdp.evaluate(f"document.querySelector('{selector}').value") == selected
+                hidden_geometry = cdp.evaluate(GEOMETRY)
+                assert geometry == hidden_geometry
+                assert cdp.evaluate("document.querySelector('.operation-dismiss').getClientRects().length") == 0
+                hidden = capture(name + "-hidden", success=False)
+                absent = remove_compare(geometry)
+                assert requests == before_requests and calls == before_calls and active.path.read_bytes() == saved
+                # Also compare the actual ordinary GET, whose server receipt is already consumed.
+                cdp.navigate(server.origin + "/sessions/current")
+                assert not visible() and cdp.evaluate(GEOMETRY) == absent
+                evidence["overlay_geometry"].append({"case": name, "visible": geometry,
+                    "hidden": hidden_geometry, "absent": absent, "initialization": loading,
+                    "elapsed_idle_seconds": elapsed, "focus_after": hidden["focus"],
+                    "presentation_requests": 0, "presentation_product_calls": 0})
+
+    # Actual hover, focused-button and hidden-document time, with pending Cards.
+    active = create("en", 1365, final=False)
+    click('#session-recording input[name="cards"][value="SJ"]')
+    before = cdp.evaluate(MEASURE)
+    pending, saved = before["inputs"], active.path.read_bytes()
+    before_requests, before_calls = requests.copy(), calls.copy()
+    cdp.evaluate("window.scrollTo(0,document.querySelector('#session-recording').offsetTop-250)")
+    time.sleep(.2)  # Wait for the real scroll event before locating the pointer target.
+    point = cdp.evaluate("(()=>{const r=document.querySelector('.operation-dismiss').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()")
+    cdp.call("Input.dispatchMouseEvent", type="mouseMoved", **point)
+    assert cdp.evaluate("document.querySelector('.operation-dismiss').matches(':hover')")
+    time.sleep(8.3)
+    assert visible()
+    cdp.evaluate("document.querySelector('.operation-dismiss').focus({preventScroll:true})")
+    cdp.call("Input.dispatchMouseEvent", type="mouseMoved", x=1, y=1)
+    time.sleep(8.3)
+    assert visible()
+    cdp.evaluate("document.querySelector('#session-recording input[value=SJ]').focus({preventScroll:true})")
+    target = cdp.call("Target.createTarget", url="about:blank")["targetId"]
+    port = cdp.socket.getpeername()[1]
+    with urlopen(f"http://127.0.0.1:{port}/json/list", timeout=5) as response:
+        tabs = json.load(response)
+    other = DevTools(next(t["webSocketDebuggerUrl"] for t in tabs if t["id"] == target))
+    try:
+        other.call("Page.bringToFront")
+        assert cdp.evaluate("document.visibilityState") == "hidden"
+        time.sleep(8.3)
+        assert visible()
+        cdp.call("Page.bringToFront")
+    finally:
+        other.socket.close()
+        cdp.call("Target.closeTarget", targetId=target)
+    elapsed = wait_expired()
+    after = capture("overlay-pauses-expired", success=False)
+    assert after["inputs"] == pending and after["focus"]["name"] == "cards"
+    assert requests == before_requests and calls == before_calls and active.path.read_bytes() == saved
+    evidence["timing"] = {"hover_seconds": 8.3, "focus_seconds": 8.3, "hidden_seconds": 8.3,
+        "remaining_idle_seconds": elapsed, "pending": pending, "requests": 0, "product_calls": 0}
+    history = cdp.call("Page.getNavigationHistory")
+    prior = history["entries"][history["currentIndex"]]["id"]
+    cdp.navigate(server.origin + "/")
+    cdp.call("Page.navigateToHistoryEntry", entryId=prior)
+    time.sleep(.8)
+    assert not visible()
+    evidence["history"] = {"cached": cdp.evaluate("feedbackRestored"), "page": cdp.evaluate(MEASURE)}
+    if not evidence["history"]["cached"]:
+        evidence["limitations"].append("History returned without BFCache; cached-history restoration was not exercised.")
+
+    # Pointer-transparent content plus bounded withdrawal when an active input overlaps.
+    create("de", 600)
+    cdp.evaluate("window.scrollBy(0,-250)")
+    capture("overlay-scrolled", success=True)
+    cdp.call("Emulation.setEmulatedMedia", features=[
+        {"name": "prefers-reduced-motion", "value": "reduce"},
+        {"name": "forced-colors", "value": "active"}])
+    capture("overlay-forced-colors")
+    assert cdp.evaluate("getComputedStyle(document.querySelector('[data-operation-feedback]')).animationName") == "none"
+    cdp.call("Emulation.setEmulatedMedia", features=[])
+    cdp.evaluate("(()=>{const e=document.querySelector('#session-recording select');window.scrollBy(0,e.getBoundingClientRect().top-20);e.focus({preventScroll:true})})()")
+    assert not visible()
+    assert cdp.evaluate("document.activeElement.tagName") == "SELECT"
+    capture("overlay-active-control-withdrawal", success=False)
+
+    create("en", 600, long=True)
+    cdp.call("Emulation.setDeviceMetricsOverride", width=390, height=300, deviceScaleFactor=1, mobile=False)
+    time.sleep(.2)
+    capture("overlay-small-viewport-withdrawal", success=False)
+    evidence["small_viewport"] = "390x300 CDP viewport emulation, not browser zoom; oversized receipt withdrawn."
+    cdp.call("Emulation.clearDeviceMetricsOverride")
+
+    # Native forms, script delivery failure, safe selections and persistent errors.
+    for script, blocked, name in ((False, False, "native"), (True, True, "blocked-script")):
+        create("de" if not script else "en", 600, script=script, blocked=blocked)
+        row = capture(name + "-confirmation", success=True if not script else None)
+        assert row["notice"]["position"] == "static" and row["dismiss"] is None
+        time.sleep(8.3)
+        assert visible()
+        action('#session-recording button[type="submit"]', "/sessions/command")
+    cdp.call("Network.setBlockedURLs", urls=[])
+    create("en", 600, final=False)
+    selected = cdp.evaluate("[...document.querySelectorAll('#session-recording input[name=cards]')].slice(0,11).map(e=>e.value)")
+    for card in selected:
+        click(f'#session-recording input[name="cards"][value="{card}"]')
+    action('#session-recording button[type="submit"]', "/sessions/cards")
+    error = capture("overlay-persistent-error", success=False)
+    assert error["error"] and len(error["inputs"]) == 11
+    time.sleep(8.3)
+    assert cdp.evaluate(MEASURE)["error"] == error["error"]
+    action('button[name="language"][value="de"]', "/actions/profile/language")
+    assert cdp.evaluate(MEASURE)["inputs"] == error["inputs"]
+    click(f'#session-recording input[name="cards"][value="{selected[-1]}"]')
+    action('button[name="language"][value="en"]', "/actions/profile/language")
+    assert len(cdp.evaluate(MEASURE)["inputs"]) == 10
+    assert "10" in cdp.evaluate("document.querySelector('.compact-count').textContent")
+
+    page = client.page("/sessions")
+    follow(client, client.submit(Forms(page).find("/sessions/create"),
+        game_name="Synthetic warning 276", forehand_name="Alex", middlehand_name="Boris",
+        rearhand_name="Clara", capture_mode="live", perspective_seat="forehand", setup_action="update"))
+    cdp.navigate(server.origin + "/sessions")
+    import skatmind.app_web.server as web_server
+    with patch.object(web_server, "save_prepared_frontend_profile_v1", side_effect=OSError("Synthetic profile fault")):
+        action('form[action="/sessions/create"] button[value="create"]', "/sessions/create")
+    capture("overlay-persistent-warning", success=False)
+    warning = cdp.evaluate("document.querySelector('.profile-warning').textContent")
+    time.sleep(8.3)
+    assert cdp.evaluate("document.querySelector('.profile-warning').textContent") == warning
+
+    # Shared real Match metadata return and Learning creation/Add/retained outcomes.
+    from test_learning_direct_entry_web import create_collection
+    from test_match_game_navigation_web import create_empty
+    resize(1365, 900)
+    create_empty(client, "en")
+    page = client.page("/matches/current")
+    response = client.submit(local_form(page, "match-metadata"), time_mode="replace",
+                             local_date="2026-01-15", local_time="19:30")
+    assert response[0] == 303
+    cdp.navigate(server.origin + response[1]["location"])
+    capture("overlay-match-metadata", success=True)
+    geometry = cdp.evaluate(GEOMETRY)
+    remove_compare(geometry)
+    create_collection(client)
+    cdp.navigate(server.origin + "/learning/current")
+    selector = 'form[action="/learning/add-recorded-match"] select[name="source_handle"]'
+    cdp.evaluate(f"document.querySelector('{selector}').focus()")
+    key("ArrowDown", 40)
+    action('form[action="/learning/add-recorded-match"] button', "/learning/add-recorded-match")
+    capture("overlay-learning-added", success=True)
+    action('form:has(input[value="prepare_learning_artifacts"]) button', "/learning/api/v1/operations")
+    capture("overlay-learning-outcome", success=True)
+    geometry = cdp.evaluate(GEOMETRY)
+    remove_compare(geometry)
+    target = server.app_context.managed_stateful.active_learning
+    prepared = target.corpus.prepared_artifacts
+    from test_learning_direct_entry_web import downloads
+    retained = downloads(client)
+    cdp.evaluate(f"document.querySelector('{selector}').focus()")
+    key("ArrowDown", 40)
+    action('form[action="/learning/add-recorded-match"] button', "/learning/add-recorded-match")
+    capture("overlay-learning-neutral-outcome", success=False)
+    assert target.corpus.prepared_artifacts is prepared and downloads(client) == retained
+    evidence["counts"] = dict(calls)
+    evidence["requests"] = dict(requests)
 
 
 if __name__ == "__main__":

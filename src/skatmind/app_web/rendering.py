@@ -325,9 +325,10 @@ def _shell(
             f'<link rel="stylesheet" href="{escape(path, quote=True)}">'
             for path in extra_stylesheets
         ),
+        "{{WORKFLOW_SCRIPT}}": '<script src="/matches/assets/capture.js"></script>',
         "{{EXTRA_SCRIPTS}}": "".join(
             f'<script src="{escape(path, quote=True)}" defer></script>'
-            for path in dict.fromkeys(("/matches/assets/capture.js", *extra_scripts))
+            for path in dict.fromkeys(extra_scripts) if path != "/matches/assets/capture.js"
         ),
     }
     template = _template()

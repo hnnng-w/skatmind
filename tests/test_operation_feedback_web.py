@@ -3,6 +3,7 @@
 import http.client
 from concurrent.futures import ThreadPoolExecutor
 from html import escape
+from importlib.resources import files
 
 import pytest
 from test_frontend_language_switching import localized_server as _localized_server
@@ -33,6 +34,24 @@ from skatmind.deck import get_full_deck
 def notices(page):
     return [node for node in Hierarchy(page).nodes
             if "data-operation-feedback" in node["attrs"]]
+
+
+@pytest.mark.parametrize("family", ("session", "match", "learning"))
+def test_single_native_receipt_and_prepaint_shared_asset_loading(localized_server, family):
+    browser = Browser(localized_server)
+    page = (create(browser) if family == "session" else create_empty(browser, "en")
+            if family == "match" else create_collection(browser))
+    row, = notices(page)
+    assert row["attrs"]["aria-live"] == "polite"
+    assert row["attrs"]["aria-atomic"] == "true"
+    assert not any(n["tag"] == "button" and row in n["parents"]
+                   for n in Hierarchy(page).nodes)
+    script = '<script src="/matches/assets/capture.js"></script>'
+    assert page.count(script) == 1 and page.index(script) < page.index("</head>")
+    for route, resource in (("/matches/assets/capture.js", "assets/workflow.js"),
+                            ("/assets/app.css", "assets/app.css")):
+        status, _, raw = browser.request("GET", route)
+        assert status == 200 and raw == files("skatmind.app_web").joinpath(resource).read_bytes()
 
 
 def notice(page, key, locale="en", **values):

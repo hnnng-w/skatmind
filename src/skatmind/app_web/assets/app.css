@@ -36,6 +36,29 @@
   overflow-wrap: anywhere;
 }
 
+/* The head script opts in before task markup can paint. Native fallback stays in flow. */
+.operation-overlays .operation-feedback {
+  position: fixed;
+  z-index: 3;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: max-content;
+  max-width: min(26rem, calc(100% - 1.5rem));
+  margin: 0;
+  border: 1px solid var(--green);
+  border-inline-start-width: 0.2rem;
+  box-shadow: 0 0.2rem 0.6rem rgb(11 63 45 / 15%);
+  /* Text and the box never block underlying navigation or task controls. */
+  pointer-events: none;
+}
+
+.operation-overlays .operation-dismiss { pointer-events: auto; }
+.operation-feedback[hidden] { display: none; }
+
+@media (forced-colors: active) {
+  .operation-feedback { border-color: CanvasText; }
+}
+
 #session-app > .panel,
 #task-first-match > .panel,
 #task-first-learning > div > .panel,

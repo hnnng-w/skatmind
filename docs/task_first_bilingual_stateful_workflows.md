@@ -424,7 +424,8 @@ new success. The actual typed returned outcome determines routing. Error-summary
 source remedies retain priority, and limited/empty successful results remain allowed.
 See [outcome mapping](learning_direct_match_entry.md#outcome-returns-issue-256).
 
-The one #245 receipt is colocated with its outcome, independently of content lifetime;
+The one #245 receipt's native markup is colocated with its outcome, independently
+of content lifetime;
 no second toast, renewed receipt, automatic operation or persistent result is added.
 The existing direct-entry outcome carries an exact Snapshot/source binding instead of
 looking up a version by revision/title. Stable anchors remain navigation only. Both
@@ -471,14 +472,23 @@ selection message, not the added-version message, including the Match-side trans
 
 Delivery lasts at most 60 monotonic seconds after publication and is consumed only
 by one matching final HTML response. New operations supersede it. Native HTML is
-untimed; the optional script uses eight seconds of visible idle time, paused on
-hover/focus/hidden documents, and retains normal-flow space when hidden to avoid an
-input jump. It makes no request. Full Player names are source-resolved and escaped.
+untimed. Issue #276 supersedes the enhanced normal-flow-space decision: the existing
+script opts into scoped fixed-position CSS in the head, before task markup is parsed,
+and initializes controls after parsing. One compact overlay normally sits at the
+upper right below any visible header; a lower-right alternative protects controls
+under its dismiss button. Oversized or active-control-overlapping receipts withdraw.
+The box is pointer-transparent except for its optional localized dismiss button.
+Eight seconds of visible idle time still pause for hover, receipt focus and hidden
+documents. Expiry and dismissal use `hidden`/`display:none`, leaving no reserved row
+or hit-testing layer. Explicit keyboard dismissal returns focus without scrolling;
+automatic expiry leaves the active input alone. No-JavaScript or failed-script-load
+responses retain one readable, untimed in-flow message without a dead button.
+Presentation makes no request. Full Player names are source-resolved and escaped.
 Language changes do not mint or renew a recording acknowledgement. Receipt delivery
 is best-effort across identical-source tabs and lost responses, not per-tab exactly
 once; native cached history may still contain the old response. See the
 [validation boundary](frontend_validation_state_and_localized_feedback.md#completed-operation-receipts-issue-245)
-and [installed evidence](unified_workflow_visual_contract.md#r03-contextual-operation-feedback).
+and [overlay evidence and outstanding acceptance](unified_workflow_visual_contract.md#success-feedback-overlay-issue-276).
 
 The current registry remains **63 POST routes / 107 forms**, with **98** generated
 scenarios and **1,604** matching locale keys. No engine, retained Request/Result/Report,

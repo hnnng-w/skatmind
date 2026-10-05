@@ -475,15 +475,31 @@ success, never a new receipt, timer or retry. See
 [deletion verification](unified_workflow_visual_contract.md#recording-deletion-confirmation-issue-261).
 
 The short native fallback is a polite status at the task/outcome return area, with
-no focus transfer. The optional existing script can hide only these redundant
-confirmations after eight seconds of document-visible idle time, paused by hover,
-focus or a hidden document. It preserves layout and the next input, and a focused
-dismiss button stays usable until focus leaves. Unique actionable information never
-uses this timer. Without JavaScript the message is untimed in that response, with
-no dead dismiss control. Enhanced history restoration does not restart the timer;
+no focus transfer. Issue #276 replaces enhanced in-flow feedback with one compact
+fixed overlay. The existing external workflow script loads synchronously in the head
+and adds its narrowly scoped CSS opt-in before the body is parsed; DOM behavior waits
+for `DOMContentLoaded`. This avoids an in-flow first paint or compensating task space.
+If script loading fails or JavaScript is disabled, native forms and the untimed
+in-flow confirmation still work, with no nonfunctional dismiss button.
+
+The default upper-right placement clears the visible header. A lower-right alternate
+avoids covering another control with the dismiss button; if neither fits, or the
+receipt exceeds 30% of viewport height, it withdraws. Focusing or pointing at an
+overlapping task control also withdraws the redundant visual receipt. Its box is
+pointer-transparent except for the optional localized dismissal control. No backdrop,
+scroll lock, automatic scrolling or input autofocus is introduced.
+
+Only these redundant confirmations use eight seconds of document-visible idle time,
+paused by hover, receipt focus or a hidden document. Expiry/dismissal sets `hidden`
+with scoped `display:none`, removing both geometry and hit testing. Explicit keyboard
+dismissal immediately returns focus to the previous usable control, otherwise a
+usable main-content control or main itself, using `preventScroll`. No inert focused
+stub remains. Automatic expiry never takes focus from an input. Unique actionable
+information never uses this timer or overlay. Enhanced history restoration does not
+restart the timer;
 the server cannot erase an already cached native page. A full-page PRG and
 `role="status"` are not evidence of an actual screen-reader announcement. See the
-[scoped browser evidence](unified_workflow_visual_contract.md#r03-contextual-operation-feedback).
+[current overlay evidence](unified_workflow_visual_contract.md#success-feedback-overlay-issue-276).
 
 Successful browser actions retain POST/Redirect/GET and HTTP `303`. Normal
 validation and unsupported-workflow failures return contextual HTML with HTTP

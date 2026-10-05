@@ -1,5 +1,100 @@
 # Unified Match and Learning visual contract
 
+## Success-feedback overlay (Issue #276)
+
+The repair starts on clean `bug/276-success-feedback-overlay` at
+`8dd6f78f633c93193b93ce1180dd3787d507dee7`, the reported UAT baseline. The full issue
+is authoritative. The maintainer's installed application, browser profile and
+`UAT Game 01` were not used. Frontend Product presentation code changes; receipt
+publication/delivery, Product operations and saved-state contracts retain their
+existing boundaries. #273/#274/#275 remain accepted.
+
+The existing unified `/matches/assets/capture.js` route serves
+`app_web/assets/workflow.js`. Its early head execution opts into scoped overlay CSS
+before any task markup can paint; DOM listeners initialize after parsing. There is
+one status receipt, no copied toast, wrapper placeholder or compensating form space.
+Native fallback stays untimed in flow. Default placement is upper right below the
+visible header, with one lower-right alternative if the dismissal button would
+cover a control. Oversized or active-control-overlapping receipts withdraw. The box
+passes pointer input through except at its dismiss button. Expiry/dismissal removes
+all receipt layout and hit testing. Explicit keyboard dismissal hands focus back
+without scrolling; automatic expiry leaves the current input alone. The existing
+eight-second idle budget, hover/focus/hidden-document pauses, polite semantics and
+cached-history suppression remain. Errors, warnings, transfer guidance and retained
+results keep their existing untimed presentation.
+
+### Developer browser evidence
+
+The existing dependency-free verifier now has a focused `--overlay` mode and an
+explicit `--source` alternative to installed-Wheel verification. Resource/module
+hash checks remain, including byte parity of the actual served CSS and JavaScript;
+the template and shared renderer are included in the evidence identity.
+
+```powershell
+py -3.13 scripts/verify_operation_feedback.py --source --phase after --overlay `
+  --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" `
+  --output "C:\Users\HENNIN~1\AppData\Local\Temp\opencode\276-overlay-09"
+```
+
+This completed run uses **Windows CPython 3.13.7**, **source-tree Package 0.17.0**
+and isolated **headless Edge 154.0.4258.53**. It is not installed-build acceptance.
+The evidence directory contains JSON measurements, source hashes, request/Product
+counters and screenshots. Earlier incomplete runs remain incomplete: verifier
+selector/window-size/import assumptions and a scroll-settling hover target were
+corrected; the final run also covers the completed pointer-placement behavior.
+
+The actual last-card POST saves Spades Ten after all eight Clubs and Spades Ace,
+reaches revision 11 and offers declarer selection. German and English use separate
+equivalent expiry/dismissal runs with long escaped accepted Player labels. Native
+windows measure **1365 x 900** and **600 x 844** CSS pixels, default **100% zoom**,
+`devicePixelRatio == 1` and `visualViewport.scale == 1`. Client widths are **1350**
+and **585**, equal to document scroll widths. The browser's minimum native window
+width prevented a 390-pixel native window; a separately labelled **390 x 300 CDP
+viewport emulation** checks oversized-receipt withdrawal, not browser zoom.
+
+| Session geometry, de/en | 1365 x 900 | 600 x 844 |
+| --- | ---: | ---: |
+| Document height, visible/expired/dismissed/absent | 2088 px | 2329 px |
+| Task document top | 492.328125 px | 551.125 px |
+| Declarer selector document top | 619.125 px | 667.125 px |
+| Task/control rectangle delta against receipt-absent state | 0 px | 0 px |
+
+The same returned DOM is measured before/after expiry or keyboard dismissal and
+after removing the receipt entirely. A subsequent ordinary GET with no receipt
+also matches. Initialization observations find `position:fixed` while the document
+is still `loading`, as well as after parsing; there is no in-flow-to-overlay task
+movement. Initial arrival is captured without another consuming navigation.
+
+Actual elapsed pauses are **8.3 seconds each** for pointer hover, focused dismissal
+and a real hidden second-tab interval. The remaining idle budget then expires in
+**7.493 seconds**, after earlier idle time was consumed. Pending SJ selection and
+input focus survive. Native keyboard Enter dismisses immediately with usable focus
+returned to the declarer selector; no visible inert button or hidden hit layer
+remains. Measured presentation intervals produce **zero requests and zero Product
+calls**, with identical saved bytes. Real BFCache restoration reports
+`pageshow.persisted == true` and does not restart expired feedback.
+
+The run also covers scrolled placement, active-control withdrawal, reduced-motion
+and forced-colors emulation, readable status/button text and visible keyboard focus.
+The native German JavaScript-disabled confirmation and English blocked-script
+fallback remain visible after **8.3 seconds**, without a dismiss button, and native
+declarer submission works. Errors preserve eleven rejected selections; language
+POSTs preserve rejected and then changed pending selections and the selection count.
+An actual saved Product followed by an injected profile-save fault keeps its untimed
+warning beyond **8.3 seconds**. Shared Match metadata and Learning Add/preparation
+returns use the overlay; metadata/results geometry matches receipt removal, while
+identical Add keeps retained prepared downloads and no repeat success.
+
+**Outstanding evidence:** actual **200% browser zoom** in German/English is
+unperformed because this harness has no verified real-zoom control. Native resizing,
+viewport emulation and text enlargement are not substituted. No interactive GUI,
+installed-build maintainer retest or screen-reader test was performed; inspected
+accessibility-tree status semantics are not screen-reader evidence. #276 stays open
+pending real-zoom evidence and maintainer installed-build acceptance.
+#208 and overall UAT-01 acceptance/release readiness are not resolved by this work.
+Final full-check results belong in the completion report, after this document is
+finished.
+
 ## Recorded-source captions (Issue #271)
 
 Initial entry was clean `bug/271-learning-source-captions` at full HEAD
@@ -1984,6 +2079,11 @@ are unchanged. #243 stays completed; exact merged-commit `check` and
 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 
 ## R03 contextual operation feedback
+
+This section records historical Issue #245 implementation and installed evidence.
+Its normal-flow-space and focused-dismissal-stub decisions are superseded by
+[Issue #276](#success-feedback-overlay-issue-276); the measurements below are not
+tests of the overlay.
 
 Issue #245 starts clean on `bug/245-operation-feedback` at
 `018237c100f99b766e146bfd424feb49beb28018`, after completed #244. The actual issue
