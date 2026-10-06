@@ -99,7 +99,7 @@ def test_real_empty_create_start_declare_play_pass_backward_continue_and_reopen(
     language = browser.submit(Forms(page).find("/actions/profile/language"), language=locale)
     assert language[1]["location"] == "/matches/position/2"
     page = follow(browser, language)
-    assert re.search(r'<section class="error-summary"[^>]*autofocus', page)
+    assert '<section class="error-summary"' in page and 'autofocus' not in page
     assert text(locale, "task.match.first_unfinished", number=1) in page
     page = follow(browser, browser.submit(primary(page, "mark_passed_deal")))
     assert len(saves) == 7 and active.selected_position == 2
@@ -124,7 +124,7 @@ def test_real_empty_create_start_declare_play_pass_backward_continue_and_reopen(
     assert_progress(page, locale, 4)
 
 
-def test_rejected_card_language_keeps_summary_priority_safe_value_and_fresh_binding(
+def test_rejected_card_language_keeps_feedback_safe_value_and_fresh_binding(
     localized_server, saves,
 ):
     browser = Browser(localized_server)
@@ -140,7 +140,7 @@ def test_rejected_card_language_keeps_summary_priority_safe_value_and_fresh_bind
         response = browser.submit(Forms(page).find("/actions/profile/language"), language=locale)
         assert response[1]["location"] == "/matches/position/1"
         page = follow(browser, response)
-        assert re.search(r'<section class="error-summary"[^>]*autofocus', page)
+        assert '<section class="error-summary"' in page and 'autofocus' not in page
         assert "invalid" in page
         assert active.path.read_bytes() == before and len(saves) == count
         assert_progress(page, locale, "declaration")
@@ -202,7 +202,7 @@ def test_final_card_report_preview_language_noop_cancel_and_real_rewind(
     page = link(browser, page, "#match-games")
     for target in ("en", "de"):
         response = browser.submit(Forms(page).find("/actions/profile/language"), language=target)
-        assert response[1]["location"].endswith("#match-recovery")
+        assert response[1]["location"] == "/matches/position/1"
         page = follow(browser, response)
         binding = Forms(page).find("/matches/recovery/apply")["values"]["recovery_selection"]
         assert binding == preview.apply_token

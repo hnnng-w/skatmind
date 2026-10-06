@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import re
+from dataclasses import asdict
 from html import escape
 from importlib.resources import files
 from pathlib import Path
@@ -43,6 +45,23 @@ _CONCEPT_KEYS_BY_ROUTE = {
     "/matches": "match",
     "/learning": "learning",
 }
+
+
+def render_language_return_v1(content: str, *, token: str | None, view=None) -> str:
+    """Only a verified successful language return suppresses retained autofocus."""
+    content = re.sub(r'(<section\b[^>]*class="error-summary"[^>]*)\sautofocus\b',
+                     r'\1', content)
+    data = json.dumps({"token": token, "view": None if view is None else asdict(view)},
+                      separators=(",", ":"), allow_nan=False)
+    if view is not None:
+        # Native parser render-blocking, not hidden content or a scroll lock. The
+        # head observer restores when the complete body arrives, before its paint.
+        content = content.replace("</head>", '<link rel="expect" blocking="render" '
+            'href="#language-view-ready">\n</head>', 1)
+        content = content.replace("</body>", '<span id="language-view-ready" hidden></span>\n'
+                                  '</body>', 1)
+    return content.replace("<head>", '<head>\n<meta name="language-return" content="'
+                           + escape(data, quote=True) + '">', 1)
 
 
 def _default_frontend_state() -> BrowserSafeFrontendProfileStateV1:
@@ -529,7 +548,7 @@ def render_language_context_conflict_v1(
                else "validation.message.language_context_conflict")
     return _shell(state, navigation, title=_text(frontend, "error.conflict.title"),
         content=(
-            '<section class="error-summary" role="alert" tabindex="-1">'
+            '<section class="error-summary" role="alert" tabindex="-1" autofocus>'
             f'<p>{_translated(frontend, message)}</p>'
             f'<a href="{escape(navigation, quote=True)}">'
             f'{_translated(frontend, "language.open_task")}</a></section>'),

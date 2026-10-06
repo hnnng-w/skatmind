@@ -97,14 +97,15 @@ def test_four_actual_rejections_links_language_and_one_selectable_save(
         if locale != "en" or 'lang="de"' in page:
             response = browser.submit(Forms(page).find("/actions/profile/language"),
                                       language=locale)
-            assert response[1]["location"] == "/sessions/current#session-card-error"
+            assert response[1]["location"] == "/sessions/current"
             page = follow(browser, response)
         message, actual_anchor = render_card_witness(witness, active.state.players, locale)
         assert actual_anchor == anchor and escape(message) in page
         assert text(locale, "validation.session_card.heading") in page
         assert text(locale, "validation.summary.heading") not in page
         assert text(locale, "validation.summary.guidance") not in page
-        assert 'role="alert" tabindex="-1" autofocus' in page
+        assert 'role="alert" tabindex="-1"' in page
+        assert ('autofocus' in page) == ('name="language-return"' not in page)
         assert 'aria-invalid="true"' in page and 'class="field-error"' in page
         assert f'class="session-card-evidence" href="#{anchor}"' in page
         assert len(re.findall(f'id="{anchor}"', page)) == 1

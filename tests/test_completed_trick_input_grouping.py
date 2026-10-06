@@ -406,12 +406,12 @@ def test_all_rows_are_complete_ordered_groups_for_empty_and_populated_drafts(loc
                             "CJ" if draft else "")
 
 
-def assert_feedback(tree):
+def assert_feedback(tree, *, autofocus):
     summaries = [node for node in tree.nodes if node["attrs"].get("class") == "error-summary"]
     assert len(summaries) == 1
     summary = summaries[0]
     assert summary["attrs"]["role"] == "alert" and summary["attrs"]["tabindex"] == "-1"
-    assert "autofocus" in summary["attrs"]
+    assert ("autofocus" in summary["attrs"]) == autofocus
     assert tree.by_id(summary["attrs"]["aria-labelledby"])["tag"] == "h2"
     targets = [tree.by_id(link["attrs"]["href"].removeprefix("#"))
                for link in descendants(tree, summary, "a")]
@@ -461,7 +461,7 @@ def test_final_rejected_response_and_native_language_return_preserve_groups_and_
         assert f'<html lang="{language}">' in page
         tree = assert_completed_rows(page, language, values)
         assert_neighbor_selects(tree, language, ("H7", ""), "CJ")
-        assert_feedback(tree)
+        assert_feedback(tree, autofocus=index == 0)
         assert text(language, "validation.last_valid_result") in page
         assert localized_server.app_context.analyze_state is accepted
         assert localized_server.app_context.form_feedback._feedback["analyze"] is feedback

@@ -419,8 +419,9 @@ has matching de/en keys/placeholders, bringing the paired catalog to 1,735 entri
 Issue #229 adds exact chooser `/review/recorded` and selected-Game
 `/matches/review/N` semantic origins, while `/matches/reports/ID` retains its exact
 Report identity in the focused review view. Chooser language changes retain both
-discovery objects/generations; Home does no new discovery. Known focus targets add
-`recorded-review-chooser` and `match-review`. These are not arbitrary redirects.
+discovery objects/generations; Home does no new discovery. The existing explicit
+navigation targets include `recorded-review-chooser` and `match-review`. Issue #277
+removes their automatic use on language return.
 The native Game selector's narrowly accepted integer query is normalized before
 rendering and is never a language return path. Submitted review errors preserve
 safe options and the originating task. See
@@ -436,9 +437,11 @@ to Home. Page renderers now supply their semantic HTML origin explicitly:
 `/review`, `/settings`, and `/about`. Registered form origins determine contextual rejection
 rendering. Navigation categories, Referer, action URLs, and client location are not
 universal return targets. A safe origin is retained before optional-envelope
-parsing. Issue #225 adds only `/settings` to the exact HTML-route allowlist. Only server-selected existing
-`session-result`, `session-recording`, `match-recording`, and `match-recovery` anchors are appended
-separately; client fragments remain rejected.
+parsing. Issue #225 adds only `/settings` to the exact HTML-route allowlist.
+Issue #277 supersedes #223's server-appended language-return anchors: successful
+language changes return to the same semantic page without a task, Result, recovery,
+or error fragment. Client fragments remain rejected as return-route input. Actual
+operation redirects and explicitly activated links retain their existing anchors.
 
 `language_context.py` retains at most 32 opaque rendered-page bindings, which expire
 after 30 minutes, and one pending return overlay. Bindings retain exact source references,
@@ -485,7 +488,8 @@ explanation; it does not truncate or silently drop the draft. The enhancement
 honors the actual submitter and never fetches or submits a second request.
 
 Without JavaScript, the server cannot recover unsent values in another browser
-form. Such values are not server-held drafts. Neither mode creates persistent
+form or restore the viewed area. Such values are not server-held drafts. Native
+language switching remains usable and adds no task anchor. Neither mode creates persistent
 drafts, browser storage, background autosave, or implicitly saved settings.
 Every successful change uses full-page PRG with one request-local rendering
 locale for header, body, feedback, selector, and HTML `lang`.
@@ -494,6 +498,84 @@ Valid #221 source-labelled Results/downloads and #222 previews retain their exac
 bytes, selections, and lifetime. Language changes neither execute review nor
 prepare, renew, consume, or confirm an Apply selection. Normal edit, reopen,
 expiry, and source-change invalidation remain authoritative.
+
+### Language-only view continuity (Issue #277)
+
+The existing optional envelope also carries a small `view`: an explicit page-top
+choice or an exact rendered content/form identity, its relative viewport offset,
+horizontal offset, and the intended `de`/`en` language button. The capture follows
+the area viewed at activation, not the last edited field. Existing server-owned
+content IDs (at most 4,096) and registered form identities provide landmarks across
+translated text wrapping. Transient `validation-*` headings are excluded because a
+resolved language error can disappear on success; retained Product errors and their
+explicit field links remain. No translated text, client selector or URL identifies a
+target. Relative offsets must be finite numbers in `[-8192, 8192]`, horizontal
+offsets in `[0, 1000000]`, and top must have offset zero. Booleans, non-finite values,
+foreign identities, additional fields, mismatched language and oversized envelopes
+are rejected through existing contextual validation. All original envelope and
+request bounds and field exclusions still apply.
+
+An enhanced successful POST issues one opaque `_language_return` delivery query
+bound to that pending page/source, intended route and saved profile generation.
+This is an authenticated one-use GET transport detail; the safe `return_to`
+allowlist still rejects queries and fragments. Ordinary same-route reads from
+other tabs cannot consume the overlay. Used, superseded or wrong-route delivery
+addresses return to ordinary safe navigation without restoration. Existing page
+expiry, source-file checks and complete manifest comparison remain required.
+
+The shared head script retires the return metadata and normalizes the delivery URL
+before any old fragment target is parsed. On the intended new navigation only,
+native `rel="expect" blocking="render"` waits for a body-completion marker. A short
+parser observer restores once, before that body's first paint, after applying the
+unchanged selection-count display to server-restored values. This avoids both a
+task jump and a painted page-top-then-scroll sequence. There is no page-hiding CSS,
+smooth scrolling, scroll lock, timeout or later load/resize restoration. The
+observer disconnects at completion; resumed pointer, keyboard, wheel, touch or
+input activity cancels the pending restoration. Reload and Back/Forward do not
+run it or rewrite their normal history position. No position is stored in history
+state, localStorage, sessionStorage, profile or recording files.
+
+Enhanced focus continues at the equivalent language button with `preventScroll`.
+Only a verified successful language-only render removes retained error-summary
+`autofocus`; its translated diagnostics, links and required disclosures remain.
+New language/context failures retain accessible error focus. Explicit error links
+still navigate normally. The #276 head-time overlay opt-in and DOM-ready handlers
+remain, and a language return neither regenerates a receipt nor restarts its timer.
+
+Focused verification uses `tests/test_language_view_continuity.py` for real HTTP
+delivery/resources and `tests/test_language_view_script.py` for optional Node
+lifecycle checks, alongside the existing language/source/conflict/localization
+suites. `scripts/verify_language_view_continuity.py` uses the existing dependency-free
+Edge transport, disposable synthetic Skat-entry data, native language-button Enter,
+before/after screenshots, frame/scroll/focus traces, request counts and unchanged
+accepted Session bytes. It records its source-tree hashes and browser/viewport.
+Developer evidence is separate from maintainer acceptance. Issue #277 remains open
+for the brief installed-page language/input retest and outstanding acceptance
+evidence, including actual 200% zoom when unavailable to the harness. No broader
+overlay matrix or restarted UAT is required by this repair.
+
+Developer browser evidence on October 6 used headless Edge **154.0.4258.62**, source
+resources on base `8045c3e8e181918c6c9196e9687c9117444a4fcd` plus the uncommitted
+#277 changes, and isolated temporary profiles. The completed run is recorded at
+`<temporary-directory>/opencode/277-view-final-2/evidence.json` with screenshots.
+Actual content viewports were **1406×903** and **539×903** at **100%** (device pixel
+ratio 1, visual viewport scale 1). Both language directions, page top and scrolled
+Skat entry with an existing `#session-recording`, pending H7, retained duplicate-Card
+feedback, explicit error links, refresh/history and a shared Match caller passed.
+Frame traces showed the restored content from the first content frame; translated
+wrapping changed geometry without moving to another task. Each enhanced switch
+made one language POST and normal page/asset GETs, zero Session saves, zero analysis
+calls and no receipt; accepted recording bytes stayed identical. Native fallback
+retained the rejected selection and returned without a task fragment.
+
+The initial DOM-ready-only attempt is historical failed development evidence:
+`277-view-01` recorded painted page-top frames before restoration. The final parser
+expectation addresses that observed gap. The isolated default-zoom preference probe
+in `277-view-03` remained at 100%, so **actual 200% browser zoom is unverified**;
+the narrow final run is resizing evidence only. This is source-tree developer
+evidence, not installed-page acceptance, screen-reader coverage or overall UAT-01
+acceptance. No maintainer installation, browser profile or existing recording was
+used.
 
 ### Focused browser evidence
 

@@ -211,7 +211,9 @@ def test_multiple_choices_error_language_recovery_exact_execution_and_stale_sour
         else:
             response = browser.submit(Forms(page).find("/actions/profile/language"),
                                       language=locale)
-        assert response[1]["location"].endswith("#match-review")
+        assert response[1]["location"].split("?", 1)[0] == (
+            Forms(page).find("/actions/profile/language")["values"]["return_to"])
+        assert "#" not in response[1]["location"]
         page = follow(browser, response)
         owner, nodes = decision_nodes(page)
         advanced, = [n for n in nodes if n["tag"] == "details"]

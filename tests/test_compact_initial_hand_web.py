@@ -119,7 +119,8 @@ def test_partial_reopened_rejected_and_corrected_append(localized_server, locale
         assert Forms(page).find("/sessions/cards")["values"]["cards"] == "SJ"
         assert_palette(page, language, get_full_deck()[8:])
         assert 'href="#session-hand-1"' in page and 'id="session-hand-1" tabindex="-1"' in page
-        assert 'role="alert" tabindex="-1" autofocus' in page and 'aria-invalid="true"' in page
+        assert 'role="alert" tabindex="-1"' in page and 'aria-invalid="true"' in page
+        assert ('autofocus' in page) == (language == locale)
         assert active.path.read_bytes() == before and active.state.command_log == prefix
     page = follow(browser, browser.submit(Forms(page).find("/sessions/cards")))
     assert active.state.command_log[:-1] == prefix

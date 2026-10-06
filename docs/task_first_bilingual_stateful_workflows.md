@@ -510,9 +510,11 @@ Invalid forms apply no Product operation or profile write.
 Issue #223 makes language selection one native Deutsch/English button activation
 with an absolute target and effective-locale pressed state. Semantic origins keep
 creation rejections, selected Match Game/Report, active Session/Learning, Review
-step, Analyze, and About in their rendered task. The safe HTML-route allowlist
-remains unchanged; only known server-owned Result/recording/recovery anchors are
-appended separately. A complete PRG response uses one consistent rendering locale.
+step, Analyze, and About in their rendered task. Issue #277 supersedes the former
+server-appended language-return anchors: language returns impose no task, Result,
+recovery or error destination. The safe HTML-route allowlist, explicit links and
+actual operation redirects remain unchanged. A complete PRG response uses one
+consistent rendering locale.
 
 Issue #236 additionally binds Learning's retained Match discovery/generation into
 that semantic source. Safe submitted source choices and conflict resolution survive
@@ -523,10 +525,13 @@ The current registry is 63 POST routes / 107 definitions; the de/en catalogs hav
 Native language switching retains authoritative state, active items, selected
 position, rejected safe values, structured validation issues, and process-local
 Results. A small packaged enhancement additionally transfers registered unsent
-controls and open/closed disclosures during the same POST. Explicit empty,
+controls and open/closed disclosures during the same POST. Issue #277 adds bounded,
+exact-source content-landmark view restoration and non-scrolling focus at the
+equivalent language button. Explicit empty,
 unchecked, repeated, and selected values are retained; validation-required
 disclosures remain open. Without JavaScript, unsent values in another browser form
-cannot be recovered. File selections, passwords, secrets, hidden transport fields,
+and the prior viewed area cannot be recovered; native language switching still
+works without imposing an anchor. File selections, passwords, secrets, hidden transport fields,
 and destructive confirmations are never copied. Current validated transport fields,
 including profile generations, are regenerated after saving the language.
 
@@ -539,6 +544,17 @@ change after a successful preference save discards the overlay with honest confl
 feedback; it does not undo that save. Valid #221 Results/downloads, #222 selections,
 preview lifetime and Apply tokens, and Learning artifacts remain unexecuted and
 unchanged. Genuine Product edits retain their normal invalidation behavior.
+
+The enhanced return uses an opaque one-use delivery token so another tab's ordinary
+GET cannot consume its presentation. The head script clears its delivery URL and
+old fragment before targets are parsed. A native parser render-blocking expectation
+and bounded observer restore at body completion before paint, accounting for
+translated content positions rather than identical total heights. There is no
+page-hiding styling or delayed scroll-back. Only retained feedback loses autofocus
+on the successful language-only response; new failures and activated error links
+remain accessible. Resumed interaction cancels restoration, and refresh/history
+never replay it. #276's early overlay initialization, receipt suppression and the
+existing Card count algorithm remain. See the [exact bounds and lifecycle](local_frontend_profile_and_localization.md#language-only-view-continuity-issue-277).
 
 No browser storage, persistent drafts, implicit preference save, background request,
 or per-tab Product workspace is added. The existing private

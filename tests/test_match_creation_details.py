@@ -148,7 +148,10 @@ def test_compatibility_field_is_not_editable_registry_metadata():
 
 
 @pytest.mark.parametrize("stored", (False, True))
-def test_hidden_regeneration_after_error_language_and_overlay_rejection(localized_server, stored):
+@pytest.mark.parametrize("include_view", (False, True))
+def test_hidden_regeneration_after_error_language_and_overlay_rejection(
+    localized_server, stored, include_view,
+):
     app = localized_server.app_context
     seed_profile(app, stored)
     browser = Browser(localized_server)
@@ -165,8 +168,10 @@ def test_hidden_regeneration_after_error_language_and_overlay_rejection(localize
     page = response[2].decode()
     assert Forms(page).find(PREFERENCES)["values"][FIELD] == ("on" if stored else "")
     assert profile_bytes(app) == original
-    page = follow(browser, enhanced_switch(browser, page,
-        envelope(page, PREFERENCES, {"custom_platform": ["Unsent club"]})))
+    values = json.loads(envelope(page, PREFERENCES, {"custom_platform": ["Unsent club"]}))
+    if include_view:
+        values["view"] = {"anchor": "id:main-content", "offset": -100, "x": 0, "focus": "de"}
+    page = follow(browser, enhanced_switch(browser, page, json.dumps(values)))
     values = Forms(page).find(PREFERENCES)["values"]
     assert values[FIELD] == ("on" if stored else "")
     assert values["custom_platform"] == "Unsent club"

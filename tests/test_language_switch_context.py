@@ -141,7 +141,7 @@ def test_real_recorded_result_native_switch_preserves_bytes_and_execution_count(
     monkeypatch.setattr(execution, "execute", lambda *a, **k: pytest.fail("Unexpected execution"))
     for locale in ("de", "en"):
         response = browser.submit(Forms(page).find("/actions/profile/language"), language=locale)
-        assert response[1]["location"] == "/sessions/current#session-result"
+        assert response[1]["location"] == "/sessions/current"
         page = follow(browser, response)
         assert active.execution is retained and active.recorded_review_source is label
         assert active.generation == generation and active.path.read_bytes() == original

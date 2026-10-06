@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from dataclasses import dataclass
 from html.parser import HTMLParser
@@ -29,12 +30,22 @@ class LanguageFormV1:
 class LanguagePageManifestV1:
     forms: tuple[LanguageFormV1, ...]
     disclosure_count: int
+    view_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class LanguageViewV1:
+    anchor: str
+    offset: float
+    x: float
+    focus: str
 
 
 @dataclass(frozen=True, slots=True)
 class LanguagePageValuesV1:
     forms: tuple[tuple[str, FormValuesV1], ...]
     disclosures: tuple[bool, ...]
+    view: LanguageViewV1 | None = None
 
 
 class _Controls(HTMLParser):
@@ -107,7 +118,14 @@ def instrument_language_forms_v1(html: str) -> tuple[str, LanguagePageManifestV1
 
     html = _FORM_BLOCK.sub(instrument, html)
     count = len(tuple(re.finditer(r"<details\b", html)))
-    return html, LanguagePageManifestV1(tuple(forms), count)
+    # Existing content/field IDs are server-owned and locale-independent. Never
+    # accept a selector, translated text, URL or an arbitrary client element ID.
+    # Resolved language feedback can remove its transient validation headings.
+    ids = tuple(dict.fromkeys(identity for tag in re.findall(r"<[a-z][^>]*>", html)
+        if (identity := _attribute(tag, "id")) is not None
+        and not identity.startswith("validation-")
+        and re.fullmatch(r"[a-zA-Z][a-zA-Z0-9_-]{0,127}", identity)))[:4096]
+    return html, LanguagePageManifestV1(tuple(forms), count, ids)
 
 
 def _object(pairs):
@@ -130,7 +148,7 @@ def parse_language_page_values_v1(
     except RecursionError as error:
         raise ValueError("Language-switch presentation nesting is invalid.") from error
     keys = {"forms", "disclosures"}
-    if type(value) is not dict or set(value) != keys:
+    if type(value) is not dict or set(value) not in (keys, keys | {"view"}):
         raise ValueError("Language-switch presentation envelope is invalid.")
     forms = value["forms"]
     disclosures = value["disclosures"]
@@ -175,7 +193,25 @@ def parse_language_page_values_v1(
                 raise ValueError("Language-switch identity choice is invalid.")
             entries.append(FormValueV1(field=name, values=tuple(supplied) or ("",)))
         retained.append((identity, FormValuesV1(tuple(entries))))
-    return LanguagePageValuesV1(tuple(retained), tuple(disclosures))
+    view = None
+    if "view" in value:
+        supplied = value["view"]
+        if type(supplied) is not dict or set(supplied) != {"anchor", "offset", "x", "focus"}:
+            raise ValueError("Language-switch view is invalid.")
+        anchors = {"top", *("id:" + identity for identity in manifest.view_ids),
+                   *("form:" + form.identity for form in manifest.forms)}
+        if (type(supplied["anchor"]) is not str or supplied["anchor"] not in anchors
+                or supplied["focus"] not in ("de", "en")):
+            raise ValueError("Language-switch view identity is invalid.")
+        for name, minimum, maximum in (("offset", -8192, 8192), ("x", 0, 1_000_000)):
+            number = supplied[name]
+            if (type(number) not in (int, float) or not minimum <= number <= maximum
+                    or not math.isfinite(number)):
+                raise ValueError("Language-switch view offset is invalid.")
+        if supplied["anchor"] == "top" and supplied["offset"] != 0:
+            raise ValueError("Language-switch top has no relative offset.")
+        view = LanguageViewV1(**supplied)
+    return LanguagePageValuesV1(tuple(retained), tuple(disclosures), view)
 
 
 def apply_language_page_values_v1(html: str, state: LanguagePageValuesV1) -> str:

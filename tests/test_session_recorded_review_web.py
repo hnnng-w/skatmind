@@ -312,7 +312,7 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
         for locale in ("de", "en"):
             language = Forms(browser.page()).find("/actions/profile/language")
             status, headers, _ = browser.submit(language, language=locale)
-            assert status == 303 and headers["location"] == "/sessions/current#session-result"
+            assert status == 303 and headers["location"] == "/sessions/current"
             assert_summary_points(browser.page(), locale, 14, 29)
             assert_party_score(browser.page(), (42, 3) if ended else (14, 1),
                                (78, 7) if ended else (35, 3))
@@ -454,7 +454,7 @@ def test_http_validation_language_security_and_retained_source(localized_server,
     # The rejected source selection and feedback stay in this Session with native language POST.
     language = Forms(html).find("/actions/profile/language")
     status, headers, _ = browser.submit(language, language="de")
-    assert status == 303 and headers["location"] == "/sessions/current#session-result"
+    assert status == 303 and headers["location"] == "/sessions/current"
     german = browser.page()
     assert text("de", "recorded_review.title") in german
     assert text("de", "validation.recorded_review.invalid_fields") in german

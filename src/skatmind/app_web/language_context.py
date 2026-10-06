@@ -42,6 +42,9 @@ class LanguageContextV1:
     pages: dict[str, LanguagePageV1] = field(default_factory=dict, repr=False)
     pending: tuple[LanguagePageV1, LanguagePageValuesV1 | None] | None = field(
         default=None, repr=False)
+    pending_token: str | None = field(default=None, repr=False)
+    pending_generation: int | None = None
+    pending_route: str | None = None
     key: bytes = field(default_factory=lambda: secrets.token_bytes(32), repr=False)
     serial: int = 0
 
@@ -276,38 +279,7 @@ def _require_files(context: AppWebContextV1, route: str) -> None:
 
 
 def language_return_location_v1(context: AppWebContextV1, route: str) -> str:
-    """Only known server-owned anchors; the HTML-route allowlist stays fragment-free."""
-    with context.lock:
-        session = context.managed_stateful.active_session
-        match = context.managed_stateful.active_match
-    if route == "/sessions/current" and session is not None:
-        with session.lock:
-            with context.lock:
-                feedback = context.form_feedback.current("sessions", active_identity=session)
-            if feedback is not None and feedback.originating_route in {
-                    "/sessions/cards", "/sessions/play"}:
-                return route + "#session-card-error"
-            if feedback is not None and feedback.form_key.startswith("session.correction."):
-                return route
-            from .session_declaration_correction import current_selection
-            if current_selection(session, session.declaration_correction.selected):
-                return route + "#session-declaration-correction"
-            if session.recorded_review_source is not None:
-                return route + "#session-result"
-            return route + "#session-recording"
-    if route.startswith("/matches/position/") and match is not None:
-        with match.capture.lock:
-            with context.lock:
-                feedback = context.form_feedback.current("matches", active_identity=match)
-            if feedback is not None:
-                # A normal fragment suppresses the existing native error-summary autofocus.
-                return route
-            selected = match.recovery.selected
-            return route + ("#match-recovery" if selected is not None
-                            and time.monotonic() - selected.created_at < 1800
-                             else "#match-recording")
-    if route.startswith(("/matches/review/", "/matches/reports/")):
-        return route + "#match-review"
-    if route == "/review/recorded":
-        return route + "#recorded-review-chooser"
+    """Language is not an operation destination; keep the HTML allowlist unchanged."""
+    if not is_safe_frontend_return_path_v1(route):
+        raise ValueError("Language return must be a safe HTML route.")
     return route

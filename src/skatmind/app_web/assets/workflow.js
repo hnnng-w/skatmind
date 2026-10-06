@@ -2,7 +2,93 @@
 
 // Run in the head: no in-flow first paint, even while the DOM is still loading.
 document.documentElement.classList.add("operation-overlays");
+
+// Read and retire the one-return instruction in the head, before any fragment
+// target exists. Neither history entries nor browser storage retain positions.
+const languageReturnMeta = document.querySelector('meta[name="language-return"]');
+let languageView = null;
+try {
+  const returned = languageReturnMeta ? JSON.parse(languageReturnMeta.content) : null;
+  const navigation = performance.getEntriesByType("navigation")[0];
+  if (returned?.view && navigation?.type === "navigate" &&
+      location.search === `?_language_return=${returned.token}`) languageView = returned.view;
+  if (navigation?.type === "navigate" &&
+      (returned || /^\?_language_return=[0-9a-f]{64}$/.test(location.search))) {
+    history.replaceState(history.state, "", location.pathname);
+  }
+} finally {
+  languageReturnMeta?.remove();
+}
+// An interaction during parsing wins. There is no timer/load/resize restoration
+// that can pull the user back after reading or typing has resumed.
+for (const type of ["pointerdown", "keydown", "wheel", "touchstart", "input"]) {
+  document.addEventListener(type, () => { languageView = null; }, {capture: true, once: true});
+}
+
+function languageLandmarks() {
+  const ids = [...document.querySelectorAll("[id]")]
+    .filter(element => !element.id.startsWith("validation-") &&
+      /^[a-zA-Z][a-zA-Z0-9_-]{0,127}$/.test(element.id)).slice(0, 4096)
+    .map(element => ({anchor: `id:${element.id}`, element}));
+  return ids.concat([...document.querySelectorAll("form[data-language-form]")]
+    .map(element => ({anchor: `form:${element.dataset.languageForm}`, element})));
+}
+
+function captureLanguageView(focus) {
+  const x = Math.max(0, Math.min(1000000, scrollX));
+  if (scrollY <= 0) return {anchor: "top", offset: 0, x, focus};
+  const candidates = languageLandmarks().filter(({element}) => {
+    const rect = element.getBoundingClientRect();
+    return element.getClientRects().length && rect.height > 0 && rect.width > 0 &&
+      rect.bottom > 0 && rect.top < innerHeight && Math.abs(rect.top) <= 8192;
+  });
+  candidates.sort((a, b) => Math.abs(a.element.getBoundingClientRect().top) -
+    Math.abs(b.element.getBoundingClientRect().top));
+  const target = candidates[0];
+  if (!target) throw new Error();
+  return {anchor: target.anchor, offset: target.element.getBoundingClientRect().top, x, focus};
+}
+
+// Presentation-only count; native controls and the explicit submit work without this.
+function updateCardSelection(fieldset) {
+  const cards = Array.from(fieldset.querySelectorAll('input[name="cards"]:checked'),
+    input => input.value);
+  const summary = fieldset.querySelector(".compact-selection");
+  if (!summary) return;
+  summary.querySelector(".compact-count").textContent =
+    summary.dataset.countTemplate.replace("{count}", String(cards.length));
+  summary.querySelector(".compact-selected").textContent = cards.join(", ");
+}
+
+function restoreLanguageView() {
+  const view = languageView;
+  languageView = null;
+  if (!view) return;
+  for (const fieldset of document.querySelectorAll(".compact-cards")) updateCardSelection(fieldset);
+  const target = languageLandmarks().find(item => item.anchor === view.anchor)?.element;
+  if (view.anchor === "top" || target?.getClientRects().length) {
+    const y = view.anchor === "top" ? 0 : scrollY + target.getBoundingClientRect().top - view.offset;
+    window.scrollTo({left: view.x, top: Math.max(0, y), behavior: "instant"});
+    const control = [...document.querySelectorAll('.language-selector button[name="language"]')]
+      .find(button => button.value === view.focus);
+    control?.focus({preventScroll: true});
+  }
+}
+
+// The expectation delays incomplete-body paint, not page visibility. An observer
+// runs in the parser microtask before rendering is released, rather than scrolling
+// back after DOMContentLoaded/load or an animation frame. It is retired immediately.
+const languageViewObserver = languageView ? new MutationObserver(() => {
+  if (document.getElementById("language-view-ready")) {
+    languageViewObserver.disconnect();
+    restoreLanguageView();
+  }
+}) : null;
+languageViewObserver?.observe(document.documentElement, {childList: true, subtree: true});
+
 document.addEventListener("DOMContentLoaded", () => {
+languageViewObserver?.disconnect();
+restoreLanguageView();
 
 // Redundant accepted-outcome feedback only. No requests, storage or scrolling.
 for (const notice of document.querySelectorAll("[data-operation-feedback]")) {
@@ -103,16 +189,6 @@ for (const notice of document.querySelectorAll("[data-operation-feedback]")) {
   update();
 }
 
-// Presentation-only count; native controls and the explicit submit work without this.
-function updateCardSelection(fieldset) {
-  const cards = Array.from(fieldset.querySelectorAll('input[name="cards"]:checked'),
-    input => input.value);
-  const summary = fieldset.querySelector(".compact-selection");
-  if (!summary) return;
-  summary.querySelector(".compact-count").textContent =
-    summary.dataset.countTemplate.replace("{count}", String(cards.length));
-  summary.querySelector(".compact-selected").textContent = cards.join(", ");
-}
 for (const fieldset of document.querySelectorAll(".compact-cards")) {
   updateCardSelection(fieldset);
   fieldset.addEventListener("change", () => updateCardSelection(fieldset));
@@ -157,7 +233,8 @@ document.addEventListener("submit", (event) => {
       forms.push({form: form.dataset.languageForm, values});
     }
     const disclosures = Array.from(document.querySelectorAll("details"), details => details.open);
-    const payload = JSON.stringify({forms, disclosures});
+    const view = captureLanguageView(event.submitter.value);
+    const payload = JSON.stringify({forms, disclosures, view});
     if (forms.length > 256 || disclosures.length > 1024 ||
         new TextEncoder().encode(payload).length > 262144) throw new Error();
     const field = document.createElement("input");
@@ -174,4 +251,5 @@ document.addEventListener("submit", (event) => {
     message.focus();
   }
 });
+
 });

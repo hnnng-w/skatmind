@@ -27,7 +27,8 @@ def synthetic_cards():
 def follow(browser, response):
     status, headers, body = response
     assert status == 303, (status, body.decode())
-    return browser.page(urlsplit(headers["location"]).path)
+    target = urlsplit(headers["location"])
+    return browser.page(target.path + ("?" + target.query if target.query else ""))
 
 
 def operation_form(page, operation):

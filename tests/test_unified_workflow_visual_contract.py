@@ -271,7 +271,7 @@ def test_review_secondary_form_and_native_result_focus_contract(localized_server
                 for name in ("request", "result")}
     for locale in ("de", "en"):
         response = browser.submit(Forms(page).find("/actions/profile/language"), language=locale)
-        assert response[1]["location"] == "/sessions/current#session-result"
+        assert response[1]["location"] == "/sessions/current"
         page = follow(browser, response)
         translated = Markup(page)
         assert translated.targets["session-result"] == markup.targets["session-result"]
