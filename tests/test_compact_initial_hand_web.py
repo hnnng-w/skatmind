@@ -64,10 +64,10 @@ def test_empty_has_one_named_target_and_concise_native_task(localized_server, lo
     assert primary.count(target.player_label) == 1
     assert text(locale, "session.initial_hand.start", capacity=10) in primary
     assert 'data-recorded-summary' not in primary and 'recording-progress-layout' not in primary
-    assert 'class="initial-hand-entry"' in primary
+    assert 'class="session-set-entry"' in primary
     for key in ("compact.accepted", "compact.append", "task.known_empty"):
         assert escape(text(locale, key)) not in primary
-    assert 'session-initial-accepted' not in primary
+    assert 'session-set-accepted' not in primary
     markup = Hierarchy(page)
     intro_text = " ".join(node["text"] for node in markup.within("session-recording", "p"))
     old_guidance = text(locale, "session.knowledge.local_hand", player=target.player_label)
@@ -105,7 +105,7 @@ def test_partial_reopened_rejected_and_corrected_append(localized_server, locale
     page = browser.page()
     primary = recording(page)
     assert text(locale, "session.initial_hand.more", capacity=2) in primary
-    saved = re.search(r'<div class="session-initial-accepted">(.*?)</div>', primary, re.S)[1]
+    saved = re.search(r'<div class="session-set-accepted">(.*?)</div>', primary, re.S)[1]
     assert re.findall(r'\(([CSHD][A-Z0-9]+)\)', saved) == list(DISPLAY[0])
     assert 'href="#session-history"' in saved and 'id="session-history"' in page
     assert not Forms(page).find("/sessions/cards")["values"].get("cards")
@@ -129,16 +129,16 @@ def test_partial_reopened_rejected_and_corrected_append(localized_server, locale
     assert text(language, "session.initial_hand.more", capacity=1) in recording(page)
 
 
-def test_original_skat_and_later_play_keep_their_existing_progress(localized_server):
+def test_original_skat_shares_set_layout_and_later_play_keeps_progress(localized_server):
     browser = Browser(localized_server)
     page = create(browser, "retrospective", "rearhand")
     for start in (0, 10, 20):
         page = follow(browser, browser.submit(Forms(page).find("/sessions/cards"),
                                              cards=get_full_deck()[start:start + 10]))
     primary = recording(page)
-    assert 'initial-hand-entry' not in page
-    assert 'data-recorded-summary' in primary and 'recording-progress-layout' in primary
-    assert text("en", "task.session.enter_skat") in primary
+    assert 'class="session-set-entry"' in primary
+    assert 'data-recorded-summary' not in primary and 'recording-progress-layout' not in primary
+    assert text("en", "session.original_skat.title") in primary
     assert_palette(page, "en", get_full_deck()[30:])
     follow(browser, browser.submit(Forms(page).find("/sessions/cards"), cards=get_full_deck()[30:]))
     browser.command("set_declarer")
@@ -147,13 +147,13 @@ def test_original_skat_and_later_play_keep_their_existing_progress(localized_ser
     browser.command("record_play", card="HA")
     browser.command("record_play", card="D9")
     page = browser.page()
-    assert 'initial-hand-entry' not in page
+    assert 'session-set-entry' not in page
     assert 'data-recorded-summary' in recording(page)
     assert 'data-trick-metric="points">22</dd>' in page
     assert 'data-trick-number="1"' in page and 'id="session-play-1"' in page
     active = localized_server.app_context.managed_stateful.active_session
     assert len(replay_session_state_v1(active.state).completed_tricks) == 1
-    assert 'initial-hand-entry' not in start_match(browser)
+    assert 'session-set-entry' not in start_match(browser)
 
 
 def test_long_user_names_remain_complete_and_escaped(localized_server):

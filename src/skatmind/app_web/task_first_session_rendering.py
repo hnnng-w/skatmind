@@ -62,10 +62,17 @@ def _players(locale, facts):
                  for player in facts.players)
 
 
-def _initial_hand_entry(view):
-    return (view.facts.phase in {"setup", "deal"}
-            and view.workflow.primary_action == "record_dealt_card"
-            and view.deal_destination == "player_hand")
+def _set_entry_variant(view):
+    """Presentation only; the existing projection owns the task and authorized Cards."""
+    action = view.workflow.primary_action
+    if action == "record_dealt_card":
+        if view.deal_destination == "skat":
+            return "original_skat"
+        if view.deal_destination == "player_hand" and view.facts.phase in {"setup", "deal"}:
+            return "initial_hand"
+    if action == "record_discard":
+        return "discard"
+    return None
 
 
 def _hand_summary(locale, facts, player_id, *, public=False):
@@ -186,22 +193,23 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
         task = project_session_card_task(context.state, view=view)
         facts = view.facts
         play = kind == "record_play"
-        initial_hand = _initial_hand_entry(view)
+        set_entry = _set_entry_variant(view)
         fields = hidden("managed_handle", context.handle) + hidden(
             "card_selection", session_card_binding(context, task))
         player = dict(_players(locale, facts)).get(task.player_id, text(locale, "task.skat"))
-        if initial_hand:
-            if facts.local_player_id is not None and facts.local_player_id != task.player_id:
+        if set_entry:
+            if (set_entry == "initial_hand" and facts.local_player_id is not None
+                    and facts.local_player_id != task.player_id):
                 fields += paragraph(locale, "task.session.perspective",
                     player=dict(_players(locale, facts))[facts.local_player_id])
             if task.accepted_cards:
-                fields += '<div class="session-initial-accepted"><p><strong>' + translated(
-                    locale, "session.initial_hand.saved") + '</strong> '
+                fields += '<div class="session-set-accepted"><p><strong>' + translated(
+                    locale, f"session.{set_entry}.saved") + '</strong> '
                 fields += card_set_summary(locale, task.accepted_cards) + '</p><a href="#session-history">'
                 fields += translated(locale, "task.session.corrections") + '</a></div>'
         elif not play:
             fields += paragraph(locale, "compact.for", player=player)
-        if not initial_hand and kind == "record_dealt_card" and facts.phase in {"setup", "deal"}:
+        if not set_entry and kind == "record_dealt_card" and facts.phase in {"setup", "deal"}:
             if facts.capture_mode == "live":
                 fields += paragraph(locale, "session.knowledge.local_hand", player=player)
             else:
@@ -211,14 +219,14 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
             fields += paragraph(locale, "recovery.trick", number=len(facts.completed_tricks) + 1)
             fields += render_current_trick(progress, locale)
             fields += paragraph(locale, "task.match.scope." + task.scope)
-        elif not initial_hand:
+        elif not set_entry:
             fields += paragraph(locale, "compact.append") + paragraph(locale, "compact.accepted")
             fields += '<p>' + card_set_summary(locale, task.accepted_cards) + '</p>'
         fields += compact_card_selector(locale, mode="play" if play else "set",
             cards=task.selectable_cards, capacity=task.capacity,
-            guidance_key=("session.initial_hand.more" if task.accepted_cards else
-                          "session.initial_hand.start") if initial_hand else None,
-            guidance_values={"capacity": task.capacity} if initial_hand else None,
+            guidance_key=(f"session.{set_entry}.more" if task.accepted_cards else
+                          f"session.{set_entry}.start") if set_entry else None,
+            guidance_values={"capacity": task.capacity} if set_entry else None,
             game_type=None if facts.declaration is None else facts.declaration.game_type)
         return form(locale, "/sessions/play" if play else "/sessions/cards", fields,
                     "compact.record" if play else "compact.save", primary=True)
@@ -309,11 +317,17 @@ def _analysis_result(context, locale, game_label):
 
 def _task_heading(locale, view):
     action = view.workflow.primary_action
-    if _initial_hand_entry(view):
+    set_entry = _set_entry_variant(view)
+    if set_entry == "initial_hand":
         player = next(player for player in view.facts.players if player.player_id == view.entry_player_id)
         return translated(locale, "session.initial_hand.title",
             player=player_name(locale, view.facts.players, player.player_id),
             seat=text(locale, f"creation.seat.{player.seat}"))
+    if set_entry == "original_skat":
+        return translated(locale, "session.original_skat.title")
+    if set_entry == "discard":
+        return translated(locale, "session.discard.title",
+            player=player_name(locale, view.facts.players, view.facts.declarer_player_id))
     if action == "record_play":
         return translated(locale, "task.record_next_card", player=dict(
             _players(locale, view.facts))[view.entry_player_id])
@@ -336,10 +350,10 @@ def render_task_first_session_v1(
         facts = view.facts
         progress = project_session_trick_progress(facts)
         unplayed = project_unplayed_cards(progress, facts.declaration)
-        initial_hand = _initial_hand_entry(view)
+        set_entry = _set_entry_variant(view)
         mode = "perspective" if facts.capture_mode == "live" else "reconstruction"
         current = ""
-        if not initial_hand:
+        if not set_entry:
             current = paragraph(locale, "session.knowledge.accepted_mode",
                                 mode=text(locale, f"session.knowledge.{mode}"))
             if facts.phase != "ended":
@@ -355,10 +369,10 @@ def render_task_first_session_v1(
                     if primary else '<p><a href="#session-history">' + translated(
                         locale, "recorded_review.history") + '</a></p>')
         task_content = '<h2>' + _task_heading(locale, view) + '</h2>' + controls
-        if not initial_hand:
+        if not set_entry:
             task_content = ('<div class="recording-progress-layout"><div>' + task_content
                             + '</div>' + render_recorded_summary(progress, locale) + '</div>')
-        variant = ' class="initial-hand-entry"' if initial_hand else ''
+        variant = ' class="session-set-entry"' if set_entry else ''
         normal += ('<div id="session-recording"' + variant + ' tabindex="-1"><div id="session-card-feedback"></div>'
             + '<!-- operation-feedback -->'
             + '<section class="panel">' + task_content + '</section></div>')
@@ -377,7 +391,7 @@ def render_task_first_session_v1(
         normal += render_recorded_session_decisions_v1(context, locale=locale, view=recorded)
         normal += render_recorded_history(progress, locale, anchor_prefix="session-play")
         entered = ""
-        if initial_hand:
+        if set_entry:
             entered += '<p>' + translated(locale, "session.knowledge.accepted_mode",
                 mode=text(locale, f"session.knowledge.{mode}")) + ' · '
             entered += translated(locale, f"task.session.phase.{facts.phase}") + '</p>'

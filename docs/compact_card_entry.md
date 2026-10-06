@@ -20,8 +20,8 @@ legality. DOM and keyboard order agree; `game_type` remains callable-compatible.
 Canonical deck order, trump/Null strengths and legal membership are independent.
 
 The default shared **5em** interactive width accommodates the native control, suit and
-two-digit rank; tiles wrap without stretching per suit. Issue #275's initial Session
-hand variant instead fills explicit grid tracks as described below. The shared read-only face
+two-digit rank; tiles wrap without stretching per suit. The shared Session set-entry
+variant from Issues #275/#278 instead fills explicit grid tracks as described below. The shared read-only face
 has no input or checkbox-sized padding. Validated suit markers color Heart/Diamond
 symbols **and ranks** red, Club/Spade dark. Full localized accessible names, optional
 raw codes, native checked states and existing focus remain. Forced colors use system
@@ -116,9 +116,10 @@ retry, rollback write, or stronger cross-process transaction is claimed.
 
 ## Compact initial Session hand (Issue #275)
 
-The normal setup/deal **player-hand** task has a local `initial-hand-entry` variant.
-The existing task projection and hand destination select it; original-Skat entry
-does not opt in. One heading names the target Player and original seat. A differing
+The normal setup/deal **player-hand** task retains its compact presentation within
+the shared `session-set-entry` variant extended by Issue #278. The existing task
+projection and destination select presentation, independently of Card authorization.
+One heading names the target Player and original seat. A differing
 reconstruction perspective remains a separate, explicitly labelled context. The
 existing accepted overview retains effective mode/phase in one secondary line.
 Brief German/English guidance supplies remaining capacity and permits partial Save.
@@ -128,7 +129,8 @@ Command/Checkpoint mechanics remain documented above and in
 [knowledge-based entry](session_knowledge_based_entry.md).
 
 The recording task uses the full panel width without rendering the undeclared-score
-placeholder. Other tasks retain their existing score/progress renderer and calculation.
+placeholder. Issue #278 also applies this treatment to normal original-Skat and
+discard entry; later Play retains its score/progress renderer and calculation.
 The marker scopes the smaller outer Game title through `main:has(...) > h1`, as that
 heading belongs to `templates/app.html`, not the recording panel. Local panel/form
 spacing is reduced; content height, feedback and navigation anchors stay natural.
@@ -138,12 +140,88 @@ minimum available widths. Tracks override the inherited fixed tile width, preser
 the existing 16px normal Card text, 44px minimum tile height, native controls,
 focus room and selected cues. Filtered groups contain only offered Cards, without
 fabricated placeholders. Other Session/Match selectors keep their default layout.
-The shared helper adds only an optional localized-guidance parameter mapping;
-default guidance and other callers' labels/values remain the same. Four paired
-messages bring the catalog from 1,818 to **1,822** keys. Routes, form identities,
+Issue #275 added an optional localized-guidance parameter mapping to the shared helper;
+Issue #278 reuses it without changing that helper. Default guidance and other callers'
+labels/values remain the same. The four #275 messages brought the catalog from
+1,818 to 1,822 keys; eight paired #278 messages bring it to **1,830**. Routes, form identities,
 bindings, Command order, persistence, information policy and explicit saving remain.
 
-### Developer evidence
+### Skat and discard extension (Issue #278)
+
+`_set_entry_variant()` in `task_first_session_rendering.py` uses the existing
+projected action and destination: setup/deal player hands, `record_dealt_card` to
+original Skat in both reconstruction setup/deal and later pickup entry, and normal
+`record_discard`. It controls only presentation. `project_session_card_task()` still
+supplies selectable Cards, accepted membership and remaining capacity. Original-Skat
+choices exclude assigned Cards; discards can include picked-up original-Skat Cards.
+Neither domain is changed or reused as the other's exclusion rule.
+
+Each task has one localized heading and short remaining-capacity guidance. Discards
+name the declarer. Saved original Skat and saved discards have separate labels and
+correction access after partial Save/reopen; empty accepted blocks and revision/append
+explanations are absent from the primary flow. Mode/phase move to the accepted
+overview. The accepted declaration and its correction controls remain visible.
+The common scoped container, title and spacing treatment uses the full panel width
+without a pre-play score column. Advanced/correction editors, single-Card Play,
+Match selectors, native labels/values, keyboard order, form/feedback identities,
+language return and operation-overlay mechanisms retain their existing behavior.
+
+#### Focused developer browser evidence
+
+Clean base: `63fe9c51b968b8238b3e6d644fab79bec49ca8f0` on
+`bug/278-compact-skat-discard-entry`. Before/after runs used source-tree imports and
+assets, Windows CPython **3.13.7**, headless Microsoft Edge **154.0.4258.62**, and
+the existing dependency-free DevTools utilities with fresh isolated profiles/data.
+The synthetic Game has all Clubs plus SA/S10 in the initial hand, non-Hand Clubs,
+and H7 pending in original Skat; no maintainer UAT data was used.
+
+Measured **CSS** viewports were **1200×900**, **1440×1000**, and **520×844** at the
+fresh profile's **100% zoom** (DPR 1, visual scale 1, no emulation/text scaling).
+Corresponding outer windows were 1234×997, 1474×1097, and 554×941.
+
+| German task / CSS viewport | Complete suit rows before → after | Selector width before → after | Save document Y before → after |
+| --- | --- | --- | --- |
+| Original Skat / 1200×900 | 6+2 → 8 | 646.4 → 1127px | 1399.2 → 736.0px |
+| Original Skat / 1440×1000 | 7+1 → 8 | 684.2 → 1190px | 1407.2 → 744.0px |
+| Discards / 1200×900 | 6+2 → 8 | 646.4 → 1127px | 1432.0 → 824.0px |
+| Discards / 1440×1000 | 7+1 → 8 | 684.2 → 1190px | 1440.0 → 832.0px |
+
+At 520px, complete suits use **4+4**; sparse suits contain only genuine choices.
+All nine repaired measurements have equal document/client widths and no horizontal
+overflow. Text stays 16px, native checkboxes 20px, tile height at least 44px, and
+Save height 44.4px. Inspected screenshots show concise context, readable controls,
+focus room and Save directly below selection/actual feedback. Narrow views use
+ordinary vertical scrolling.
+
+The focused workflow exercised native Space/Tab/Enter, H7 pending through German →
+English, partial Save/reopen with one remaining place, a real over-capacity rejection,
+safe rejected choices through return to German, the existing error link, correction,
+and completion. H7 was subsequently discarded from the original Skat; partial discard
+completion restored Play/progress at revision 17. Selection sent no POST; each valid
+Card Save called persistence once, and rejection called it zero times.
+
+Completed scratch artifacts are `issue-278-before-c6p_91zx/report.json` and
+`issue-278-after-tt7nbgzl/report.json` under `<temporary-directory>/opencode/`.
+They retain geometry, screenshots and exact renderer/helper/projection/catalog/asset
+SHA-256 identities. Served CSS and workflow JavaScript were byte-checked against the
+tested source files. Repaired CSS SHA-256:
+`dd7679c086bb02d45da5913bf296fde74bb08882f494a556135880ce30c83f0a`.
+An earlier repaired run completed the interactions but stopped on a harness assertion
+that confused set-projection order with accepted Command order; the completed run
+checks both correctly. No Product change was needed for that harness correction.
+
+This is source-tree developer evidence, not installed-build maintainer acceptance.
+**Actual narrow-window 200% browser zoom remains outstanding:** the existing headless
+harness has no verified real-zoom control; resizing is not zoom. Keep #278 open for
+one short natural installed-build pass through Skat and discards, including that zoom
+condition, after integration and green CI. This does not reopen #275–#277 or establish
+overall UAT/release readiness. Final full-check results belong to the completion report.
+
+### Historical Issue #275 developer evidence
+
+The following measurements and then-outstanding acceptance notes describe #275's
+initial-hand repair only. They are historical evidence, not proof of #278 or a new
+request to repeat accepted #275 checks.
 
 Preflight was clean on `bug/275-compact-initial-hand-entry`, HEAD
 `b8d70925f6e55171ea64b68caefbe354dd1153c5`. Measurements were captured before source
@@ -454,7 +532,7 @@ competing write at Save separately demonstrate no candidate publication. Focused
 #221–#225, language/validation/security, replay/files, Match, standalone, and packaging
 suites remain regression boundaries.
 
-### Installed browser evidence
+### Historical Issue #226 installed browser evidence
 
 `scripts/verify_compact_card_entry.py` reuses dependency-free DevTools and an existing
 local Edge executable. Baseline/final runs used separately installed Wheels, Python
@@ -499,7 +577,7 @@ checkout imports or differing resources. This optional tooling is separate from
 the full check and introduces no runtime/browser dependency. Measurements are
 implementation evidence, not all-device/assistive-technology coverage or maintainer UAT.
 
-### Issue #248 current installed evidence
+### Historical Issue #248 installed evidence
 
 The clean starting HEAD was `340c251b8000c4aa07091b0a3763854f486b29e9` on
 `bug/248-card-presentation`, after completed #247. The actual issue and R04 in

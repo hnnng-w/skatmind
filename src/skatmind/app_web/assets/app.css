@@ -1142,57 +1142,57 @@ details[open] > summary {
   max-width: 100%;
 }
 
-/* Only the projected initial player hand opts in; the outer title is a sibling. */
-main:has(#session-recording.initial-hand-entry) > h1 {
+/* Only normal projected Session set entry opts in; the outer title is a sibling. */
+main:has(#session-recording.session-set-entry) > h1 {
   max-width: none;
   font-size: clamp(1.75rem, 3vw, 2.25rem);
   margin-bottom: 0.75rem;
 }
 
-#session-recording.initial-hand-entry > .panel {
+#session-recording.session-set-entry > .panel {
   padding: 0.75rem;
 }
 
-.initial-hand-entry > .panel > h2 {
+.session-set-entry > .panel > h2 {
   margin-block: 0 0.75rem;
   font-size: 1.5rem;
 }
 
-#session-app .initial-hand-entry .form-grid {
+#session-app .session-set-entry .form-grid {
   max-width: none;
   gap: 0.6rem;
 }
 
-.initial-hand-entry .form-grid > p,
-.session-initial-accepted p {
+.session-set-entry .form-grid > p,
+.session-set-accepted p {
   margin: 0;
 }
 
-.initial-hand-entry .compact-card-groups {
-  container: initial-hand-suits / inline-size;
+.session-set-entry .compact-card-groups {
+  container: session-set-suits / inline-size;
 }
 
-.initial-hand-entry .compact-card-choices {
+.session-set-entry .compact-card-choices {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
 }
 
 /* Override the shared fixed tile width; preserve text, control size and focus room. */
-.initial-hand-entry .compact-card {
+.session-set-entry .compact-card {
   width: auto;
   max-width: none;
 }
 
-@container initial-hand-suits (min-width: 12em) {
-  .initial-hand-entry .compact-card-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@container session-set-suits (min-width: 12em) {
+  .session-set-entry .compact-card-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@container initial-hand-suits (min-width: 24em) {
-  .initial-hand-entry .compact-card-choices { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@container session-set-suits (min-width: 24em) {
+  .session-set-entry .compact-card-choices { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
-@container initial-hand-suits (min-width: 48em) {
-  .initial-hand-entry .compact-card-choices { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+@container session-set-suits (min-width: 48em) {
+  .session-set-entry .compact-card-choices { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 }
 
 /* Accepted Trick progress has no form, counter, or collapsed diagnostic targets. */

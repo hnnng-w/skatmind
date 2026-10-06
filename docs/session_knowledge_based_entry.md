@@ -44,16 +44,17 @@ exact time remain optional. Past `played_at`, language, zone and system time do 
 select the path. `/sessions/cards` retains its 8,192-byte bound.
 
 Opened, imported and reopened records display their effective accepted mode.
-During initial-hand entry, mode and phase share one secondary line in the accepted
-overview. Other phases retain their existing introductory context.
+During normal initial-hand, original-Skat and discard entry, mode and phase share
+one secondary line in the accepted overview. Other tasks retain their existing
+introductory context.
 A promoted record displays reconstruction even if its initial mode was `live`.
 Passive viewing, radio selection and disclosures cause no Product write, promotion,
 analysis or preparation. Language saving retains its separate profile operation.
 
-### Compact initial-hand task (Issue #275)
+### Compact set-entry tasks (Issues #275 and #278)
 
-Only the existing setup/deal task with `record_dealt_card` and destination
-`player_hand` opts into the compact presentation. The Game title is followed by
+The existing setup/deal task with `record_dealt_card` and destination
+`player_hand` retains its compact presentation. The Game title is followed by
 one **Starting hand — Player · Seat** heading, brief capacity-aware guidance,
 native choices and explicit Save. Reconstruction shows a separate named and seated
 recording perspective beside the task when it differs from the target. It still
@@ -68,11 +69,20 @@ The revision/Checkpoint mechanics are documented in
 [Compact Card entry](compact_card_entry.md#session-append-candidate-first-save-last),
 outside the ordinary input instructions.
 
-The initial-hand panel uses its available width without an undeclared-score sidebar.
-Original-Skat, discard, declaration and Play tasks retain their existing layout and
-progress. The scoped title treatment also reaches the outer `main > h1`, rendered
-by the application shell. See the
-[matched browser evidence and remaining acceptance checks](compact_card_entry.md#compact-initial-session-hand-issue-275).
+Issue #278 extends the same presentation to projected original-Skat tasks in both
+reconstruction setup/deal and later pickup entry, plus normal `record_discard`.
+Task-specific German/English headings, remaining-capacity guidance and nonempty
+saved-card summaries distinguish original Skat from discards. Discards name the
+accepted declarer. Partial Save/reopen keeps accepted Cards separate from pending
+choices and exposes correction access. Original-Skat Cards remain discardable when
+the existing task permits them; the renderer changes no domain or filtering rule.
+
+These set-entry panels share the available width and container-based 8/4/2/1 layout
+without an irrelevant pre-play score column. The accepted declaration stays visible;
+later Play retains current-Trick, score and history presentation. The scoped title
+treatment also reaches the outer `main > h1`, rendered by the application shell.
+Advanced/correction editors and single-Card Play do not opt in. See the
+[focused #278 browser evidence and outstanding installed/zoom checks](compact_card_entry.md#skat-and-discard-extension-issue-278).
 
 ### Accepted seating and hand scope (Issue #247)
 
@@ -120,6 +130,16 @@ envelope correctly reports the current observation revision.
 
 ## Verification
 
+`tests/test_compact_skat_discard_web.py` adds real returned-page/submission coverage
+for empty and partial German/English Skat/discard tasks, both original-Skat workflow
+paths, exact filtered domains, picked-up Skat Cards as discards, Save/reopen, genuine
+over-capacity rejection, safe pending/rejected language return and completion.
+Existing initial-hand, recording/security, shared Match, localization and later
+Trick-progress tests remain regression boundaries.
+
+The #233 counts, runs and installed evidence below are historical knowledge-entry
+evidence, not validation of the #278 presentation repair.
+
 Issue #234 adds a separate [Unplayed Card conclusion](unplayed_card_summary.md) at
 thirty accepted Plays, including before explicit Game End. It labels Hand original
 Skat versus non-Hand discards without completing recorded fields, promoting mode,
@@ -154,7 +174,7 @@ rename inventory's line numbers. The new paragraph was moved into the current
 workflow guidance after those historical lines, preserving both the evidence and
 inventory unchanged. The corrected tree requires a complete rerun.
 
-## Independently installed browser evidence
+## Historical Issue #233 independently installed browser evidence
 
 `scripts/verify_session_knowledge_entry.py` reuses the dependency-free DevTools
 harness. It rejects checkout imports, checks 26 installed module/resource hashes
