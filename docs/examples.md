@@ -1178,7 +1178,7 @@ When adding new examples:
 * omit `matadors` only when automatic inference from known declarer-card context is intended
 * prefer either top-level declaration fields or nested `game_declaration`; mixing is supported, with top-level fields taking precedence
 * use documented declaration fields inside nested `game_declaration`; unknown nested metadata may be accepted for compatibility but is ignored by declaration, settlement, and overbid logic
-* run `.\scripts\check.ps1` before manual review
+* follow [validation policy](faster_validation.md) before manual review; Quick is not complete CI
 * keep historical and training-dataset examples separate from flat position fields
 * give every training record provenance and an explicit partition
 

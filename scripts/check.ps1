@@ -1,50 +1,20 @@
-Write-Host "Running Ruff check..."
-python -m ruff check .
+param(
+    [ValidateSet("Quick", "Full")]
+    [string]$Mode = "Full",
+    [ValidateRange(1, 8)]
+    [int]$Workers = 2,
+    [string]$LogDirectory = ""
+)
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Ruff check failed."
+$ErrorActionPreference = "Stop"
+try {
+    $arguments = @("$PSScriptRoot/run_validation.py", "--mode", $Mode, "--workers", $Workers)
+    if ($LogDirectory) {
+        $arguments += @("--log-directory", $LogDirectory)
+    }
+    python @arguments
     exit $LASTEXITCODE
+} catch {
+    Write-Error $_
+    exit 1
 }
-
-Write-Host "Running packaged schema parity check..."
-python scripts/sync_packaged_schemas.py --check
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Packaged schema parity check failed."
-    exit $LASTEXITCODE
-}
-
-Write-Host "Running JSON schema validation..."
-python scripts/validate_examples_schema.py
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "JSON schema validation failed."
-    exit $LASTEXITCODE
-}
-
-Write-Host "Running generated output schema validation..."
-python scripts/validate_generated_outputs_schema.py
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Generated output schema validation failed."
-    exit $LASTEXITCODE
-}
-
-Write-Host "Running distribution artifact validation..."
-python scripts/validate_distribution_artifacts.py
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Distribution artifact validation failed."
-    exit $LASTEXITCODE
-}
-
-Write-Host "Running tests..."
-python -m pytest
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Tests failed."
-    exit $LASTEXITCODE
-}
-
-Write-Host ""
-Write-Host "All checks passed."

@@ -125,6 +125,7 @@ def test_pep_639_source_metadata_preserves_the_package_baseline() -> None:
     assert project["optional-dependencies"]["dev"] == [
         "build>=1.2.2",
         "pytest>=9.0.0",
+        "pytest-xdist>=3.8.0",
         "ruff>=0.14.0",
     ]
     assert pyproject["tool"]["setuptools"]["package-data"] == {
@@ -257,6 +258,7 @@ def test_documented_dependency_and_bundled_asset_audit_is_complete() -> None:
         "tzdata>=2026.4",
         "build>=1.2.2",
         "pytest>=9.0.0",
+        "pytest-xdist>=3.8.0",
         "ruff>=0.14.0",
         "Python source",
         "JSON Schemas",

@@ -809,7 +809,7 @@ python scripts/validate_examples_schema.py
 python scripts/validate_generated_outputs_schema.py
 ```
 
-4. Run the full project check:
+4. Run Full when required by [validation policy](faster_validation.md); otherwise Quick plus CI:
 
 ```powershell
 .\scripts\check.ps1
@@ -832,7 +832,7 @@ When adding a new stable output field:
 4. Update `docs/output_json.md`.
 5. Update any relevant topic-specific docs.
 6. Run generated-output schema validation.
-7. Run the full check script.
+7. Follow [validation policy](faster_validation.md); report focused/Quick and full CI separately.
 
 For experimental or unstable nested analysis fields, it may be better to leave them in a schema area with `additionalProperties: true` until the structure stabilizes.
 

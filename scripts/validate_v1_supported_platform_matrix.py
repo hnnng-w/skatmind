@@ -340,6 +340,11 @@ def _python_evidence() -> dict[str, str]:
 
 
 def _windows_platform_evidence() -> dict[str, str]:
+    _require(
+        platform.win32_edition() not in ("ServerStandard", "ServerDatacenter")
+        and sys.getwindowsversion().product_type == 1,
+        "The Windows v1 lane requires Windows 11, not Windows Server.",
+    )
     operating_system_version = platform.version()
     version_parts = operating_system_version.split(".")
     _require(
@@ -690,9 +695,14 @@ def validate_v1_supported_platform_matrix(
         repository_snapshot() == before_snapshot,
         "The supported-platform matrix changed repository files.",
     )
+    return build_matrix_result(cells, platform_evidence, sorted(import_inventory))
+
+
+def build_matrix_result(cells: list, platform_evidence: dict, direct_imports: list) -> dict:
+    """Preserve the compact normalized result for local and split execution."""
     result: dict[str, object] = {
         "cells": cells,
-        "direct_imports": sorted(import_inventory),
+        "direct_imports": direct_imports,
         "matrix_version": V1_SUPPORTED_PLATFORM_MATRIX_VERSION,
         "minimum_runtime_dependencies": list(V1_MINIMUM_RUNTIME_DEPENDENCIES),
         "platform": platform_evidence,

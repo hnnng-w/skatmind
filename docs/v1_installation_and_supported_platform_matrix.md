@@ -32,8 +32,8 @@ dependencies = [
 ]
 ```
 
-No upper bound, environment marker, lock file, vendored copy, or new development
-dependency is added. The exact minimum-supported lane installs:
+Runtime floors remain unchanged by Issue #279; its pytest-xdist dependency is
+development-only validation tooling. The exact minimum-supported lane installs:
 
 ```text
 jsonschema==4.23.0
@@ -173,7 +173,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command `
   "py -3.13 scripts/validate_v1_supported_platform_matrix.py"
 ```
 
-The final local repository check is separately run once through Windows
+For release/platform evidence, the local Full check is separately run through Windows
 PowerShell 5.1:
 
 ```powershell
@@ -181,12 +181,12 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command `
   "& { function python { py -3.13 @args }; .\scripts\check.ps1 }"
 ```
 
-Ubuntu acceptance is the separate GitHub Actions job named exactly
-`v1-supported-platform-matrix`. It uses `ubuntu-latest`, CPython 3.13, installs
-only required build tooling, runs this matrix with the explicit Ubuntu expected-
-platform identifier, performs no full pytest rerun, publishes nothing, and
-uploads no Release asset. The existing `check` job remains unchanged in purpose
-and continues to run the complete repository gate.
+Issue #279 retains `v1-supported-platform-matrix` as a strict final aggregate over
+six independent Ubuntu cells and six separately identified hosted Windows Server
+cells. Full regression/distribution coverage runs on both operating systems. The
+Windows Server lane is additional automation, never Windows-11 certification.
+Real Windows 11 / PowerShell 5.1 release, platform-change, and installed-UAT checks
+remain required. See [Faster complete validation](faster_validation.md) for activation.
 
 No macOS support, Python 3.14 certification, named browser-vendor matrix,
 hardware requirement, cross-machine latency guarantee, Docker/remote-hosting

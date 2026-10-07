@@ -231,15 +231,15 @@ Each part should:
 * add one focused behavior or cleanup
 * include tests
 * keep existing behavior backward-compatible where possible
-* run the full check script before manual review
+* follow [the local/CI validation policy](faster_validation.md) before manual review
 
-The standard check command is:
+The no-argument Full command is (routine Quick is explicit and CI remains required):
 
 ```powershell
 .\scripts\check.ps1
 ```
 
-The project check currently covers:
+Full covers all of the following; Quick covers only the first three:
 
 * Ruff checks
 * packaged-schema filename and byte parity

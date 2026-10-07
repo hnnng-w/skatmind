@@ -355,7 +355,7 @@ def _validate_metadata(metadata: Message, *, artifact_name: str) -> None:
         == list(RUNTIME_DEPENDENCIES),
         f"{artifact_name} does not contain the exact ordered runtime dependencies.",
     )
-    for dependency in ("build>=1.2.2", "pytest>=9.0.0", "ruff>=0.14.0"):
+    for dependency in ("build>=1.2.2", "pytest>=9.0.0", "pytest-xdist>=3.8.0", "ruff>=0.14.0"):
         _require(
             any(
                 requirement.startswith(dependency) and 'extra == "dev"' in requirement

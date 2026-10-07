@@ -134,13 +134,13 @@ For each task:
 3. Make the smallest useful change.
 4. Add or update focused tests.
 5. Run targeted tests first.
-6. Run the full check script before considering the task complete.
+6. Run the local checks required by the validation policy below before reporting completion.
 7. Do not update unrelated files.
 8. Do not perform broad refactors unless explicitly requested.
 
 ## Standard check command
 
-Use this command for the full project check:
+No arguments means Full; `-Mode Quick` is explicit partial validation (see policy below):
 
 ```powershell
 .\scripts\check.ps1
@@ -153,7 +153,7 @@ The full check covers:
 * input JSON schema validation
 * generated output JSON schema validation
 * Wheel, sdist, and clean-install API/installed/module CLI validation
-* pytest regression tests
+* complete file-grouped pytest regression tests and an exclusive serial phase
 
 ## Useful focused checks
 
@@ -1073,14 +1073,45 @@ The Issue-#220 implementation is documented in
 The September 11 repeated maintainer UAT-01 failed. Issue #221 implements only
 the direct recorded-own-decision Session review path documented in
 [`docs/session_recorded_decision_review.md`](docs/session_recorded_decision_review.md).
-Exact merged-commit `check` and `v1-supported-platform-matrix` remain required,
-with a future focused affected-path retest. Issue #208 and unresolved findings
+Exact-commit `check` and `v1-supported-platform-matrix` remain required under the
+validation policy below, plus affected-path retests. Issue #208 and unresolved findings
 remain open; agents do not perform UAT or close its findings.
 
 A task is complete only when:
 
 * implementation is done
 * focused tests pass
-* full check passes
+* required local validation passes and exact-commit CI acceptance is reported separately
 * documentation is updated if behavior or stable output changed
 * `git status` shows only intended changes
+
+## Validation policy and Issue #279 activation gate
+
+The faster routine policy is implemented but **not active until the maintainer
+accepts Issue #279's local Full and actual new CI evidence**. Keep #279 open until
+the real graph demonstrates both final statuses, all mandatory workers, failure
+propagation, timings, and honest Windows Server identification. Until then,
+continue requiring the final local Full check for implementation tasks.
+
+After that acceptance, routine local completion requires explicit focused tests
+and `./scripts/check.ps1 -Mode Quick`.
+Report **locally validated, CI pending**. Quick runs Ruff, packaged-schema parity,
+and input examples; it does not certify generated outputs, distributions, the
+installation matrix, or the complete regression suite. A Quick pass never
+authorizes issue closure.
+
+Use `.\scripts\check.ps1` or `-Mode Full` for validation-tool changes, diagnosis,
+relevant platform-specific work, and required release/platform evidence. Use
+`-Workers 1` for complete serial diagnosis; default Full uses two file-grouped
+workers and the complete exclusive phase. Logs go outside the repository.
+Genuine Windows 11 / PowerShell 5.1 matrix checks and installed UAT boundaries
+remain required where documented; hosted Windows Server does not replace them.
+
+The human maintainer commits/pushes a working branch, waits for complete CI on
+that exact commit, fast-forwards it to main, and verifies main's two final gates.
+Eligible fresh same-commit branch evidence can be reused; missing or ineligible
+evidence runs full CI. No PR ceremony is mandatory. Agents do not publish, trigger
+Actions, perform UAT, or change UAT findings. See
+[Faster complete validation](docs/faster_validation.md) for the coverage map,
+24-hour/current-integration-cycle reuse policy, force-full path, serial exceptions,
+required settings, and acceptance procedure.

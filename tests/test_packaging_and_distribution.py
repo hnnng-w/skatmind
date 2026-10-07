@@ -38,6 +38,7 @@ def test_build_metadata_package_discovery_and_package_data_are_explicit() -> Non
     assert pyproject["project"]["optional-dependencies"]["dev"] == [
         "build>=1.2.2",
         "pytest>=9.0.0",
+        "pytest-xdist>=3.8.0",
         "ruff>=0.14.0",
     ]
     assert pyproject["tool"]["setuptools"]["packages"]["find"] == {
@@ -239,11 +240,16 @@ def test_source_only_version_fallback_reads_no_repository_file(monkeypatch) -> N
 
 
 def test_distribution_gate_is_centralized_in_local_check_and_ci() -> None:
+    from scripts.run_validation import COMMANDS, FULL
+
     local_check = (PROJECT_ROOT / "scripts" / "check.ps1").read_text(encoding="utf-8")
     ci_check = (PROJECT_ROOT / ".github" / "workflows" / "check.yml").read_text(encoding="utf-8")
 
-    for content in (local_check, ci_check):
-        assert content.count("scripts/sync_packaged_schemas.py --check") == 1
-        assert content.count("scripts/validate_distribution_artifacts.py") == 1
+    assert "run_validation.py" in local_check and '$Mode = "Full"' in local_check
+    assert COMMANDS["schema-parity"] == ("scripts/sync_packaged_schemas.py", "--check")
+    assert COMMANDS["distribution"] == ("scripts/validate_distribution_artifacts.py",)
+    assert FULL.count("distribution") == 1
     assert "scripts/validate_v1_supported_platform_matrix.py" not in local_check
-    assert ci_check.count("scripts/validate_v1_supported_platform_matrix.py") == 1
+    assert "scripts/validate_installation_cells.py" in ci_check
+    assert "--build-bundle" in ci_check and "--aggregate" in ci_check
+    assert "--mode Quick" in ci_check and "--stage generated-outputs" in ci_check

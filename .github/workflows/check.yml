@@ -2,65 +2,332 @@ name: Check
 
 on:
   push:
-    branches:
-      - main
+    branches: ["**"]
   pull_request:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_full:
+        description: Run fresh full validation regardless of previous evidence
+        type: boolean
+        default: true
 
 permissions:
   contents: read
 
+concurrency:
+  group: validation-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # Identical checkout bytes on both operating systems, without changing Git config.
+  GIT_CONFIG_COUNT: "1"
+  GIT_CONFIG_KEY_0: core.autocrlf
+  GIT_CONFIG_VALUE_0: "false"
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONIOENCODING: utf-8
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
 jobs:
-  check:
+  coordinator:
+    # Same-repository PRs use their branch push evidence. Fork PRs execute normally,
+    # with read-only permissions and no pull_request_target or privileged workflow.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
-
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      reuse: ${{ steps.evidence.outputs.reuse }}
+      reuse_run: ${{ steps.evidence.outputs.reuse_run }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
+      - id: evidence
+        run: python scripts/ci_validation.py decide
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          POLICY_COMMIT: ${{ github.workflow_sha }}
+          FORCE_FULL: ${{ inputs.force_full || false }}
 
-      - name: Install package with development dependencies
-        run: python -m pip install -e ".[dev]"
+  standards:
+    needs: coordinator
+    if: needs.coordinator.outputs.reuse != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m pip install -e ".[dev]"
+      - run: python scripts/run_validation.py --mode Quick --log-directory "$RUNNER_TEMP/standards"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: standards
+          path: ${{ runner.temp }}/standards
+          retention-days: 7
 
-      - name: Run Ruff
-        run: python -m ruff check .
+  generated:
+    needs: coordinator
+    if: needs.coordinator.outputs.reuse != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m pip install -e ".[dev]"
+      - run: python scripts/run_validation.py --stage generated-outputs --log-directory "$RUNNER_TEMP/generated"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: generated
+          path: ${{ runner.temp }}/generated
+          retention-days: 7
 
-      - name: Check packaged schema parity
-        run: python scripts/sync_packaged_schemas.py --check
+  regression:
+    name: regression (${{ matrix.os }})
+    needs: coordinator
+    if: needs.coordinator.outputs.reuse != 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - os: ubuntu
+            runner: ubuntu-latest
+          - os: windows
+            runner: windows-2025
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m pip install -e ".[dev]"
+      - run: python scripts/run_validation.py --stage pytest --workers 2 --log-directory "$RUNNER_TEMP/regression"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-${{ matrix.os }}
+          path: ${{ runner.temp }}/regression
+          retention-days: 7
 
-      - name: Run input JSON schema validation
-        run: python scripts/validate_examples_schema.py
+  build:
+    name: build (${{ matrix.os }})
+    needs: coordinator
+    if: needs.coordinator.outputs.reuse != 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - os: ubuntu
+            runner: ubuntu-latest
+            platform: ubuntu_github_actions_cpython_3_13
+          - os: windows
+            runner: windows-2025
+            platform: windows_server_github_actions_cpython_3_13
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m pip install "build>=1.2.2"
+      - run: >-
+          python scripts/validate_installation_cells.py
+          --build-bundle "$RUNNER_TEMP/bundle"
+          --expected-platform "${{ matrix.platform }}"
+          --output "$RUNNER_TEMP/build-evidence/result.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-bundle-${{ matrix.os }}
+          path: ${{ runner.temp }}/bundle
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-evidence-${{ matrix.os }}
+          path: ${{ runner.temp }}/build-evidence
+          retention-days: 7
 
-      - name: Run generated output JSON schema validation
-        run: python scripts/validate_generated_outputs_schema.py
+  cells:
+    name: cell (${{ matrix.os }}, ${{ matrix.cell }})
+    needs: [coordinator, build]
+    if: needs.coordinator.outputs.reuse != 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        os: [ubuntu, windows]
+        cell: [source-resolved, editable-resolved, wheel-resolved, sdist-resolved, wheel-minimum_supported, sdist-minimum_supported]
+        include:
+          - os: ubuntu
+            runner: ubuntu-latest
+            platform: ubuntu_github_actions_cpython_3_13
+          - os: windows
+            runner: windows-2025
+            platform: windows_server_github_actions_cpython_3_13
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-bundle-${{ matrix.os }}
+          path: ${{ runner.temp }}/bundle
+      - run: >-
+          python scripts/validate_installation_cells.py
+          --cell "${{ matrix.cell }}" --bundle "$RUNNER_TEMP/bundle"
+          --expected-platform "${{ matrix.platform }}"
+          --output "$RUNNER_TEMP/cell/${{ matrix.cell }}.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cell-${{ matrix.os }}-${{ matrix.cell }}
+          path: ${{ runner.temp }}/cell
+          retention-days: 7
 
-      - name: Validate distribution artifacts and clean installations
-        run: python scripts/validate_distribution_artifacts.py
+  matrix-result:
+    name: matrix-result (${{ matrix.os }})
+    needs: [coordinator, build, cells]
+    if: always() && needs.coordinator.result == 'success' && needs.coordinator.outputs.reuse != 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - os: ubuntu
+            runner: ubuntu-latest
+            platform: ubuntu_github_actions_cpython_3_13
+          - os: windows
+            runner: windows-2025
+            platform: windows_server_github_actions_cpython_3_13
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Require every upstream cell
+        run: python -c 'import json,os; from scripts.ci_validation import require_needs; require_needs(json.loads(os.environ["NEEDS_JSON"]), {"coordinator", "build", "cells"})'
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-bundle-${{ matrix.os }}
+          path: ${{ runner.temp }}/bundle
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cell-${{ matrix.os }}-*
+          path: ${{ runner.temp }}/cells
+      - run: >-
+          python scripts/validate_installation_cells.py
+          --aggregate "$RUNNER_TEMP/cells" --bundle "$RUNNER_TEMP/bundle"
+          --expected-platform "${{ matrix.platform }}"
+          --output "$RUNNER_TEMP/matrix-result/result.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: matrix-result-${{ matrix.os }}
+          path: ${{ runner.temp }}/matrix-result
+          retention-days: 7
 
-      - name: Run tests
-        run: python -m pytest
+  check:
+    needs: [coordinator, standards, generated, regression, build, cells, matrix-result]
+    if: always() && needs.coordinator.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - uses: actions/download-artifact@v4
+        if: needs.coordinator.outputs.reuse != 'true'
+        with:
+          path: ${{ runner.temp }}/evidence
+          pattern: "{standards,generated,regression-*,matrix-result-*}"
+      - run: python scripts/ci_validation.py gate --gate check --evidence-root "$RUNNER_TEMP/evidence"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          POLICY_COMMIT: ${{ github.workflow_sha }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          REUSE: ${{ needs.coordinator.outputs.reuse }}
+          REUSE_RUN: ${{ needs.coordinator.outputs.reuse_run }}
 
   v1-supported-platform-matrix:
+    needs: [coordinator, build, cells, matrix-result]
+    if: always() && needs.coordinator.result != 'skipped'
     runs-on: ubuntu-latest
-
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
-
-      - name: Install required build tooling
-        run: python -m pip install "build>=1.2.2"
-
-      - name: Validate the v1 supported-platform matrix
-        run: >-
-          python scripts/validate_v1_supported_platform_matrix.py
-          --expected-platform ubuntu_github_actions_cpython_3_13
+      - uses: actions/download-artifact@v4
+        if: needs.coordinator.outputs.reuse != 'true'
+        with:
+          pattern: matrix-result-*
+          path: ${{ runner.temp }}/evidence
+      - run: python scripts/ci_validation.py gate --gate matrix --evidence-root "$RUNNER_TEMP/evidence"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          POLICY_COMMIT: ${{ github.workflow_sha }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          REUSE: ${{ needs.coordinator.outputs.reuse }}
+          REUSE_RUN: ${{ needs.coordinator.outputs.reuse_run }}

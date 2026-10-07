@@ -436,5 +436,6 @@ def test_schema_libraries_are_runtime_dependencies_and_dev_tools_remain_optional
     assert pyproject["project"]["optional-dependencies"]["dev"] == [
         "build>=1.2.2",
         "pytest>=9.0.0",
+        "pytest-xdist>=3.8.0",
         "ruff>=0.14.0",
     ]

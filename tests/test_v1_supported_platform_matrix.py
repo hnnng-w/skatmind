@@ -336,23 +336,21 @@ def test_repository_snapshot_detects_content_addition_and_removal(tmp_path: Path
     assert matrix.repository_snapshot(tmp_path) == second
 
 
-def test_ci_preserves_check_job_and_adds_separate_matrix_job() -> None:
+def test_ci_preserves_final_gate_names_and_complete_platform_coverage() -> None:
     workflow = (PROJECT_ROOT / ".github" / "workflows" / "check.yml").read_text(
         encoding="utf-8"
     )
-    check_job, matrix_job = workflow.split("  v1-supported-platform-matrix:", 1)
-
-    assert "  check:" in check_job
-    assert "runs-on: ubuntu-latest" in check_job
-    assert "python -m pytest" in check_job
-    assert "scripts/validate_distribution_artifacts.py" in check_job
-    assert "runs-on: ubuntu-latest" in matrix_job
-    assert 'python-version: "3.13"' in matrix_job
-    assert "scripts/validate_v1_supported_platform_matrix.py" in matrix_job
-    assert "ubuntu_github_actions_cpython_3_13" in matrix_job
-    assert "pytest" not in matrix_job
-    assert "upload-artifact" not in matrix_job
-    assert "publish" not in matrix_job.lower()
+    workers, final_gates = workflow.split("  check:", 1)
+    assert "  v1-supported-platform-matrix:" in final_gates
+    assert "--gate check" in final_gates and "--gate matrix" in final_gates
+    assert "--stage pytest --workers 2" in workers
+    assert "--build-bundle" in workers and "--cell" in workers and "--aggregate" in workers
+    assert "ubuntu_github_actions_cpython_3_13" in workers
+    assert "windows_server_github_actions_cpython_3_13" in workers
+    assert "windows_11_powershell_5_1_cpython_3_13" not in workers
+    assert 'python-version: "3.13"' in workflow
+    assert "pytest" not in final_gates
+    assert "publish" not in workflow.lower()
     assert "pull_request:" in workflow and "push:" in workflow
 
 

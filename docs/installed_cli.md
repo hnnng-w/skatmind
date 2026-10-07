@@ -382,7 +382,7 @@ second Console Script is installed. Issue #165 additionally verifies Capture
 resources, installed/module Capture help, loopback token bootstrap, browser
 creation, Game start, Declaration, Card append, strict persistence Resume, and
 clean shutdown. Legacy Capture parity remains a repository-checkout gate. The
-local full check and CI invoke that validator once.
+local Full invokes that validator; CI reuses its strict helpers in [six cells](faster_validation.md).
 Issue #179 additionally verifies Corpus Web resource bytes, installed/module and
 Legacy Corpus help, one-root initialization, strict Workspace import, explicit
 Current selection, exact Match Report-source transfer, explicit Dataset-v2

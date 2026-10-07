@@ -630,7 +630,7 @@ Result/artifact serialization without widening that public view. See
 * Development dependencies from `.[dev]`, including:
 
   * `build`
-  * `pytest`
+  * `pytest` and `pytest-xdist` (development-only process workers)
   * `ruff`
 
 ## Installation
@@ -1394,16 +1394,16 @@ Detailed documentation is split into topic-specific files:
 
 ## Development
 
-Run all checks:
+Run Full (the unchanged no-argument meaning; `-Workers 1` provides serial diagnosis):
 
 ```powershell
 .\scripts\check.ps1
 ```
 
-Run tests directly:
+Routine work uses focused tests plus `-Mode Quick`; see [validation policy](docs/faster_validation.md):
 
 ```powershell
-python -m pytest
+python -m pytest tests/test_packaging_and_distribution.py
 ```
 
 Run Ruff checks:

@@ -34,7 +34,7 @@ dependencies are `jsonschema>=4.23.0`, `referencing>=0.31.0`, and
 on every platform; `tzdata==2026.4` is the minimum lane. Its packaged resources,
 not host IANA files, supply local-time conversion. See [Local time entry](local_time_entry.md).
 The `dev` extra
-includes `build`, pytest, and Ruff.
+includes `build`, pytest, development-only pytest-xdist, and Ruff.
 
 The project declares exactly one Console Script:
 
@@ -369,12 +369,12 @@ The complete local check runs, in fail-fast order:
 5. distribution artifact and clean-install validation;
 6. pytest.
 
-GitHub Actions retains the existing `check` job with Python 3.13 and the Editable
-`.[dev]` installation, then runs the same parity and distribution scripts in
-addition to Ruff, schema, generated-output, and pytest gates. The separate job
-named exactly `v1-supported-platform-matrix` uses `ubuntu-latest` and Python 3.13,
-installs only required build tooling, runs the standalone matrix, and does not
-rerun full pytest. No CI step uploads or publishes an artifact.
+Issue #279 splits CI into standards, generated outputs, Ubuntu/Windows regression,
+per-OS inspected builds, six clean installation cells per OS, and strict semantic
+aggregation. The stable final gates are `check` and `v1-supported-platform-matrix`.
+Both reject failed or missing work. Bounded CI artifacts retain diagnostics and
+exact evidence; no Release or Package is published. The migration remains pending
+real CI acceptance; see [Faster complete validation](faster_validation.md).
 
 ## Remaining boundaries
 

@@ -23,6 +23,7 @@ skatmind = "skatmind.cli:main"
 dev = [
     "build>=1.2.2",
     "pytest>=9.0.0",
+    "pytest-xdist>=3.8.0",
     "ruff>=0.14.0",
 ]
 

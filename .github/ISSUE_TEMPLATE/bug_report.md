@@ -40,4 +40,4 @@ Paste the relevant output or traceback.
 
 - [ ] I can reproduce the issue.
 - [ ] The input JSON is valid.
-- [ ] I ran `.\scripts\check.ps1`.
+- [ ] I reported the focused tests, Quick/Full command, and exact-commit CI status I actually ran.
