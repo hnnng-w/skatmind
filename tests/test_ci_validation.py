@@ -1,5 +1,9 @@
 import copy
+import hashlib
 import json
+import os
+import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -240,3 +244,38 @@ def test_workflow_has_bounded_safe_complete_graph():
     assert "workflow_dispatch:" in text and "force_full:" in text
     assert "--gate check" in text and "--gate matrix" in text
     assert all(cell in text for cell in ci.CELL_NAMES)
+
+
+@pytest.mark.parametrize("relative", [
+    "LICENSE", "COPYRIGHT", ".github/workflows/check.yml",
+    "src/skatmind/app_web/assets/app.css", "scripts/check.ps1",
+])
+def test_ci_checkout_preserves_blob_bytes_with_windows_eol_defaults(relative):
+    root = Path(__file__).resolve().parents[1]
+    text = (root / ci.WORKFLOW).read_text(encoding="utf-8")
+    workflow_env = text.split("\nenv:\n", 1)[1].split("\njobs:\n", 1)[0]
+    settings = {key: value.strip('"') for key, value in re.findall(
+        r"^  (GIT_CONFIG_\w+): (.+)$", workflow_env, re.MULTILINE,
+    )}
+    # Simulate Windows-native text checkout on either OS, without host Git config
+    # masking the defect. All Git commands below only read committed objects.
+    environment = {key: value for key, value in os.environ.items()
+                   if not key.startswith("GIT_CONFIG")}
+    count = int(settings["GIT_CONFIG_COUNT"])
+    environment.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull,
+                       GIT_CONFIG_COUNT=str(count + 1), GIT_CONFIG_KEY_0="core.eol",
+                       GIT_CONFIG_VALUE_0="crlf")
+    for index in range(count):
+        environment[f"GIT_CONFIG_KEY_{index + 1}"] = settings[f"GIT_CONFIG_KEY_{index}"]
+        environment[f"GIT_CONFIG_VALUE_{index + 1}"] = settings[f"GIT_CONFIG_VALUE_{index}"]
+    original = subprocess.run(
+        ["git", "cat-file", "blob", f"HEAD:{relative}"], cwd=root, env=environment,
+        check=True, capture_output=True,
+    ).stdout
+    checkout = subprocess.run(
+        ["git", "cat-file", "--filters", f"HEAD:{relative}"], cwd=root, env=environment,
+        check=True, capture_output=True,
+    ).stdout
+    assert hashlib.sha256(checkout).digest() == hashlib.sha256(original).digest(), (
+        f"CI checkout changed committed bytes: {relative}"
+    )

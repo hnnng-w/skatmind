@@ -175,8 +175,30 @@ and installed UAT under the existing supported-platform contract.
 
 `setup-python` caches pip downloads keyed by OS/Python/`pyproject.toml`; no installed
 venv, pytest outcome, or success file is cached. Every installation is fresh.
-Transient Git environment settings disable automatic checkout newline conversion
+Transient Git environment settings select `core.autocrlf=false` and `core.eol=lf`
 on both OSes, retaining exact source-byte comparison without changing Git config.
+Both settings are necessary: `.gitattributes` marks unspecified text as `text=auto`,
+so disabling `autocrlf` alone still permits Windows-native CRLF checkout for files
+without an explicit `eol` attribute, including legal files and packaged CSS.
+
+The first real branch run, [37624632241](https://github.com/hnnng-w/skatmind/actions/runs/37624632241),
+at `5cf0f4d695ed9e4688f984e385ba28f30ba9cd17` exposed this boundary. Windows build
+job `112803240797` reported `LICENSE does not use LF-only line endings.` Its
+`build-evidence-windows` failure/timing artifact recorded exit `1` on Windows
+Server 2025 / CPython 3.13.15. The local Full had checked an existing LF worktree,
+not fresh checkout under the CI Git environment. The corrective test reads the
+workflow's actual settings and uses read-only `git cat-file --filters` against
+committed blobs with simulated Windows EOL defaults on either OS. It covers both
+legal files, workflow YAML, packaged CSS, and an explicitly LF PowerShell control.
+No checkout rewrite, byte normalization, weakened legal-file assertion, or source
+digest normalization is used. The dependent matrix gates correctly reject failed
+builds and skipped cells; hosted acceptance of the correction remains required.
+The run subsequently completed with failure: Ubuntu regression accounted for
+10,417 passed / 2 skipped, while Windows regression reported 10,323 passed and one
+canonical-LICENSE hash failure matching the reproduced CRLF bytes. Its exclusive
+phase did not run after that failure. Both final gates rejected the failed
+prerequisites; no installation cell executed. This evidence does not activate the
+routine policy or establish a successful hosted run of the correction.
 
 ## Exact-commit integration and safe evidence reuse
 
