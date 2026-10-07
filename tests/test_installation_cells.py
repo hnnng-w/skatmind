@@ -123,6 +123,23 @@ def test_cell_uses_existing_clean_install_and_exact_minimum_lane(tmp_path, monke
         cells.run_cell("source-minimum_supported", tmp_path, PLATFORM["platform_id"])
 
 
+@pytest.mark.parametrize("name", ["wheel-resolved", "sdist-resolved", "sdist-minimum_supported"])
+def test_cell_rejects_python_patch_drift_before_installation(tmp_path, monkeypatch, name):
+    manifest = copy.deepcopy(bundle())
+    manifest["platform"]["python_version"] = "3.13.15"
+    monkeypatch.setattr(cells, "load_bundle", lambda *_: manifest)
+    monkeypatch.setattr(cells, "actual_environment",
+                        lambda _: {**manifest["platform"], "python_version": "3.13.16"})
+    monkeypatch.setattr(matrix, "repository_snapshot", lambda: {})
+
+    def unexpected_install(*args, **kwargs):
+        raise AssertionError("A mismatched cell must not start installation")
+
+    monkeypatch.setattr(cells.distribution, "_install_and_smoke", unexpected_install)
+    with pytest.raises(ValueError, match="^Build and cell environments differ$"):
+        cells.run_cell(name, tmp_path, PLATFORM["platform_id"])
+
+
 def test_bundle_requires_exact_artifact_bytes_and_source(tmp_path, monkeypatch):
     manifest = bundle()
     for name in manifest["artifacts"]:

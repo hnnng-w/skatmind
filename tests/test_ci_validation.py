@@ -246,6 +246,20 @@ def test_workflow_has_bounded_safe_complete_graph():
     assert all(cell in text for cell in ci.CELL_NAMES)
 
 
+def test_every_ci_job_uses_one_exact_python_patch():
+    text = (Path(__file__).resolve().parents[1] / ci.WORKFLOW).read_text(encoding="utf-8")
+    workflow_env = text.split("\nenv:\n", 1)[1].split("\njobs:\n", 1)[0]
+    pin = re.search(
+        r'^  VALIDATION_PYTHON_VERSION: "([^"]+)"$', workflow_env, re.MULTILINE,
+    )
+    assert pin is not None, "CI must declare a shared exact Python patch"
+    assert re.fullmatch(r"3\.13\.\d+", pin.group(1))
+    assert text.count("VALIDATION_PYTHON_VERSION:") == 1
+    selectors = re.findall(r"^ +python-version: (.+)$", text, re.MULTILINE)
+    assert len(selectors) == text.count("uses: actions/setup-python@v6") == 9
+    assert set(selectors) == {"${{ env.VALIDATION_PYTHON_VERSION }}"}
+
+
 @pytest.mark.parametrize("relative", [
     "LICENSE", "COPYRIGHT", ".github/workflows/check.yml",
     "src/skatmind/app_web/assets/app.css", "scripts/check.ps1",

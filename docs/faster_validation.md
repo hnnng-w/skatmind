@@ -173,6 +173,13 @@ installed browser UAT, or a browser-vendor matrix. Real Windows-11-specific
 verification remains necessary for release, relevant platform-specific changes,
 and installed UAT under the existing supported-platform contract.
 
+Every `setup-python` step uses the single workflow-level
+`VALIDATION_PYTHON_VERSION: "3.13.15"`. This exact CI toolchain selection prevents
+independent runners from resolving the floating `3.13` request to different patch
+versions. It does not change Package Python requirements or direct dependency
+floors. Patch upgrades are deliberate workflow changes requiring full CI; the
+recorded build/cell environment equality remains exact, including Python patch.
+
 `setup-python` caches pip downloads keyed by OS/Python/`pyproject.toml`; no installed
 venv, pytest outcome, or success file is cached. Every installation is fresh.
 Transient Git environment settings select `core.autocrlf=false` and `core.eol=lf`
@@ -192,13 +199,36 @@ committed blobs with simulated Windows EOL defaults on either OS. It covers both
 legal files, workflow YAML, packaged CSS, and an explicitly LF PowerShell control.
 No checkout rewrite, byte normalization, weakened legal-file assertion, or source
 digest normalization is used. The dependent matrix gates correctly reject failed
-builds and skipped cells; hosted acceptance of the correction remains required.
+builds and skipped cells; full migration acceptance remains required.
 The run subsequently completed with failure: Ubuntu regression accounted for
 10,417 passed / 2 skipped, while Windows regression reported 10,323 passed and one
 canonical-LICENSE hash failure matching the reproduced CRLF bytes. Its exclusive
 phase did not run after that failure. Both final gates rejected the failed
 prerequisites; no installation cell executed. This evidence does not activate the
 routine policy or establish a successful hosted run of the correction.
+
+The subsequent run, [37658614905](https://github.com/hnnng-w/skatmind/actions/runs/37658614905),
+at `8bf44bc3c7763fd10358a349c828c144916b89e3` passed both builds, both regression
+jobs, and all six Windows cells, confirming that the checkout-EOL failure did not
+recur. Ubuntu `wheel-resolved` (`112920619903`), `sdist-resolved`
+(`112920620218`), and `sdist-minimum_supported` (`112920619857`) each failed inside
+`run_cell` with `Build and cell environments differ`. All three downloaded and
+verified the same `build-bundle-ubuntu`; its manifest recorded Python `3.13.15`,
+while those runners selected `3.13.16`. Failure preceded consumer virtual-environment
+creation, dependency installation, and smoke execution. The successful Ubuntu minimum-wheel
+cell and Windows build/cell evidence recorded matching `3.13.15` environments.
+
+The exact shared pin above repairs that workflow selection mismatch without
+relaxing artifact hashes, source identity, platform equality, or clean installation.
+Focused tests enforce one shared exact patch for every job and preserve rejection
+before installation for each affected cell when build and consumer patches differ.
+The local reproduction uses the downloaded build artifacts and a simulated consumer
+environment, not a claim of hosted Ubuntu execution. Both per-OS aggregates in
+that run stopped at `Require every upstream cell` because the combined `cells`
+dependency failed. Windows semantic comparison did not execute despite its six
+successful cells. Both final gates propagated failure; the shared dependency and
+all aggregate safeguards remain intact. The migration stays pending hosted
+acceptance of the corrected workflow.
 
 ## Exact-commit integration and safe evidence reuse
 

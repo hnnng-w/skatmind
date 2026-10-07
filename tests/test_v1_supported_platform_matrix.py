@@ -348,7 +348,8 @@ def test_ci_preserves_final_gate_names_and_complete_platform_coverage() -> None:
     assert "ubuntu_github_actions_cpython_3_13" in workers
     assert "windows_server_github_actions_cpython_3_13" in workers
     assert "windows_11_powershell_5_1_cpython_3_13" not in workers
-    assert 'python-version: "3.13"' in workflow
+    assert 'VALIDATION_PYTHON_VERSION: "3.13.15"' in workflow
+    assert "python-version: ${{ env.VALIDATION_PYTHON_VERSION }}" in workflow
     assert "pytest" not in final_gates
     assert "publish" not in workflow.lower()
     assert "pull_request:" in workflow and "push:" in workflow
