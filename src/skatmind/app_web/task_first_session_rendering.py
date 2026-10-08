@@ -373,6 +373,8 @@ def render_task_first_session_v1(
             task_content = ('<div class="recording-progress-layout"><div>' + task_content
                             + '</div>' + render_recorded_summary(progress, locale) + '</div>')
         variant = ' class="session-set-entry"' if set_entry else ''
+        if primary == "record_play":
+            variant = ' class="session-play-entry"'
         normal += ('<div id="session-recording"' + variant + ' tabindex="-1"><div id="session-card-feedback"></div>'
             + '<!-- operation-feedback -->'
             + '<section class="panel">' + task_content + '</section></div>')

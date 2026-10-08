@@ -20,8 +20,8 @@ legality. DOM and keyboard order agree; `game_type` remains callable-compatible.
 Canonical deck order, trump/Null strengths and legal membership are independent.
 
 The default shared **5em** interactive width accommodates the native control, suit and
-two-digit rank; tiles wrap without stretching per suit. The shared Session set-entry
-variant from Issues #275/#278 instead fills explicit grid tracks as described below. The shared read-only face
+two-digit rank; tiles wrap without stretching per suit. Normal Session set entry
+(Issues #275/#278) and Play (Issue #281) instead share explicit grid tracks as described below. The shared read-only face
 has no input or checkbox-sized padding. Validated suit markers color Heart/Diamond
 symbols **and ranks** red, Club/Spade dark. Full localized accessible names, optional
 raw codes, native checked states and existing focus remain. Forced colors use system
@@ -139,7 +139,8 @@ The suit container opts into explicit **8/4/2/1** grid tracks at **48/24/12em**
 minimum available widths. Tracks override the inherited fixed tile width, preserving
 the existing 16px normal Card text, 44px minimum tile height, native controls,
 focus room and selected cues. Filtered groups contain only offered Cards, without
-fabricated placeholders. Other Session/Match selectors keep their default layout.
+fabricated placeholders. Issue #281 extends these same tracks to normal Session Play;
+other Session/Match selectors keep their default layout.
 Issue #275 added an optional localized-guidance parameter mapping to the shared helper;
 Issue #278 reuses it without changing that helper. Default guidance and other callers'
 labels/values remain the same. The four #275 messages brought the catalog from
@@ -298,6 +299,69 @@ introduced; existing native disclosures remain available without JavaScript.
 Developer evidence does not establish maintainer acceptance. Keep **#275 open**
 pending that retest and outstanding evidence; #208 and overall UAT/release status
 are unchanged, and #273/#274 are not reopened.
+
+## Normal Session Play grid (Issue #281)
+
+The existing projected `record_play` primary action now adds `session-play-entry`
+to the recording container. This marker and `session-set-entry` share one
+`session-card-suits` container rule in `assets/app.css`: **8/4/2/1** columns at
+**48/24/12em** minimum available suit-container widths. Only the grid and tile-width
+override are shared. Play retains its ordinary headings, spacing, current actor,
+current Trick, completed-Trick history and score/progress column.
+
+`project_session_card_task()` continues to supply the exact available/legal subset.
+The shared selector still renders the same required native radios, implicit labels,
+localized names, printed-suit/rank DOM order, selected state and explicit submitter.
+Form identity, pending/rejected values, feedback anchors, language return, overlays
+and recording semantics retain their existing paths. Sparse suits remain sparse.
+Initial-hand/Skat/discard tasks reuse the same grid; Match and correction callers
+do not receive the Play marker.
+
+### Focused developer evidence
+
+The clean base was `cd6be679e8161dcb245a387d5c2c7bc70d5e1837` on
+`bug/281-compact-play-card-grid`. Before/after source-tree runs used CPython **3.13.7**,
+headless Microsoft Edge **154.0.4258.62**, the existing dependency-free DevTools
+utilities, and disposable profiles/HTTP fixtures. The legal live Forehand has all
+eight Clubs plus SA/S10, Grand Hand, and unknown opponent hands. The fresh browser
+profile stayed at **100% zoom**, DPR 1 and visual scale 1, without text scaling.
+
+| CSS viewport | Actual suit-container width | Complete Clubs rows before → after |
+| --- | --- | --- |
+| 1440 × 1000 | 663.05px (beside score) | 7+1 → 4+4 |
+| 1000 × 900 | 872.22px (score below) | 8 → 8 |
+| 520 × 844 | 418.63px | 4+4 → 4+4 |
+| 320 × 800, emulated viewport | 225.81px | repaired 2+2+2+2 |
+
+The three native outer windows were respectively 1474×1097, 1034×997 and 554×941.
+The complete-suit German and sparse-suit English observations retain 16px Card text,
+20px radios, 44px tiles and 44.39px submitters. All six completed repaired
+measurements have equal document/client widths and no selector overflow. After
+CA/H7/D7, the genuine seven-Club remainder displays 4+3, with CA absent and the
+accepted score showing one Trick/11 points. Screenshots confirm focus room and
+readable controls. Native Space, ArrowRight, Tab and Enter select exactly CA, send
+zero selection POSTs, then one explicit Play POST/one save and advance to Middlehand.
+
+Completed scratch reports are `issue-281-before-_ykrs2qq/report.json` and
+`issue-281-after-evwdogiw/report.json` under `<temporary-directory>/opencode/`.
+They retain source hashes, geometry and screenshots. Served CSS and workflow
+JavaScript were byte-checked against the checkout; repaired CSS SHA-256 is
+`c6ead1ca5108418cf815e64c945b07b83e42611a6580af8e3275ab576c75d64a`.
+An earlier incomplete repaired run additionally tried 288px emulation: its 273px
+client area fell below the existing 288px body minimum and exposed page overflow;
+that condition is not claimed as passing reflow evidence.
+
+`tests/test_compact_play_grid_web.py` exercises complete/sparse/follow-suit palettes,
+native control semantics, pending language/view return, exact form identity, valid
+Save/next actor, unknown-hand candidates, rejected unavailable Cards, accepted-file
+preservation and retained progress in both languages. Neighboring compact entry,
+set-entry, Match, feedback and progress tests remain regression boundaries.
+
+This is source-tree developer evidence. Actual narrow **200% browser zoom** remains
+for the brief installed-build maintainer retest: the existing headless harness has
+no verified real-zoom control, and viewport emulation is not zoom. Focused tests and
+Quick are local validation only; keep #281 open for exact-commit branch CI,
+identical-commit main integration and the installed retest. Wider UAT remains open.
 
 ## Match replacement and truthful Play scope
 

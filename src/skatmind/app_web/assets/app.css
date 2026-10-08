@@ -1168,31 +1168,32 @@ main:has(#session-recording.session-set-entry) > h1 {
   margin: 0;
 }
 
-.session-set-entry .compact-card-groups {
-  container: session-set-suits / inline-size;
+/* Normal Session set and Play tasks share suit tracks; Play keeps its progress column. */
+:is(.session-set-entry, .session-play-entry) .compact-card-groups {
+  container: session-card-suits / inline-size;
 }
 
-.session-set-entry .compact-card-choices {
+:is(.session-set-entry, .session-play-entry) .compact-card-choices {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
 }
 
 /* Override the shared fixed tile width; preserve text, control size and focus room. */
-.session-set-entry .compact-card {
+:is(.session-set-entry, .session-play-entry) .compact-card {
   width: auto;
   max-width: none;
 }
 
-@container session-set-suits (min-width: 12em) {
-  .session-set-entry .compact-card-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@container session-card-suits (min-width: 12em) {
+  :is(.session-set-entry, .session-play-entry) .compact-card-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@container session-set-suits (min-width: 24em) {
-  .session-set-entry .compact-card-choices { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@container session-card-suits (min-width: 24em) {
+  :is(.session-set-entry, .session-play-entry) .compact-card-choices { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
-@container session-set-suits (min-width: 48em) {
-  .session-set-entry .compact-card-choices { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+@container session-card-suits (min-width: 48em) {
+  :is(.session-set-entry, .session-play-entry) .compact-card-choices { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 }
 
 /* Accepted Trick progress has no form, counter, or collapsed diagnostic targets. */
