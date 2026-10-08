@@ -7,11 +7,13 @@ document.documentElement.classList.add("operation-overlays");
 // target exists. Neither history entries nor browser storage retain positions.
 const languageReturnMeta = document.querySelector('meta[name="language-return"]');
 let languageView = null;
+let languageFeedbackReturn = false;
 try {
   const returned = languageReturnMeta ? JSON.parse(languageReturnMeta.content) : null;
   const navigation = performance.getEntriesByType("navigation")[0];
-  if (returned?.view && navigation?.type === "navigate" &&
-      location.search === `?_language_return=${returned.token}`) languageView = returned.view;
+  languageFeedbackReturn = !!returned && navigation?.type === "navigate" &&
+    location.search === `?_language_return=${returned.token}`;
+  if (languageFeedbackReturn && returned.view) languageView = returned.view;
   if (navigation?.type === "navigate" &&
       (returned || /^\?_language_return=[0-9a-f]{64}$/.test(location.search))) {
     history.replaceState(history.state, "", location.pathname);
@@ -91,10 +93,26 @@ languageViewObserver?.disconnect();
 restoreLanguageView();
 
 // Redundant accepted-outcome feedback only. No requests, storage or scrolling.
+let captureFeedbackBudget = () => null, withdrawFeedback = () => {};
 for (const notice of document.querySelectorAll("[data-operation-feedback]")) {
   if (notice.dataset.enhanced) continue;
+  // Continued markup is inert unless this is the exact one-use language return.
+  // Failed script loading leaves it hidden rather than regenerating native success.
+  const navigation = performance.getEntriesByType("navigation")[0];
+  if (("feedbackContinuation" in notice.dataset && !languageFeedbackReturn) ||
+      ["reload", "back_forward"].includes(navigation?.type)) {
+    notice.hidden = true;
+    notice.setAttribute("aria-live", "off");
+    continue;
+  }
+  let remaining = Number(notice.dataset.feedbackRemainingMs);
+  if (!Number.isFinite(remaining) || remaining <= 0 || remaining > 8000) {
+    notice.hidden = true;
+    continue;
+  }
+  notice.hidden = false;
   notice.dataset.enhanced = "true";
-  let remaining = 8000, started = null, timer = null, finished = false;
+  let started = null, timer = null, finished = false;
   let hovered = false, previousFocus = null, pointer = null;
   const dismiss = document.createElement("button");
   dismiss.type = "button";
@@ -131,6 +149,12 @@ for (const notice of document.querySelectorAll("[data-operation-feedback]")) {
     started = performance.now();
     timer = setTimeout(update, remaining);
   };
+  captureFeedbackBudget = () => {
+    if (finished || notice.hidden || !notice.isConnected || !notice.getClientRects().length) return null;
+    const budget = remaining - (started === null ? 0 : performance.now() - started);
+    return budget > 0 ? budget : null;
+  };
+  withdrawFeedback = hide;
   const overlaps = (a, b) => a.left < b.right && a.right > b.left &&
     a.top < b.bottom && a.bottom > b.top;
   const protectControl = target => {
@@ -140,8 +164,8 @@ for (const notice of document.querySelectorAll("[data-operation-feedback]")) {
   };
   const updateHover = () => {
     const rect = notice.getBoundingClientRect();
-    const inside = pointer !== null && pointer.x >= rect.left && pointer.x <= rect.right &&
-      pointer.y >= rect.top && pointer.y <= rect.bottom;
+    const inside = pointer === null ? notice.matches(":hover") :
+      pointer.x >= rect.left && pointer.x <= rect.right && pointer.y >= rect.top && pointer.y <= rect.bottom;
     if (inside !== hovered) { hovered = inside; update(); }
   };
   const place = () => {
@@ -234,7 +258,10 @@ document.addEventListener("submit", (event) => {
     }
     const disclosures = Array.from(document.querySelectorAll("details"), details => details.open);
     const view = captureLanguageView(event.submitter.value);
-    const payload = JSON.stringify({forms, disclosures, view});
+    const presentation = {forms, disclosures, view};
+    const budget = captureFeedbackBudget();
+    if (budget !== null) presentation.feedback_remaining_ms = budget;
+    const payload = JSON.stringify(presentation);
     if (forms.length > 256 || disclosures.length > 1024 ||
         new TextEncoder().encode(payload).length > 262144) throw new Error();
     const field = document.createElement("input");
@@ -243,8 +270,12 @@ document.addEventListener("submit", (event) => {
     field.value = payload;
     languageForm.querySelector('[name="_frontend_language_values"]')?.remove();
     languageForm.append(field);
+    // Capture once at submission; navigation is not active display time. The new
+    // document evaluates its own hover/focus/visibility instead of copying pauses.
+    withdrawFeedback();
   } catch {
     event.preventDefault();
+    withdrawFeedback();
     const message = languageForm.querySelector(".language-error");
     message.textContent = languageForm.dataset.preservationError;
     message.hidden = false;

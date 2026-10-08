@@ -9,6 +9,7 @@ from html.parser import HTMLParser
 
 from .form_parsing import FormValuesV1, FormValueV1
 from .form_registry import FrontendFormFieldV1, resolve_frontend_form_v1
+from .operation_feedback import DISPLAY_BUDGET_MS
 from .validation_rendering import (
     _FORM_BLOCK,
     _attribute,
@@ -46,6 +47,7 @@ class LanguagePageValuesV1:
     forms: tuple[tuple[str, FormValuesV1], ...]
     disclosures: tuple[bool, ...]
     view: LanguageViewV1 | None = None
+    feedback_remaining_ms: float | None = None
 
 
 class _Controls(HTMLParser):
@@ -148,7 +150,8 @@ def parse_language_page_values_v1(
     except RecursionError as error:
         raise ValueError("Language-switch presentation nesting is invalid.") from error
     keys = {"forms", "disclosures"}
-    if type(value) is not dict or set(value) not in (keys, keys | {"view"}):
+    if (type(value) is not dict or not keys <= set(value)
+            or set(value) - keys - {"view", "feedback_remaining_ms"}):
         raise ValueError("Language-switch presentation envelope is invalid.")
     forms = value["forms"]
     disclosures = value["disclosures"]
@@ -211,7 +214,12 @@ def parse_language_page_values_v1(
         if supplied["anchor"] == "top" and supplied["offset"] != 0:
             raise ValueError("Language-switch top has no relative offset.")
         view = LanguageViewV1(**supplied)
-    return LanguagePageValuesV1(tuple(retained), tuple(disclosures), view)
+    remaining = value.get("feedback_remaining_ms")
+    if "feedback_remaining_ms" in value and (
+            type(remaining) not in (int, float) or not 0 <= remaining <= DISPLAY_BUDGET_MS
+            or not math.isfinite(remaining)):
+        raise ValueError("Language-switch feedback timing is invalid.")
+    return LanguagePageValuesV1(tuple(retained), tuple(disclosures), view, remaining)
 
 
 def apply_language_page_values_v1(html: str, state: LanguagePageValuesV1) -> str:

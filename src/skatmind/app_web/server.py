@@ -6,6 +6,7 @@ import re
 import secrets
 import socket
 import threading
+from dataclasses import replace
 from email.message import Message
 from html import escape
 from http import HTTPStatus
@@ -166,6 +167,7 @@ from .match_recovery_rendering import render_match_recovery
 from .match_review_context import match_review_binding_v1, require_match_review_binding_v1
 from .match_review_rendering import render_match_review_v1
 from .operation_feedback import (
+    continue_operation_feedback,
     deliver_operation_feedback,
     feedback_lock,
     feedback_source,
@@ -616,13 +618,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 self._rendered_language_source = None
                 self._language_conflict_page(source.route)
                 return
+            content = deliver_operation_feedback(self, content, status=status)
             with self.server.app_context.lock:
-                token = self.server.app_context.language_context.retain(source, manifest)
+                token = self.server.app_context.language_context.retain(source, manifest,
+                    getattr(self, "_visible_operation_feedback", None))
             content = content.replace(
                 '<span class="language-buttons">',
                 f'<input type="hidden" name="_frontend_language_context" value="{token}">'
                 '<span class="language-buttons">', 1)
-            content = deliver_operation_feedback(self, content, status=status)
             if status < 400 and getattr(self, "_language_only_return", False):
                 view = None if pending is None or pending[1] is None else pending[1].view
                 content = render_language_return_v1(content,
@@ -1564,7 +1567,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             token = values.pop("_frontend_language_context", None)
             if token is not None:
                 with self.server.app_context.lock:
-                    language_page = self.server.app_context.language_context.resolve(
+                    language_page = self.server.app_context.language_context.submit(
                         token, return_to)
                 validate_language_page_v1(self.server.app_context, language_page)
             if "_frontend_language_values" in values:
@@ -1575,6 +1578,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 if (language_values.view is not None
                         and language_values.view.focus != values.get("language")):
                     raise ValueError("Language view must match the intended language.")
+            if language_page is not None:
+                language_page = replace(language_page, feedback=continue_operation_feedback(
+                    language_page.feedback,
+                    None if language_values is None else language_values.feedback_remaining_ms))
         elif path == FRONTEND_PROFILE_RESET_ACTION_ROUTE:
             fields = {"confirm_reset", "profile_generation", "return_to"}
             self._profile_action_return_to = "/settings"
@@ -3149,6 +3156,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         self._request_frontend = None
         self._operation_feedback_delivery = None
+        self._visible_operation_feedback = None
         self._rendered_language_source = None
         self._language_return = None
         self._language_return_token = None
@@ -3236,6 +3244,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         self._request_frontend = None
         self._operation_feedback_delivery = None
+        self._visible_operation_feedback = None
         self._rendered_language_source = None
         self._language_return = None
         self._language_return_token = None

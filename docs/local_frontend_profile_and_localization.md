@@ -541,6 +541,8 @@ Only a verified successful language-only render removes retained error-summary
 New language/context failures retain accessible error focus. Explicit error links
 still navigate normally. The #276 head-time overlay opt-in and DOM-ready handlers
 remain, and a language return neither regenerates a receipt nor restarts its timer.
+Issue #280 additionally continues a currently visible, authorized receipt's remaining
+budget through this same return mechanism, as described below.
 
 Focused verification uses `tests/test_language_view_continuity.py` for real HTTP
 delivery/resources and `tests/test_language_view_script.py` for optional Node
@@ -576,6 +578,83 @@ the narrow final run is resizing evidence only. This is source-tree developer
 evidence, not installed-page acceptance, screen-reader coverage or overall UAT-01
 acceptance. No maintainer installation, browser profile or existing recording was
 used.
+
+### Visible-feedback language continuation (Issue #280)
+
+The optional language envelope now accepts `feedback_remaining_ms`, a finite
+bounded presentation number, only against the receipt actually delivered on that
+rendered page. Original receipt delivery and visible presentation continuation are
+separate: original delivery still consumes the pending receipt once. A language
+submission consumes its page's continuation authorization once, including failed
+and no-op submissions. The target resolves existing catalog text and escaped source
+labels from the retained server-authorized receipt; the browser supplies no text,
+translation key or operation identity.
+
+The remaining budget may decrease from 8,000 ms, never increase. Zero or an absent
+budget means no continuation. The original 60-second monotonic publication deadline
+also bounds repeated language returns and pauses. Source identity, source files,
+latest operation attempt, complete manifest, current active context, expected saved
+locale generation and one-use delivery checks remain required. Invalid metadata,
+stale context and new errors cannot expose old success. Ordinary navigation and
+other tabs do not acquire feedback authorization from retained Product outcomes.
+
+At language submission the script captures the budget once and withdraws the old
+overlay. Undisplayed navigation time does not reduce the target budget. The target
+evaluates its actual hover, focus and document visibility afresh and uses the
+existing pause-aware timer. Dismissal, expiry, withdrawal, refresh and history do
+not resurrect the message. Continued HTML is hidden unless the script recognizes
+the intended language return, preserving usable native/failed-script fallback
+without synthesizing another accepted operation. #277's unsent and rejected
+values, disclosures, view continuity and language-button focus remain intact.
+
+Focused coverage is in `tests/test_operation_feedback_language.py` (actual POST and
+final response, all three callers, authorization, expiry, replay, errors, exact
+accepted bytes and retained downloads) and `tests/test_operation_feedback_script.py`
+(served script with controlled clocks, remaining-time arithmetic, fresh pause state,
+closed/withdrawn feedback, history and capture failures). Existing original-delivery,
+native-no-continuation, source/expiry and language/shared-shell tests remain.
+
+Developer Edge verification on October 8 used the existing optional tool:
+
+```powershell
+py -3.13 scripts/verify_operation_feedback.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "C:\Users\HENNIN~1\AppData\Local\Temp\opencode\280-feedback-language-03" --source --phase after --language-continuity
+```
+
+The completed `evidence.json` and screenshots are outside the repository in that
+disposable directory. Browser: **Edge 154.0.4258.62**, headless, isolated profile;
+Python **3.13.7**; source Package **0.17.0** on base
+`19d51d21c05bc78ad8926e4a47df219b0a910dd7` plus uncommitted #280 changes. Runtime
+resource hashes are recorded and compared to served bytes, including:
+
+| Resource | SHA-256 |
+| --- | --- |
+| `app_web/assets/workflow.js` | `065ca63b8b12803b1e9e68a192d9fd0bfb768150ee23c2e0b0173e538df0a93c` |
+| `app_web/assets/app.css` | `dd7679c086bb02d45da5913bf296fde74bb08882f494a556135880ce30c83f0a` |
+
+A real native one-Card save produced the initial English receipt. After **3,012.0 ms**
+of active display, English-to-German submission carried **4,988.0 ms**; the target
+expired after **4,993.2 ms** of measured resumed display, rather than eight fresh
+seconds. Pending H7, the scrolled content landmark and language-button focus survived.
+There was one polite status; loading-time samples were fixed-position, and task/control
+geometry was identical before and after expiry. A later switch to English rendered
+no receipt. The two switches made exactly two language POSTs and two expected profile
+preference saves, **zero Product calls**, and left accepted Session revision **2**,
+document identity, recording bytes and its download unchanged. A second small real
+save verified German-to-English continuation and dismissal followed by no restoration.
+
+The first developer run (`280-feedback-language-01`) reached the expiry and later
+no-restoration observations but failed a tooling assertion that incorrectly counted
+expected language-preference saves as Product work. The corrected focused run above
+passed; no Product repair was needed for that assertion. Run `280-feedback-language-02`
+also passed; `03` verifies the final request-local presentation-handoff reset.
+
+Measured viewport: **1416×908**, DPR **1**, visual scale **1**. **Actual 200% browser
+zoom was unavailable and remains unverified**; no viewport resizing is represented
+as zoom evidence. Keep #280 open for complete hosted branch CI, identical-commit
+main integration/final gates, and one brief installed-build maintainer
+save/language-change retest including the outstanding 200% observation. This is
+synthetic developer evidence, not installed-build, screen-reader or overall UAT
+acceptance. The maintainer's installation, profile and `UAT Game 01` were untouched.
 
 ### Focused browser evidence
 

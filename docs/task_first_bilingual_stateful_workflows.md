@@ -485,6 +485,12 @@ automatic expiry leaves the active input alone. No-JavaScript or failed-script-l
 responses retain one readable, untimed in-flow message without a dead button.
 Presentation makes no request. Full Player names are source-resolved and escaped.
 Language changes do not mint or renew a recording acknowledgement. Receipt delivery
+remains distinct from Issue #280's continuation of an already-visible overlay:
+the existing source-bound one-use language return translates that authorized
+presentation and resumes its captured remaining active-display budget. Repeated
+switches, including no-op selections, cannot increase the budget or renew the
+original 60-second authorization deadline. Dismissed, expired, withdrawn or absent
+feedback stays absent; native language changes do not regenerate it. Receipt delivery
 is best-effort across identical-source tabs and lost responses, not per-tab exactly
 once; native cached history may still contain the old response. See the
 [validation boundary](frontend_validation_state_and_localized_feedback.md#completed-operation-receipts-issue-245)
@@ -554,7 +560,9 @@ page-hiding styling or delayed scroll-back. Only retained feedback loses autofoc
 on the successful language-only response; new failures and activated error links
 remain accessible. Resumed interaction cancels restoration, and refresh/history
 never replay it. #276's early overlay initialization, receipt suppression and the
-existing Card count algorithm remain. See the [exact bounds and lifecycle](local_frontend_profile_and_localization.md#language-only-view-continuity-issue-277).
+existing Card count algorithm remain. #280 adds only bounded visible-feedback
+continuation to the same envelope and return; unsent/rejected values, view, focus
+and retained Results keep their existing semantics. See the [exact bounds and lifecycle](local_frontend_profile_and_localization.md#language-only-view-continuity-issue-277).
 
 No browser storage, persistent drafts, implicit preference save, background request,
 or per-tab Product workspace is added. The existing private

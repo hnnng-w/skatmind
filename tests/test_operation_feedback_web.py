@@ -139,6 +139,8 @@ def test_session_creation_batch_actor_and_passive_bytes(localized_server, monkey
     assert active.state.command_log[-1].command.player_id == active.state.players[0].player_id
     assert len(saves) == 5
     document, before = active.document, active.path.read_bytes()
+    # Native language changes supply no visible-presentation budget. They must
+    # still never reconstruct the consumed operation receipt (#280).
     for language in ("de", "en"):
         page = follow(browser, browser.submit(Forms(page).find("/actions/profile/language"),
                                               language=language))

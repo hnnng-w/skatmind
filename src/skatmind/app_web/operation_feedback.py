@@ -12,6 +12,7 @@ from skatmind.deck import get_full_deck
 from .stateful_localization import card_name, text
 
 DELIVERY_TTL_SECONDS = 60
+DISPLAY_BUDGET_MS = 8000
 FEEDBACK_MARKER = "<!-- operation-feedback -->"
 ENTRY_FEEDBACK_MARKER = "<!-- entry-operation-feedback -->"
 METADATA_FEEDBACK_MARKER = "<!-- metadata-operation-feedback -->"
@@ -102,6 +103,31 @@ class PendingOperationFeedback:
             self.pending = replace(self.pending, area="metadata")
 
 
+@dataclass(frozen=True, slots=True)
+class FeedbackPresentation:
+    """Already-delivered receipt, owned by one rendered language-page binding."""
+
+    receipt: OperationReceipt
+    remaining_ms: float = DISPLAY_BUDGET_MS
+
+
+def continue_operation_feedback(presentation, remaining_ms):
+    """Untrusted timing can only reduce an authorized presentation's budget.
+
+    The original receipt deadline is never renewed, including during pauses or
+    navigation. Exact source and latest-attempt checks also run at final delivery.
+    """
+    if remaining_ms is None:
+        return None
+    if (presentation is None or type(remaining_ms) not in {int, float}
+            or not 0 <= remaining_ms <= presentation.remaining_ms <= DISPLAY_BUDGET_MS
+            or not math.isfinite(remaining_ms)):
+        raise ValueError("Feedback timing requires its exact delivered presentation budget.")
+    if remaining_ms == 0 or time.monotonic() >= presentation.receipt.expires_at:
+        return None
+    return replace(presentation, remaining_ms=remaining_ms)
+
+
 def feedback_lock(active):
     if hasattr(active, "capture"):
         return active.capture.lock
@@ -136,7 +162,8 @@ def player_ordinal(players, player_id):
     return next(index for index, player in enumerate(players, 1) if player.player_id == player_id)
 
 
-def render_operation_receipt(receipt, locale, players=()):
+def render_operation_receipt(receipt, locale, players=(), *, remaining_ms=DISPLAY_BUDGET_MS,
+                             continuation=False):
     """Pure escaped presentation. Delivery is exclusively an HTTP responsibility."""
     values = dict(receipt.parameters)
     if "player" in values:
@@ -146,7 +173,9 @@ def render_operation_receipt(receipt, locale, players=()):
     if "card" in values:
         values["card"] = card_name(locale, values["card"])
     return ('<div class="operation-feedback" role="status" aria-live="polite" '
-            'aria-atomic="true" data-operation-feedback data-dismiss-label="'
+            'aria-atomic="true" data-operation-feedback '
+            + ('hidden data-feedback-continuation ' if continuation else '')
+            + f'data-feedback-remaining-ms="{remaining_ms}" data-dismiss-label="'
             + escape(text(locale, "feedback.dismiss"), quote=True) + '" data-dismissed-label="'
             + escape(text(locale, "feedback.dismissed"), quote=True) + '"><span>'
             + escape(text(locale, receipt.message_key, **values), quote=True) + '</span></div>')
@@ -170,11 +199,25 @@ def deliver_operation_feedback(handler, content, *, status):
             # A stale response must not consume a newer source's receipt.
             return (content.replace(FEEDBACK_MARKER, "").replace(ENTRY_FEEDBACK_MARKER, "")
                     .replace(METADATA_FEEDBACK_MARKER, "").replace(RESULTS_FEEDBACK_MARKER, ""))
-        receipt = active.operation_feedback.take(source, suppressed=(
-            suppressed or status >= 400 or feedback is not None
-            or getattr(active, "retired", False)))
+        suppressed = (suppressed or status >= 400 or feedback is not None
+                      or getattr(active, "retired", False))
+        continuation = getattr(handler, "_language_only_return", False)
+        if continuation:
+            pending = getattr(handler, "_language_return", None)
+            presentation = None if pending is None else pending[0].feedback
+            receipt = None if presentation is None else presentation.receipt
+            if (receipt is not None and (suppressed
+                    or receipt.operation_identity is not active.operation_feedback.attempt
+                    or time.monotonic() >= receipt.expires_at
+                    or not receipt.source.matches(source))):
+                receipt = None
+        else:
+            receipt = active.operation_feedback.take(source, suppressed=suppressed)
+            presentation = None if receipt is None else FeedbackPresentation(receipt)
+        handler._visible_operation_feedback = None if receipt is None else presentation
         rendered = "" if receipt is None else render_operation_receipt(
-            receipt, handler._frontend_state().locale, feedback_players(active))
+            receipt, handler._frontend_state().locale, feedback_players(active),
+            remaining_ms=presentation.remaining_ms, continuation=continuation)
     marker = (METADATA_FEEDBACK_MARKER if receipt is not None and receipt.area == "metadata" else
               RESULTS_FEEDBACK_MARKER if receipt is not None
               and receipt.message_key == "feedback.prepared" else

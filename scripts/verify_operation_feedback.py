@@ -76,6 +76,8 @@ def main():
     installation.add_argument("--wheel", type=Path)
     installation.add_argument("--source", action="store_true")
     parser.add_argument("--overlay", action="store_true", help="Focused Issue #276 overlay checks")
+    parser.add_argument("--language-continuity", action="store_true",
+                        help="Focused Issue #280 visible-feedback language continuation")
     parser.add_argument("--phase", choices=("before", "after"), required=True)
     args = parser.parse_args()
     assert args.output.parent.is_dir() and not args.output.exists()
@@ -94,7 +96,8 @@ def main():
     names = ("session_frontend.py", "match_frontend.py", "learning_frontend.py", "server.py",
         "card_entry_http.py", "match_recovery.py", "match_recovery_http.py", "match_recovery_rendering.py",
         "task_first_session_rendering.py", "task_first_match_rendering.py", "task_first_learning_rendering.py",
-        "local_time_http.py", "language_context.py", "validation_rendering.py", "form_registry.py",
+        "local_time_http.py", "language_context.py", "language_form_preservation.py",
+        "validation_rendering.py", "form_registry.py",
         "locales/en.json", "locales/de.json", "assets/app.css", "assets/workflow.js",
         "rendering.py", "templates/app.html")
     if repaired:
@@ -232,6 +235,12 @@ def main():
             for route, resource in (("/assets/app.css", "assets/app.css"), ("/matches/assets/capture.js", "assets/workflow.js")):
                 assert hashlib.sha256(client.request("GET", route)[2]).hexdigest() == evidence["hashes"][resource]
 
+            if args.language_continuity:
+                verify_language_continuity(cdp, server, client, evidence, requests, calls,
+                                           capture, action, click, key)
+                evidence["completed"] = True
+                print(json.dumps({"completed": True, "output": str(args.output)}, indent=2))
+                return
             if args.overlay:
                 verify_overlay(cdp, server, client, evidence, requests, calls, capture, action, click, key)
                 evidence["completed"] = True
@@ -485,6 +494,125 @@ GEOMETRY = r"""(() => {
   return {height:document.documentElement.scrollHeight,task:box(root),
     controls:[...root.querySelectorAll('input:not([type=hidden]),select,button')].filter(e=>e.getClientRects().length&&!e.closest('[data-operation-feedback]')).map(box)};
 })()"""
+
+
+def verify_language_continuity(cdp, server, client, evidence, requests, calls,
+                               capture, action, click, key):
+    """One real save/partial-display/translation/expiry sequence; no clock injection."""
+    import skatmind.app_web.server as web_server
+    from skatmind.app_web.translation_catalog import translate_frontend_message_v1 as text
+
+    evidence["limitations"] = [
+        "Disposable synthetic source-tree developer evidence, not installed-build or maintainer UAT acceptance.",
+        "Actual 200% browser zoom unavailable in the existing headless transport; no resize or scale is claimed as zoom.",
+        "No screen-reader or physical-device verification.",
+    ]
+    window = cdp.call("Browser.getWindowForTarget")["windowId"]
+    cdp.call("Browser.setWindowBounds", windowId=window,
+             bounds={"width": 1440, "height": 1000, "windowState": "normal"})
+    cdp.call("Page.addScriptToEvaluateOnNewDocument", source=r"""
+      window.feedbackTrace={shown:null,hidden:null,loading:[]};
+      new MutationObserver(()=>{
+        const n=document.querySelector('[data-operation-feedback]');if(!n)return;
+        const trace=window.feedbackTrace;
+        if(trace.loading.length<20)trace.loading.push({ready:document.readyState,position:getComputedStyle(n).position});
+        if(n.dataset.enhanced && !n.hidden && trace.shown===null)trace.shown=performance.now();
+        if(trace.shown!==null && n.hidden && trace.hidden===null)trace.hidden=performance.now();
+      }).observe(document,{childList:true,subtree:true,attributes:true});
+    """)
+    page = client.page("/sessions")
+    page = follow(client, client.submit(Forms(page).find("/actions/profile/language"), language="en"))
+    page = follow(client, client.submit(Forms(page).find("/sessions/create"),
+        game_name="Synthetic language feedback 280", forehand_name='Alex <&> "Player"',
+        middlehand_name="Boris", rearhand_name="Clara", capture_mode="live",
+        perspective_seat="forehand", setup_action="update"))
+    follow(client, client.submit(Forms(page).find("/sessions/create"), setup_action="create"))
+    cdp.navigate(server.origin + "/sessions/current")
+    before_save = calls.copy()
+    click('#session-recording input[name="cards"][value="CA"]')
+    action('#session-recording button[type="submit"]', "/sessions/cards")
+    assert calls["session_saves"] == before_save["session_saves"] + 1
+    active = server.app_context.managed_stateful.active_session
+    document, operation = active.document, active.last_operation
+    accepted = active.path.read_bytes()
+    assert active.state.revision == 2
+    cdp.call("Input.dispatchMouseEvent", type="mouseMoved", x=1, y=1)
+    cdp.evaluate("document.querySelector('input[name=cards][value=H7]').click()")
+    cdp.evaluate("document.querySelector('.language-selector button[value=de]').focus({preventScroll:true});window.scrollTo(0,document.getElementById('session-recording').offsetTop-250)")
+    capture("language-visible-before", success=True)
+    while cdp.evaluate("performance.now()-feedbackTrace.shown") < 3000:
+        time.sleep(.05)
+    before_view = cdp.evaluate("({y:scrollY,top:document.getElementById('session-recording').getBoundingClientRect().top})")
+    before_requests, before_calls = requests.copy(), calls.copy()
+    before_trace = cdp.evaluate("feedbackTrace")
+    with patch.object(web_server, "parse_language_page_values_v1",
+                      wraps=web_server.parse_language_page_values_v1) as parsed:
+        key("Enter", 13, text="\r")
+        started = time.monotonic()
+        while cdp.evaluate("document.documentElement.lang!=='de' || document.readyState!=='complete'"):
+            assert time.monotonic() - started < 15
+            time.sleep(.05)
+    assert parsed.call_count == 1
+    submitted = json.loads(parsed.call_args.args[0])
+    remaining = submitted["feedback_remaining_ms"]
+    assert 3500 < remaining < 5500, remaining
+    returned = capture("language-visible-translated", success=True)
+    assert text("de", "feedback.initial_cards", count=1, player='Alex <&> "Player"') in returned["text"]
+    assert text("de", "feedback.dismiss") in returned["text"]
+    assert returned["focus"]["name"] == "language" and returned["inputs"] == [{"name": "cards", "value": "H7"}]
+    assert returned["count"] == 1
+    assert cdp.evaluate("document.activeElement.value") == "de"
+    after_view = cdp.evaluate("({y:scrollY,top:document.getElementById('session-recording').getBoundingClientRect().top})")
+    assert abs(before_view["top"] - after_view["top"]) < 2
+    assert cdp.evaluate("location.search+location.hash") == ""
+    geometry = cdp.evaluate(GEOMETRY)
+    while cdp.evaluate("!document.querySelector('[data-operation-feedback]').hidden"):
+        assert time.monotonic() - started < 8
+        time.sleep(.05)
+    trace = cdp.evaluate("feedbackTrace")
+    elapsed = trace["hidden"] - trace["shown"]
+    assert abs(elapsed - remaining) < 350, (elapsed, remaining)
+    assert elapsed < 6000
+    assert geometry == cdp.evaluate(GEOMETRY)
+    expired = capture("language-remaining-expired", success=False)
+    assert expired["focus"] == returned["focus"] and expired["inputs"] == returned["inputs"]
+    assert any(row["ready"] == "loading" for row in trace["loading"])
+    assert all(row["position"] == "fixed" for row in trace["loading"])
+    action('.language-selector button[value="en"]', "/actions/profile/language")
+    absent = capture("language-expired-not-restored", success=False)
+    assert absent["count"] == 0 and absent["inputs"] == returned["inputs"]
+    assert active.document is document and active.last_operation is operation
+    assert active.path.read_bytes() == accepted
+    assert client.request("GET", "/sessions/downloads/session.json")[2] == accepted
+    changed_calls = calls - before_calls
+    assert {name: count for name, count in changed_calls.items()
+            if name != "profile_saves"} == {}
+    assert changed_calls["profile_saves"] == 2
+    delta = requests - before_requests
+    assert {route: count for route, count in delta.items() if route.startswith("POST ")} == {
+        "POST /actions/profile/language": 2}
+    evidence["continuation"] = {"submitted_remaining_ms": remaining,
+        "active_ms_before_submission": 8000 - remaining, "observed_resumed_ms": elapsed,
+        "before_trace": before_trace, "return_trace": trace,
+        "view_before": before_view, "view_after": after_view,
+        "requests": dict(delta), "product_calls": {}, "profile_saves": 2,
+        "accepted_revision": active.state.revision,
+        "accepted_sha256": hashlib.sha256(accepted).hexdigest(), "accepted_unchanged": True,
+        "downloads_unchanged": True, "geometry_unchanged_on_expiry": True}
+    # Small opposite-direction/dismissal check; no additional expiry sleep.
+    action('#session-recording button[type="submit"]', "/sessions/cards")  # Save pending H7.
+    action('.language-selector button[value="de"]', "/actions/profile/language")
+    capture("language-second-visible-de", success=True)
+    action('.language-selector button[value="en"]', "/actions/profile/language")
+    capture("language-second-visible-en", success=True)
+    cdp.evaluate("document.querySelector('.operation-dismiss').focus({preventScroll:true})")
+    key("Enter", 13, text="\r")
+    action('.language-selector button[value="de"]', "/actions/profile/language")
+    dismissed = capture("language-dismissed-not-restored", success=False)
+    assert dismissed["count"] == 0
+    evidence["opposite_direction_and_dismissal"] = True
+    evidence["counts"] = dict(calls)
+    evidence["requests"] = dict(requests)
 
 
 def verify_overlay(cdp, server, client, evidence, requests, calls, capture, action, click, key):

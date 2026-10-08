@@ -5,7 +5,7 @@ import hmac
 import re
 import secrets
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
 from .frontend_profile_codec import build_local_frontend_profile_v1
@@ -15,6 +15,7 @@ from .workflow_state import StaleFrontendWorkflowRevisionError
 if TYPE_CHECKING:
     from .context import AppWebContextV1
     from .language_form_preservation import LanguagePageManifestV1, LanguagePageValuesV1
+    from .operation_feedback import FeedbackPresentation
 
 
 class LanguageContextConflict(StaleFrontendWorkflowRevisionError):
@@ -33,6 +34,7 @@ class LanguagePageV1:
     source: LanguageSourceV1
     manifest: LanguagePageManifestV1
     created_at: float
+    feedback: FeedbackPresentation | None = None
 
 
 @dataclass(slots=True)
@@ -48,7 +50,8 @@ class LanguageContextV1:
     key: bytes = field(default_factory=lambda: secrets.token_bytes(32), repr=False)
     serial: int = 0
 
-    def retain(self, source: LanguageSourceV1, manifest: LanguagePageManifestV1) -> str:
+    def retain(self, source: LanguageSourceV1, manifest: LanguagePageManifestV1,
+               feedback: FeedbackPresentation | None = None) -> str:
         now = time.monotonic()
         self.pages = {token: page for token, page in self.pages.items()
                       if now - page.created_at < 1800}
@@ -56,7 +59,7 @@ class LanguageContextV1:
             self.pages.pop(next(iter(self.pages)))
         self.serial += 1
         token = hmac.new(self.key, str(self.serial).encode(), hashlib.sha256).hexdigest()
-        self.pages[token] = LanguagePageV1(source, manifest, now)
+        self.pages[token] = LanguagePageV1(source, manifest, now, feedback)
         return token
 
     def resolve(self, token: str, route: str) -> LanguagePageV1:
@@ -67,6 +70,17 @@ class LanguageContextV1:
             raise LanguageContextConflict
         if page.source.route != route:
             raise LanguageContextConflict
+        return page
+
+
+    def submit(self, token: str, route: str) -> LanguagePageV1:
+        """Retire feedback authorization even on failed/no-op language submissions.
+
+        Form/view bindings keep their existing lifetime. Feedback is never inferred
+        from a later GET or another page's binding. Caller owns the app lock.
+        """
+        page = self.resolve(token, route)
+        self.pages[token] = replace(page, feedback=None)
         return page
 
 

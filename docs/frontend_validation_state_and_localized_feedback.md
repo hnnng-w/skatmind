@@ -447,6 +447,8 @@ can consume the receipt. Pure rendering, discovery, unrelated pages, assets,
 downloads and HEAD do not consume it. Refresh and language changes do not rebuild
 success from `last_operation`, `last_result`, or recovery data. Those retained values,
 diagnostics, executions and exact downloads keep their existing meanings and bytes.
+Issue #280 permits the already-visible presentation to continue through one successful
+language return; it does not deliver the original operation receipt a second time.
 Two tabs showing the identical source compete for one best-effort acknowledgement;
 the first eligible response may consume it, and a lost response may lose it. There
 is no per-tab exactly-once guarantee, acknowledgement route, cookie, storage or queue.
@@ -500,6 +502,40 @@ restart the timer;
 the server cannot erase an already cached native page. A full-page PRG and
 `role="status"` are not evidence of an actual screen-reader announcement. See the
 [current overlay evidence](unified_workflow_visual_contract.md#success-feedback-overlay-issue-276).
+
+#### Visible language continuation (Issue #280)
+
+Final delivery retains the authorized receipt and its display-budget ceiling in the
+existing bounded language-page binding. The browser supplies only optional
+`feedback_remaining_ms` alongside the existing form/view envelope, captured once
+at submission. No message, HTML, translation key, operation type or foreign identity
+is accepted. Timing must be a finite number in `[0, 8000]`, no greater than the
+binding's previous remaining budget; zero means no continuation. Malformed timing,
+an unauthorized page or an increased budget uses existing contextual validation.
+
+Submission consumes that page's feedback authorization even for a no-op language
+choice or a failed request. The original receipt, accepted-operation identity and
+60-second monotonic publication deadline remain unchanged across repeated switches.
+The existing exact source/file/manifest checks and saved profile-generation check
+allow the expected locale-only update without accepting a changed recording.
+Final delivery rechecks the source, latest operation attempt, retirement, deadline
+and warning/error suppression. It never takes another pending operation receipt.
+
+The browser withdraws the old overlay after capture, so navigation does not spend
+active-display time. The target translates the server-owned receipt and dismissal
+label, preserves full escaped source names, and resumes the supplied remaining
+budget. Hover, focus and visibility are evaluated in the new document. The original
+out-of-flow initialization, placement, pointer behavior, dismissal and focus return
+remain. Closed, expired, withdrawn or absent overlays supply no continuation.
+
+Continued markup is initially hidden and revealed only on the intended enhanced
+one-use return. Refresh, ordinary navigation, other pages/tabs and Back/Forward do
+not obtain another presentation; cached enhanced pages withdraw their old overlay.
+Native language submission and failed script loading remain usable, with no
+invented native replacement for an already-consumed success. New errors take
+priority and remain untimed. This adds no Product action, save, analysis, background
+request, persistence, notification queue or dependency. See the
+[focused timing and browser evidence](local_frontend_profile_and_localization.md#visible-feedback-language-continuation-issue-280).
 
 Successful browser actions retain POST/Redirect/GET and HTTP `303`. Normal
 validation and unsupported-workflow failures return contextual HTML with HTTP
