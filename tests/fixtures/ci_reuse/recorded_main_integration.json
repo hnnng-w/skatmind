@@ -1,0 +1,82 @@
+{
+  "provenance": {
+    "description": "Sanitized projections of authenticated GitHub REST responses retrieved after both runs completed; not a capture of the historical HTTP exchange.",
+    "api_version": "2022-11-28",
+    "historical_cutoff": "2026-10-07T21:28:23Z",
+    "replay_wall_clock": "2026-10-07T21:28:40Z",
+    "event_basis": "The original GITHUB_EVENT_PATH is unavailable. Only ref/before/after are projected from observed main push activity 45780778599 at 2026-10-07T21:28:21Z.",
+    "history_basis": "The first main-history page returned 100 of 431 runs. Retain the current and immediately preceding main runs; omit 98 older rows that cannot change that boundary.",
+    "candidate_basis": "The exact-SHA discovery returned two runs. The current main run is retained only to verify its exclusion; its later success is never candidate proof.",
+    "jobs_basis": "Attempt 1 returned all 23 candidate jobs on one page, each completed successfully before the historical cutoff. Identity/status/name fields below retain the actual response shape.",
+    "limitation": "The unmodified coordinator selects reuse on this replay. Its original transient responses and specific historical rejection condition cannot be recovered from the generic fallback log."
+  },
+  "repository": "hnnng-w/skatmind",
+  "commit": "8890916dfc66fd02cb761dfccb597309a008d288",
+  "event_projection": {
+    "ref": "refs/heads/main",
+    "before": "6d264a442c4e7f88366de00effb972837c5f51d2",
+    "after": "8890916dfc66fd02cb761dfccb597309a008d288"
+  },
+  "current": {
+    "id": 37689639795,
+    "head_sha": "8890916dfc66fd02cb761dfccb597309a008d288",
+    "workflow_id": 266780497,
+    "path": ".github/workflows/check.yml",
+    "created_at": "2026-10-07T21:28:23Z",
+    "repository": {"full_name": "hnnng-w/skatmind"}
+  },
+  "previous_main": {
+    "id": 37537963789,
+    "head_sha": "6d264a442c4e7f88366de00effb972837c5f51d2",
+    "head_branch": "main",
+    "event": "push",
+    "created_at": "2026-10-06T22:02:10Z"
+  },
+  "comparison": {
+    "status": "ahead",
+    "merge_base_commit": {"sha": "6d264a442c4e7f88366de00effb972837c5f51d2"}
+  },
+  "candidate": {
+    "id": 37679574939,
+    "event": "push",
+    "head_branch": "task/279-faster-validation",
+    "head_sha": "8890916dfc66fd02cb761dfccb597309a008d288",
+    "workflow_id": 266780497,
+    "path": ".github/workflows/check.yml",
+    "run_attempt": 1,
+    "created_at": "2026-10-07T20:06:56Z",
+    "updated_at": "2026-10-07T20:53:53Z",
+    "status": "completed",
+    "conclusion": "success",
+    "repository": {"full_name": "hnnng-w/skatmind"},
+    "head_repository": {"full_name": "hnnng-w/skatmind"}
+  },
+  "candidate_jobs": {
+    "total_count": 23,
+    "jobs": [
+      {"id":112991793923,"name":"coordinator","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992070338,"name":"generated","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992070418,"name":"build (windows)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992070465,"name":"standards","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992070472,"name":"build (ubuntu)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992070502,"name":"regression (ubuntu)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992070627,"name":"regression (windows)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992431967,"name":"cell (ubuntu, sdist-resolved)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992431985,"name":"cell (ubuntu, wheel-minimum_supported)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992432006,"name":"cell (ubuntu, source-resolved)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992432009,"name":"cell (ubuntu, wheel-resolved)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992432025,"name":"cell (windows, sdist-minimum_supported)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992432053,"name":"cell (ubuntu, sdist-minimum_supported)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992432054,"name":"cell (windows, editable-resolved)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992432089,"name":"cell (ubuntu, editable-resolved)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992432132,"name":"cell (windows, sdist-resolved)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992432134,"name":"cell (windows, wheel-resolved)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992432147,"name":"cell (windows, wheel-minimum_supported)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":112992432170,"name":"cell (windows, source-resolved)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":113011715114,"name":"matrix-result (ubuntu)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":113011715242,"name":"matrix-result (windows)","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":113011928526,"name":"v1-supported-platform-matrix","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"},
+      {"id":113011928551,"name":"check","run_id":37679574939,"run_attempt":1,"head_sha":"8890916dfc66fd02cb761dfccb597309a008d288","status":"completed","conclusion":"success"}
+    ]
+  }
+}

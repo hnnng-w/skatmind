@@ -9,6 +9,7 @@ import re
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -39,35 +40,60 @@ def timestamp(value: str) -> datetime:
     return result
 
 
+def _reject(diagnostics: dict, reason: str) -> bool:
+    diagnostics.update(mode="full", reason=reason)
+    return False
+
+
+def _candidate_id(diagnostics: dict, value: object) -> None:
+    diagnostics.pop("candidate_run_id", None)
+    if type(value) is int and 0 < value < 10**20:
+        diagnostics["candidate_run_id"] = value
+
+
 def eligible_run(run: dict, jobs: list[dict], *, current: dict, repository: str,
-                 commit: str, cycle_start: datetime) -> bool:
+                 commit: str, cycle_start: datetime, diagnostics: dict | None = None) -> bool:
     """Never authorize from a green label alone; inspect the entire current attempt."""
+    diagnostics = {} if diagnostics is None else diagnostics
+    _candidate_id(diagnostics, run.get("id") if isinstance(run, dict) else None)
     try:
         end = timestamp(current["created_at"])
         created, updated = timestamp(run["created_at"]), timestamp(run["updated_at"])
         if any(type(run[key]) is not int or run[key] <= 0
                for key in ("id", "workflow_id", "run_attempt")):
-            return False
-        if not (
-            run["id"] != current["id"] and run["event"] == "push"
-            and run["head_branch"] and run["head_branch"] != "main"
-            and run["head_sha"] == commit == current["head_sha"]
-            and run["repository"]["full_name"] == repository
-            and run["head_repository"]["full_name"] == repository
-            and run["workflow_id"] == current["workflow_id"]
-            and run["path"] == current["path"] == WORKFLOW
-            and run["status"] == "completed" and run["conclusion"] == "success"
-            and max(cycle_start, end - FRESHNESS) <= created <= updated <= end
-        ):
-            return False
+            return _reject(diagnostics, "candidate_malformed")
+        if run["id"] == current["id"]:
+            return _reject(diagnostics, "candidate_is_current")
+        if run["event"] != "push" or not run["head_branch"] or run["head_branch"] == "main":
+            return _reject(diagnostics, "candidate_event_or_branch")
+        if not run["head_sha"] == commit == current["head_sha"]:
+            return _reject(diagnostics, "candidate_commit_mismatch")
+        if (run["repository"]["full_name"] != repository
+                or run["head_repository"]["full_name"] != repository):
+            return _reject(diagnostics, "candidate_repository_mismatch")
+        if (run["workflow_id"] != current["workflow_id"]
+                or not run["path"] == current["path"] == WORKFLOW):
+            return _reject(diagnostics, "candidate_workflow_mismatch")
+        if run["status"] != "completed" or run["conclusion"] != "success":
+            return _reject(diagnostics, "candidate_not_successful")
+        if created < end - FRESHNESS:
+            return _reject(diagnostics, "candidate_stale")
+        if created < cycle_start:
+            return _reject(diagnostics, "candidate_before_integration_cycle")
+        if not created <= updated <= end:
+            return _reject(diagnostics, "candidate_time_order")
         names = [job["name"] for job in jobs]
-        return (len(names) == len(REQUIRED_JOBS) and set(names) == REQUIRED_JOBS
-                and all(job["status"] == "completed" and job["conclusion"] == "success"
-                        and job["head_sha"] == commit and job["run_id"] == run["id"]
-                        and job["run_attempt"] == run["run_attempt"]
-                        for job in jobs))
+        if len(names) != len(REQUIRED_JOBS) or set(names) != REQUIRED_JOBS:
+            return _reject(diagnostics, "candidate_job_coverage")
+        if any(job["status"] != "completed" or job["conclusion"] != "success" for job in jobs):
+            return _reject(diagnostics, "candidate_job_unsuccessful")
+        if any(job["head_sha"] != commit or job["run_id"] != run["id"]
+               or job["run_attempt"] != run["run_attempt"] for job in jobs):
+            return _reject(diagnostics, "candidate_job_identity")
+        diagnostics.update(mode="reuse", reason="eligible_candidate")
+        return True
     except (KeyError, TypeError, ValueError):
-        return False
+        return _reject(diagnostics, "candidate_malformed")
 
 
 class GitHub:
@@ -99,31 +125,55 @@ class GitHub:
 
 def find_reuse(api, event: dict, *, repository: str, commit: str, run_id: int,
                event_name: str, force_full: bool, policy_commit: str,
-               required_run: int | None = None) -> dict | None:
-    if (force_full or event_name != "push" or event.get("ref") != "refs/heads/main"
-            or policy_commit != commit or event.get("after") != commit):
+               required_run: int | None = None, diagnostics: dict | None = None) -> dict | None:
+    diagnostics = {} if diagnostics is None else diagnostics
+    diagnostics.clear()
+    diagnostics.update(mode="full", reason="candidate_missing", lookup="request")
+    if force_full:
+        _reject(diagnostics, "force_full")
+        return None
+    if event_name != "push":
+        _reject(diagnostics, "unsupported_event")
+        return None
+    if event.get("ref") != "refs/heads/main":
+        _reject(diagnostics, "not_main_push")
+        return None
+    if policy_commit != commit:
+        _reject(diagnostics, "policy_commit_mismatch")
+        return None
+    if event.get("after") != commit:
+        _reject(diagnostics, "event_commit_mismatch")
         return None
     before = event.get("before", "")
     if not re.fullmatch("[0-9a-f]{40}", before) or before == "0" * 40:
+        _reject(diagnostics, "invalid_previous_commit")
         return None
+    diagnostics["lookup"] = "current_run"
     current = api.get(f"actions/runs/{run_id}")
     if (current["head_sha"] != commit or current["path"] != WORKFLOW
             or current["repository"]["full_name"] != repository):
+        _reject(diagnostics, "current_run_identity_mismatch")
         return None
+    diagnostics["lookup"] = "ancestry"
     comparison = api.get(f"compare/{before}...{commit}")
     if comparison["status"] != "ahead" or comparison["merge_base_commit"]["sha"] != before:
+        _reject(diagnostics, "ancestry_not_fast_forward")
         return None
     # Establish this integration cycle from the immediately preceding main push.
+    diagnostics["lookup"] = "main_history"
     history = api.get(f"actions/workflows/{current['workflow_id']}/runs?"
                       + urlencode({"branch": "main", "event": "push", "per_page": 100}))
     prior = [run for run in history["workflow_runs"] if run["id"] != run_id
              and timestamp(run["created_at"]) < timestamp(current["created_at"])]
     if not prior:
+        _reject(diagnostics, "integration_history_missing")
         return None
     previous = max(prior, key=lambda run: timestamp(run["created_at"]))
     if previous["head_sha"] != before:
+        _reject(diagnostics, "integration_previous_commit_mismatch")
         return None
     cycle_start = timestamp(previous["created_at"])
+    diagnostics["lookup"] = "candidate_discovery"
     if required_run is not None:
         candidates = [api.get(f"actions/runs/{required_run}")]
     else:
@@ -131,10 +181,16 @@ def find_reuse(api, event: dict, *, repository: str, commit: str, run_id: int,
                              + urlencode({"head_sha": commit, "event": "push", "per_page": 100}))[
                                  "workflow_runs"]
     for candidate in candidates:
-        if candidate["id"] == run_id or candidate.get("head_branch") == "main":
+        _candidate_id(diagnostics, candidate["id"])
+        if candidate["id"] == run_id:
+            _reject(diagnostics, "candidate_is_current")
             continue
+        if candidate.get("head_branch") == "main":
+            _reject(diagnostics, "candidate_is_main")
+            continue
+        diagnostics["lookup"] = "candidate_jobs"
         if eligible_run(candidate, api.jobs(candidate), current=current, repository=repository,
-                        commit=commit, cycle_start=cycle_start):
+                        commit=commit, cycle_start=cycle_start, diagnostics=diagnostics):
             return candidate
     return None
 
@@ -182,6 +238,42 @@ def validate_gate_evidence(root: Path, gate: str, source: dict) -> None:
             validate_test_accounting(collection, [parallel, serial], 2)
 
 
+def _exception_reason(error: Exception, diagnostics: dict) -> str:
+    """Classify failures without rendering exception text, headers, or payloads."""
+    lookup = diagnostics["lookup"]
+    if lookup in ("gate_prerequisites", "gate_evidence"):
+        return f"{lookup}_invalid"
+    if lookup in ("configuration", "api_client"):
+        return "configuration_invalid"
+    if lookup in ("event", "request"):
+        return "event_unavailable" if isinstance(error, OSError) else "event_malformed"
+    if isinstance(error, HTTPError):
+        if type(error.code) is int and 100 <= error.code <= 599:
+            diagnostics["http_status"] = error.code
+        return "api_http_error"
+    if isinstance(error, OSError):
+        return "api_unavailable"
+    if isinstance(error, KeyError) and error.args == ("GITHUB_TOKEN",):
+        return "api_credentials_unavailable"
+    if isinstance(error, (KeyError, TypeError, ValueError, AttributeError)):
+        return "api_malformed"
+    return "decision_error"
+
+
+def _decision_text(diagnostics: dict, repository: str) -> str:
+    text = (f"Validation decision: mode={diagnostics['mode']} reason={diagnostics['reason']}"
+            f" lookup={diagnostics['lookup']}")
+    candidate_id = diagnostics.get("candidate_run_id")
+    if candidate_id is not None:
+        text += f" candidate_run_id={candidate_id}"
+    if "http_status" in diagnostics:
+        text += f" http_status={diagnostics['http_status']}"
+    if (diagnostics["mode"] == "reuse" and candidate_id is not None
+            and re.fullmatch(r"[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}", repository)):
+        text += f" source_run=https://github.com/{repository}/actions/runs/{candidate_id}"
+    return text
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("operation", choices=("decide", "gate"))
@@ -191,49 +283,59 @@ def main(argv=None) -> int:
     repository, commit = os.environ["GITHUB_REPOSITORY"], os.environ["GITHUB_SHA"]
     reuse = os.environ.get("REUSE", "false") == "true"
     candidate = None
-    reason = "Full validation required"
+    diagnostics = {"mode": "full", "reason": "decision_error", "lookup": "configuration"}
+    code = 0
     try:
         if args.operation == "decide" or reuse:
+            diagnostics["lookup"] = "api_client"
+            api = GitHub(repository)
+            diagnostics["lookup"] = "event"
+            event = read_json(Path(os.environ["GITHUB_EVENT_PATH"]))
+            diagnostics["lookup"] = "configuration"
             candidate = find_reuse(
-                GitHub(repository), read_json(Path(os.environ["GITHUB_EVENT_PATH"])),
+                api, event,
                 repository=repository, commit=commit, run_id=int(os.environ["GITHUB_RUN_ID"]),
                 event_name=os.environ["GITHUB_EVENT_NAME"],
                 force_full=os.environ.get("FORCE_FULL", "false") == "true",
                 policy_commit=os.environ.get("POLICY_COMMIT", ""),
                 required_run=int(os.environ["REUSE_RUN"]) if reuse else None,
+                diagnostics=diagnostics,
             )
-            if candidate:
-                reason = f"Exact full candidate evidence: https://github.com/{repository}/actions/runs/{candidate['id']}"
         if args.operation == "gate":
-            needs = json.loads(os.environ["NEEDS_JSON"])
-            expected = {"coordinator", "build", "cells", "matrix-result"}
-            if args.gate == "check":
-                expected |= {"standards", "generated", "regression"}
-            if reuse:
-                if (candidate is None or set(needs) != expected
-                        or needs["coordinator"]["result"] != "success"
-                        or any(needs[name]["result"] != "skipped"
-                               for name in expected - {"coordinator"})):
-                    raise ValueError("Reuse authorization or skipped-worker state is invalid")
+            if reuse and candidate is None:
+                code = 1
             else:
-                require_needs(needs, expected)
-                validate_gate_evidence(args.evidence_root, args.gate, source_identity())
-                reason = "All required current-run validation gates and evidence passed"
+                diagnostics["lookup"] = "gate_prerequisites"
+                needs = json.loads(os.environ["NEEDS_JSON"])
+                expected = {"coordinator", "build", "cells", "matrix-result"}
+                if args.gate == "check":
+                    expected |= {"standards", "generated", "regression"}
+                if reuse:
+                    if (set(needs) != expected or needs["coordinator"]["result"] != "success"
+                            or any(needs[name]["result"] != "skipped"
+                                   for name in expected - {"coordinator"})):
+                        raise ValueError("Reuse authorization or skipped-worker state is invalid")
+                else:
+                    require_needs(needs, expected)
+                    diagnostics["lookup"] = "gate_evidence"
+                    validate_gate_evidence(args.evidence_root, args.gate, source_identity())
+                    diagnostics["reason"] = "current_run_complete"
     except Exception as error:
-        if args.operation == "gate":
-            print(f"Final gate rejected: {type(error).__name__}: {error}", file=sys.stderr)
-            return 1
         candidate = None
-        reason = ("Full validation required: evidence unavailable/ineligible "
-                  f"({type(error).__name__})")
-    print(reason)
+        _reject(diagnostics, _exception_reason(error, diagnostics))
+        code = 1 if args.operation == "gate" else 0
+    message = _decision_text(diagnostics, repository)
+    if code:
+        message = "Final gate rejected. " + message
+    print(message, file=sys.stderr if code else sys.stdout)
     if args.operation == "decide":
         with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
             output.write(f"reuse={'true' if candidate else 'false'}\n"
                          f"reuse_run={candidate['id'] if candidate else ''}\n")
     with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
-        summary.write(f"### Validation evidence\n{reason}\nCommit: `{commit}`\n")
-    return 0
+        safe_commit = commit if re.fullmatch("[0-9a-f]{40}", commit) else "invalid"
+        summary.write(f"### Validation evidence\n{message}\nCommit: `{safe_commit}`\n")
+    return code
 
 
 if __name__ == "__main__":

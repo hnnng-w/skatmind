@@ -272,6 +272,56 @@ are used, the maintainer should require the two stable final statuses; settings
 remain human-controlled. Same-repository PR acceptance must reference the branch
 commit run, not assume a skipped PR workflow validated a different merge commit.
 
+### Historical reuse replay and decision diagnostics
+
+Commit `8890916dfc66fd02cb761dfccb597309a008d288` passed all 23 jobs in branch run
+`37679574939` and then all 23 again in main run `37689639795`. The main coordinator
+logged only `Full validation required`. The exact historical rejection condition
+is not recoverable from that log: the original event file and transient HTTP
+responses were not retained. Authenticated later retrieval established these facts:
+
+* main push activity `45780778599` at `2026-10-07T21:28:21Z` advanced from
+  `6d264a442c4e7f88366de00effb972837c5f51d2` to that exact commit;
+* the compare API reports `ahead`, with that previous commit as the merge base;
+* the preceding main run is `37537963789`, created `2026-10-06T22:02:10Z`;
+* the branch run was created `2026-10-07T20:06:56Z`, completed successfully by
+  `20:53:53Z`, and retains all 23 successful attempt-1 jobs;
+* main was created `2026-10-07T21:28:23Z`, the implementation's freshness cutoff.
+
+A replay of the **unmodified** coordinator using those sanitized response
+projections selects reuse. It uses the recorded historical cutoff and a frozen
+`21:28:40Z` replay wall clock, never today's time. The current main run is excluded
+from candidate proof, including its later successful results. Its event projection
+contains only the observed push activity's `ref`, `before`, and `after`; it is not
+presented as the original `GITHUB_EVENT_PATH` file. The fixtures retain the complete
+23-job response shape and the relevant main-history rows. The real first history
+page contained the immediately preceding main run; the complete candidate job set
+fit on one page. Synthetic tests separately exercise multi-page and incomplete job
+responses. No checkout-depth or ancestry relaxation follows from this evidence.
+
+The corrective change therefore improves the demonstrated diagnostic gap without
+changing reuse eligibility. Stdout and the existing job summary now identify the
+selected `mode`, stable `reason`, lookup category, bounded numeric candidate run ID
+when available, and the accepted source-run URL. For example:
+
+```text
+Validation decision: mode=reuse reason=eligible_candidate lookup=candidate_jobs candidate_run_id=37679574939 source_run=https://github.com/hnnng-w/skatmind/actions/runs/37679574939
+Validation decision: mode=full reason=policy_commit_mismatch lookup=request
+Validation decision: mode=full reason=api_http_error lookup=candidate_jobs candidate_run_id=37679574939 http_status=403
+```
+
+The latter two are synthetic diagnostic examples, not claims about the historical
+fallback. Codes distinguish request guards, current/candidate identity, ancestry,
+integration history, freshness/time order, complete job coverage, unsuccessful jobs,
+attempt identity, malformed evidence, and unavailable API access. No-candidate
+results identify the last rejected candidate where applicable. API exceptions emit
+only fixed categories and an optional numeric HTTP status, never arbitrary exception
+text, credentials, headers, or payloads. Final gates retain source revalidation and
+reject invalid reuse authorization; `reuse`/`reuse_run` outputs and all downstream
+worker conditions remain unchanged. Recorded-response entry-path tests establish
+local behavior, not hosted reuse acceptance. #279 remains open until the maintainer
+verifies a fresh branch-to-identical-main reuse path on GitHub Actions.
+
 ## Timing, failure diagnostics, and migration verification
 
 Ordinary exhaustive pytest includes `--durations=40 --durations-min=1`. JSON
