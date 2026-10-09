@@ -19,6 +19,7 @@ import skatmind.app_web.execution as execution_module
 from skatmind.api.v1 import serialize_result
 from skatmind.app_web.translation_catalog import translate_frontend_message_v1 as text
 from skatmind.historical_game import build_historical_game_summary_from_input
+from skatmind.session_transitions import replay_session_state_v1
 
 
 @pytest.fixture
@@ -323,9 +324,18 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
             assert_session_return(browser.page(), locale)
             overview = overview_html(browser.page())
             assert text(locale, "task.session.remaining_hands") in overview
-            assert overview.count(text(locale, "task.session.hand_unknown")) == 2
-            if ended:
-                assert text(locale, "task.session.hand_empty") in hand_row(overview, 3)
+            facts = replay_session_state_v1(context.state)
+            assert facts.played_card_count == (30 if ended else 12)
+            assert overview.count(text(locale, "task.session.hand_unknown")) == (0 if ended else 2)
+            assert overview.count(text(locale, "task.session.hand_empty")) == (3 if ended else 0)
+            for number, player in enumerate(facts.players, 1):
+                if ended or number < 3:
+                    key = "hand_empty" if ended else "hand_unknown"
+                    assert text(locale, "task.session." + key) in hand_row(overview, number)
+                if number < 3:
+                    # Exhausted current hands do not complete missing original knowledge.
+                    assert facts.initial_hand_for(player.player_id) is None
+                    assert facts.remaining_hand_for(player.player_id) is None
             assert browser.request("GET", "/sessions/downloads/request.json")[2] == request_bytes
             assert browser.request("GET", "/sessions/downloads/result.json")[2] == result_bytes
         assert len(calls) == count + 1 and len(saves) == save_count
