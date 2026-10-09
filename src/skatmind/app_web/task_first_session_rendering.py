@@ -48,7 +48,6 @@ from .task_first_rendering import (
     hidden,
     input_field,
     paragraph,
-    section,
     select_field,
     technical_details,
 )
@@ -76,15 +75,12 @@ def _set_entry_variant(view):
 
 
 def _hand_summary(locale, facts, player_id, *, public=False):
-    """Label retained membership; an empty partial observation is not an exhausted hand."""
+    """Use only this replay's accepted Plays to prove current exhaustion, not initial knowledge."""
     cards = facts.public_hand_for(player_id) if public else facts.remaining_hand_for(player_id)
     if cards:
         return card_set_summary(locale, cards)
-    exact = facts.declaration is not None and (public or (
-        len(facts.initial_hand_for(player_id) or ()) == 10 and (
-            player_id != facts.declarer_player_id or facts.declaration.hand_game
-            or len(facts.known_skat) == len(facts.discarded_cards) == 2)))
-    exhausted = cards == () and exact and facts.phase in {"play", "ended"}
+    exhausted = (facts.declaration is not None and facts.phase in {"play", "ended"}
+                 and sum(owner == player_id for owner, _ in facts.plays) == 10)
     return translated(locale, "task.session.hand_empty" if exhausted else "task.session.hand_unknown")
 
 
@@ -397,20 +393,23 @@ def render_task_first_session_v1(
             entered += '<p>' + translated(locale, "session.knowledge.accepted_mode",
                 mode=text(locale, f"session.knowledge.{mode}")) + ' · '
             entered += translated(locale, f"task.session.phase.{facts.phase}") + '</p>'
-        entered += '<h3>' + translated(locale, "task.session.initial_seating") + '</h3>'
-        entered += '<ul>' + ''.join('<li>' + escape(label) + '</li>' for _, label in _players(locale, facts)) + '</ul>'
         hand_scope = ("initial_so_far" if facts.phase in {"setup", "deal"} else
                       "initial_hands" if facts.phase == "declaration" else
                       "current_hands" if facts.phase == "skat_and_discard" else "remaining_hands")
-        entered += '<h3>' + translated(locale, "task.session." + hand_scope) + '</h3>'
+        entered += '<table class="session-hand-summary"><thead><tr><th scope="col">' + translated(
+            locale, "task.session.initial_seating") + '</th><th scope="col">' + translated(
+            locale, "task.session." + hand_scope) + '</th></tr></thead><tbody>'
         for number, player in enumerate(facts.players, 1):
-            entered += f'<p id="session-hand-{number}" tabindex="-1"><strong>' + escape(player_name(locale, facts.players, player.player_id))
-            entered += '</strong>: ' + _hand_summary(locale, facts, player.player_id) + '</p>'
+            entered += '<tr><th scope="row">' + escape(player_name(locale, facts.players, player.player_id))
+            entered += '<span class="session-hand-seat">' + translated(locale, f"creation.seat.{player.seat}") + '</span></th><td>'
+            entered += f'<p id="session-hand-{number}" tabindex="-1">' + _hand_summary(locale, facts, player.player_id) + '</p>'
             public = facts.public_hand_for(player.player_id)
             if public is not None:
                 entered += f'<div id="session-public-hand-{number}" tabindex="-1">'
                 entered += paragraph(locale, "task.session.public_hand") + _hand_summary(locale, facts, player.player_id, public=True)
                 entered += '</div>'
+            entered += '</td></tr>'
+        entered += '</tbody></table>'
         if facts.declaration is None:
             entered += paragraph(locale, "task.session.declarer",
                 player=player_name(locale, facts.players, facts.declarer_player_id))
@@ -426,7 +425,8 @@ def render_task_first_session_v1(
             entered += paragraph(locale, "task.session.event_recorded")
         if facts.game_end_reason is not None:
             entered += paragraph(locale, f"task.value.{facts.game_end_reason}")
-        normal += section(locale, "task.session.entered", entered)
+        normal += '<section class="panel session-summary"><h2>' + translated(
+            locale, "task.session.entered") + '</h2>' + entered + '</section>'
         if (show_operation_notice and context.last_operation is not None
                 and context.recorded_review_source is None and context.last_operation.status in {
                     "conflict", "stale", "partial", "rejected", "unavailable", "reloaded"}):

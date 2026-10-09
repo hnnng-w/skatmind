@@ -1241,14 +1241,35 @@ form:has(> input[name="declaration_form"]) > p { margin-block: 0.25em; }
 /* Only the optional count is narrow; its label, help and errors retain natural width. */
 .declaration-count > label { grid-template-columns: minmax(0, 1fr); }
 .compact-declaration input.declaration-matadors { width: 7em; max-width: 100%; }
+.accepted-declaration { container: saved-declaration / inline-size; }
 .accepted-declaration dl {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15em), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.4em 1em;
+  margin-block: 0.5rem;
 }
 .accepted-declaration dl > div { min-width: 0; }
 .accepted-declaration dd { margin: 0; font-weight: bold; }
 .accepted-declaration h3 { margin-block: 0.5em; }
+.accepted-declaration form { margin-block: 0.25rem 0; }
+.accepted-declaration button { white-space: normal; overflow-wrap: anywhere; }
+
+@container saved-declaration (min-width: 24em) {
+  .accepted-declaration dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container saved-declaration (min-width: 48em) {
+  .accepted-declaration dl { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+#session-app > .session-summary { padding: 0.75rem; }
+.session-summary { min-width: 0; overflow-wrap: anywhere; }
+.session-summary > h2 { margin-block: 0 0.5rem; }
+.session-summary p { margin-block: 0.35rem; }
+.session-hand-summary { table-layout: fixed; }
+.session-hand-summary th:first-child { width: 35%; }
+.session-hand-summary :is(th, td) { vertical-align: top; padding: 0.4rem; }
+.session-hand-summary p { margin: 0; }
+.session-hand-seat { display: block; font-weight: normal; }
 
 .recording-progress-layout {
   display: grid;

@@ -24,8 +24,7 @@ def localized_server(tmp_path):
 
 
 def overview_html(page):
-    return re.search(r'<section class="panel"><h2>[^<]+</h2>(?:(?!</section>).)*'
-                     r'id="session-hand-1".*?</section>', page, re.S)[0]
+    return re.search(r'<section class="panel session-summary">.*?</section>', page, re.S)[0]
 
 
 def hand_row(page, number):
@@ -38,10 +37,10 @@ def test_remaining_hand_overview_has_explicit_time_scope(localized_server, count
     browser = Browser(localized_server)
     record_score_review_game(browser, play_count=count)
     overview = overview_html(browser.page())
-    assert "<h3>Initial seating</h3>" in overview
-    assert "<h3>Remaining hand Cards</h3>" in overview
-    assert "A — Rearhand" in overview
-    assert overview.count("Hand Cards unknown") == 2
+    assert '<th scope="col">Initial seating</th>' in overview
+    assert '<th scope="col">Remaining hand Cards</th>' in overview
+    assert '<th scope="row">A<span class="session-hand-seat">Rearhand</span>' in overview
+    assert overview.count("Hand Cards unknown") == (2 if count <= 27 else 0)
     displayed = ("CJ", "C10", "DK", "D7") if count == 18 else remaining
     assert re.findall(r'\(([A-Z0-9]+)\)', hand_row(overview, 3)) == list(displayed)
     active = localized_server.app_context.managed_stateful.active_session
@@ -54,14 +53,15 @@ def test_remaining_hand_overview_has_explicit_time_scope(localized_server, count
         assert 'No hand Cards left' in hand_row(overview, 3)
 
 
-def test_exhausted_hand_is_plain_and_opponents_stay_unknown(localized_server):
+def test_exhausted_hands_are_plain_without_completing_original_knowledge(localized_server):
     browser = Browser(localized_server)
     record_score_review_game(browser, play_count=30)
     page = follow(browser, browser.submit(Forms(browser.page()).find(
         "/actions/profile/language"), language="de"))
     overview = overview_html(page)
-    assert '<strong>A</strong>: ' + text("de", "task.session.hand_empty") in overview
-    assert overview.count(text("de", "task.session.hand_unknown")) == 2
+    assert text("de", "task.session.hand_empty") in hand_row(overview, 3)
+    assert overview.count(text("de", "task.session.hand_empty")) == 3
+    assert text("de", "task.session.hand_unknown") not in overview
 
 
 def test_derived_pair_does_not_repeat_absent_discard_input(localized_server):
@@ -77,27 +77,27 @@ def test_partial_initial_pickup_and_discard_labels_use_current_accepted_facts(lo
     browser = Browser(localized_server)
     form = create_live(browser)
     page = follow(browser, browser.submit(form, cards="CA"))
-    assert "<h3>Initial Cards entered so far</h3>" in overview_html(page)
+    assert '<th scope="col">Initial Cards entered so far</th>' in overview_html(page)
     assert "(CA)" in hand_row(page, 1)
     active = localized_server.app_context.managed_stateful.active_session
     assert len(replay_session_state_v1(active.state).initial_hand_for(
         active.state.local_player_id)) == 1
     page = follow(browser, browser.submit(Forms(page).find("/sessions/cards"),
                                           cards=get_full_deck()[1:10]))
-    assert "<h3>Recorded initial hand Cards</h3>" in overview_html(page)
+    assert '<th scope="col">Recorded initial hand Cards</th>' in overview_html(page)
     browser.command("set_declarer")
     browser.command("set_declaration", game_type="grand", hand_game="false")
     for skat in ("H7", "D7"):
         page = follow(browser, browser.submit(Forms(browser.page()).find("/sessions/cards"),
                                               cards=skat))
-        assert "<h3>Current known hand Cards</h3>" in overview_html(page)
+        assert '<th scope="col">Current known hand Cards</th>' in overview_html(page)
         assert f"({skat})" in hand_row(page, 1)
     assert len(re.findall(r'\(([A-Z0-9]+)\)', hand_row(page, 1))) == 12
     page = follow(browser, browser.submit(Forms(page).find("/sessions/cards"), cards="CA"))
-    assert "<h3>Current known hand Cards</h3>" in overview_html(page)
+    assert '<th scope="col">Current known hand Cards</th>' in overview_html(page)
     assert "(CA)" not in hand_row(page, 1)
     page = follow(browser, browser.submit(Forms(page).find("/sessions/cards"), cards="H7"))
-    assert "<h3>Remaining hand Cards</h3>" in overview_html(page)
+    assert '<th scope="col">Remaining hand Cards</th>' in overview_html(page)
     assert len(re.findall(r'\(([A-Z0-9]+)\)', hand_row(page, 1))) == 10
     facts = replay_session_state_v1(active.state)
     assert facts.known_skat == ("H7", "D7") and facts.discarded_cards == ("CA", "H7")
@@ -131,19 +131,20 @@ def test_defensive_empty_partial_or_missing_hand_is_not_exhausted(phase):
     # Explicit malformed-presentation fixtures, not canonically accepted Sessions.
     for initial, remaining in (((), ()), (("CA",), ()), (("CA",), None)):
         malformed = replace(facts, phase=phase, initial_known_hands=((player, initial),),
-            remaining_known_hands=() if remaining is None else ((player, remaining),))
+            remaining_known_hands=() if remaining is None else ((player, remaining),),
+            plays=(), played_card_count=0)
         assert _hand_summary("en", malformed, player) == "Hand Cards unknown"
 
 
-def test_defensive_missing_declaration_and_pickup_evidence_do_not_certify_empty():
+def test_exhaustion_uses_plays_not_pickup_or_initial_membership():
     from test_unplayed_card_summary import complete_facts
     facts = complete_facts()
     player = facts.local_player_id
     assert _hand_summary("en", facts, player) == "No hand Cards left"
     assert _hand_summary("en", replace(facts, declaration=None), player) == "Hand Cards unknown"
-    # This change of declarer without their pickup evidence is explicitly inconsistent input.
-    malformed = replace(facts, declarer_player_id=player)
-    assert _hand_summary("en", malformed, player) == "Hand Cards unknown"
+    # Current exhaustion needs no reconstruction of absent original hand/pickup evidence.
+    unknown = replace(facts, initial_known_hands=(), remaining_known_hands=())
+    assert _hand_summary("en", unknown, player) == "No hand Cards left"
 
 
 def test_complete_names_are_escaped_and_original_seats_survive_new_leader(localized_server):
@@ -152,8 +153,9 @@ def test_complete_names_are_escaped_and_original_seats_survive_new_leader(locali
     record_score_review_game(browser, play_count=3, names=("B", "C", name))
     page = browser.page()
     overview = overview_html(page)
-    assert escape(name + " — Rearhand") in overview
-    assert f'<strong>{escape(name)}</strong>' in hand_row(page, 3)
+    assert (f'<th scope="row">{escape(name)}<span class="session-hand-seat">Rearhand</span>'
+            in overview)
+    assert overview.count(escape(name)) == 1
     active = localized_server.app_context.managed_stateful.active_session
     facts = replay_session_state_v1(active.state)
     assert facts.next_player_id == facts.local_player_id

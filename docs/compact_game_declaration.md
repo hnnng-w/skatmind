@@ -83,8 +83,16 @@ counts consecutive highest trumps held or absent from the top, beginning with th
 Jack of Clubs, rather than a total of Jacks/trumps. With-two and without-two
 examples both use `2`; the integer contains no polarity.
 
-The shared accepted summary follows normal recording, before full history. It
-shows the named declarer, Game type, all four actual Boolean values, entered bid,
+The shared accepted summary follows normal recording, before full history.
+Issue #282 groups it in semantic document order: **Declarer, Game type, Bid value,
+Matadors** first, then **Hand game, Schneider announced, Schwarz announced,
+Ouvert**. Two definition lists use four columns at sufficient local width and
+wrap complete label/value groups into two or one columns on narrower surfaces.
+Session recording, Match recording, and Match review share this accepted-only
+layout. Session's source-bound correction forms stay beside their original facts;
+Match's existing editor and return destinations remain available.
+
+It shows all four actual Boolean values, entered bid,
 and supplied count. Blank numbers say **Not entered**; Null Matadors say **Not
 applicable**. Numeric zero is never used as an unknown sentinel. Summary input is
 the accepted canonical declaration, not a rejected draft or a later inferred

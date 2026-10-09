@@ -142,6 +142,54 @@ Reconstruction requires all three initial hands and original Skat even with a lo
 Player. Promotion remains explicit, one-way, fact-free and phase-preserving; it is
 an optional specialist action rather than the expected next step after ending.
 
+**Compact accepted recording summaries (Issue #282).**
+
+The saved declaration uses two ordered groups documented in
+[Compact Game declaration](compact_game_declaration.md#shared-fields-and-accepted-summary).
+The Session seating/knowledge panel uses a compact semantic table: each Player's
+name and original seat appear once beside their current hand information. The
+column heading retains the phase-specific initial/current/remaining scope, known
+Cards remain readable, and exact public hands keep their separate label within
+the same Player row. Existing hand-evidence anchors, ending/event notices and one
+recorded-Card/completed-Trick line remain. Spacing changes are local to these
+summary panels; narrow views wrap content naturally.
+
+The former hand label depended on complete starting-hand knowledge and therefore
+left unknown opponents labelled unknown after their tenth accepted Play. The
+private renderer now proves current exhaustion from ten Plays attributed to that
+Player in the displayed accepted replay. Session validation and Position export
+already use this per-Player count rule; the projection exposes the accepted Plays,
+not a separate remaining-count field. No additional projection or stored fact is
+needed. A partial final Trick can exhaust one Player before the others, and all
+three hands show empty after ten Tricks even while phase remains `play`.
+
+Original unknown hands stay unknown in the accepted data. Empty known-card lists,
+command totals, and an `ended` phase do not prove exhaustion. Earlier strict
+prefixes and early concessions retain their own known/unknown remaining Cards;
+saved Decision Checkpoints retain their original information. GET, reopening and
+language return neither finalize the Game nor modify accepted recording bytes,
+Commands, scores or downloads.
+
+Regression coverage is in `tests/test_recorded_game_summaries_web.py` and
+`tests/test_hand_evidence_labels.py`, alongside the existing declaration, knowledge,
+recorded-progress, correction and stateful-rendering tests. Full exact-commit CI
+and the brief installed-build maintainer inspection remain acceptance gates.
+
+The October 9, 2026 disposable browser check used the source checkout under CPython
+3.13.7 and headless Microsoft Edge `154.0.4258.62`, through the existing DevTools
+harness. Eight views covered 18/30 accepted Plays, German/English, and 1365×900 /
+390×844 viewports with a long Player name. Desktop groups occupied the requested
+two rows; narrow groups retained document order. Measured page/client widths
+matched, measured summary contents fit, and inspected screenshots showed readable
+Cards, names and correction controls. Native Enter opened declaration correction
+without changing accepted recording bytes or Checkpoints. Served CSS matched the
+checkout resource SHA-256
+`f1157afb845431a3a263644e4cc8f63b76a6b3bc19a68552d0ed9162c6273533`.
+Evidence and screenshots are external scratch artifacts under
+`opencode/issue282-browser-p380a_go/`. This is source-build technical evidence;
+viewport resizing is not 200% browser zoom. The short installed-build check,
+including actual zoom, remains with the maintainer.
+
 The primary task selects an existing typed Command from the phase and retained
 facts. Issue #231 prioritizes authorized initial Cards in setup/deal: the first
 successful normal Card save supplies missing Session-derived Game identity through

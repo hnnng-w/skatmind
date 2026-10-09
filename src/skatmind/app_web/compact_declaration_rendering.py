@@ -53,15 +53,16 @@ def accepted_declaration_summary(locale, values, declarer, *, actions=None):
     rows = [("task.field.declarer_player_id", escape(declarer) + actions.get("set_declarer", "")),
             ("declaration.game_type", translated(locale, "task.value." + values["game_type"])
              + actions.get("set_declaration", ""))]
-    for name in BOOLEAN_DECLARATION_FIELDS:
-        rows.append(("declaration." + name, translated(locale,
-            "common.answer.yes" if values[name] else "common.answer.no")))
     for name in ("bid_value", "matadors"):
         value = values[name]
         rendered = (translated(locale, "declaration.not_applicable")
                     if name == "matadors" and values["game_type"] == "null" else
                     translated(locale, "declaration.not_entered") if value is None else escape(str(value)))
         rows.append(("declaration." + name, rendered))
+    flags = [("declaration." + name, translated(locale,
+        "common.answer.yes" if values[name] else "common.answer.no"))
+        for name in ("hand_game", "schneider_announced", "schwarz_announced", "ouvert")]
     return ('<section class="accepted-declaration"><h3>' + translated(locale, "declaration.accepted")
-        + '</h3><dl>' + ''.join('<div><dt>' + translated(locale, key) + '</dt><dd>'
-                              + value + '</dd></div>' for key, value in rows) + '</dl></section>')
+        + '</h3>' + ''.join('<dl>' + ''.join('<div><dt>' + translated(locale, key) + '</dt><dd>'
+            + value + '</dd></div>' for key, value in group) + '</dl>' for group in (rows, flags))
+        + '</section>')
