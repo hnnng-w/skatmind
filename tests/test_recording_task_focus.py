@@ -130,7 +130,8 @@ def test_accepted_session_prefix_matrix_keeps_one_task_with_its_form(tmp_path, l
         assert len(headings) == 1 and markup.visible(headings[0])
         normal = markup.within("session-recording", "form")
         if facts.phase == "ended":
-            assert not normal and headings[0]["text"] == text(locale, "task.session.phase.ended")
+            assert not normal and headings[0]["text"] == text(
+                locale, "task.session.recording_completed")
         else:
             assert len(normal) == 1 and markup.visible(normal[0])
             assert headings[0]["parents"][-1] is normal[0]["parents"][-1]

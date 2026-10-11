@@ -254,7 +254,9 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
         fields += paragraph(locale, "task.session.correction_help") + input_field(
             locale, "target_revision", "task.field.target_revision", kind="number", required=True)
     fields += session_command_fields(locale, view, kind, normal=normal)
-    return form(locale, "/sessions/command", fields, f"task.command.{kind}", primary=normal)
+    label = ("task.session.finish_recording" if normal and kind == "set_game_end"
+             else f"task.command.{kind}")
+    return form(locale, "/sessions/command", fields, label, primary=normal)
 
 
 def _analysis_controls(context, locale, view):
@@ -330,8 +332,31 @@ def _task_heading(locale, view):
     if action == "record_dealt_card":
         return translated(locale, "task.session.enter_skat" if view.deal_destination == "skat"
                           else "task.session.enter_hand")
+    if action == "set_game_end":
+        # Only the normal 30-Play task uses recording-completion wording.
+        return translated(locale, "task.session.finish_recording")
+    if (view.facts.phase == "ended" and view.facts.game_end_reason == "normal_completion"
+            and view.facts.played_card_count == 30):
+        return translated(locale, "task.session.recording_completed")
     return translated(locale, "task.session.phase.ended" if action is None else
                       "declaration.title" if action == "set_declaration" else f"task.command.{action}")
+
+
+def _completion_content(locale, view, progress, recorded):
+    content = '<h2>' + _task_heading(locale, view) + '</h2>'
+    if view.facts.game_end_reason != "normal_completion":
+        content += paragraph(locale, "task.value." + view.facts.game_end_reason)
+    content += paragraph(locale, "trick_progress.completed", count=progress.completed_count)
+    content += render_recorded_summary(progress, locale)
+    content += paragraph(locale, "trick_progress.null_scope" if progress.game_type == "null"
+                         else "trick_progress.scope")
+    content += '<div class="session-completion-actions">'
+    if recorded.local_play_count:
+        style = ' class="button-link"' if recorded.decisions else ''
+        content += '<a href="#recorded-decisions"' + style + '>' + translated(
+            locale, "recorded_review.title" if recorded.decisions else "recorded_review.inspect") + '</a>'
+    content += '<a href="#session-history">' + translated(locale, "task.session.corrections") + '</a>'
+    return content + '</div>'
 
 
 def render_task_first_session_v1(
@@ -347,16 +372,17 @@ def render_task_first_session_v1(
         progress = project_session_trick_progress(facts)
         unplayed = project_unplayed_cards(progress, facts.declaration)
         set_entry = _set_entry_variant(view)
+        ended = facts.phase == "ended"
         mode = "perspective" if facts.capture_mode == "live" else "reconstruction"
         current = ""
-        if not set_entry:
+        if not set_entry and not ended:
             current = paragraph(locale, "session.knowledge.accepted_mode",
                                 mode=text(locale, f"session.knowledge.{mode}"))
             if facts.phase != "ended":
                 current += paragraph(locale, f"task.session.phase.{facts.phase}")
             current += paragraph(locale, "task.session.perspective",
                                  player=player_name(locale, facts.players, facts.local_player_id))
-        if recorded.local_play_count:
+        if recorded.local_play_count and not ended:
             current += '<p><a href="#recorded-decisions">' + translated(
                 locale, "recorded_review.selection" if recorded.decisions else "recorded_review.inspect") + '</a></p>'
         primary = view.workflow.primary_action
@@ -365,12 +391,16 @@ def render_task_first_session_v1(
                     if primary else '<p><a href="#session-history">' + translated(
                         locale, "recorded_review.history") + '</a></p>')
         task_content = '<h2>' + _task_heading(locale, view) + '</h2>' + controls
-        if not set_entry:
+        if ended:
+            task_content = _completion_content(locale, view, progress, recorded)
+        elif not set_entry:
             task_content = ('<div class="recording-progress-layout"><div>' + task_content
                             + '</div>' + render_recorded_summary(progress, locale) + '</div>')
         variant = ' class="session-set-entry"' if set_entry else ''
         if primary == "record_play":
             variant = ' class="session-play-entry"'
+        elif ended:
+            variant = ' class="session-completion"'
         normal += ('<div id="session-recording"' + variant + ' tabindex="-1"><div id="session-card-feedback"></div>'
             + '<!-- operation-feedback -->'
             + '<section class="panel">' + task_content + '</section></div>')
@@ -389,6 +419,11 @@ def render_task_first_session_v1(
         normal += render_recorded_session_decisions_v1(context, locale=locale, view=recorded)
         normal += render_recorded_history(progress, locale, anchor_prefix="session-play")
         entered = ""
+        if ended:
+            entered += '<p>' + translated(locale, "session.knowledge.accepted_mode",
+                mode=text(locale, f"session.knowledge.{mode}")) + ' · '
+            entered += translated(locale, "task.session.perspective",
+                player=player_name(locale, facts.players, facts.local_player_id)) + '</p>'
         if set_entry:
             entered += '<p>' + translated(locale, "session.knowledge.accepted_mode",
                 mode=text(locale, f"session.knowledge.{mode}")) + ' · '

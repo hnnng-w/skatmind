@@ -18,6 +18,7 @@ from skatmind.app_web.match_review_rendering import render_match_review_v1
 from skatmind.app_web.session_recorded_review_rendering import render_recorded_review_source_v1
 from skatmind.app_web.task_first_match_state import build_task_first_match_page_state_v1
 from skatmind.app_web.task_first_projections import project_task_first_match_v1
+from skatmind.app_web.translation_catalog import translate_frontend_message_v1 as text
 
 
 class Links(HTMLParser):
@@ -47,12 +48,12 @@ def assert_link(page, href, label):
     assert all(link.get("aria-label", label) == label for link in links)
 
 
-def assert_session_return(page, locale):
+def assert_session_return(page, locale, *, ended=False):
     label = ("Zur Entscheidungsauswahl: Stich 4, Karte 3" if locale == "de" else
              "Decision selection: Trick 4, Card 3")
     assert_link(page, "#recorded-decision-12", label)
-    assert_link(page, "#recorded-decisions", "Zur Auswahl erfasster Entscheidungen"
-                if locale == "de" else "Recorded decision selection")
+    assert_link(page, "#recorded-decisions", text(locale,
+        "recorded_review.title" if ended else "recorded_review.selection"))
     assert 'id="recorded-decision-12"' in page
     assert 'id="session-result" tabindex="-1"' in page
 

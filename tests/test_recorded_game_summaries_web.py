@@ -122,6 +122,8 @@ def test_early_ending_preserves_unexhausted_known_and_unknown_hands(localized_se
     data, plays = record_live_game(browser, play_count=count)
     active = localized_server.app_context.managed_stateful.active_session
     before_page = browser.page()
+    assert text("en", "task.session.finish_recording") not in before_page
+    assert text("en", "task.command.set_game_end") in before_page
     hands = [hand_text(before_page, number) for number in range(1, 4)]
     for number, source in enumerate(data["players"], 1):
         played = sum(p["player_id"] == source["player_id"] for p in plays[:count])
@@ -131,6 +133,8 @@ def test_early_ending_preserves_unexhausted_known_and_unknown_hands(localized_se
     browser.command("set_game_end", game_end_reason="defender_concession",
         player_id=active.state.players[1].player_id, concession_form="explicit_verbal")
     assert active.state.phase == "ended"
+    assert '<h2>' + text("en", "task.session.phase.ended") + '</h2>' in browser.page()
+    assert text("en", "task.session.recording_completed") not in browser.page()
     assert [hand_text(browser.page(), number) for number in range(1, 4)] == hands
 
 

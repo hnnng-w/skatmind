@@ -123,8 +123,8 @@ and local spacing opt in through the same task marker. See
 Other active tasks start with their accepted path, phase and perspective, then one
 task at `session-recording`: declarer, declaration, known Skat,
 discards, required public hand, observed Card, or explicit Game End. An ended
-recording has one normal ended heading and a history/correction link, with no empty
-Next step panel. Detailed accepted ending/history remains. German and English use
+recording uses the compact completion handoff described below. Detailed accepted
+ending/history remains. German and English use
 the same accepted facts and primary-action projection.
 Issue #233 supersedes During play / After the game with knowledge-based paths:
 Player-perspective recording (`live`) and complete-deal reconstruction (`retrospective`).
@@ -142,7 +142,68 @@ Reconstruction requires all three initial hands and original Skat even with a lo
 Player. Promotion remains explicit, one-way, fact-free and phase-preserving; it is
 an optional specialist action rather than the expected next step after ending.
 
-**Compact accepted recording summaries (Issue #282).**
+### Recording completion and review handoff (Issue #283)
+
+The fully played `play` state still needs an explicit submission. Its normal task
+heading and button say **Finish recording**; the existing form still submits
+`set_game_end` with `normal_completion`. The accepted operation requires exactly
+30 Plays, no incomplete Trick, and exhausted continuation public hands. Entering
+the final Card does not submit this operation. Optional/correction ending forms
+retain their general **Record game ending** wording and existing fields.
+
+All explicitly ended Sessions use a compact single-column completion panel at
+`session-recording`, rather than the active entry/score two-column layout. The
+outer Game identity has a locally reduced heading size and top spacing. A normal
+30-Play ending says **Recording completed**. Supported shortened endings retain
+**Game ended**, their accepted reason and the actual completed recorded-Trick
+count. Existing recorded-party points/Tricks and Player names are reused; Null
+retains its Trick-only summary. The scope note excludes unplayed/awarded remainder,
+Skat/discards and settlement. No new outcome or reconstruction claim is made.
+
+Eligible saved own decisions make **Review recorded decisions** the primary native
+navigation link to `#recorded-decisions`. It opens selection only; each existing
+source-bound review POST remains a separate explicit action. Without eligible
+snapshots, inspection is a secondary link when own Plays exist, with the original
+availability explanations at the destination. No perspective/no observed own Play
+gets no active-looking review action. The existing history/correction link remains
+secondary; declaration correction, Undo and Reload keep their original controls.
+
+Mode and perspective move together into the accepted seating/hand summary, removing
+the introductory stack from the ended view. The #282 declaration groups, lineup,
+known/unknown hand evidence and recorded history remain accessible. An ended phase
+does not prove ten recorded Tricks or complete original-hand knowledge. Existing
+ended files acquire this view on strict opening with no migration, save or repeated
+ending. Rendering, language return and review navigation neither append Commands
+nor execute analysis, collect Checkpoints or inject later knowledge into snapshots.
+
+Focused HTTP coverage is in `tests/test_session_recording_completion_web.py`, with
+the existing summary, recorded-review, progress, task-focus, Card-entry and shared
+rendering/projection regressions. Exact-commit branch CI, identical-commit main
+integration and the short installed-build maintainer retest remain required.
+
+The October 11, 2026 disposable source-build browser sequence used CPython 3.13.7,
+headless Microsoft Edge `155.0.4283.45` and the existing dependency-free DevTools
+harness. It finished once, strictly reopened, inspected German/English at 1365×900
+and 390×844, and activated the recorded-selection and secondary history links with
+native Tab/Enter. The ending added one revision and one Save; subsequent navigation
+and language changes preserved exact saved bytes and Checkpoints, with zero analysis
+executions. Selection reached `/sessions/current#recorded-decisions` with ten rows.
+
+Inspected screenshots and measured geometry show a 36px desktop / 28px narrow Game
+heading, a roughly 340px-high desktop completion panel, and naturally stacked narrow
+party summaries (about 603px English / 628px German total panel height with long
+synthetic names). Page scroll/client widths matched; the primary link had visible
+keyboard focus and wrapped in German. Served CSS and workflow-script bytes matched
+the checkout; CSS SHA-256 was
+`7635f75eb103b8deefdee8d7b286c12083be16e4be0040c430ae267a26e5252c`.
+Evidence, module/resource hashes and screenshots are external scratch artifacts
+under `opencode/issue283-browser-5csou_7i/`. An initial probe stopped at its locale
+precondition before finishing; the successful sequence explicitly selected English.
+Viewport emulation is not actual browser zoom. True 200% zoom and the brief
+installed-build observation of the already-ended maintainer recording remain
+outstanding; that recording requires neither replay nor another ending submission.
+
+### Compact accepted recording summaries (Issue #282)
 
 The saved declaration uses two ordered groups documented in
 [Compact Game declaration](compact_game_declaration.md#shared-fields-and-accepted-summary).

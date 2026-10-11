@@ -14,7 +14,9 @@ B-06 remains closed, and Package `1.0.0` preparation is not ready.
    open an individual recording. `/sessions` also remains its recording entry.
 2. When an own Play has been observed, follow **Recorded decision selection**, or
    **Inspect recorded decisions** if no saved snapshot is eligible. The list follows
-   the recording task, including after all 30 Plays and after Game End.
+    the recording task, including after all 30 Plays and after Game End. In the
+    compact ended-recording view, the eligible link is promoted to **Review recorded
+    decisions**; it opens this same selection list and does not execute analysis.
 3. Recognize an own decision by Player name, one-based Trick, Card position within
    the Trick, and actual Card. Select **Review decision** on that row.
 4. The page moves to the Result with the source Game/Player/Trick/Card label,
@@ -34,7 +36,9 @@ selection row with Player A's actual SJ, not the Result or chronological correct
 editor. The caption uses the retained `recorded_review_source` Checkpoint's
 `trick_number` and `play_index`; its `decision_index` still supplies the unchanged
 fragment. The nearby Player/actual-Card source caption remains. The whole-region
-invitation says **Recorded decision selection** and still targets `#recorded-decisions`.
+invitation during recording says **Recorded decision selection** and still targets
+`#recorded-decisions`. Issue #283 labels and styles that same eligible destination
+as the primary **Review recorded decisions** link after explicit Game End.
 Unavailable-snapshot inspection and explicit **Review decision** POST wording remain.
 
 A rejected later review keeps the older valid Result's return identity. Unbound

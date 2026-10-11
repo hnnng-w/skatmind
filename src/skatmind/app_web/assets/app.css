@@ -1045,6 +1045,36 @@ details[open] > summary {
   outline-offset: 0.2rem;
 }
 
+/* Only an explicitly ended Session opts into the compact review handoff. */
+main:has(#session-recording.session-completion) {
+  padding-block-start: 1.5rem;
+}
+
+main:has(#session-recording.session-completion) > h1 {
+  max-width: none;
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  margin-bottom: 0.75rem;
+}
+
+#session-recording.session-completion > .panel { padding: 0.75rem; }
+.session-completion h2 { margin-block: 0 0.5rem; font-size: 1.5rem; }
+.session-completion p { margin-block: 0.5rem; }
+.session-completion .recorded-summary { border: 0; padding: 0; }
+.session-completion .recorded-summary h3 { margin-block: 0.5rem; }
+.session-completion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin-top: 0.75rem;
+}
+
+.session-completion :where(div, a, p) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .compact-cards {
   min-width: 0;
   padding: 0.6rem;

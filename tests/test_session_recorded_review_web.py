@@ -269,9 +269,9 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
         source = page.split('class="recorded-review-source"', 1)[1].split("</p>", 1)[0]
         assert "Synthetic score review" in source and "Trick 4 · Card position 3" in source
         assert "SJ" in source
-        assert_session_return(page, "en")
-        assert_summary_points(page, "en", 14, 29)
         ended = context.state.phase == "ended"
+        assert_session_return(page, "en", ended=ended)
+        assert_summary_points(page, "en", 14, 29)
         assert_party_score(page, (42, 3) if ended else (14, 1),
                            (78, 7) if ended else (35, 3))
         assert len(history_rows(page)) == (30 if ended else 12)
@@ -321,7 +321,7 @@ def test_real_score_review_after_later_plays_completion_reopen_and_passive_views
             assert_visible_equal_best(browser.page(), locale)
             assert_context(browser.page(), locale, hand=SESSION_HAND,
                             prefix=(("B", "HJ"), ("C", "DJ")), actor="A", trick=4, play=3)
-            assert_session_return(browser.page(), locale)
+            assert_session_return(browser.page(), locale, ended=ended)
             overview = overview_html(browser.page())
             assert text(locale, "task.session.remaining_hands") in overview
             facts = replay_session_state_v1(context.state)
