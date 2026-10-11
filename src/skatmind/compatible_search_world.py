@@ -1,4 +1,5 @@
 import random
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from skatmind.bounded_search_information import SearchInformationView
@@ -264,6 +265,8 @@ def _validate_public_exact_hands(
 
 def build_compatible_search_world_space(
     information_view: SearchInformationView,
+    *,
+    work_hook: Callable[[], None] | None = None,
 ) -> CompatibleSearchWorldSpace:
     """Builds the canonical exact compatible-world space from one search view."""
     if not isinstance(information_view, SearchInformationView):
@@ -376,7 +379,7 @@ def build_compatible_search_world_space(
         skat_slots=skat_slots,
         allowed_locations_by_card=tuple(allowed_by_card),
     )
-    compatible_world_count = count_compatible_hidden_worlds(problem)
+    compatible_world_count = count_compatible_hidden_worlds(problem, work_hook=work_hook)
     return CompatibleSearchWorldSpace._from_validated(
         information_view=information_view,
         assignment_problem=problem,

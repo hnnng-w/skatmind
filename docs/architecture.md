@@ -809,8 +809,22 @@ boundaries](claim_and_settlement_v1_boundaries.md).
 | `src/skatmind/search_budget_profiles.py` | Immutable versioned Search budgets for interactive, historical-review, and evaluation workflows. |
 | `src/skatmind/retrospective_search_comparison.py` | Search actual-card and Search-versus-Immediate aggregate comparisons. |
 | `src/skatmind/bounded_search_post_game_review.py` | Flat post-game Search comparison summary construction. |
+| `src/skatmind/whole_game_rollout.py` | Private bounded one-decision candidate preparation and complete fixed-policy continuations over common compatible worlds. |
+| `src/skatmind/whole_game_rollout_contracts.py` | Immutable internal rollout settings, structural work, terminal aggregates, objective ties, and safe results. |
+| `src/skatmind/whole_game_rollout_policy.py` | Observation-only versioned declarer/defender baseline for all later actors. |
 
 The simulation layer is probabilistic and heuristic. It is designed for analysis support, not for perfect-information solving.
+
+Issue #284 adds the separately approved internal whole-game candidate rollout.
+It supports one to ten remaining Suit/Grand tricks without entering or widening
+the endgame Search gates. Every legal first card is continued independently in
+each shared IID world through the existing actor-observation and exact legal
+transition boundary. Played-goal success (including declaration requirements,
+excluding overbid/settlement) and explicit strict complete settlement are
+separate objectives. Only complete common batches contribute; interrupted
+evaluation has no ranking or recommendation. Recorded-review integration and
+user-facing controls are stage 2. See
+[Bounded whole-game candidate rollout](whole_game_candidate_rollout.md).
 
 The exact defender-open-play engine is intentionally outside this simulation
 layer. It receives complete private post-game hands, reuses legal-card and

@@ -763,6 +763,23 @@ Implemented:
   Workspace, with no-JSON creation, rapid Card entry, correction, annotations,
   optimistic autosave, and explicit conflict Reload
 
+## Approved whole-game rollout extension
+
+Issue #284 delivers the private bounded
+[whole-game candidate rollout core](whole_game_candidate_rollout.md): one local
+Suit/Grand decision, up to ten remaining tricks, every legal first card, shared
+compatible-world samples, and deterministic actor-observation-only continuations.
+Played-goal and strict complete-settlement objectives remain explicit and
+separate. Structural preparation/transition budgets and common-batch completion
+prevent partial candidate rankings. Independent small-case policy oracles and a
+bounded synthetic opening run provide local evidence.
+
+Stage 2 remains pending: explicit new recorded-decision analysis from an
+unchanged frozen snapshot, exact source/provenance binding, optional selection,
+and understandable results. Existing methods and defaults continue unchanged;
+the core does not close the UAT analysis finding or establish optimal strategy,
+calibrated success probabilities, or frontend availability.
+
 ## Current known limitations
 
 ### Gameplay and rules

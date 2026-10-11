@@ -411,6 +411,25 @@ must not be presented as official-rule requirements.
 | Learned opponent model | A versioned artifact whose behavior or parameters were fit from data and are used during inference. | It requires separate training, evaluation, deployment, fallback, and explainability decisions. |
 | Training a machine-learning model | Running a reproducible process that fits model parameters from an approved training dataset and evaluates them on separated data. | It is distinct from storing historical games, generating labels, calculating statistics, or running rule-based simulation. |
 
+## Approved bounded analysis extension: Issue #284
+
+Issue #284 implements the approved stage-1 internal
+[whole-game candidate rollout](whole_game_candidate_rollout.md). One current
+local Suit/Grand decision with one to ten remaining tricks compares every legal
+first card through normal completion under versioned observation-only fixed
+policies. Candidates share bounded compatible-world samples and common complete
+coverage. Played-goal success respects declaration requirements without requiring
+unknown bid/matadors; explicit complete settlement retains the existing strict
+terminal utility. Work interruption suppresses rankings and recommendations.
+
+This is a specific approved extension beyond the earlier late-game-only analysis
+boundary, not broader optimal Search or a change to existing Search limits.
+Stage-2 explicit recorded-decision analysis, source-bound provenance, method and
+objective selection, and understandable frontend results remain pending. The
+core changes no Product default, frozen Request/Result, or UAT finding. Broader
+solver directions retain their classifications below; this extension does not
+claim equilibrium play, calibrated probabilities, or completed user acceptance.
+
 ## Required before v1.0.0
 
 The following directions are required for `v1.0.0`:

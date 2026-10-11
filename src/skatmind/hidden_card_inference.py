@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from functools import cache
 from typing import Any
@@ -636,9 +637,12 @@ def _validate_assignment_problem(
 def _build_completion_counter(
     cards: tuple[str, ...],
     allowed_locations_by_card: dict[str, tuple[str, ...]],
+    work_hook: Callable[[], None] | None = None,
 ):
     @cache
     def count_from(index: int, left_remaining: int, right_remaining: int) -> int:
+        if work_hook is not None:
+            work_hook()
         remaining_cards = len(cards) - index
         if left_remaining < 0 or right_remaining < 0:
             return 0
@@ -677,10 +681,14 @@ def count_compatible_assignments(
     return counter(0, left_slots, right_slots)
 
 
-def count_compatible_hidden_worlds(problem: CompatibleAssignmentProblem) -> int:
+def count_compatible_hidden_worlds(
+    problem: CompatibleAssignmentProblem,
+    *,
+    work_hook: Callable[[], None] | None = None,
+) -> int:
     """Counts exact worlds for one immutable assignment problem."""
     allowed_by_card = _validate_assignment_problem(problem)
-    counter = _build_completion_counter(problem.cards, allowed_by_card)
+    counter = _build_completion_counter(problem.cards, allowed_by_card, work_hook)
     return counter(0, problem.left_slots, problem.right_slots)
 
 
@@ -858,6 +866,7 @@ def _sample_compatible_hidden_world_with_counter(
     random_generator: random.Random,
     allowed_by_card: dict[str, tuple[str, ...]],
     counter,
+    work_hook: Callable[[], None] | None = None,
 ) -> CompatibleHiddenWorld:
     """Draws one world using a caller-validated reusable completion counter."""
 
@@ -865,6 +874,8 @@ def _sample_compatible_hidden_world_with_counter(
     left_remaining = problem.left_slots
     right_remaining = problem.right_slots
     for index, card in enumerate(problem.cards):
+        if work_hook is not None:
+            work_hook()
         choices: list[tuple[str, int]] = []
         for owner in allowed_by_card[card]:
             next_left = left_remaining - int(owner == "left")
@@ -906,6 +917,21 @@ def sample_compatible_hidden_worlds(
     random_generator: random.Random,
 ) -> tuple[CompatibleHiddenWorld, ...]:
     """Draws IID compatible worlds with replacement while preserving draw order."""
+    return tuple(iter_compatible_hidden_worlds(problem, sample_count, random_generator))
+
+
+def iter_compatible_hidden_worlds(
+    problem: CompatibleAssignmentProblem,
+    sample_count: int,
+    random_generator: random.Random,
+    *,
+    work_hook: Callable[[], None] | None = None,
+) -> Iterator[CompatibleHiddenWorld]:
+    """Streams the same IID draws, optionally accounting for DP and assignment work.
+
+    The hook runs before each uncached DP state and each sampled Card assignment.
+    It may raise to stop work; no partial assignment is yielded.
+    """
     if (
         isinstance(sample_count, bool)
         or not isinstance(sample_count, int)
@@ -915,19 +941,18 @@ def sample_compatible_hidden_worlds(
     if not isinstance(random_generator, random.Random):
         raise ValueError("random_generator must be a random.Random instance.")
     allowed_by_card = _validate_assignment_problem(problem)
-    counter = _build_completion_counter(problem.cards, allowed_by_card)
+    counter = _build_completion_counter(problem.cards, allowed_by_card, work_hook)
     total = counter(0, problem.left_slots, problem.right_slots)
     if total == 0:
         raise ValueError("Hidden-card inference has no compatible assignment to sample.")
-    return tuple(
-        _sample_compatible_hidden_world_with_counter(
+    for _ in range(sample_count):
+        yield _sample_compatible_hidden_world_with_counter(
             problem,
             random_generator,
             allowed_by_card,
             counter,
+            work_hook,
         )
-        for _ in range(sample_count)
-    )
 
 
 def build_hidden_card_inference_model(

@@ -391,7 +391,10 @@ def build_information_set_search_world_state_v1(
     *,
     information_view: SearchInformationView,
     exact_state: ExactSearchState,
+    allow_partial_root_skat_knowledge: bool = False,
 ) -> InformationSetSearchWorldStateV1:
+    if not isinstance(allow_partial_root_skat_knowledge, bool):
+        raise ValueError("allow_partial_root_skat_knowledge must be a boolean.")
     if not isinstance(information_view, SearchInformationView):
         raise ValueError("information_view must be a SearchInformationView.")
     if not isinstance(exact_state, ExactSearchState):
@@ -473,7 +476,11 @@ def build_information_set_search_world_state_v1(
     if exact_state.declaration.hand_game:
         expected_visible: tuple[str, ...] = ()
     elif root_is_declarer:
-        expected_visible = exact_state.out_of_play_cards
+        expected_visible = (
+            visible_out_of_play
+            if allow_partial_root_skat_knowledge
+            else exact_state.out_of_play_cards
+        )
     else:
         expected_visible = ()
     if visible_out_of_play != expected_visible:
@@ -655,10 +662,12 @@ def build_information_set_search_observation_v1(
         visible_out_of_play = state.out_of_play_cards
     else:
         visible_out_of_play = ()
-    if actor == world_state.root_perspective_player and (
-        visible_out_of_play != world_state.root_visible_out_of_play_cards
-    ):
-        raise ValueError("Root actor out-of-play visibility changed across the world.")
+    if actor == world_state.root_perspective_player:
+        if not set(world_state.root_visible_out_of_play_cards).issubset(visible_out_of_play):
+            raise ValueError("Root actor out-of-play visibility changed across the world.")
+        # A rollout root may deliberately retain incomplete legitimate knowledge.
+        # Sampled ownership must never fill in that root actor's missing knowledge.
+        visible_out_of_play = world_state.root_visible_out_of_play_cards
 
     current_trick = tuple(
         SearchPublicPlay(player=play.player, card=play.card)
