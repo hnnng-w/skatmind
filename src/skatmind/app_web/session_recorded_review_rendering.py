@@ -8,6 +8,7 @@ from .session_recorded_review import (
     RecordedReviewProjectionV1,
     project_recorded_session_decisions_v1,
 )
+from .session_recorded_review_form import recorded_rollout_notice_feedback_v1
 from .stateful_localization import player_name, translated
 from .task_first_rendering import disclosure, hidden, paragraph, select_field
 
@@ -115,10 +116,12 @@ def render_rollout_notice_v1(context: GuidedSessionContextV1, *, locale: str) ->
     notice = context.rollout_notice
     if notice is None:
         return ""
-    return (paragraph(locale, "rollout.incomplete_attempt")
+    feedback = recorded_rollout_notice_feedback_v1(notice)
+    return (paragraph(locale, feedback.message_key)
             + '<p>' + _decision_label(locale, notice.source.document.state.players,
                                      notice.source.decision) + '</p>'
             + paragraph(locale, "rollout.objective." + notice.settings.objective)
             + paragraph(locale, "rollout.coverage", completed=notice.completed_worlds,
                         requested=notice.settings.requested_worlds)
-            + paragraph(locale, "rollout.reason." + notice.reason))
+            + ("" if notice.missing_inputs else paragraph(
+                locale, "rollout.reason." + notice.reason)))

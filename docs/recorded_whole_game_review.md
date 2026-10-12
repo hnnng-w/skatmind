@@ -92,6 +92,49 @@ unprepared safe input, not a fabricated Search view. Valid prepared results keep
 the core's safe-view fingerprint and `current_decision` cutoff. Other malformed
 or contradictory inputs retain normal validation errors.
 
+### Complete-settlement availability feedback
+
+Issue #287 reproduces the ordinary rendered-form sequence at baseline
+`75d189dea3d871ea81195e58752f3006830f5f89`: a successful played-goal result,
+then changing only the objective to complete settlement. The disposable saved
+second-trick C7 decision has no bid and a safely inferred matador value of `1`.
+The maintainer's recording and retained analysis were not accessed.
+
+The first failing boundary was **feedback construction**, after successful form
+parsing, source binding, Request derivation, public validation, and an expected
+core result with `stop_reason: "missing_terminal_utility_inputs"`. The route
+constructed a `FrontendValidationIssueV1` with `rollout.incomplete_attempt`, but
+that contract accepts only `validation.*` keys. The resulting `ValueError` was
+mapped to legacy `validation.recorded_review.invalid_fields`, falsely saying
+that analysis settings were forbidden. The earlier opening regression checked
+the lower availability notice and retained result, but not this misleading
+summary.
+
+The corrected route consumes its exact immutable, publication-checked attempt
+notice and uses valid validation keys. The notice retains the actual missing
+`bid_value` and/or `matadors` from the derived decision-time Request, only when
+the existing structured core reason identifies missing terminal inputs. It
+does not obtain those inputs from current or later recording facts. Separate
+messages name a missing bid, missing matadors, or both. Original settlement
+eligibility and the public Result contract are unchanged.
+
+Both languages show an objective-unavailable heading and explicit guidance to
+choose the separate played-game objective if desired. Safe attempted objective,
+sample count, and seed survive feedback and native/enhanced language return.
+The existing accessible field-feedback mechanism associates the explanation and
+summary link with the exact source-bound **Evaluation objective** control and
+opens its advanced disclosure. No editable bid field or legacy selection-only
+action is offered as recovery. No alternate analysis starts automatically.
+
+Strict field allowlists and bounds are unchanged. Malformed fields/settings,
+malformed selection, stale/foreign selection, and evaluation failures now have
+distinct whole-game feedback; the legacy action retains its selection-only
+contract. Unavailable and incomplete attempts retain the previous completed
+execution, its source label, and exact Request/Result bytes. An additional
+caption identifies the retained result's own objective separately from the new
+attempt. Existing source/generation/attempt checks, supersession, actual-card
+comparison, ranking, tied-best presentation, and sampling remain in force.
+
 ## Result meaning
 
 `whole_game_rollout_result` retains the core's aggregate terminal metrics,
@@ -220,9 +263,10 @@ settings, derivation, comparison, and aggregate Result components. Input/output
 Root schemas enforce the additive method and incomplete-result restrictions.
 There are now **72** authoritative and byte-identical packaged schemas.
 The private frontend inventory is **68 POST routes**, **120 form definitions**,
-and **1914 keys per language** after the tied-summary correction (1906 after the
-earlier clarity correction, 1882 before it; the initial pre-rollout frontend had
-67 routes, 119 forms, and 1832 keys).
+and **1927 keys per language** after the availability-feedback correction,
+derived from the registry and both strict catalogs. The tied-summary correction
+had 1914 keys per language (1906 after the earlier clarity correction, 1882
+before it; the initial pre-rollout frontend had 67 routes, 119 forms, and 1832 keys).
 
 `examples/whole_game_rollout.json` is a two-world no-bid opening. The actual
 98-scenario inventory was preserved in order, with four append-only cases:
@@ -334,3 +378,43 @@ checks do not establish maintainer comprehension. Issue #286 remains open pendin
 full exact-commit CI, identical-commit integration, and that acceptance. The
 maintainer's UAT installation, recordings, checkpoints, and retained downloads
 were not accessed.
+
+### Availability-correction browser observation
+
+At base `75d189d` with the #287 edits, source-checkout headless Edge
+**155.0.4283.45** and CPython **3.13.7** used a new disposable completed Session
+with a saved second-trick C7 decision. The original frozen decision has no bid
+and a visible matador value of `1`. One native played-goal submission used one
+world and seed `7`; it completed normally. The next native submission changed
+only the advanced objective, retaining every other successful control and the
+server-owned source selection.
+
+The core returned unavailable for missing terminal inputs, with one preparation
+unit and **zero sampled/materialized worlds, card transitions, and terminal
+evaluations**. The English → German → English sequence preserved the attempted
+settings and correct explanation. Activating each summary link focused the
+visible objective control in its open advanced disclosure. Screenshots were
+inspected; the retained-result text separately identified the previous played-goal
+objective. The accepted tied-best summary remained present.
+
+There were exactly **two public execution calls and two core calls** (the
+explicit successful action and explicit unavailable action), **zero recording
+saves**, and no additional execution during language return, feedback navigation,
+or downloading. Both native Request/Result downloads matched the prior completed
+execution byte-for-byte; the recording, checkpoint, execution object, and source
+binding were unchanged. The source/browser identity, counters, screenshots,
+feedback-target observations, and download hashes are retained under
+`$env:TEMP/opencode/issue287-browser-elm7hyft/report.json`.
+
+The affected regression selection passed **317 tests**, including the actual
+Session rollout adapter, whole-game workflow, legacy and whole-game HTTP paths,
+validation preservation, localization, language return, result presentation,
+supported settlement, distinct missing-input cases, and source/attempt races.
+The missing-input tests forbid sampling and fallback, and verify retained
+Request/Result downloads plus recording/checkpoint identity through both
+languages. A newer unavailable attempt also supersedes older in-flight work.
+
+This is developer-owned synthetic source-build evidence, not installed-build
+acceptance or evidence of maintainer comprehension. Full exact-commit CI,
+identical-commit integration, and the brief installed missing-input retest remain
+with the maintainer. Issue #287 remains open pending that acceptance.

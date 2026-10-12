@@ -347,6 +347,14 @@ def _render_summary(
         if state.status == "conflict"
         else "validation.summary.guidance"
     )
+    if state.form_key == "session.review_whole_game" and any(
+        issue.message_key in {
+            "validation.rollout.missing_bid", "validation.rollout.missing_matadors",
+            "validation.rollout.missing_bid_and_matadors"}
+        for issue in state.validation_issues
+    ):
+        heading_key = "validation.rollout.unavailable_heading"
+        guidance_key = "validation.rollout.unavailable_guidance"
     items = []
     for issue, (field, _identifier, message) in zip(
             state.validation_issues, translated, strict=True):

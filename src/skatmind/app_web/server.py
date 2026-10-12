@@ -254,6 +254,8 @@ from .session_recorded_review_form import (
     parse_recorded_review_selection_v1,
     parse_recorded_rollout_form_v1,
     recorded_review_feedback_v1,
+    recorded_rollout_feedback_v1,
+    recorded_rollout_notice_feedback_v1,
 )
 from .settings_forms import SettingsEditorV1, dispatch_settings_form_v1
 from .stateful_localization import managed_name
@@ -1491,9 +1493,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 return True
             issues = (FrontendValidationIssueV1(field_key=None,
                 message_key="validation.deletion." + deletion_error_key(error, status)),)
-        if definition.form_key in {
-            "session.review_decision", "session.review_whole_game"
-        } and issues is None:
+        if definition.form_key == "session.review_whole_game" and issues is None:
+            issues = (recorded_rollout_feedback_v1(error, status=status,
+                execution_started=getattr(self, "_rollout_execution_started", False)),)
+        if definition.form_key == "session.review_decision" and issues is None:
             issues = (recorded_review_feedback_v1(error, status=status),)
         if definition.form_key == "recordings.open" and issues is None:
             key = ("file" if isinstance(error, RecordingOpenConflict) and error.reason == "file"
@@ -2630,16 +2633,17 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         del values["expected_revision"]
         if path == "/sessions/review-whole-game":
             selection, settings = parse_recorded_rollout_form_v1(values)
-            complete = execute_recorded_session_decision_v1(
+            self._rollout_execution_started = True
+            notice = execute_recorded_session_decision_v1(
                 self.server.app_context, active, selection=selection, rollout_settings=settings,
             )
-            if complete:
+            if notice is None:
                 self._redirect("/sessions/current#session-rollout-result")
             else:
                 self._retain_form_feedback(
                     self._current_form_definition,
-                    issues=(FrontendValidationIssueV1(field_key=None,
-                        message_key="rollout.incomplete_attempt"),), status=HTTPStatus.BAD_REQUEST)
+                    issues=(recorded_rollout_notice_feedback_v1(notice),),
+                    status=HTTPStatus.BAD_REQUEST)
                 self._session_page(status=HTTPStatus.BAD_REQUEST)
             return
         if path == "/sessions/review-decision":
@@ -3271,6 +3275,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         self._request_frontend = None
+        self._rollout_execution_started = False
         self._operation_feedback_delivery = None
         self._visible_operation_feedback = None
         self._rendered_language_source = None

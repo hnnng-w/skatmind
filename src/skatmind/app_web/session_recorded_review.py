@@ -11,6 +11,7 @@ from skatmind.api.v1 import ExecutionOptionsV1
 from skatmind.errors import SkatMindValidationError
 from skatmind.session_rollout_review import derive_session_rollout_review_request_v1
 from skatmind.whole_game_rollout_contracts import WholeGameRolloutSettingsV1
+from skatmind.whole_game_rollout_workflow import rollout_declaration
 
 from .execution import execute_guided_frontend_review_v1
 from .json_transfer import canonical_frontend_json_bytes_v1
@@ -57,6 +58,7 @@ class RecordedRolloutNoticeV1:
     settings: WholeGameRolloutSettingsV1
     reason: str
     completed_worlds: int
+    missing_inputs: tuple[str, ...] = ()
 
 
 def project_recorded_session_decisions_v1(
@@ -135,8 +137,8 @@ def _require_source(context: GuidedSessionContextV1, source: RecordedReviewSourc
 def execute_recorded_session_decision_v1(
     app: AppWebContextV1, context: GuidedSessionContextV1, *, selection: str,
     rollout_settings: WholeGameRolloutSettingsV1 | None = None,
-) -> bool:
-    """One exported frozen Request; atomic source/Result publication after unlocked execution."""
+) -> RecordedRolloutNoticeV1 | None:
+    """Publish after unlocked execution; return only the source-checked incomplete notice."""
     with context.lock:
         with app.lock:
             _require_binding(app, context)
@@ -172,14 +174,19 @@ def execute_recorded_session_decision_v1(
             else:
                 result = execution.result.result.document["whole_game_rollout_result"]
                 if result["status"] != "complete":
+                    missing = ()
+                    if result["stop_reason"] == "missing_terminal_utility_inputs":
+                        declaration = rollout_declaration(request.to_dict()["document"])
+                        missing = tuple(name for name in ("bid_value", "matadors")
+                                        if getattr(declaration, name) is None)
                     context.rollout_notice = RecordedRolloutNoticeV1(
                         source, rollout_settings, result["stop_reason"],
-                        result["completed_common_worlds"])
+                        result["completed_common_worlds"], missing)
                     if context.rollout_execution is None:
                         context.rollout_execution = execution
                         context.rollout_review_source = source
-                    return False
+                    return context.rollout_notice
                 context.rollout_execution = execution
                 context.rollout_review_source = source
                 context.rollout_notice = None
-    return True
+    return None
