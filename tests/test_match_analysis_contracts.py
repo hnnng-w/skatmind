@@ -135,6 +135,11 @@ def test_versions_tuples_and_policies_are_exact() -> None:
     )
 
 
+def test_position_only_rollout_is_rejected_by_match_options() -> None:
+    with pytest.raises(ValueError, match="recommendation_method"):
+        MatchDecisionAnalysisOptionsV1(recommendation_method="whole_game_rollout")
+
+
 def test_decision_options_defaults_fields_and_serialization_are_exact() -> None:
     options = MatchDecisionAnalysisOptionsV1()
     assert tuple(field.name for field in fields(options)) == (

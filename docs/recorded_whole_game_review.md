@@ -26,6 +26,11 @@ overrides are rejected. The underlying normal-play Suit/Grand domain and core
 endgame, sampling, policy, and scoring semantics remain those documented in
 [the core contract](whole_game_candidate_rollout.md).
 
+Internally, `POSITION_RECOMMENDATION_METHODS` admits the additive rollout method.
+The shared `FLAT_RECOMMENDATION_METHODS` vocabulary retains its four existing
+methods for Match Reports and their Teacher, Dataset, and Coaching consumers;
+rollout does not add a category or alter those retained summary identities.
+
 ## Immutable derivation
 
 `session_rollout_review.py` is a separate derived-request adapter. Server-owned

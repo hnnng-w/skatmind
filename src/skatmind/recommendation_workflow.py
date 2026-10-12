@@ -56,6 +56,11 @@ SEARCH_RECOMMENDATION_METHODS = (BOUNDED_SEARCH_METHOD, AUTO_METHOD)
 FLAT_RECOMMENDATION_METHODS = (
     *VALID_RECOMMENDATION_METHODS,
     INFORMATION_SET_SEARCH_RECOMMENDATION_METHOD,
+)
+# Match Reports and their Teacher/Dataset/Coaching consumers retain the shared
+# vocabulary above. Rollout is an additive Position-only review method.
+POSITION_RECOMMENDATION_METHODS = (
+    *FLAT_RECOMMENDATION_METHODS,
     WHOLE_GAME_ROLLOUT_METHOD,
 )
 FLAT_SEARCH_RECOMMENDATION_METHODS = (
@@ -94,7 +99,7 @@ class RecommendationMethodConfiguration:
     whole_game_rollout_settings: WholeGameRolloutSettingsV1 | None = None
 
     def __post_init__(self) -> None:
-        if self.requested_method not in FLAT_RECOMMENDATION_METHODS:
+        if self.requested_method not in POSITION_RECOMMENDATION_METHODS:
             raise ValueError(f"Invalid recommendation_method: {self.requested_method}")
         if self.requested_method == WHOLE_GAME_ROLLOUT_METHOD:
             if type(self.whole_game_rollout_settings) is not WholeGameRolloutSettingsV1 or (
@@ -160,7 +165,7 @@ class RecommendationWorkflowResult:
     whole_game_rollout_result: WholeGameRolloutResultV1 | None = None
 
     def __post_init__(self) -> None:
-        if self.requested_method not in FLAT_RECOMMENDATION_METHODS:
+        if self.requested_method not in POSITION_RECOMMENDATION_METHODS:
             raise ValueError("Recommendation workflow has an invalid requested method.")
         if self.effective_method not in {
             IMMEDIATE_EXPECTED_VALUE_METHOD,
@@ -304,7 +309,7 @@ def build_recommendation_method_configuration(
         "recommendation_method",
         IMMEDIATE_EXPECTED_VALUE_METHOD,
     )
-    if requested_method not in FLAT_RECOMMENDATION_METHODS:
+    if requested_method not in POSITION_RECOMMENDATION_METHODS:
         raise ValueError(f"Invalid recommendation_method: {requested_method}")
 
     bounded_settings_supplied = "bounded_search_settings" in data

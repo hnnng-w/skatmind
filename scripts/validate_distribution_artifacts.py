@@ -1183,8 +1183,15 @@ assert FRONTEND_TRANSLATION_CATALOG_VERSION == 1
 assert LOCAL_FRONTEND_PROFILE_VERSION == 1
 assert FRONTEND_INFORMATION_ARCHITECTURE_VERSION == 1
 assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-assert len(UNIFIED_FRONTEND_POST_ROUTES) == 67
-assert len(FRONTEND_FORM_REGISTRY) == 119
+assert len(UNIFIED_FRONTEND_POST_ROUTES) == 68
+assert len(FRONTEND_FORM_REGISTRY) == 120
+rollout, = (form for form in FRONTEND_FORM_REGISTRY
+            if form.form_key == "session.review_whole_game")
+assert rollout.action_route == "/sessions/review-whole-game"
+assert rollout.originating_page == "/sessions/current"
+assert rollout.success_redirect == "/sessions/current#session-rollout-result"
+assert {field.field_key for field in rollout.safe_fields} == {
+    "decision_selection", "objective", "requested_worlds", "random_seed"}
 direct = next(form for form in FRONTEND_FORM_REGISTRY
               if form.form_key == "learning.add_recorded_match")
 assert direct.action_route == "/learning/add-recorded-match" and direct.body_limit == 8192

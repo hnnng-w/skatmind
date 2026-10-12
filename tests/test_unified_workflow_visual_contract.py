@@ -262,9 +262,16 @@ def test_review_secondary_form_and_native_result_focus_contract(localized_server
     markup = Markup(page)
     assert markup.targets["session-result"] == (
         "div", {"id": "session-result", "tabindex": "-1"})
-    button, = [b for b in markup.buttons if b.get("aria-describedby") == "recorded-decision-1"]
+    review_forms = {match[1]: Markup(match[0]) for match in re.finditer(
+        r'<form\b[^>]*action="/sessions/(review-decision|review-whole-game)"[^>]*>.*?</form>',
+        page, re.S)}
+    assert set(review_forms) == {"review-decision", "review-whole-game"}
+    button, = review_forms["review-decision"].buttons
     assert button == {"type": "submit", "class": "secondary",
-                      "aria-describedby": "recorded-decision-1"}
+                       "aria-describedby": "recorded-decision-1"}
+    primary, = review_forms["review-whole-game"].buttons
+    assert primary == {"type": "submit", "class": "primary",
+                       "aria-describedby": "recorded-decision-1"}
     assert set(submitted["values"]) == {
         "managed_handle", "expected_revision", "decision_selection", "_frontend_form_instance"}
     retained = {name: browser.request("GET", f"/sessions/downloads/{name}.json")[2]
@@ -279,6 +286,7 @@ def test_review_secondary_form_and_native_result_focus_contract(localized_server
         assert Forms(page).find("/sessions/review-decision") == submitted
         assert 'href="#recorded-decision-1"' in page
         assert active.recorded_review_source is source and active.execution is execution
+        assert active.rollout_execution is None
         assert active.path.read_bytes() == saved
         for name, raw in retained.items():
             assert browser.request("GET", f"/sessions/downloads/{name}.json")[2] == raw

@@ -52,6 +52,7 @@ from skatmind.recommendation_workflow import (
     BOUNDED_SEARCH_METHOD,
     FLAT_RECOMMENDATION_METHODS,
     IMMEDIATE_EXPECTED_VALUE_METHOD,
+    POSITION_RECOMMENDATION_METHODS,
     SEARCH_RECOMMENDATION_METHODS,
     VALID_RECOMMENDATION_METHODS,
     RecommendationMethodConfiguration,
@@ -166,6 +167,10 @@ def test_versions_methods_and_routing_policies_are_exact() -> None:
     assert FLAT_RECOMMENDATION_METHODS == (
         *VALID_RECOMMENDATION_METHODS,
         "information_set_search",
+    )
+    assert POSITION_RECOMMENDATION_METHODS == (
+        *FLAT_RECOMMENDATION_METHODS,
+        "whole_game_rollout",
     )
     assert not isinstance(INFORMATION_SET_SEARCH_ROUTING_VERSION, bool)
     assert not isinstance(INFORMATION_SET_SEARCH_PUBLIC_RESULT_VERSION, bool)

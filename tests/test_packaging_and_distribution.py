@@ -102,6 +102,18 @@ def test_packaged_schema_mirror_has_exact_filename_byte_and_id_parity() -> None:
     assert len(schema_ids) == len(set(schema_ids))
 
 
+def test_installed_smoke_frontend_registry_contract_executes() -> None:
+    from scripts.validate_distribution_artifacts import SMOKE_PROGRAM
+    from skatmind.app_web.form_registry import FRONTEND_FORM_REGISTRY, UNIFIED_FRONTEND_POST_ROUTES
+
+    start = SMOKE_PROGRAM.index("assert len(UNIFIED_FRONTEND_POST_ROUTES)")
+    end = SMOKE_PROGRAM.index("direct = next", start)
+    exec(compile(SMOKE_PROGRAM[start:end], "installed-smoke.py", "exec"), {
+        "FRONTEND_FORM_REGISTRY": FRONTEND_FORM_REGISTRY,
+        "UNIFIED_FRONTEND_POST_ROUTES": UNIFIED_FRONTEND_POST_ROUTES,
+    })
+
+
 def test_schema_resource_package_and_typing_marker_are_available() -> None:
     resources = importlib.resources.files("skatmind.schema_resources")
     resource_names = sorted(
