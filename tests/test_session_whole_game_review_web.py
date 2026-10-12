@@ -4,12 +4,14 @@ from threading import Event
 
 import pytest
 from test_frontend_language_switching import localized_server as _localized_server
+from test_rollout_result_presentation import primary_summary
 from test_session_recorded_review_web import Browser, Forms
 from test_whole_game_rollout_workflow import without_time
-from whole_game_review_fixtures import activate_saved_opening
+from whole_game_review_fixtures import activate_saved_opening, synthetic_tied_rollout
 
 import skatmind.app_web.execution as execution_module
 from skatmind.api.v1 import execute, parse_request, serialize_result
+from skatmind.app_web.stateful_localization import card_name
 from skatmind.app_web.translation_catalog import translate_frontend_message_v1 as text
 
 
@@ -20,6 +22,55 @@ def localized_server(tmp_path):
 
 def rollout_form(browser):
     return Forms(browser.page()).find("/sessions/review-whole-game")
+
+
+def test_tied_primary_summary_http_languages_and_retained_download_identity(
+    localized_server, monkeypatch,
+):
+    import skatmind.api.v1.session.files as files
+    import skatmind.recommendation_workflow as workflow
+    from skatmind.api.v1.schema_validation import validate_output_document
+
+    context, checkpoint = activate_saved_opening(localized_server, complete=True, actual="C7")
+    browser = Browser(localized_server)
+    saved, frozen = context.path.read_bytes(), checkpoint.to_dict()
+    # Only the candidate fixture is synthetic; POST, source binding, public output
+    # validation, retained execution, rendering and downloads use the real path.
+    monkeypatch.setattr(workflow, "evaluate_whole_game_rollout_v1", synthetic_tied_rollout)
+    assert browser.submit(rollout_form(browser), requested_worlds="100")[0] == 303
+    retained, source = context.rollout_execution, context.rollout_review_source
+    document = retained.result.result.to_dict()["document"]
+    validate_output_document(document)
+    result = document["whole_game_rollout_result"]
+    assert result["recommended_card"] == document["recommendation"]["card"] == "C9"
+    assert result["tied_best_cards"] == ["C9", "C8", "C7"]
+    assert document["whole_game_rollout_comparison"]["actual_card"] == "C7"
+    request_bytes, result_bytes = retained.request_json_bytes, retained.result_json_bytes
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Passive rendering must not execute or save")
+    monkeypatch.setattr(execution_module, "execute", forbidden)
+    monkeypatch.setattr(workflow, "evaluate_whole_game_rollout_v1", forbidden)
+    monkeypatch.setattr(files, "save_session_file", forbidden)
+    for locale in ("de", "en"):
+        assert browser.submit(Forms(browser.page()).find("/actions/profile/language"),
+                              language=locale)[0] == 303
+        page = browser.page()
+        summary = primary_summary(page, prefix="rollout-result")
+        cards = ", ".join(card_name(locale, card) + f" ({card})" for card in ["C9", "C8", "C7"])
+        assert f'<dt>{text(locale, "rollout.recommended_plural")}</dt><dd>{cards}</dd>' in summary
+        played = text(locale, "rollout.played_tied", card=card_name(locale, "C7") + " (C7)")
+        assert f'<dt>{text(locale, "rollout.played")}</dt><dd>{played}</dd>' in summary
+        assert page.index(summary) < page.index('class="result-table-wrap candidate-comparison"')
+        assert text(locale, "rollout.recommended") not in page
+        assert text(locale, "rollout.comparison.equal_complete_objective") in page
+        assert '<details class="technical-details">' in page
+        assert browser.request("GET", "/sessions/downloads/rollout-request.json")[2] == (
+            request_bytes)
+        assert browser.request("GET", "/sessions/downloads/rollout-result.json")[2] == result_bytes
+        assert context.rollout_execution is retained and context.rollout_review_source is source
+        assert retained.result.result.to_dict()["document"] == document
+        assert context.path.read_bytes() == saved and checkpoint.to_dict() == frozen
 
 
 def test_real_post_derived_root_dual_downloads_and_passive_languages(localized_server, monkeypatch):
@@ -249,7 +300,11 @@ def test_passive_clarity_rendering_preserves_an_old_export_explanation(
         response = browser.submit(Forms(page).find("/actions/profile/language"), language=locale)
         assert response[0] == 303
         page = browser.page()
-        assert text(locale, "rollout.recommended") in page
+        ties = old_document["whole_game_rollout_result"]["tied_best_cards"]
+        label = text(locale, "rollout.recommended_plural" if len(ties) > 1
+                     else "rollout.recommended")
+        cards = ", ".join(card_name(locale, card) + f" ({card})" for card in ties)
+        assert f'<dt>{label}</dt><dd>{cards}</dd>' in primary_summary(page, prefix="rollout-result")
         assert text(locale, "rollout.calculation_details") in page
         assert '<details class="technical-details">' in page
         assert 'class="recorded-review-source"' in page and 'href="#recorded-decision-1"' in page

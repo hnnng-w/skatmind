@@ -21,23 +21,25 @@ def _recommendation_items(result, comparison, candidates):
     actual = comparison["actual_card"]
     status = comparison["status"]
     goal = message("rollout.goal." + result["objective"])
-    if status == "equal_complete_objective" and actual == best:
+    ties = result["tied_best_cards"]
+    group = len(ties) > 1
+    comparison_prefix = "rollout.comparison.group_" if group else "rollout.comparison."
+    best_values = {} if group else {"best": _card(best)}
+    if actual in ties and group:
+        items = [message("rollout.comparison.equal_complete_objective")]
+    elif status == "equal_complete_objective" and actual == best:
         items = [message("rollout.matches", actual=_card(actual))]
     elif status == "lower_secondary_outcome":
-        items = [message("rollout.comparison.lower_secondary_outcome", actual=_card(actual),
-                         best=_card(best), metric=message(
+        items = [message(comparison_prefix + "lower_secondary_outcome", actual=_card(actual),
+                         **best_values, metric=message(
                              "rollout.metric." + comparison["responsible_metric"]))]
     elif status == "lower_primary_success":
-        items = [message("rollout.comparison.lower_primary_success", actual=_card(actual),
-                         best=_card(best), goal=goal)]
-    elif status == "equal_complete_objective":
-        items = [message("rollout.comparison.equal_complete_objective", actual=_card(actual),
-                         best=_card(best))]
+        items = [message(comparison_prefix + "lower_primary_success", actual=_card(actual),
+                         **best_values, goal=goal)]
     else:
         items = [message("rollout.comparison.unavailable")]
-    ties = result["tied_best_cards"]
-    if len(ties) > 1:
-        items.append(message("rollout.tied_best", cards=", ".join(_card(card) for card in ties)))
+    if group:
+        items.append(message("rollout.tied_best"))
         items.append(message("rollout.display_order"))
     if len(candidates) == 1:
         items.append(message("rollout.only_card"))
@@ -62,8 +64,9 @@ def _recommendation_items(result, comparison, candidates):
         if decisive is not None:
             if decisive == "total_local_card_point_margin" and len(metrics) == 3:
                 decisive = "settlement_margin"
-            items.append(message("rollout.preference." + decisive,
-                                 best=_card(best), other=_card(other), goal=goal))
+            prefix = "rollout.preference.group_" if group else "rollout.preference."
+            items.append(message(prefix + decisive,
+                                 **best_values, other=_card(other), goal=goal))
     return tuple(items)
 
 
@@ -79,12 +82,18 @@ def build_rollout_presentation(execution, document, information_source):
     ), details=(ResultDetailV1("Comparison objective", objective),))
     items = []
     tables = ()
-    recommendation_details = [ResultDetailV1("Played card", _card(comparison["actual_card"]))]
+    actual = comparison["actual_card"]
+    recommendation_details = [ResultDetailV1("Played card", _card(actual))]
     if complete:
         candidates = {row["card"]: row for row in result["candidates"]}
         items = _recommendation_items(result, comparison, candidates)
+        ties = result["tied_best_cards"]
+        if len(ties) > 1 and actual in ties:
+            recommendation_details[0] = ResultDetailV1(
+                "Played card", message("rollout.played_tied", card=_card(actual)))
         recommendation_details.insert(0, ResultDetailV1(
-            "Recommended card", _card(result["recommended_card"])))
+            "Equally recommended cards" if len(ties) > 1 else "Recommended card",
+            ", ".join(_card(card) for card in ties)))
         settlement = result["objective"] == "complete_settlement"
         columns = ["Card", "Simulated settlement success" if settlement
                    else "Sampled party success", "Final local point margin"]

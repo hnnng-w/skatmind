@@ -122,7 +122,7 @@ unavailable for this method; the method-specific comparison owns the assessment.
 
 ### Focused clarity correction
 
-The normal view uses direct **Recommended card** and **Played card** labels. For
+The single-winner view uses direct **Recommended card** and **Played card** labels. For
 the supplied 100-world synthetic case, it says that played CJ matches the
 recommendation, all ten cards reached the played goal in all 100 simulations,
 and the higher mean final point margin distinguishes CJ from the next alternative.
@@ -163,6 +163,32 @@ Incomplete results expose common completed coverage and the stop reason but no
 normal ranking or recommendation. There is no Immediate fallback. Browser failure
 feedback is not a success receipt.
 
+### Complete tied-best primary summary
+
+Issue #286 corrects the primary summary for completed multi-card ties. It uses
+the authoritative `tied_best_cards` in its retained order, under **Equally
+recommended cards**, with the full localized name and code of every card in the
+same visible label/value layout. The existing shared renderer and responsive
+wrapping give all cards equal prominence before the alternatives table.
+
+For the synthetic C9/C8/C7 full tie, the primary value is **Clubs Nine (C9),
+Clubs Eight (C8), Clubs Seven (C7)**. The next value is **Played card: Clubs Seven
+(C7) — equally recommended**, even though the canonical representative remains
+C9. The accompanying text identifies membership and no evaluated disadvantage.
+Comparisons with a lower candidate refer to the recommended group and preserve
+the decisive success-count, settlement-score, or point-margin distinction. Full
+ties describe aggregate equality, not identical individual simulated trajectories.
+Both languages use the existing translation catalogs.
+
+Single winners retain their singular summary. Nonmatching actual cards retain
+their metric-based comparison without a positive membership marker. Incomplete
+and unavailable results do not acquire a recommendation set. Equal primary
+success or rounded display values do not establish a full tie. Legacy methods,
+calculations, exact ties, ranking, canonical order, machine fields, schemas,
+numeric Results, export prose, and retained Request/Result bytes are unchanged.
+Rendering and language switching reuse retained output without evaluation or
+recording saves.
+
 ## Ownership, lifecycle, and downloads
 
 The active Session retains one latest legacy execution and one latest rollout
@@ -194,8 +220,9 @@ settings, derivation, comparison, and aggregate Result components. Input/output
 Root schemas enforce the additive method and incomplete-result restrictions.
 There are now **72** authoritative and byte-identical packaged schemas.
 The private frontend inventory is **68 POST routes**, **120 form definitions**,
-and **1906 keys per language** after the clarity correction (1882 before that
-correction; the initial pre-rollout frontend had 67 routes, 119 forms, and 1832 keys).
+and **1914 keys per language** after the tied-summary correction (1906 after the
+earlier clarity correction, 1882 before it; the initial pre-rollout frontend had
+67 routes, 119 forms, and 1832 keys).
 
 `examples/whole_game_rollout.json` is a two-world no-bid opening. The actual
 98-scenario inventory was preserved in order, with four append-only cases:
@@ -211,8 +238,9 @@ affected selection passed 835 tests; the subsequent transport/example/language
 selection passed 474 tests. The generated-output validator passed all 102 cases.
 Those figures describe the initial implementation validation. The maintainer
 subsequently confirmed technical integration, installed execution, and English
-readability at actual 200% zoom, but rejected result comprehensibility. Corrected
-wording/table CI and the short maintainer clarity retest remain separate gates.
+readability at actual 200% zoom, but rejected result comprehensibility. The
+subsequent #285 clarity correction was accepted. Issue #286's complete tied-set
+summary requires its own exact-commit CI and brief installed-summary retest.
 
 ### Earlier developer browser observation
 
@@ -273,3 +301,36 @@ This source-build observation does not transfer the previous installed English
 200%-zoom acceptance to the changed markup and does not establish maintainer
 comprehension. The short installed wording/table and true-zoom observation remains
 with the maintainer; no repeated headless true-zoom probes were performed.
+
+### Tied-summary browser observation
+
+At base `498c5835f06d40dbb0153c71d25c6c704a454479` with the #286 presentation edits,
+source-checkout headless Edge **155.0.4283.45** and CPython **3.13.7** reused one
+typed synthetic completed Result with C9/C8/C7 tied at **100/100**, mean margin
+**105.20**, actual C7, and lower alternatives at **104.20**. Fixture setup used
+one-world scaffolding and synthetic aggregates through the real Session POST and
+public output validation; it did not run a 100-world rollout.
+
+The **6.451-second** passive sequence inspected both languages at **1365×900**
+and one narrow condition, **390×844**. Screenshots and DOM measurements showed
+the complete primary set, immediate C7 membership, equal text styling, wrapping,
+and no measured page/result overflow. The accessibility tree exposed the plural
+label without a second singular recommendation label. Opening Calculation
+details and switching language reused the same retained Result.
+
+After fixture setup, counters recorded **zero analysis executions, zero rollout
+executions, and zero recording saves**. Both native rollout downloads matched
+the original retained Request/Result bytes; the disposable recording and frozen
+checkpoint were unchanged. Served CSS and script bytes matched checkout resources.
+The report records the module path, browser identity, source/catalog/asset hashes,
+summary measurements, and download hashes under
+`$env:TEMP/opencode/issue286-summary-t_gu754_/report.json`, with four adjacent
+screenshots. CSS remains
+`d2b2a25363a879364e61c5b7fcbdf5638f2a3c94d0df6d8bb1bf2437e25f2d74`.
+
+This is synthetic source-build evidence. The brief installed tied-summary retest,
+including actual browser zoom observation, remains with the maintainer. Automated
+checks do not establish maintainer comprehension. Issue #286 remains open pending
+full exact-commit CI, identical-commit integration, and that acceptance. The
+maintainer's UAT installation, recordings, checkpoints, and retained downloads
+were not accessed.

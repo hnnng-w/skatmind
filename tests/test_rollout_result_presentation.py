@@ -48,6 +48,98 @@ def render(document, locale):
     return presentation, unescape(render_result_presentation_v1(presentation, locale=locale))
 
 
+def tied_result(*, objective="played_game_goal", actual="C7",
+                metric="total_local_card_point_margin"):
+    """Completed aggregate fixture: three exact best cards and one lower candidate."""
+    document = opening_result()
+    result = document["whole_game_rollout_result"]
+    cards = ["C9", "C8", "C7", "SA"]
+    rows = {row["card"]: row for row in result["candidates"]}
+    result.update(objective=objective, recommended_card="C9", tied_best_cards=cards[:3],
+                  ranked_cards=cards, candidates=[rows[card] for card in cards])
+    for row in result["candidates"]:
+        row.update(total_local_card_point_margin=10520,
+                   mean_final_local_card_point_margin=105.2)
+        if objective == "complete_settlement":
+            row.update(total_local_game_score=4800, mean_local_game_score=48.0)
+    lower = result["candidates"][-1]
+    lower[metric] -= 1 if metric == "local_success_count" else 100
+    lower.update(sampled_local_success_fraction=lower["local_success_count"] / 100,
+                 mean_final_local_card_point_margin=lower["total_local_card_point_margin"] / 100,
+                 mean_local_game_score=None if objective == "played_game_goal" else
+                 lower["total_local_game_score"] / 100)
+    member = actual in result["tied_best_cards"]
+    document["whole_game_rollout_comparison"].update(
+        actual_card=actual, best_card="C9", display_order_only=member and actual != "C9",
+        status="equal_complete_objective" if member else "lower_primary_success" if
+        metric == "local_success_count" else "lower_secondary_outcome",
+        responsible_metric=None if member else metric,
+        all_primary_success_equal=metric != "local_success_count")
+    return document
+
+
+def primary_summary(html, *, prefix="result"):
+    """Inspect the first visible recommendation details, never the alternatives."""
+    section = unescape(html).split(f'<section aria-labelledby="{prefix}-section-2">', 1)[1]
+    return section.split('<dl class="result-details">', 1)[1].split('</dl>', 1)[0]
+
+
+@pytest.mark.parametrize("locale", ["de", "en"])
+@pytest.mark.parametrize("objective", ["played_game_goal", "complete_settlement"])
+@pytest.mark.parametrize("actual", ["C9", "C7", "SA"])
+def test_primary_summary_shows_authoritative_full_set_and_actual_membership(
+    locale, objective, actual,
+):
+    document = tied_result(objective=objective, actual=actual)
+    before = deepcopy(document)
+    presentation, html = render(document, locale)
+    cards = ", ".join(card_name(locale, card) + f" ({card})" for card in ["C9", "C8", "C7"])
+    details = presentation.sections[1].details
+    assert details[0].value == cards
+    assert details[0].label == "Equally recommended cards"
+    summary = primary_summary(html)
+    assert f'<dt>{text(locale, "rollout.recommended_plural")}</dt><dd>{cards}</dd>' in summary
+    played = card_name(locale, actual) + f" ({actual})"
+    if actual != "SA":
+        played = text(locale, "rollout.played_tied", card=played)
+        assert text(locale, "rollout.comparison.equal_complete_objective") in html
+    assert f'<dt>{text(locale, "rollout.played")}</dt><dd>{played}</dd>' in summary
+    visible = html.split('<section class="analysis-technical"', 1)[0]
+    assert text(locale, "rollout.recommended") not in visible
+    assert text(locale, "rollout.tied_best") in visible
+    table, = presentation.sections[2].tables
+    assert [row[0].split("(")[1].split(")")[0] for row in table.rows] == ["C9", "C8", "C7", "SA"]
+    assert all(text(locale, "rollout.marker.tied") in row[0] for row in table.rows[:3])
+    assert text(locale, "rollout.marker.tied") not in table.rows[3][0]
+    assert document == before
+
+
+@pytest.mark.parametrize("locale", ["de", "en"])
+@pytest.mark.parametrize("objective,metric,preference", [
+    ("played_game_goal", "local_success_count", "local_success_count"),
+    ("played_game_goal", "total_local_card_point_margin", "total_local_card_point_margin"),
+    ("complete_settlement", "local_success_count", "local_success_count"),
+    ("complete_settlement", "total_local_game_score", "total_local_game_score"),
+    ("complete_settlement", "total_local_card_point_margin", "settlement_margin"),
+])
+def test_lower_actual_compares_with_group_using_exact_decisive_metric(
+    locale, objective, metric, preference,
+):
+    document = tied_result(objective=objective, actual="SA", metric=metric)
+    presentation, html = render(document, locale)
+    actual = card_name(locale, "SA") + " (SA)"
+    goal = text(locale, "rollout.goal." + objective)
+    items = presentation.sections[1].items
+    assert text(locale, "rollout.preference.group_" + preference, other=actual, goal=goal) in items
+    status = document["whole_game_rollout_comparison"]["status"]
+    values = {"goal": goal} if metric == "local_success_count" else {
+        "metric": text(locale, "rollout.metric." + metric)}
+    assert text(locale, "rollout.comparison.group_" + status, actual=actual, **values) in items
+    assert not any("(C9)" in item for item in items)
+    assert text(locale, "rollout.played_tied", card=actual) not in primary_summary(html)
+    assert text(locale, "rollout.comparison.equal_complete_objective") not in items
+
+
 @pytest.mark.parametrize("locale,margin", [("de", "101,18"), ("en", "101.18")])
 def test_supplied_case_uses_direct_labels_compact_table_and_native_details(
     locale, margin,
@@ -73,6 +165,11 @@ def test_supplied_case_uses_direct_labels_compact_table_and_native_details(
     assert text(locale, "rollout.source") in technical
     assert "side_aware_baseline" not in visible and "side_aware_baseline" in technical
     assert text(locale, "rollout.matches", actual=card_name(locale, "CJ") + " (CJ)") in visible
+    summary = primary_summary(html)
+    card = card_name(locale, "CJ") + " (CJ)"
+    assert f'<dt>{text(locale, "rollout.recommended")}</dt><dd>{card}</dd>' in summary
+    assert f'<dt>{text(locale, "rollout.played")}</dt><dd>{card}</dd>' in summary
+    assert text(locale, "rollout.recommended_plural") not in visible
     assert text(locale, "rollout.all_succeeded", candidates=10, samples=100,
                 goal=text(locale, "rollout.goal.played_game_goal")) in visible
     assert document == before
@@ -133,6 +230,9 @@ def test_exact_decisive_metric_and_actual_comparison(locale, changes, metric):
             actual=actual, best=best, metric=text(locale, "rollout.metric." + (
                 "total_local_card_point_margin" if metric == "settlement_margin" else metric)))
     assert expected in normal
+    assert f'<dt>{text(locale, "rollout.recommended")}</dt><dd>{best}</dd>' in primary_summary(html)
+    assert f'<dt>{text(locale, "rollout.played")}</dt><dd>{actual}</dd>' in primary_summary(html)
+    assert text(locale, "rollout.recommended_plural") not in normal
     table, = presentation.sections[2].tables
     assert len(table.columns) == (
         4 if changes.get("objective") == "complete_settlement" else 3)
@@ -171,7 +271,12 @@ def test_equal_display_rounding_does_not_create_a_tie(locale):
         row.update(completed_samples=1000, local_success_count=1000,
                    mean_final_local_card_point_margin=row["total_local_card_point_margin"] / 1000)
     result.update(completed_common_worlds=1000, requested_worlds=1000)
-    presentation, _ = render(document, locale)
+    presentation, html = render(document, locale)
+    summary = primary_summary(html)
+    best, actual = card_name(locale, "CJ") + " (CJ)", card_name(locale, "SA") + " (SA)"
+    assert f'<dt>{text(locale, "rollout.recommended")}</dt><dd>{best}</dd>' in summary
+    assert f'<dt>{text(locale, "rollout.played")}</dt><dd>{actual}</dd>' in summary
+    assert text(locale, "rollout.recommended_plural") not in summary
     rows = presentation.sections[2].tables[0].rows
     assert rows[0][2] == rows[1][2] == ("101,18" if locale == "de" else "101.18")
     assert text(locale, "rollout.marker.recommended") in rows[0][0]
@@ -196,6 +301,10 @@ def test_incomplete_keeps_reason_coverage_and_no_table_or_recommendation(locale,
     assert text(locale, "rollout.reason." + reason) in normal
     assert text(locale, "rollout.coverage", completed=0, requested=100) in normal
     assert text(locale, "rollout.recommended") not in normal
+    assert text(locale, "rollout.recommended_plural") not in normal
+    assert len(presentation.sections[1].details) == 1
+    played = card_name(locale, "CJ") + " (CJ)"
+    assert f'<dt>{text(locale, "rollout.played")}</dt><dd>{played}</dd>' in primary_summary(html)
 
 
 @pytest.mark.parametrize("locale", ["de", "en"])
