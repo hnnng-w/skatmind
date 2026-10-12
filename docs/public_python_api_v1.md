@@ -271,7 +271,10 @@ Provenance-enabled Root output is validated through the strict referenced
 file API mappings, Decision Observations, review exports, and final Session
 Results use lazy standalone `session.schema.json` validation through the same
 local-only Package Resource registry. The repository and packaged mirrors
-contain 71 active Schema resources.
+contain 72 active Schema resources after Issue #285's additive whole-game rollout
+components. `whole_game_rollout` is an explicit flat post-game Position method;
+the same facade validates and serializes its derived Requests and Results. The
+checkpoint exporter remains unchanged. See [recorded whole-game review](recorded_whole_game_review.md).
 
 `validate_output=False` skips only post-execution output and artifact schema
 validation. Input schema validation and Application semantic validation always

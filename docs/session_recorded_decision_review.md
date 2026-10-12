@@ -1,5 +1,12 @@
 # Review recorded Session decisions
 
+Issue #285 adds the primary **Evaluate whole game** action and a separate latest
+rollout Result/download slot. The saved-method action and exporter described below
+remain available. See [explicit recorded whole-game review](recorded_whole_game_review.md)
+for the derived Request, settings, terminal metrics, retention, and acceptance
+boundary. This additive integration supersedes the earlier no-configuration and
+single-execution-slot descriptions only for the new action.
+
 ## Status and user path
 
 Issue #221 connects saved Session Decision Checkpoints to the active unified

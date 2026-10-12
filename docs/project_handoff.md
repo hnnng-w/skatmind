@@ -2,6 +2,18 @@
 
 This document summarizes the current state of `skatmind` for continuing development in a new thread or with a new contributor.
 
+## Issue #285 recorded whole-game review
+
+The accepted #284 core at `2b7eae6` now has an explicit individual Session action
+and additive validated flat post-game Position method. The original frozen
+Request/export and saved recording remain unchanged; a separately identified
+derived Request owns rollout settings and terminal results. One legacy and one
+rollout execution remain source-bound and process-local. Current inventories are
+72 authoritative/packaged schemas and 102 generated-output scenarios, preserving
+historical release facts. See [implementation and synthetic browser evidence](recorded_whole_game_review.md).
+Full exact-commit CI, identical-commit integration, and the short installed
+maintainer retest remain acceptance work. Issue #208 remains open.
+
 ## Project overview
 
 SkatMind is a local Python-based Skat analysis and simulation tool.

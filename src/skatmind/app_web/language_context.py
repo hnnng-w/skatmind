@@ -161,7 +161,9 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
             pending = session.declaration_correction
             selected = pending.selected if current_selection(session, pending.selected) else None
             references.extend((session, session.document, session.execution,
-                                session.recorded_review_source, session.execution_attempt,
+                                 session.recorded_review_source, session.execution_attempt,
+                                 session.rollout_execution, session.rollout_review_source,
+                                 session.rollout_notice,
                                 session.last_operation, selected,
                                 pending.preview if selected is not None else None,
                                 pending.proposal if selected is not None else None))

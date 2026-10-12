@@ -124,6 +124,7 @@ def render_result_presentation_v1(
     result_download_route: str | None = None,
     recorded_context=None,
     recorded_context_locale: str = "en",
+    identity_prefix: str = "result",
 ) -> str:
     """Renders one browser-safe Result projection as semantic escaped HTML."""
 
@@ -148,7 +149,7 @@ def render_result_presentation_v1(
     technical_extras = []
     technical_prose = []
     for index, section in enumerate(presentation.sections):
-        identifier = f"result-section-{index + 1}"
+        identifier = f"{identity_prefix}-section-{index + 1}"
         if section.title != "Technical details":
             # Original projected detail identities own their location. Equal values
             # in different scopes are never merged or parsed back into policy data.

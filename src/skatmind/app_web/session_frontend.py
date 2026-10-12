@@ -117,6 +117,9 @@ class GuidedSessionContextV1:
     last_operation: GuidedSessionOperationResultV1 | None = None
     execution: GuidedFrontendExecutionV1 | None = field(default=None, repr=False)
     recorded_review_source: RecordedReviewSourceV1 | None = field(default=None, repr=False)
+    rollout_execution: GuidedFrontendExecutionV1 | None = field(default=None, repr=False)
+    rollout_review_source: RecordedReviewSourceV1 | None = field(default=None, repr=False)
+    rollout_notice: object | None = field(default=None, repr=False)
     execution_attempt: object | None = field(default=None, repr=False)
     operation_feedback: PendingOperationFeedback = field(
         default_factory=PendingOperationFeedback, repr=False)
@@ -157,6 +160,9 @@ class GuidedSessionContextV1:
         """Discard source-scoped execution and correction work on lifecycle invalidation."""
         self.execution = None
         self.recorded_review_source = None
+        self.rollout_execution = None
+        self.rollout_review_source = None
+        self.rollout_notice = None
         self.execution_attempt = None
         self.declaration_correction.clear()
 

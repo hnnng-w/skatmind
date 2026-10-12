@@ -1008,6 +1008,17 @@ _FORMS: list[FrontendFormDefinitionV1] = [
         success="/sessions/current#session-result",
     ),
     _definition(
+        "session.review_whole_game",
+        "/sessions/review-whole-game",
+        ("decision_selection", "objective", "requested_worlds", "random_seed"),
+        page="/sessions/current", active="sessions",
+        success="/sessions/current#session-rollout-result",
+        choice_overrides={"objective": ("played_game_goal", "complete_settlement")},
+        control_overrides={"objective": "select"},
+        label_overrides={"objective": "validation.field.rollout_objective",
+                         "requested_worlds": "validation.field.rollout_worlds"},
+    ),
+    _definition(
         "session.review",
         "/sessions/review",
         (
@@ -1479,6 +1490,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             "/sessions/analyze",
             "/sessions/review",
             "/sessions/review-decision",
+            "/sessions/review-whole-game",
             "/matches/import",
             "/matches/open",
             "/matches/api/v1/create",

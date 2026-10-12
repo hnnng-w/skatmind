@@ -774,11 +774,14 @@ separate. Structural preparation/transition budgets and common-batch completion
 prevent partial candidate rankings. Independent small-case policy oracles and a
 bounded synthetic opening run provide local evidence.
 
-Stage 2 remains pending: explicit new recorded-decision analysis from an
-unchanged frozen snapshot, exact source/provenance binding, optional selection,
-and understandable results. Existing methods and defaults continue unchanged;
-the core does not close the UAT analysis finding or establish optimal strategy,
-calibrated success probabilities, or frontend availability.
+Issue #285 implements stage 2: explicit recorded-decision analysis from an
+unchanged frozen snapshot through the additive validated public method, exact
+source/provenance binding, optional objective/world/seed controls, and localized
+terminal results. Legacy and rollout outputs have separate bounded ownership.
+See [recorded whole-game review](recorded_whole_game_review.md). Exact-commit CI
+and the brief installed maintainer retest remain pending. This implementation
+does not close the UAT analysis finding or establish optimal strategy or
+calibrated success probabilities.
 
 ## Current known limitations
 

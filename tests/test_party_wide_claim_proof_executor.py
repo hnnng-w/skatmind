@@ -934,15 +934,15 @@ def test_public_cli_schema_example_generated_and_package_boundaries_are_unchange
         PROJECT_ROOT / "src" / "skatmind" / "historical_party_wide_claim.py",
         PROJECT_ROOT / "src" / "skatmind" / "settlement_normative_matrix.py",
     )
-    assert len(tuple((PROJECT_ROOT / "schemas").glob("*.schema.json"))) == 71
+    assert len(tuple((PROJECT_ROOT / "schemas").glob("*.schema.json"))) == 72
     assert (
         len(tuple((PROJECT_ROOT / "src" / "skatmind" / "schema_resources").glob("*.schema.json")))
-        == 71
+        == 72
     )
     assert {
         path.name for path in (PROJECT_ROOT / "examples").glob("session_*.json")
     } == SESSION_EXAMPLE_NAMES
-    assert len(SCENARIOS) == 98
+    assert len(SCENARIOS) == 102
     project = tomllib.loads((PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8"))[
         "project"
     ]

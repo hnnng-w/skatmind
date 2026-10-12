@@ -493,7 +493,7 @@ def apply_validation_feedback_to_html_v1(
         else ("player_handle",)
         if definition.form_key in {"profile.player_update", "profile.player_remove"}
         else ("decision_selection",)
-        if definition.form_key == "session.review_decision"
+        if definition.form_key in {"session.review_decision", "session.review_whole_game"}
         else ("report_id",)
         if definition.form_key == "match.transfer_report"
         else ("recovery_selection",)
@@ -596,7 +596,7 @@ def apply_validation_feedback_to_html_v1(
             )
             return html.replace('<div id="match-recovery-feedback"></div>',
                                 '<div id="match-recovery-feedback">' + summary + '</div>', 1)
-        if definition.form_key == "session.review_decision":
+        if definition.form_key in {"session.review_decision", "session.review_whole_game"}:
             summary = _render_summary(
                 state, translated, field_definitions, rendered_fields, locale=locale,
                 fallback_anchor="recorded-decisions",

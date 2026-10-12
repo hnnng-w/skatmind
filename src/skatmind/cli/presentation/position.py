@@ -150,6 +150,8 @@ def print_post_game_review_value_summary(
 
 def print_post_game_review_summary(result: dict[str, object]) -> None:
     """Prints the post-game review summary for human-readable CLI output."""
+    if "whole_game_rollout_result" in result:
+        return
     summary = result.get("post_game_review_summary")
 
     if not isinstance(summary, dict):
@@ -182,8 +184,43 @@ def print_post_game_review_summary(result: dict[str, object]) -> None:
     print_post_game_review_rank_summary(summary)
 
 
+def _print_whole_game_rollout(document: dict[str, Any]) -> None:
+    result = document["whole_game_rollout_result"]
+    comparison = document["whole_game_rollout_comparison"]
+    print("Whole-game rollout review")
+    print("Objective:", result["objective"])
+    print("Effective settings:", result["settings"])
+    print("Status:", result["status"], "Stop reason:", result["stop_reason"])
+    print("Completed common worlds:", result["completed_common_worlds"],
+          "of", result["requested_worlds"])
+    print("Actual card:", comparison["actual_card"])
+    if result["status"] != "complete":
+        print("No complete ranking or recommendation is available.")
+        return
+    print("Best complete objective:", ", ".join(result["tied_best_cards"]))
+    print("Actual-card comparison:", comparison["status"])
+    print("First differing metric:", comparison["responsible_metric"])
+    if comparison["all_primary_success_equal"]:
+        print("All candidates tie on sampled primary success; "
+              "secondary outcomes order preferences.")
+    if len(result["tied_best_cards"]) > 1:
+        print("Canonical ordering of full ties is not a substantive advantage.")
+    candidates = {row["card"]: row for row in result["candidates"]}
+    for card in result["ranked_cards"]:
+        row = candidates[card]
+        print(f"{card}: sampled party success {row['local_success_count']}/"
+              f"{row['completed_samples']}; mean final local card-point margin "
+              f"{row['mean_final_local_card_point_margin']:.2f}; "
+              f"mean settlement score {row['mean_local_game_score']}")
+    print("Final margin is local minus opposing party points, not current-trick value.")
+    print("Fixed-policy simulated outcomes, not optimal play or calibrated probabilities.")
+
+
 def print_analysis_result(result: dict[str, Any]) -> None:
     """Prints the analysis result in a readable text format."""
+    if "whole_game_rollout_result" in result:
+        _print_whole_game_rollout(result)
+        return
     position = result["position"]
     settings = result["settings"]
     score_summary = result["score_summary"]

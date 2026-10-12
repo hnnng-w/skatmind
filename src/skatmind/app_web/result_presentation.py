@@ -939,6 +939,9 @@ def build_result_presentation_v1(
     workflow = execution.result.workflow.value
     document = execution.result.document
     if workflow == _POSITION_WORKFLOW:
+        if "whole_game_rollout_result" in document:
+            from .rollout_result_presentation import build_rollout_presentation
+            return build_rollout_presentation(execution, document, information_source)
         return _build_position_presentation(execution, document, information_source)
     if workflow == _HISTORICAL_WORKFLOW:
         return _build_historical_presentation(execution, document)

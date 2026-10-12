@@ -22,6 +22,13 @@ Root Result and actual-artifact provenance. Issue #202 completes mandatory
 internal source-to-final-serialization enforcement around every Root execution
 without adding a public export or changing this API contract.
 
+Issue #285 is an additive Request/Result extension within Position Analysis:
+`whole_game_rollout` supports explicit flat post-game review through the existing
+`parse_request`, `execute`, and `serialize_result` facade. No public Python name,
+Root workflow, Session exporter, or API version changes. See
+[recorded whole-game review](recorded_whole_game_review.md) for its strict settings,
+unavailable states, aggregate-only output, and compatibility boundary.
+
 ## Public namespaces
 
 The supported public namespaces are:

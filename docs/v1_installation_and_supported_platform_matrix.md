@@ -125,14 +125,18 @@ Every resolved form validates:
 * Corpus help, three packaged assets, authenticated loopback import and
   preparation, exact Report-source transfer, all three prepared families, and
   all ten authenticated canonical downloads;
-* `py.typed`, all 71 byte-identical packaged Schema Resources, local reference
+* `py.typed`, all current byte-identical packaged Schema Resources, local reference
   resolution, exact legal files, and `pip check`.
 
 Minimum Wheel and sdist cells additionally prove the exact direct floors, load
-all 71 Schemas, execute all seven Root workflows, and exercise installed and
+all current Schemas, execute all seven Root workflows, and exercise installed and
 module CLI smoke. The existing deterministic injected-clock repository tests
 remain the evidence for timing-sensitive `timeout`; the matrix does not add a
 wall-clock timing test.
+
+Issue #285 adds one rollout component resource, bringing the current expected
+inventory to 72. Its exact-commit matrix evidence remains pending; this does not
+rewrite the earlier 71-resource platform acceptance evidence.
 
 Issue #230 retains every matrix cell and semantic comparison. The installed smoke
 also checks the exact three-dependency metadata/import inventory, packaged timezone

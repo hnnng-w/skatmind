@@ -35,6 +35,7 @@ from .session_recorded_review import project_recorded_session_decisions_v1
 from .session_recorded_review_rendering import (
     render_recorded_review_source_v1,
     render_recorded_session_decisions_v1,
+    render_rollout_notice_v1,
 )
 from .stateful_localization import player_name, text, translated
 from .task_first_contracts import TaskFirstSessionV1
@@ -296,9 +297,10 @@ def _analysis_controls(context, locale, view):
 
 
 def _analysis_result(context, locale, game_label):
+    rollout = _rollout_result(context, locale, game_label)
     if context.execution is None:
-        return ""
-    return ('<div id="session-result" tabindex="-1">'
+        return rollout
+    return rollout + ('<div id="session-result" tabindex="-1">'
         + render_recorded_review_source_v1(context, locale=locale, game_label=game_label)
         + render_result_presentation_v1(
             build_result_presentation_v1(context.execution.result, locale=locale,
@@ -310,6 +312,29 @@ def _analysis_result(context, locale, game_label):
                 context.recorded_review_source, context.execution.result.result),
             recorded_context_locale=locale,
             locale=locale,
+        ) + '</div>')
+
+
+def _rollout_result(context, locale, game_label):
+    execution = context.rollout_execution
+    if execution is None:
+        return ""
+    notice = context.rollout_notice
+    content = render_rollout_notice_v1(context, locale=locale)
+    if notice is not None:
+        if execution.result.result.document["whole_game_rollout_result"]["status"] == "complete":
+            content += paragraph(locale, "rollout.retained")
+    return ('<div id="session-rollout-result" tabindex="-1">' + content
+        + render_recorded_review_source_v1(context, locale=locale, game_label=game_label, rollout=True)
+        + render_result_presentation_v1(
+            build_result_presentation_v1(execution.result, locale=locale,
+                                         information_source="session_checkpoint"),
+            request_download_available=True, result_download_available=True,
+            request_download_route="/sessions/downloads/rollout-request.json",
+            result_download_route="/sessions/downloads/rollout-result.json",
+            recorded_context=session_decision_context(context.rollout_review_source,
+                                                       execution.result.result),
+            recorded_context_locale=locale, locale=locale, identity_prefix="rollout-result",
         ) + '</div>')
 
 

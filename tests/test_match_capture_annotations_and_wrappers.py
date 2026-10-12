@@ -695,12 +695,12 @@ def test_public_cli_package_schema_output_and_persistence_boundaries_are_unchang
     session_help = build_session_argument_parser().format_help()
     assert "match-capture" not in root_help
     assert "match-capture" not in session_help
-    assert len(tuple((PROJECT_ROOT / "schemas").glob("*.schema.json"))) == 71
+    assert len(tuple((PROJECT_ROOT / "schemas").glob("*.schema.json"))) == 72
     assert (
         len(tuple((PROJECT_ROOT / "src" / "skatmind" / "schema_resources").glob("*.schema.json")))
-        == 71
+        == 72
     )
-    assert len(SCENARIOS) == 98
+    assert len(SCENARIOS) == 102
     with (PROJECT_ROOT / "pyproject.toml").open("rb") as file:
         assert tomllib.load(file)["project"]["version"] == "0.17.0"
 

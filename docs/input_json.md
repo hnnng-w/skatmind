@@ -2,6 +2,18 @@
 
 This document describes the supported input JSON format for `skatmind`.
 
+## Explicit whole-game rollout review
+
+Issue #285 adds `recommendation_method: "whole_game_rollout"` only for flat
+`post_game_review`, with `actual_card_played` and the complete strict
+`whole_game_rollout_settings` object. The exact versioned profile, seed, objective,
+world count, preparation/transition budgets, and finite timeout are all explicit.
+Optional bounded `whole_game_rollout_derivation` identifies an original checkpoint
+Request without changing the evaluator's facts. It is source-reference metadata,
+not authentication of arbitrary imported history. See the
+[field table and execution boundary](recorded_whole_game_review.md#settings-and-objective-availability)
+and [`examples/whole_game_rollout.json`](../examples/whole_game_rollout.json).
+
 ## JSON schema
 
 The input JSON schema is available at:

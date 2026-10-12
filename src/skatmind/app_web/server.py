@@ -252,6 +252,7 @@ from .session_recorded_review import (
 )
 from .session_recorded_review_form import (
     parse_recorded_review_selection_v1,
+    parse_recorded_rollout_form_v1,
     recorded_review_feedback_v1,
 )
 from .settings_forms import SettingsEditorV1, dispatch_settings_form_v1
@@ -362,6 +363,8 @@ _SESSION_DOWNLOAD_ROUTES = {
     "/sessions/downloads/session.json",
     "/sessions/downloads/request.json",
     "/sessions/downloads/result.json",
+    "/sessions/downloads/rollout-request.json",
+    "/sessions/downloads/rollout-result.json",
 }
 _STATEFUL_POST_ROUTES = {
     *CORRECTION_ROUTES,
@@ -377,6 +380,7 @@ _STATEFUL_POST_ROUTES = {
     "/sessions/analyze",
     "/sessions/review",
     "/sessions/review-decision",
+    "/sessions/review-whole-game",
     "/matches/import",
     "/matches/open",
     "/matches/api/v1/create",
@@ -690,7 +694,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             path = urlsplit(raw_path).path
         except ValueError:
             return "/"
-        if path == "/sessions/review-decision" or getattr(self, "_session_page_return", False):
+        if path in {"/sessions/review-decision", "/sessions/review-whole-game"} or getattr(
+            self, "_session_page_return", False
+        ):
             return "/sessions/current"
         match_position = getattr(self, "_match_page_return", None)
         if match_position is not None:
@@ -1485,7 +1491,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 return True
             issues = (FrontendValidationIssueV1(field_key=None,
                 message_key="validation.deletion." + deletion_error_key(error, status)),)
-        if definition.form_key == "session.review_decision" and issues is None:
+        if definition.form_key in {
+            "session.review_decision", "session.review_whole_game"
+        } and issues is None:
             issues = (recorded_review_feedback_v1(error, status=status),)
         if definition.form_key == "recordings.open" and issues is None:
             key = ("file" if isinstance(error, RecordingOpenConflict) and error.reason == "file"
@@ -1935,7 +1943,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                         issues=(FrontendValidationIssueV1(field_key=None,
                             message_key="validation.session.correction_file_changed"),),
                         status=status)
-            if active.recorded_review_source is not None:
+            if (active.recorded_review_source is not None
+                    or active.rollout_review_source is not None):
                 try:
                     require_recorded_review_file_fresh_v1(active)
                 except RecordedDecisionReviewConflictError as error:
@@ -1972,7 +1981,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             status=status,
             feedback_family="sessions",
             feedback_identity=active,
-            last_valid_result_retained=active.execution is not None,
+            last_valid_result_retained=(
+                active.execution is not None or active.rollout_execution is not None),
             untranslated_workflow_body=False,
         )
 
@@ -2234,19 +2244,23 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if path in _SESSION_DOWNLOAD_ROUTES:
             active = self._active_session()
             with active.lock:
-                if not path.endswith("session.json") and active.recorded_review_source is not None:
+                if not path.endswith("session.json") and (
+                    active.recorded_review_source is not None
+                    or active.rollout_review_source is not None
+                ):
                     require_recorded_review_file_fresh_v1(active)
+                execution = active.rollout_execution if "/rollout-" in path else active.execution
                 if path.endswith("session.json"):
                     content = build_guided_session_persistence_download_v1(active)
                     filename = "skatmind-managed-session.json"
-                elif active.execution is None:
+                elif execution is None:
                     raise KeyError("Session execution download is unavailable.")
                 elif path.endswith("request.json"):
-                    content = active.execution.request_json_bytes
-                    filename = "skatmind-session-request.json"
+                    content = execution.request_json_bytes
+                    filename = "skatmind-session-" + path.rsplit("/", 1)[1]
                 else:
-                    content = active.execution.result_json_bytes
-                    filename = "skatmind-session-result.json"
+                    content = execution.result_json_bytes
+                    filename = "skatmind-session-" + path.rsplit("/", 1)[1]
             self._send_artifact(filename, content)
             return True
         report_source = _MATCH_REPORT_SOURCE_PATTERN.fullmatch(path)
@@ -2601,7 +2615,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         try:
             active = self._bound_active("sessions", values)
         except KeyError as error:
-            if path == "/sessions/review-decision":
+            if path in {"/sessions/review-decision", "/sessions/review-whole-game"}:
                 raise RecordedDecisionReviewConflictError("context_changed") from error
             raise
         expected_revision = self._form_integer(
@@ -2614,6 +2628,20 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 raise StaleFrontendWorkflowRevisionError
         values = dict(values)
         del values["expected_revision"]
+        if path == "/sessions/review-whole-game":
+            selection, settings = parse_recorded_rollout_form_v1(values)
+            complete = execute_recorded_session_decision_v1(
+                self.server.app_context, active, selection=selection, rollout_settings=settings,
+            )
+            if complete:
+                self._redirect("/sessions/current#session-rollout-result")
+            else:
+                self._retain_form_feedback(
+                    self._current_form_definition,
+                    issues=(FrontendValidationIssueV1(field_key=None,
+                        message_key="rollout.incomplete_attempt"),), status=HTTPStatus.BAD_REQUEST)
+                self._session_page(status=HTTPStatus.BAD_REQUEST)
+            return
         if path == "/sessions/review-decision":
             selection = parse_recorded_review_selection_v1(values)
             execute_recorded_session_decision_v1(

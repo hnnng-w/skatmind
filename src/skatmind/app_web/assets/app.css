@@ -299,17 +299,17 @@ footer a:focus-visible,
   overflow-wrap: anywhere;
 }
 
-#session-result {
+#session-result, #session-rollout-result {
   padding-block: 0.25rem;
   scroll-margin-block: 1rem;
 }
 
-#session-result > p {
+#session-result > p, #session-rollout-result > p {
   padding-inline: 0.25rem;
 }
 
 /* Native review redirects need an indicator even without :focus-visible. */
-#session-result:focus {
+#session-result:focus, #session-rollout-result:focus {
   outline: 2px solid var(--focus);
   outline-offset: 3px;
 }

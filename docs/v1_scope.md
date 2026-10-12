@@ -424,9 +424,12 @@ terminal utility. Work interruption suppresses rankings and recommendations.
 
 This is a specific approved extension beyond the earlier late-game-only analysis
 boundary, not broader optimal Search or a change to existing Search limits.
-Stage-2 explicit recorded-decision analysis, source-bound provenance, method and
-objective selection, and understandable frontend results remain pending. The
-core changes no Product default, frozen Request/Result, or UAT finding. Broader
+Issue #285 implements stage-2 explicit recorded-decision analysis, source-bound
+provenance, objective/settings controls, separate retained outputs, and localized
+frontend results through validated public execution. See
+[recorded whole-game review](recorded_whole_game_review.md). Exact-commit CI and
+installed maintainer acceptance remain pending. It changes no global Product
+default, original frozen Request/Result, or UAT finding. Broader
 solver directions retain their classifications below; this extension does not
 claim equilibrium play, calibrated probabilities, or completed user acceptance.
 

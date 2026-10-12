@@ -128,7 +128,7 @@ MINIMUM_RUNTIME_DEPENDENCIES = (
 EXPECTED_LICENSE_FILES = ("LICENSE", "COPYRIGHT")
 EXPECTED_LICENSE_SHA256 = "d8a6cc31abc16b6748c7a21f21611f5a1ec33f67d22ca23d7da1c19b95496bee"
 EXPECTED_COPYRIGHT_BYTES = b"Copyright (C) 2026 Henning Wiese\n"
-EXPECTED_SCHEMA_RESOURCE_COUNT = 71
+EXPECTED_SCHEMA_RESOURCE_COUNT = 72
 SCHEMA_RESOURCE_PREFIX = "skatmind/schema_resources/"
 CAPTURE_RESOURCE_PREFIX = "skatmind/capture_web/"
 CAPTURE_RESOURCE_NAMES = (
@@ -1100,7 +1100,7 @@ resource_names = sorted(
 )
 expected_names = sorted(path.name for path in expected_schema_root.glob("*.schema.json"))
 assert resource_names == expected_names
-assert len(resource_names) == 71
+assert len(resource_names) == 72
 assert len(WorkflowV1) == 7
 
 schema_ids = []

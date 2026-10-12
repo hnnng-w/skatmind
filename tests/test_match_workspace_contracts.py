@@ -976,13 +976,13 @@ def test_public_api_cli_schema_output_and_package_boundaries_remain_unchanged() 
     assert "match-workspace" not in build_argument_parser().format_help()
     assert "match-workspace" not in build_session_argument_parser().format_help()
     assert skatmind.__version__ == "0.17.0"
-    assert len(tuple((PROJECT_ROOT / "schemas").glob("*.schema.json"))) == 71
+    assert len(tuple((PROJECT_ROOT / "schemas").glob("*.schema.json"))) == 72
     assert len(
         tuple(
             (PROJECT_ROOT / "src" / "skatmind" / "schema_resources").glob(
                 "*.schema.json"
             )
         )
-    ) == 71
-    assert len(SCENARIOS) == 98
+    ) == 72
+    assert len(SCENARIOS) == 102
     assert all("match_workspace" not in scenario.name for scenario in SCENARIOS)

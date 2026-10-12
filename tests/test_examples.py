@@ -95,7 +95,7 @@ def get_position_example_json_files() -> list[Path]:
 def test_generated_output_matrix_has_exact_documented_scenario_count() -> None:
     from scripts.validate_generated_outputs_schema import SCENARIOS
 
-    assert len(SCENARIOS) == 98
+    assert len(SCENARIOS) == 102
     assert tuple(scenario.name for scenario in SCENARIOS[:70]) == (
         "normal_local_live",
         "quiet_json_output",
@@ -211,9 +211,13 @@ def test_generated_output_matrix_has_exact_documented_scenario_count() -> None:
         "historical_information_set_replay_coaching",
         "historical_party_wide_claim_information_set_replay_coaching",
     )
-    assert tuple(scenario.name for scenario in SCENARIOS[96:]) == (
+    assert tuple(scenario.name for scenario in SCENARIOS[96:98]) == (
         "historical_tactical_motif_review_defender_partnership",
         "historical_party_wide_claim_tactical_motif_review",
+    )
+    assert tuple(scenario.name for scenario in SCENARIOS[98:]) == (
+        "whole_game_rollout_played_goal", "whole_game_rollout_settlement",
+        "whole_game_rollout_unavailable", "whole_game_rollout_partial",
     )
     assert all(not scenario.include_provenance for scenario in SCENARIOS[:70])
     assert all(scenario.include_provenance for scenario in SCENARIOS[70:77])

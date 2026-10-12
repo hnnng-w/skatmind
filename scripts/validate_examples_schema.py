@@ -185,6 +185,9 @@ def validate_example_files() -> list[str]:
     )
     registry = Registry().with_resources(
         [
+            ("https://example.local/skatmind/whole_game_rollout.schema.json",
+             Resource.from_contents(load_json_file(
+                 PROJECT_ROOT / "schemas" / "whole_game_rollout.schema.json"))),
             (historical_schema["$id"], Resource.from_contents(historical_schema)),
             (
                 historical_game_end_schema["$id"],

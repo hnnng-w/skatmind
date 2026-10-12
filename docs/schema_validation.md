@@ -52,7 +52,7 @@ The project check script also runs this validation:
 
 ## Packaged schema resources
 
-The repository `schemas/` directory remains authoritative. Every one of its 71
+The repository `schemas/` directory remains authoritative. Every one of its 72
 `*.schema.json` files is mirrored byte-for-byte into the private Package Resource
 namespace:
 
@@ -81,7 +81,7 @@ selection, and canonical RFC 6901 paths are unchanged.
 Wheel/sdist inspection and the Issue #206 source, Editable, Wheel, and sdist
 resolved matrix plus exact-minimum Wheel/sdist lanes verify exact source,
 archive, and installed-resource filename and byte parity, UTF-8 and JSON
-validity, unchanged `$id` values, all 71 local loads, and Root input/output local-
+validity, preserved existing `$id` values, all current local loads, and Root input/output local-
 reference resolution. See [Packaging and distribution](packaging_and_distribution.md)
 and the [v1 installation and supported-platform matrix](v1_installation_and_supported_platform_matrix.md).
 
@@ -110,7 +110,7 @@ The input schema checks things such as:
 * fixed three-player `list_standings_input` structure
 * canonical opponent policy and policy-preset values
 * basic `actual_card_played` type and card notation
-* the four recommendation methods and their strict complete bounded-Search or Information-set Search settings object
+* the five flat recommendation methods and their strict method-specific settings objects
 * Search-only flat live/post-game, not-ended, actual-card, attributed-history, and workflow constraints
 * optional exact `public_declarer_cards` card-array structure for declared Ouvert
 * top-level and optional nested `game_declaration` declaration field types
@@ -132,6 +132,12 @@ shapes, and unsupported keys in `completed_tricks` entries. The runtime still
 does not execute the full JSON Schema during loading.
 
 ## Output schema
+
+Issue #285 adds one strict rollout component schema and four append-only generated
+cases: played goal, complete settlement, missing settlement inputs, and incomplete
+common-batch work. Current totals are **72 schemas** and **102 scenarios**. The
+historical published 71/98 counts below remain release facts. The new method is
+flat post-game-only; no existing method's defaults or schema meaning is changed.
 
 The output schema is located at:
 

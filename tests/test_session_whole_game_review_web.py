@@ -1,0 +1,213 @@
+import json
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
+
+import pytest
+from test_frontend_language_switching import localized_server as _localized_server
+from test_session_recorded_review_web import Browser, Forms
+from test_whole_game_rollout_workflow import without_time
+from whole_game_review_fixtures import activate_saved_opening
+
+import skatmind.app_web.execution as execution_module
+from skatmind.api.v1 import execute, parse_request, serialize_result
+from skatmind.app_web.translation_catalog import translate_frontend_message_v1 as text
+
+
+@pytest.fixture
+def localized_server(tmp_path):
+    yield from _localized_server.__wrapped__(tmp_path)
+
+
+def rollout_form(browser):
+    return Forms(browser.page()).find("/sessions/review-whole-game")
+
+
+def test_real_post_derived_root_dual_downloads_and_passive_languages(localized_server, monkeypatch):
+    context, checkpoint = activate_saved_opening(localized_server, complete=True)
+    browser = Browser(localized_server)
+    saved, frozen = context.path.read_bytes(), checkpoint.request.to_dict()
+    legacy_form = Forms(browser.page()).find("/sessions/review-decision")
+    assert browser.submit(legacy_form)[0] == 303
+    legacy = context.execution
+    form = rollout_form(browser)
+    status, headers, body = browser.submit(form, requested_worlds="2", random_seed="7")
+    assert status == 303, body.decode()
+    assert headers["location"] == "/sessions/current#session-rollout-result"
+    retained = context.rollout_execution
+    assert context.execution is legacy
+    root = json.loads(retained.request_json_bytes)
+    unchanged = {k: v for k, v in root.items() if k not in {
+        "recommendation_method", "whole_game_rollout_settings", "whole_game_rollout_derivation",
+        "analysis_mode", "actual_card_played"}}
+    assert unchanged == {k: v for k, v in frozen["document"].items() if k != "analysis_mode"}
+    assert root["actual_card_played"] == "CJ"
+    assert root["whole_game_rollout_derivation"]["source_revision"] == checkpoint.source_revision
+    assert root["whole_game_rollout_settings"]["random_seed"] == 7
+    public = retained.result.result.document["whole_game_rollout_result"]
+    assert public["status"] == "complete" and public["completed_common_worlds"] == 2
+    # Exported bytes are genuine public Requests, not a browser-only envelope.
+    repeated = execute(parse_request(root)).result.to_dict()["document"][
+        "whole_game_rollout_result"]
+    assert without_time(json.loads(retained.result_json_bytes)["document"][
+        "whole_game_rollout_result"]) == without_time(repeated)
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Passive action must not execute or save")
+    monkeypatch.setattr(execution_module, "execute", forbidden)
+    import skatmind.api.v1.session.files as files
+    monkeypatch.setattr(files, "save_session_file", forbidden)
+    for language in ("de", "en"):
+        form = Forms(browser.page()).find("/actions/profile/language")
+        assert browser.submit(form, language=language)[0] == 303
+        page = browser.page()
+        assert text(language, "rollout.heading") in page
+        assert text(language, "rollout.primary_tie") in page
+        assert 'value="7"' in page
+        assert 'class="result-table-wrap candidate-comparison"' in page
+        for name, expected in (("request", legacy.request_json_bytes),
+                               ("result", legacy.result_json_bytes),
+                               ("rollout-request", retained.request_json_bytes),
+                               ("rollout-result", retained.result_json_bytes)):
+            assert browser.request("GET", f"/sessions/downloads/{name}.json")[2] == expected
+    assert json.loads(retained.result_json_bytes) == serialize_result(retained.result)
+    assert context.path.read_bytes() == saved and checkpoint.request.to_dict() == frozen
+
+
+def test_missing_settlement_and_rejected_attempt_retain_completed_output(localized_server):
+    context, _ = activate_saved_opening(localized_server)
+    browser = Browser(localized_server)
+    assert browser.submit(rollout_form(browser), requested_worlds="1")[0] == 303
+    retained, source = context.rollout_execution, context.rollout_review_source
+    form = rollout_form(browser)
+    status, _, content = browser.submit(form, objective="complete_settlement")
+    assert status == 400
+    page = content.decode()
+    assert text("en", "rollout.reason.missing_terminal_utility_inputs") in page
+    assert text("en", "rollout.retained") in page
+    assert context.rollout_execution is retained and context.rollout_review_source is source
+    for extra in ({"actual_card_played": "SA"}, {"requested_worlds": "1001"},
+                  {"random_seed": "-1"}, {"max_card_transitions": "999999"}):
+        assert browser.submit(form, **extra)[0] == 400
+        assert context.rollout_execution is retained
+    assert browser.submit(form, decision_selection="f" * 64)[0] == 409
+    context.path.write_bytes(b"{}\n")
+    assert browser.request("GET", "/sessions/downloads/rollout-result.json")[0] == 409
+    assert context.rollout_execution is context.execution is None
+
+
+def test_out_of_order_rollout_publication_is_source_and_attempt_owned(
+    localized_server, monkeypatch,
+):
+    context, _ = activate_saved_opening(localized_server)
+    browser = Browser(localized_server)
+    form = rollout_form(browser)
+    entered, release = Event(), Event()
+    real = execution_module.execute
+    calls = 0
+    def blocked(request, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            entered.set()
+            assert release.wait(30)
+        return real(request, **kwargs)
+    monkeypatch.setattr(execution_module, "execute", blocked)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        prior = pool.submit(browser.submit, form, requested_worlds="1", random_seed="1")
+        assert entered.wait(30)
+        # This would deadlock if the global or Session lock covered evaluation.
+        assert browser.submit(form, requested_worlds="1", random_seed="2")[0] == 303
+        latest = context.rollout_execution
+        release.set()
+        assert prior.result(timeout=30)[0] == 409
+    assert context.rollout_execution is latest
+    assert latest.request.document["whole_game_rollout_settings"]["random_seed"] == 2
+
+
+@pytest.mark.parametrize("change", ["reload", "retire", "file"])
+def test_inflight_context_or_file_change_cannot_publish(localized_server, monkeypatch, change):
+    from skatmind.app_web.managed_item_discovery import discover_managed_items_v1
+    from skatmind.app_web.session_frontend import open_guided_session_v1, reload_guided_session_v1
+    context, _ = activate_saved_opening(localized_server)
+    browser = Browser(localized_server)
+    form = rollout_form(browser)
+    entered, release = Event(), Event()
+    real = execution_module.execute
+    def blocked(request, **kwargs):
+        entered.set()
+        assert release.wait(30)
+        return real(request, **kwargs)
+    monkeypatch.setattr(execution_module, "execute", blocked)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(browser.submit, form, requested_worlds="1")
+        assert entered.wait(30)
+        if change == "reload":
+            reload_guided_session_v1(context)
+        elif change == "retire":
+            discovery = discover_managed_items_v1(
+                context.category_root, family="sessions", generation=1)
+            replacement = open_guided_session_v1(context.category_root, discovery.entries[0])
+            localized_server.app_context.managed_stateful.activate_session(replacement)
+        else:
+            context.path.write_bytes(b"{}\n")
+        release.set()
+        assert future.result(timeout=30)[0] == 409
+    assert context.rollout_execution is None
+    assert localized_server.app_context.managed_stateful.active_session.rollout_execution is None
+
+
+def test_interrupted_real_core_and_executor_failure_keep_previous_bytes(
+    localized_server, monkeypatch,
+):
+    import skatmind.recommendation_workflow as workflow
+    from skatmind.errors import SkatMindValidationError
+    context, _ = activate_saved_opening(localized_server)
+    browser = Browser(localized_server)
+    assert browser.submit(rollout_form(browser), requested_worlds="1")[0] == 303
+    retained = context.rollout_execution
+    real = workflow.evaluate_whole_game_rollout_v1
+    def timed_out(view, settings):
+        ticks = iter(range(0, 100000, 31))
+        return real(view, settings, clock=lambda: next(ticks))
+    monkeypatch.setattr(workflow, "evaluate_whole_game_rollout_v1", timed_out)
+    assert browser.submit(rollout_form(browser), requested_worlds="1")[0] == 400
+    assert context.rollout_notice.reason == "wall_clock_timeout"
+    assert context.rollout_execution is retained
+    def failed(*args, **kwargs):
+        raise SkatMindValidationError("Synthetic rejected execution")
+    monkeypatch.setattr(execution_module, "execute", failed)
+    assert browser.submit(rollout_form(browser), requested_worlds="1")[0] == 400
+    assert context.rollout_execution is retained
+    assert browser.request("GET", "/sessions/downloads/rollout-result.json")[2] == (
+        retained.result_json_bytes)
+
+
+def test_enhanced_language_return_preserves_rollout_view_and_unsent_settings(
+    localized_server, monkeypatch,
+):
+    from test_language_view_continuity import return_data
+    from test_match_recording_recovery_web import follow
+    from test_task_first_language_preservation import enhanced_switch, envelope
+
+    context, _ = activate_saved_opening(localized_server)
+    browser = Browser(localized_server)
+    assert browser.submit(rollout_form(browser), requested_worlds="1")[0] == 303
+    retained, document = context.rollout_execution, context.document
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Language return must not execute")
+    monkeypatch.setattr(execution_module, "execute", forbidden)
+    page = browser.page()
+    for locale in ("de", "en"):
+        value = json.loads(envelope(page, "/sessions/review-whole-game", {
+            "random_seed": ["99"], "requested_worlds": ["5"],
+            "objective": ["complete_settlement"],
+        }))
+        value["view"] = {"anchor": "id:session-rollout-result", "offset": -120,
+                         "x": 0, "focus": locale}
+        response = enhanced_switch(browser, page, json.dumps(value), locale)
+        assert response[0] == 303
+        page = follow(browser, response)
+        assert return_data(page)["view"] == value["view"]
+        values = Forms(page).find("/sessions/review-whole-game")["values"]
+        assert (values["random_seed"], values["requested_worlds"], values["objective"]) == (
+            "99", "5", "complete_settlement")
+        assert context.rollout_execution is retained and context.document is document

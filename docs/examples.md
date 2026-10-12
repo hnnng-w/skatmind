@@ -788,6 +788,13 @@ preserves those 96 definitions and order, then appends
 `historical_party_wide_claim_tactical_motif_review`. The published `v0.17.0`
 total is 98; the historical published 85-scenario facts remain unchanged. Issues
 #198 and #199 change no example or generated-scenario definition.
+Issue #285 preserves those 98 definitions and appends
+`whole_game_rollout_played_goal`, `whole_game_rollout_settlement`,
+`whole_game_rollout_unavailable`, and `whole_game_rollout_partial`, for a current
+total of **102**. [`whole_game_rollout.json`](../examples/whole_game_rollout.json)
+uses a two-world no-bid opening through the generic CLI/API execution boundary;
+three small fixtures cover strict settlement and bounded failure states. See
+[recorded whole-game review](recorded_whole_game_review.md).
 The behavioral match
 comparison does not evaluate recommendation quality or strategic strength.
 

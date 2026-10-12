@@ -4545,6 +4545,18 @@ def run_session_scenario(
     )
 
 
+def check_whole_game_rollout(result: dict[str, Any]) -> list[str]:
+    rollout = result["whole_game_rollout_result"]
+    if rollout["status"] == "complete":
+        if rollout["completed_common_worlds"] != rollout["requested_worlds"]:
+            return ["Complete rollout must cover all requested common worlds."]
+    elif rollout["ranked_cards"] or rollout["recommended_card"] is not None:
+        return ["Incomplete rollout cannot rank or recommend."]
+    if result["recommendation_method_summary"]["fallback_used"]:
+        return ["Whole-game rollout cannot fall back."]
+    return []
+
+
 SCENARIOS = (
     Scenario(
         name="normal_local_live",
@@ -5657,6 +5669,21 @@ SCENARIOS = (
         expect_quiet_stdout=True,
         include_position_overrides=False,
     ),
+    Scenario(
+        name="whole_game_rollout_played_goal",
+        input_path=PROJECT_ROOT / "examples" / "whole_game_rollout.json",
+        branch="whole-game played goal without bid with exact actual-card comparison",
+        cli_args=("--quiet",), check_output=check_whole_game_rollout,
+        expect_quiet_stdout=True, include_position_overrides=False, include_provenance=True,
+    ),
+    *tuple(Scenario(
+        name=f"whole_game_rollout_{name}",
+        input_path=(PROJECT_ROOT / "tests" / "fixtures" / "generated_output_schema"
+                    / f"whole_game_rollout_{name}.json"),
+        branch=f"whole-game rollout {name} objective and coverage",
+        cli_args=("--quiet",), check_output=check_whole_game_rollout,
+        expect_quiet_stdout=True, include_position_overrides=False,
+    ) for name in ("settlement", "unavailable", "partial")),
 )
 
 
@@ -5800,6 +5827,9 @@ def validate_generated_outputs() -> list[str]:
     field_provenance_schema = load_json_file(FIELD_PROVENANCE_SCHEMA_PATH)
     registry = Registry().with_resources(
         [
+            ("https://example.local/skatmind/whole_game_rollout.schema.json",
+             Resource.from_contents(load_json_file(
+                 PROJECT_ROOT / "schemas" / "whole_game_rollout.schema.json"))),
             (
                 historical_decision_snapshot_schema["$id"],
                 Resource.from_contents(historical_decision_snapshot_schema),

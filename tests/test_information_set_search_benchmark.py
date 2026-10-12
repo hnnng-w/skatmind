@@ -730,7 +730,7 @@ def test_package_public_artifact_and_changelog_baselines_are_unchanged() -> None
     assert not any("BENCHMARK" in name for name in api_v1.__all__)
     assert SETTLEMENT_NORMATIVE_MATRIX_VERSION == 3
     assert len(get_normative_settlement_cases()) == 61
-    assert len(tuple((PROJECT_ROOT / "schemas").glob("*.schema.json"))) == 71
+    assert len(tuple((PROJECT_ROOT / "schemas").glob("*.schema.json"))) == 72
     assert (
         len(
             tuple(
@@ -739,10 +739,10 @@ def test_package_public_artifact_and_changelog_baselines_are_unchanged() -> None
                 )
             )
         )
-        == 71
+        == 72
     )
     assert len(tuple((PROJECT_ROOT / "examples").glob("session_*.json"))) == 6
-    assert len(SCENARIOS) == 98
+    assert len(SCENARIOS) == 102
     assert hashlib.sha256(CHANGELOG_PATH.read_bytes()).hexdigest().upper() == (
         "A0C06B51FC41D7C7C1BE8F60684EA5E378E9D759748F24FAF3AA205172C1D178"
     )

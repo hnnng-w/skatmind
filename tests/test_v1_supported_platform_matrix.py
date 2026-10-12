@@ -372,9 +372,9 @@ def test_issue_206_changes_no_package_api_schema_or_scenario_baseline() -> None:
     assert pyproject["project"]["scripts"] == {"skatmind": "skatmind.cli:main"}
     assert PUBLIC_API_CONTRACT_VERSION == 1
     assert len(WorkflowV1) == 7
-    assert len(schema_names) == len(packaged_schema_names) == 71
+    assert len(schema_names) == len(packaged_schema_names) == 72
     assert len(session_examples) == 6
-    assert len(SCENARIOS) == 98
+    assert len(SCENARIOS) == 102
     assert len(distribution_validation.CORPUS_RESOURCE_NAMES) == 3
 
 

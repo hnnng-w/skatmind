@@ -341,9 +341,9 @@ def test_public_package_schema_and_scenario_boundaries_remain_unchanged() -> Non
     )
     assert pyproject["project"]["version"] == "0.17.0"
     assert skatmind.__version__ == "0.17.0"
-    assert len(authoritative_schemas) == 71
-    assert len(packaged_schemas) == 71
-    assert len(SCENARIOS) == 98
+    assert len(authoritative_schemas) == 72
+    assert len(packaged_schemas) == 72
+    assert len(SCENARIOS) == 102
     assert len(tuple(WorkflowV1)) == 7
     assert not hasattr(api_v1, "MatchWorkspaceMaterializationV1")
     assert not hasattr(session_api, "MatchWorkspaceMaterializationV1")

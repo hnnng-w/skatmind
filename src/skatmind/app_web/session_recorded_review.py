@@ -9,6 +9,8 @@ import skatmind.api.v1.session as session_api
 import skatmind.api.v1.session.files as session_files
 from skatmind.api.v1 import ExecutionOptionsV1
 from skatmind.errors import SkatMindValidationError
+from skatmind.session_rollout_review import derive_session_rollout_review_request_v1
+from skatmind.whole_game_rollout_contracts import WholeGameRolloutSettingsV1
 
 from .execution import execute_guided_frontend_review_v1
 from .json_transfer import canonical_frontend_json_bytes_v1
@@ -47,6 +49,14 @@ class RecordedReviewSourceV1:
     generation: int
     decision: RecordedDecisionV1
     attempt: object
+
+
+@dataclass(frozen=True, slots=True)
+class RecordedRolloutNoticeV1:
+    source: RecordedReviewSourceV1
+    settings: WholeGameRolloutSettingsV1
+    reason: str
+    completed_worlds: int
 
 
 def project_recorded_session_decisions_v1(
@@ -124,7 +134,8 @@ def _require_source(context: GuidedSessionContextV1, source: RecordedReviewSourc
 
 def execute_recorded_session_decision_v1(
     app: AppWebContextV1, context: GuidedSessionContextV1, *, selection: str,
-) -> None:
+    rollout_settings: WholeGameRolloutSettingsV1 | None = None,
+) -> bool:
     """One exported frozen Request; atomic source/Result publication after unlocked execution."""
     with context.lock:
         with app.lock:
@@ -139,11 +150,14 @@ def execute_recorded_session_decision_v1(
         ).value
         if exported.status != "available" or exported.observation != decision.observation:
             raise RecordedDecisionReviewConflictError()
+        request = exported.request if rollout_settings is None else (
+            derive_session_rollout_review_request_v1(
+                state=context.state, checkpoint=decision.checkpoint, settings=rollout_settings))
         with app.lock:
             _require_binding(app, context)
             attempt = context.begin_execution()
             source = RecordedReviewSourceV1(context.document, context.generation, decision, attempt)
-    execution = execute_guided_frontend_review_v1(exported.request, options=ExecutionOptionsV1())
+    execution = execute_guided_frontend_review_v1(request, options=ExecutionOptionsV1())
     with context.lock:
         _require_source(context, source)
         require_recorded_review_file_fresh_v1(context)
@@ -152,5 +166,20 @@ def execute_recorded_session_decision_v1(
         with app.lock:
             _require_binding(app, context)
             _require_source(context, source)
-            context.execution = execution
-            context.recorded_review_source = source
+            if rollout_settings is None:
+                context.execution = execution
+                context.recorded_review_source = source
+            else:
+                result = execution.result.result.document["whole_game_rollout_result"]
+                if result["status"] != "complete":
+                    context.rollout_notice = RecordedRolloutNoticeV1(
+                        source, rollout_settings, result["stop_reason"],
+                        result["completed_common_worlds"])
+                    if context.rollout_execution is None:
+                        context.rollout_execution = execution
+                        context.rollout_review_source = source
+                    return False
+                context.rollout_execution = execution
+                context.rollout_review_source = source
+                context.rollout_notice = None
+    return True

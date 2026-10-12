@@ -29,6 +29,9 @@ official Skat rules arbitration.
 * Flat post-game bounded Search with an independently executed Immediate baseline
 * Strict three-Trick flat `information_set_search` with exact settings, safe aggregate output, and no Live fallback
 * Descriptive same-selection PIMC and independent Immediate comparison for Information-set Post-game Review
+* Explicit [whole-game review of recorded Session decisions](docs/recorded_whole_game_review.md),
+  with fixed-policy terminal outcomes, separate played-goal/settlement objectives,
+  exact actual-card comparison, and separately retained legacy/rollout downloads
 * JSON output for regression-friendly analysis
 
 ### Simulation and policy comparison

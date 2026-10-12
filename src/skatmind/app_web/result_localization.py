@@ -5,6 +5,10 @@ from .render_locale import message
 
 # These are trusted presentation-field identities, never user-content lookups.
 RESULT_LABEL_KEYS = {
+    "Sampled party success": "rollout.success",
+    "Final local point margin": "rollout.margin",
+    "Mean settlement score": "rollout.score",
+    "Sampled terminal outcomes": "rollout.outcomes",
     "Summary": "result.summary",
     "Recommendation": "result.recommendation",
     "Alternatives": "result.alternatives",

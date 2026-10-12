@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/skatmind/whole_game_rollout.schema.json",
+  "title": "Whole-game rollout version 1 transport components",
+  "$ref": "#/$defs/result",
+  "$defs": {
+    "card": {"type": "string", "pattern": "^[CSHD](A|10|K|Q|J|9|8|7)$"},
+    "cards": {"type": "array", "maxItems": 10, "uniqueItems": true, "items": {"$ref": "#/$defs/card"}},
+    "count": {"type": "integer", "minimum": 0},
+    "settings": {
+      "type": "object", "additionalProperties": false,
+      "required": ["random_seed", "objective", "requested_worlds", "max_card_transitions", "max_preparation_work", "wall_clock_timeout_ms", "policy_profile", "policy_version"],
+      "properties": {
+        "random_seed": {"type": "integer", "minimum": 0, "maximum": 18446744073709551615},
+        "objective": {"enum": ["played_game_goal", "complete_settlement"]},
+        "requested_worlds": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "max_card_transitions": {"type": "integer", "minimum": 1, "maximum": 300000},
+        "max_preparation_work": {"type": "integer", "minimum": 1, "maximum": 100000},
+        "wall_clock_timeout_ms": {"type": "integer", "minimum": 1, "maximum": 60000},
+        "policy_profile": {"const": "side_aware_baseline"},
+        "policy_version": {"const": 1}
+      }
+    },
+    "derivation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["version", "policy", "original_request_fingerprint", "checkpoint_fingerprint", "source_revision", "checkpoint_decision_index"],
+      "properties": {
+        "version": {"const": 1},
+        "policy": {"const": "frozen_checkpoint_method_settings_only"},
+        "original_request_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "checkpoint_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "source_revision": {"type": "integer", "minimum": 0},
+        "checkpoint_decision_index": {"type": "integer", "minimum": 1, "maximum": 30}
+      }
+    },
+    "comparison": {
+      "type": "object", "additionalProperties": false,
+      "required": ["actual_card", "status", "responsible_metric", "best_card", "all_primary_success_equal", "display_order_only", "primary_success_count_gap", "total_local_game_score_gap", "total_local_card_point_margin_gap"],
+      "properties": {
+        "actual_card": {"$ref": "#/$defs/card"},
+        "status": {"enum": ["unavailable", "equal_complete_objective", "lower_primary_success", "lower_secondary_outcome"]},
+        "responsible_metric": {"enum": [null, "local_success_count", "total_local_game_score", "total_local_card_point_margin"]},
+        "best_card": {"oneOf": [{"$ref": "#/$defs/card"}, {"type": "null"}]},
+        "all_primary_success_equal": {"type": ["boolean", "null"]},
+        "display_order_only": {"type": "boolean"},
+        "primary_success_count_gap": {"type": ["integer", "null"], "minimum": 0, "maximum": 1000},
+        "total_local_game_score_gap": {"type": ["integer", "null"]},
+        "total_local_card_point_margin_gap": {"type": ["integer", "null"]}
+      }
+    },
+    "candidate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["card", "completed_samples", "local_success_count", "total_local_card_point_margin", "total_local_game_score", "total_declarer_points", "total_defender_points", "total_declarer_tricks", "total_defender_tricks", "sampled_local_success_fraction", "mean_final_local_card_point_margin", "mean_local_game_score"],
+      "properties": {
+        "card": {"$ref": "#/$defs/card"},
+        "completed_samples": {"type": "integer", "minimum": 0, "maximum": 1000},
+        "local_success_count": {"type": "integer", "minimum": 0, "maximum": 1000},
+        "total_local_card_point_margin": {"type": "integer", "minimum": -120000, "maximum": 120000},
+        "total_local_game_score": {"type": ["integer", "null"]},
+        "total_declarer_points": {"$ref": "#/$defs/count"},
+        "total_defender_points": {"$ref": "#/$defs/count"},
+        "total_declarer_tricks": {"$ref": "#/$defs/count"},
+        "total_defender_tricks": {"$ref": "#/$defs/count"},
+        "sampled_local_success_fraction": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "mean_final_local_card_point_margin": {"type": ["number", "null"], "minimum": -120, "maximum": 120},
+        "mean_local_game_score": {"type": ["number", "null"]}
+      }
+    },
+    "result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["method", "method_version", "objective", "objective_version", "policy", "sampling", "settings", "source", "information_cutoff", "source_fingerprint", "game_type", "local_side", "remaining_tricks", "status", "stop_reason", "requested_worlds", "compatible_world_count", "unique_sampled_worlds", "completed_common_worlds", "candidate_count", "candidates", "ranked_cards", "tied_best_cards", "recommended_card", "work", "limitations"],
+      "properties": {
+        "method": {"const": "whole_game_candidate_rollout"},
+        "method_version": {"const": 1},
+        "objective": {"enum": ["played_game_goal", "complete_settlement"]},
+        "objective_version": {"const": 1},
+        "policy": {"const": {"profile": "side_aware_baseline", "version": 1, "declarer_lead": "basic_trick_play", "declarer_response": "basic_trick_play", "defender_lead": "basic_defender_lead", "defender_response": "basic_defender_response", "tie_break": "first_canonical_preferred_card"}},
+        "sampling": {"const": "uniform_iid_with_replacement"},
+        "settings": {"$ref": "#/$defs/settings"},
+        "source": {"enum": ["live_local_view", "historical_decision_snapshot", "flat_decision_input"]},
+        "information_cutoff": {"const": "current_decision"},
+        "source_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "game_type": {"enum": ["clubs", "spades", "hearts", "diamonds", "grand", "null"]},
+        "local_side": {"enum": ["declarer", "defenders", null]},
+        "remaining_tricks": {"type": "integer", "minimum": 0, "maximum": 10},
+        "status": {"enum": ["complete", "unavailable", "partial", "timeout", "cancelled"]},
+        "stop_reason": {"enum": ["completed", "unsupported_game_type", "unsupported_perspective", "missing_concrete_declarer", "game_already_complete", "remaining_trick_limit_exceeded", "unsupported_turn_phase", "local_player_not_to_act", "no_legal_cards", "missing_terminal_utility_inputs", "incompatible_world_space", "preparation_budget_exhausted", "transition_budget_exhausted", "wall_clock_timeout", "cancelled", "incomplete_public_history", "missing_public_declarer_hand"]},
+        "requested_worlds": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "compatible_world_count": {"type": ["integer", "null"], "minimum": 0},
+        "unique_sampled_worlds": {"type": "integer", "minimum": 0, "maximum": 1000},
+        "completed_common_worlds": {"type": "integer", "minimum": 0, "maximum": 1000},
+        "candidate_count": {"type": "integer", "minimum": 0, "maximum": 10},
+        "candidates": {"type": "array", "maxItems": 10, "items": {"$ref": "#/$defs/candidate"}},
+        "ranked_cards": {"$ref": "#/$defs/cards"},
+        "tied_best_cards": {"$ref": "#/$defs/cards"},
+        "recommended_card": {"oneOf": [{"$ref": "#/$defs/card"}, {"type": "null"}]},
+        "work": {
+          "type": "object", "additionalProperties": false,
+          "required": ["preparation_units", "sampled_worlds", "materialized_worlds", "card_transitions", "terminal_evaluations", "elapsed_ms"],
+          "properties": {
+            "preparation_units": {"type": "integer", "minimum": 0, "maximum": 100000},
+            "sampled_worlds": {"type": "integer", "minimum": 0, "maximum": 1000},
+            "materialized_worlds": {"type": "integer", "minimum": 0, "maximum": 1000},
+            "card_transitions": {"type": "integer", "minimum": 0, "maximum": 300000},
+            "terminal_evaluations": {"type": "integer", "minimum": 0, "maximum": 10000},
+            "elapsed_ms": {"type": "number", "minimum": 0}
+          }
+        },
+        "limitations": {"type": "array", "minItems": 4, "maxItems": 5, "uniqueItems": true, "items": {"enum": ["fixed_policy_conditioned_outcomes_not_optimal_play", "uniform_compatible_assignments_not_calibrated_probabilities", "normal_suit_and_grand_completion_only", "no_auction_or_behavioral_inference", "played_goal_excludes_overbid_and_complete_settlement"]}}
+      },
+      "allOf": [{
+        "if": {"properties": {"status": {"const": "complete"}}},
+        "then": {"properties": {"stop_reason": {"const": "completed"}, "ranked_cards": {"minItems": 1}, "tied_best_cards": {"minItems": 1}, "recommended_card": {"$ref": "#/$defs/card"}}},
+        "else": {"properties": {"ranked_cards": {"maxItems": 0}, "tied_best_cards": {"maxItems": 0}, "recommended_card": {"type": "null"}}}
+      }]
+    }
+  }
+}

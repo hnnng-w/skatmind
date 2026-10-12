@@ -9,7 +9,7 @@ from .session_recorded_review import (
     project_recorded_session_decisions_v1,
 )
 from .stateful_localization import player_name, translated
-from .task_first_rendering import hidden, paragraph
+from .task_first_rendering import disclosure, hidden, paragraph, select_field
 
 
 def _decision_label(locale: str, players, row: RecordedDecisionV1) -> str:
@@ -43,14 +43,36 @@ def render_recorded_session_decisions_v1(
     for row in view.decisions:
         index = row.checkpoint.decision_index
         label_id = f"recorded-decision-{index}"
+        fields = (hidden("managed_handle", context.handle)
+                  + hidden("expected_revision", context.state.revision)
+                  + hidden("decision_selection", row.selection))
+        settings = {"objective": "played_game_goal", "requested_worlds": 100, "random_seed": 0}
+        if (context.rollout_review_source is not None
+                and context.rollout_review_source.decision.selection == row.selection):
+            settings = context.rollout_execution.request.document["whole_game_rollout_settings"]
+        advanced = select_field(locale, "objective", "rollout.objective", (
+            (value, translated(locale, f"rollout.objective.{value}"))
+            for value in ("played_game_goal", "complete_settlement")), settings["objective"])
+        advanced += paragraph(locale, "rollout.objective_help")
+        for name, key, maximum in (("requested_worlds", "rollout.worlds", 1000),
+                                   ("random_seed", "rollout.seed", 2**64 - 1)):
+            advanced += (f'<label>{translated(locale, key)} <input type="number" '
+                         f'name="{name}" min="{1 if name == "requested_worlds" else 0}" '
+                         f'max="{maximum}" step="1" required value="{settings[name]}"></label>')
+        method = row.checkpoint.request.document.get(
+            "recommendation_method", "immediate_expected_value")
         content += (
-            '<li><form method="post" action="/sessions/review-decision">'
-            + hidden("managed_handle", context.handle)
-            + hidden("expected_revision", context.state.revision)
-            + hidden("decision_selection", row.selection)
+            '<li>'
             + f'<p id="{label_id}">{_decision_label(locale, context.state.players, row)}</p>'
+            + '<form method="post" action="/sessions/review-whole-game">' + fields
+            + disclosure(locale, "task.advanced", advanced)
+            + f'<button type="submit" class="primary" aria-describedby="{label_id}">'
+            + translated(locale, "rollout.action") + '</button></form>'
+            + '<form method="post" action="/sessions/review-decision">' + fields
             + f'<button type="submit" class="secondary" aria-describedby="{label_id}">'
-            + translated(locale, "recorded_review.action") + '</button></form></li>'
+            + translated(locale, "rollout.legacy_action", method=translated(
+                locale, f"task.value.{method}"))
+            + '</button></form></li>'
         )
     content += '</ul>' if view.decisions else ""
     for status, count in view.unavailable_counts:
@@ -72,17 +94,31 @@ def render_recorded_session_decisions_v1(
 
 def render_recorded_review_source_v1(
     context: GuidedSessionContextV1, *, locale: str, game_label: str,
+    rollout: bool = False,
 ) -> str:
-    source = context.recorded_review_source
+    source = context.rollout_review_source if rollout else context.recorded_review_source
     if source is None:
         return ""
     return (
         '<p class="recorded-review-source"><strong>'
         + translated(locale, "recorded_review.result", game=game_label) + '</strong><br>'
         + _decision_label(locale, source.document.state.players, source.decision) + '</p>'
-        + paragraph(locale, "recorded_review.limit")
+        + paragraph(locale, "rollout.source" if rollout else "recorded_review.limit")
         + '<p><a href="#recorded-decision-'
         + escape(str(source.decision.checkpoint.decision_index)) + '">'
         + translated(locale, "recorded_review.back", trick=source.decision.checkpoint.trick_number,
                      position=source.decision.checkpoint.play_index) + '</a></p>'
     )
+
+
+def render_rollout_notice_v1(context: GuidedSessionContextV1, *, locale: str) -> str:
+    notice = context.rollout_notice
+    if notice is None:
+        return ""
+    return (paragraph(locale, "rollout.incomplete_attempt")
+            + '<p>' + _decision_label(locale, notice.source.document.state.players,
+                                     notice.source.decision) + '</p>'
+            + paragraph(locale, "rollout.objective." + notice.settings.objective)
+            + paragraph(locale, "rollout.coverage", completed=notice.completed_worlds,
+                        requested=notice.settings.requested_worlds)
+            + paragraph(locale, "rollout.reason." + notice.reason))

@@ -107,6 +107,7 @@ _ALGORITHM_REFERENCE_IDS = frozenset({
     "post_game_review_v1",
     "private_ownership_matador_evidence_v1",
     "recommendation_method_routing",
+    "whole_game_candidate_rollout_v1",
     "replay_coaching_assessment",
     "replay_coaching_guidance_v1",
     "replay_coaching_prioritization_v1",

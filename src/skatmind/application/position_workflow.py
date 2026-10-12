@@ -133,6 +133,13 @@ from skatmind.result_serialization import (
 )
 from skatmind.rules import get_legal_cards
 from skatmind.simulation_provenance import build_safe_selection_settings
+from skatmind.whole_game_rollout_workflow import (
+    WHOLE_GAME_ROLLOUT_METHOD,
+    compare_rollout_actual,
+    rollout_declaration,
+    serialize_rollout_result,
+    serialize_rollout_settings,
+)
 
 if TYPE_CHECKING:
     from skatmind.live_analysis_provenance import LiveAnalysisProvenanceCollector
@@ -333,8 +340,9 @@ def _build_position_analysis_result(
         recommendation_configuration.requested_method
         == INFORMATION_SET_SEARCH_RECOMMENDATION_METHOD
     )
+    is_rollout = recommendation_configuration.requested_method == WHOLE_GAME_ROLLOUT_METHOD
     actual_card_played = (
-        None if is_information_set_search else get_actual_card_played_from_input(data)
+        None if is_information_set_search or is_rollout else get_actual_card_played_from_input(data)
     )
     game_shortening = get_game_shortening_from_input(data)
     game_continuation = get_game_continuation_from_input(data)
@@ -359,7 +367,9 @@ def _build_position_analysis_result(
         )
     )
     declaration_data = data if game_shortening is not None else local_data
-    if match_decision_review:
+    if is_rollout:
+        game_declaration = rollout_declaration(declaration_data)
+    elif match_decision_review:
         nested_declaration = declaration_data.get("game_declaration")
         if not isinstance(nested_declaration, dict):
             raise SkatMindWorkflowError(
@@ -436,6 +446,9 @@ def _build_position_analysis_result(
                 recommendation_configuration.requested_search_budget
             ),
         )
+        if is_rollout:
+            selection_settings["whole_game_rollout_settings"] = serialize_rollout_settings(
+                recommendation_configuration.whole_game_rollout_settings)
         if is_information_set_search:
             selection_settings["information_set_search_settings"] = (
                 build_serializable_information_set_search_settings(
@@ -642,6 +655,11 @@ def _build_position_analysis_result(
             )
         )
 
+    rollout_comparison = None
+    if is_rollout:
+        actual_card_played = get_actual_card_played_from_input(data)
+        rollout_comparison = compare_rollout_actual(
+            recommendation_workflow.whole_game_rollout_result, actual_card_played)
     post_game_review_summary = build_post_game_review_summary(
         actual_card_played=actual_card_played,
         analysis_report=immediate_review_report,
@@ -664,6 +682,7 @@ def _build_position_analysis_result(
             information_set_search_comparison=(
                 information_set_search_comparison
             ),
+            **({"whole_game_rollout_comparison": rollout_comparison} if is_rollout else {}),
         )
     score_summary = build_score_summary(state)
     game_result_summary = build_game_result_summary_from_score_summary(
@@ -853,6 +872,14 @@ def _build_position_analysis_result(
             result["information_set_search_result"] = (
                 recommendation_workflow.information_set_search_public_result
             )
+        if is_rollout:
+            settings["whole_game_rollout_settings"] = serialize_rollout_settings(
+                recommendation_configuration.whole_game_rollout_settings)
+            result["whole_game_rollout_result"] = serialize_rollout_result(
+                recommendation_workflow.whole_game_rollout_result)
+            result["whole_game_rollout_comparison"] = rollout_comparison
+            if "whole_game_rollout_derivation" in data:
+                result["whole_game_rollout_derivation"] = data["whole_game_rollout_derivation"]
     if bounded_search_post_game_review_summary is not None:
         result["bounded_search_post_game_review_summary"] = (
             bounded_search_post_game_review_summary
@@ -1020,6 +1047,18 @@ def execute_position_analysis_workflow(
         data
     )
     game_continuation = get_game_continuation_from_input(data)
+    if recommendation_configuration.requested_method == WHOLE_GAME_ROLLOUT_METHOD and (
+        options.multi_step_count is not None or options.compare_policies or match_decision_review
+        or opponent_statistics_document is not None
+        or any(getattr(options, name) is not None for name in (
+            "sample_count_override", "random_seed_override", "opponent_strategy_override",
+            "opponent_policy_preset_override", "opponent_lead_policy_override",
+            "opponent_response_policy_override", "left_opponent_lead_policy_override",
+            "left_opponent_response_policy_override", "right_opponent_lead_policy_override",
+            "right_opponent_response_policy_override")) or options.use_profile_presets_override
+    ):
+        raise SkatMindWorkflowError(
+            "Whole-game rollout requires its method-specific settings only.")
     continuation_context = (
         resolve_game_continuation(data, game_continuation)
         if game_continuation is not None

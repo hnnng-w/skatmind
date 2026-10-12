@@ -45,6 +45,7 @@ from skatmind.recommendation_workflow import (
 from skatmind.result_serialization import build_serializable_game_state
 from skatmind.search_provenance import build_bounded_search_provenance_entries
 from skatmind.v1_information_provenance_sources import exact_v1_json_equal
+from skatmind.whole_game_rollout_workflow import serialize_rollout_result
 
 RETROSPECTIVE_REVIEW_PROVENANCE_VERSION = 1
 
@@ -429,7 +430,7 @@ def build_flat_retrospective_input_attachment(
 
 def _decision_analysis_entry(
     path: str,
-    _tokens: tuple[str, ...],
+    tokens: tuple[str, ...],
 ) -> FieldProvenanceEntry:
     return _entry(
         path,
@@ -439,7 +440,8 @@ def _decision_analysis_entry(
         derivation="heuristic",
         decision_index=0,
         perspective_player_id="me",
-        source_references=(_reference("algorithm", "retrospective_position_analysis"),),
+        source_references=(_reference("algorithm", "whole_game_candidate_rollout_v1"
+            if "whole_game_rollout_result" in tokens else "retrospective_position_analysis"),),
     )
 
 
@@ -475,6 +477,7 @@ def build_flat_retrospective_result_entries(
     for branch in (
         "post_game_review_summary",
         "bounded_search_post_game_review_summary",
+        "whole_game_rollout_comparison",
     ):
         value = result.get(branch)
         if value is None and branch not in result:
@@ -583,6 +586,7 @@ class FlatRetrospectiveProvenanceCollector:
         post_game_review_summary: Mapping[str, object],
         bounded_search_post_game_review_summary: Mapping[str, object] | None,
         information_set_search_comparison: Mapping[str, object] | None = None,
+        whole_game_rollout_comparison: Mapping[str, object] | None = None,
     ) -> None:
         if actual_card_played is None:
             return
@@ -609,6 +613,8 @@ class FlatRetrospectiveProvenanceCollector:
             document["information_set_search_comparison"] = dict(
                 information_set_search_comparison
             )
+        if whole_game_rollout_comparison is not None:
+            document["whole_game_rollout_comparison"] = dict(whole_game_rollout_comparison)
         self._assessment_document = document
 
     @staticmethod
@@ -641,6 +647,9 @@ class FlatRetrospectiveProvenanceCollector:
             ),
             "hidden_card_inference_summary": inference,
         }
+        if result.whole_game_rollout_result is not None:
+            document["whole_game_rollout_result"] = serialize_rollout_result(
+                result.whole_game_rollout_result)
         return document
 
     def _build_analysis_attachment(self) -> ApplicationProvenanceAttachment:

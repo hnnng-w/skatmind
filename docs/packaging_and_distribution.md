@@ -145,8 +145,9 @@ the check finishes. It does not publish either artifact.
 
 ## Schema resources
 
-The 71 files under repository `schemas/` are the authoritative JSON Schemas for
-the published `v0.17.0` Package baseline.
+The files under repository `schemas/` are the authoritative JSON Schemas. The
+published `v0.17.0` Package baseline contained 71; Issue #285 adds the whole-game
+rollout component schema, bringing the current source inventory to 72.
 Issue #156 adds strict standalone `session.schema.json`; Issue #157 extends that
 same file for Session creation, file API, observation, and review contracts
 without adding a 64th Schema. Wheel and sdist contain its byte-identical Package
@@ -240,7 +241,7 @@ Wheel inspection verifies:
   `RECORD` hashes and sizes;
 * the declared runtime and development dependencies;
 * every `skatmind` Python module;
-* `py.typed` and all 71 byte-identical schema resources;
+* `py.typed` and all 72 byte-identical schema resources;
 * exact Capture Web template, CSS, and JavaScript resource bytes;
 * exact Corpus Web template, CSS, and JavaScript resource bytes;
 * exact unified-app template and CSS resource bytes;
@@ -365,7 +366,7 @@ The complete local check runs, in fail-fast order:
 1. Ruff;
 2. packaged-schema parity;
 3. Root and Session example schema validation;
-4. validation of all 98 generated-output scenarios;
+4. validation of all 102 generated-output scenarios;
 5. distribution artifact and clean-install validation;
 6. pytest.
 

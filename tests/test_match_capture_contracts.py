@@ -752,15 +752,15 @@ def test_existing_internal_public_package_and_count_contracts_are_unchanged() ->
     assert skatmind.__all__ == ("api", "errors", "__version__")
     assert "MatchCaptureDefinitionV1" not in api_v1.__all__
     assert "MatchCaptureDefinitionV1" not in session_api.__all__
-    assert len(tuple((PROJECT_ROOT / "schemas").glob("*.schema.json"))) == 71
+    assert len(tuple((PROJECT_ROOT / "schemas").glob("*.schema.json"))) == 72
     assert len(
         tuple(
             (PROJECT_ROOT / "src" / "skatmind" / "schema_resources").glob(
                 "*.schema.json"
             )
         )
-    ) == 71
-    assert len(SCENARIOS) == 98
+    ) == 72
+    assert len(SCENARIOS) == 102
     pyproject = tomllib.loads(
         (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     )

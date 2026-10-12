@@ -254,11 +254,11 @@ def test_strategy_teacher_remains_private_and_baselines_are_unchanged() -> None:
     assert TRAINING_FEATURE_GENERATION_VERSION == 1
     assert TRAINING_TARGET == "actual_card_played"
     assert len(WorkflowV1) == 7
-    assert len(SCENARIOS) == 98
-    assert len(tuple((PROJECT_ROOT / "schemas").glob("*.schema.json"))) == 71
+    assert len(SCENARIOS) == 102
+    assert len(tuple((PROJECT_ROOT / "schemas").glob("*.schema.json"))) == 72
     assert len(
         tuple((PROJECT_ROOT / "src/skatmind/schema_resources").glob("*.schema.json"))
-    ) == 71
+    ) == 72
     assert len(tuple((PROJECT_ROOT / "examples").glob("session_*.json"))) == 6
     assert not tuple((PROJECT_ROOT / "schemas").glob("*strategy_teacher*.json"))
     for namespace in (skatmind, api_v1, cli):

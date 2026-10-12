@@ -896,6 +896,8 @@ def _generic_result_entry(
                 ),
             ),
         )
+        if isinstance(summary, Mapping) and summary.get("requested_method") == "whole_game_rollout":
+            references = (_reference("algorithm", "whole_game_candidate_rollout_v1"),)
         dependencies = visible_dependencies
         requested_search = isinstance(summary, Mapping) and summary.get(
             "requested_method"
@@ -947,6 +949,15 @@ def _generic_result_entry(
                 "bounded_information_set_policy_search_v1",
             ),
         )
+    elif top == "whole_game_rollout_result":
+        origin = "heuristic_analysis"
+        derivation = "heuristic"
+        references = (_reference("algorithm", "whole_game_candidate_rollout_v1"),)
+        dependencies = visible_dependencies
+    elif top == "whole_game_rollout_derivation":
+        origin = "validated_copy"
+        derivation = "validated"
+        references = (_reference("request", "position_analysis_request", field_path=path),)
     elif "hidden_card_inference_summary" in tokens:
         origin = "structural_inference"
         derivation = "exact_aggregate"

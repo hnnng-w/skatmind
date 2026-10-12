@@ -822,8 +822,11 @@ each shared IID world through the existing actor-observation and exact legal
 transition boundary. Played-goal success (including declaration requirements,
 excluding overbid/settlement) and explicit strict complete settlement are
 separate objectives. Only complete common batches contribute; interrupted
-evaluation has no ranking or recommendation. Recorded-review integration and
-user-facing controls are stage 2. See
+evaluation has no ranking or recommendation. Issue #285 connects the separate
+`session_rollout_review.py` derived-request adapter through existing validated
+public execution, `whole_game_rollout_workflow.py` transport/result adaptation,
+and source-bound dual Session result slots. See
+[recorded whole-game review](recorded_whole_game_review.md) and
 [Bounded whole-game candidate rollout](whole_game_candidate_rollout.md).
 
 The exact defender-open-play engine is intentionally outside this simulation

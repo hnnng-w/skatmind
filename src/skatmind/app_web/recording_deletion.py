@@ -96,7 +96,8 @@ def _binding(active, family):
         return ()
     if family == "sessions":
         return (active.generation, active.document.content_fingerprint, active.review_selection_key,
-                active.execution, active.recorded_review_source, active.execution_attempt)
+                active.execution, active.recorded_review_source, active.execution_attempt,
+                active.rollout_execution, active.rollout_review_source, active.rollout_notice)
     return (active.capture.content_fingerprint, active.card_entry_key,
             active.selected_position, active.position_generation,
             active.capture.report_store.generation, active.capture.report_store.list(),

@@ -29,6 +29,17 @@ from skatmind.information_set_search_workflow import (
 from skatmind.public_hand_constraint import PublicHandConstraint
 from skatmind.recommender import recommend_card_by_expected_value
 from skatmind.rules import get_legal_cards
+from skatmind.whole_game_rollout import evaluate_whole_game_rollout_v1
+from skatmind.whole_game_rollout_contracts import (
+    WholeGameRolloutResultV1,
+    WholeGameRolloutSettingsV1,
+)
+from skatmind.whole_game_rollout_workflow import (
+    WHOLE_GAME_ROLLOUT_METHOD,
+    parse_rollout_settings,
+    unavailable_rollout_root,
+    validate_rollout_derivation,
+)
 
 IMMEDIATE_EXPECTED_VALUE_METHOD = "immediate_expected_value"
 BOUNDED_SEARCH_METHOD = "bounded_search"
@@ -45,6 +56,7 @@ SEARCH_RECOMMENDATION_METHODS = (BOUNDED_SEARCH_METHOD, AUTO_METHOD)
 FLAT_RECOMMENDATION_METHODS = (
     *VALID_RECOMMENDATION_METHODS,
     INFORMATION_SET_SEARCH_RECOMMENDATION_METHOD,
+    WHOLE_GAME_ROLLOUT_METHOD,
 )
 FLAT_SEARCH_RECOMMENDATION_METHODS = (
     *SEARCH_RECOMMENDATION_METHODS,
@@ -79,10 +91,20 @@ class RecommendationMethodConfiguration:
     search_random_seed: int | None = None
     requested_search_budget: RequestedSearchBudget | None = None
     information_set_search_settings: InformationSetSearchSettings | None = None
+    whole_game_rollout_settings: WholeGameRolloutSettingsV1 | None = None
 
     def __post_init__(self) -> None:
         if self.requested_method not in FLAT_RECOMMENDATION_METHODS:
             raise ValueError(f"Invalid recommendation_method: {self.requested_method}")
+        if self.requested_method == WHOLE_GAME_ROLLOUT_METHOD:
+            if type(self.whole_game_rollout_settings) is not WholeGameRolloutSettingsV1 or (
+                self.search_random_seed is not None or self.requested_search_budget is not None
+                or self.information_set_search_settings is not None
+            ):
+                raise ValueError("Whole-game rollout requires only its own settings.")
+            return
+        if self.whole_game_rollout_settings is not None:
+            raise ValueError("Rollout settings require whole_game_rollout.")
         if self.requested_method in SEARCH_RECOMMENDATION_METHODS:
             if self.search_random_seed is None or self.requested_search_budget is None:
                 raise ValueError(
@@ -135,6 +157,7 @@ class RecommendationWorkflowResult:
     information_set_search_result: InformationSetSearchResultV1 | None = None
     information_set_search_public_result: dict[str, Any] | None = None
     information_set_search_workflow: InformationSetSearchWorkflowResultV1 | None = None
+    whole_game_rollout_result: WholeGameRolloutResultV1 | None = None
 
     def __post_init__(self) -> None:
         if self.requested_method not in FLAT_RECOMMENDATION_METHODS:
@@ -143,6 +166,7 @@ class RecommendationWorkflowResult:
             IMMEDIATE_EXPECTED_VALUE_METHOD,
             COMPATIBLE_WORLD_MINIMAX_METHOD,
             INFORMATION_SET_SEARCH_EFFECTIVE_METHOD,
+            WHOLE_GAME_ROLLOUT_METHOD,
             NONE_EFFECTIVE_METHOD,
         }:
             raise ValueError("Recommendation workflow has an invalid effective method.")
@@ -211,8 +235,23 @@ class RecommendationWorkflowResult:
             )
             if self.effective_method != expected_effective:
                 raise ValueError("Information-set Search effective method is inconsistent.")
+        elif self.requested_method == WHOLE_GAME_ROLLOUT_METHOD:
+            rollout = self.whole_game_rollout_result
+            if rollout is None or rollout.recommended_card != self.recommendation_card or (
+                self.effective_method != (
+                    WHOLE_GAME_ROLLOUT_METHOD
+                    if rollout.status == "complete" else NONE_EFFECTIVE_METHOD)
+                or self.bounded_search_result is not None or self.analysis_report
+                or self.analysis_report_method != NONE_ANALYSIS_REPORT_METHOD or self.fallback_used
+            ):
+                raise ValueError("Whole-game rollout recommendation metadata is inconsistent.")
         elif self.bounded_search_result is None:
             raise ValueError("Search recommendation methods require a Search result.")
+        if self.requested_method != WHOLE_GAME_ROLLOUT_METHOD and (
+            self.whole_game_rollout_result is not None
+            or self.effective_method == WHOLE_GAME_ROLLOUT_METHOD
+        ):
+            raise ValueError("Only rollout may retain a rollout result.")
         if self.bounded_search_result is not None and (
             self.bounded_search_result.fallback_used != self.fallback_used
             or self.bounded_search_result.fallback_method != self.fallback_method
@@ -270,6 +309,17 @@ def build_recommendation_method_configuration(
 
     bounded_settings_supplied = "bounded_search_settings" in data
     information_set_settings_supplied = "information_set_search_settings" in data
+    if requested_method == WHOLE_GAME_ROLLOUT_METHOD:
+        if "whole_game_rollout_derivation" in data:
+            validate_rollout_derivation(data["whole_game_rollout_derivation"])
+        if bounded_settings_supplied or information_set_settings_supplied:
+            raise ValueError("Whole-game rollout rejects other method settings.")
+        return RecommendationMethodConfiguration(
+            explicitly_supplied=True, requested_method=requested_method,
+            whole_game_rollout_settings=parse_rollout_settings(data.get("whole_game_rollout_settings")),
+        )
+    if "whole_game_rollout_settings" in data or "whole_game_rollout_derivation" in data:
+        raise ValueError("Rollout settings and derivation require whole_game_rollout.")
     if requested_method == IMMEDIATE_EXPECTED_VALUE_METHOD:
         if bounded_settings_supplied or information_set_settings_supplied:
             raise ValueError(
@@ -355,6 +405,18 @@ def validate_recommendation_method_workflow(
     configuration: RecommendationMethodConfiguration,
 ) -> None:
     """Enforces the flat ongoing decision boundary for Search methods."""
+    if configuration.requested_method == WHOLE_GAME_ROLLOUT_METHOD:
+        if data.get("analysis_mode") != "post_game_review" or "actual_card_played" not in data:
+            raise ValueError("whole_game_rollout requires post_game_review and actual_card_played.")
+        if data.get("game_end_reason", "not_ended") != "not_ended" or (
+            data.get("skat_visibility", "unknown") == "known_post_game"
+        ):
+            raise ValueError("whole_game_rollout requires an ongoing decision-time root.")
+        if any(key in data for key in ("game_shortening", "impossible_null_settlement",
+            "list_performance_input", "list_game_contributions", "list_analysis_results",
+            "list_standings_input")):
+            raise ValueError("whole_game_rollout supports only flat normal-play review.")
+        return
     if configuration.requested_method not in FLAT_SEARCH_RECOMMENDATION_METHODS:
         return
     analysis_mode = data.get("analysis_mode", "live_decision")
@@ -754,6 +816,34 @@ def execute_recommendation_workflow(
             fallback_used=False,
             fallback_method=None,
             hidden_card_inference_model=hidden_model,
+        )
+
+    if configuration.requested_method == WHOLE_GAME_ROLLOUT_METHOD:
+        rollout = unavailable_rollout_root(
+            state=state, declaration=declaration, left_hand_size=left_hand_size,
+            right_hand_size=right_hand_size,
+            public_hand_constraints=public_hand_constraints,
+            settings=configuration.whole_game_rollout_settings,
+        )
+        if rollout is None:
+            view = build_live_search_information_view(
+                state=state, declaration=declaration, left_hand_size=left_hand_size,
+                right_hand_size=right_hand_size, skat_visibility=skat_visibility,
+                public_hand_constraints=public_hand_constraints,
+            )
+            rollout = evaluate_whole_game_rollout_v1(
+                view, configuration.whole_game_rollout_settings)
+        reason = (f"Whole-game rollout: {rollout.status}; {rollout.stop_reason}; "
+                  f"{rollout.completed_common_worlds}/{rollout.settings.requested_worlds} "
+                  f"common worlds; objective {rollout.objective}. "
+                  "Fixed-policy sampled terminal outcomes, not calibrated probabilities.")
+        return RecommendationWorkflowResult(
+            requested_method=WHOLE_GAME_ROLLOUT_METHOD,
+            effective_method=WHOLE_GAME_ROLLOUT_METHOD if rollout.status == "complete" else "none",
+            recommendation_card=rollout.recommended_card, recommendation_reason=reason,
+            legal_cards=tuple(item.card for item in rollout.candidates), analysis_report=(),
+            analysis_report_method="none", strategic_summary=reason, bounded_search_result=None,
+            fallback_used=False, fallback_method=None, whole_game_rollout_result=rollout,
         )
 
     if configuration.requested_method == INFORMATION_SET_SEARCH_RECOMMENDATION_METHOD:

@@ -2,6 +2,19 @@
 
 This document describes the JSON output produced by `skatmind`.
 
+## Whole-game rollout review output
+
+Explicit `whole_game_rollout` adds `whole_game_rollout_result`,
+`whole_game_rollout_comparison`, and optional echoed `whole_game_rollout_derivation`
+inside the existing Position Result. The strict component schema is
+[`whole_game_rollout.schema.json`](../schemas/whole_game_rollout.schema.json).
+The Result contains terminal aggregates, exact full-objective ranking/ties,
+work/settings/profile identity, and common completed-world coverage. The separate
+actual-card comparison identifies exact equality, primary success gaps, secondary
+score/margin gaps, or unavailability. Incomplete work has no ranking or normal
+recommendation and never falls back. The legacy Immediate review summary is
+unavailable for this method. See [Result meaning](recorded_whole_game_review.md#result-meaning).
+
 ## JSON schema
 
 The output JSON schema is available at:

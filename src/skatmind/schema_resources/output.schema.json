@@ -269,6 +269,30 @@
   ],
   "allOf": [
     {
+      "if": {"required": ["recommendation_method_summary"], "properties": {"recommendation_method_summary": {"properties": {"requested_method": {"const": "whole_game_rollout"}}}}},
+      "then": {
+        "required": ["whole_game_rollout_result", "whole_game_rollout_comparison"],
+        "allOf": [{
+          "if": {"properties": {"whole_game_rollout_result": {"properties": {"status": {"const": "complete"}}}}},
+          "then": {"properties": {
+            "recommendation_method_summary": {"properties": {"effective_method": {"const": "whole_game_rollout"}}},
+            "whole_game_rollout_comparison": {"properties": {"status": {"enum": ["equal_complete_objective", "lower_primary_success", "lower_secondary_outcome"]}}}
+          }},
+          "else": {"properties": {
+            "recommendation_method_summary": {"properties": {"effective_method": {"const": "none"}}},
+            "recommendation": {"properties": {"card": {"type": "null"}}},
+            "whole_game_rollout_comparison": {"properties": {"status": {"const": "unavailable"}, "best_card": {"type": "null"}}}
+          }}
+        }],
+        "properties": {
+          "bounded_search_result": {"type": "null"},
+          "settings": {"required": ["whole_game_rollout_settings"], "properties": {"recommendation_method": {"const": "whole_game_rollout"}, "bounded_search_settings": {"type": "null"}}},
+          "information_policy_summary": {"properties": {"analysis_mode": {"const": "post_game_review"}}}
+        }
+      },
+      "else": {"not": {"anyOf": [{"required": ["whole_game_rollout_result"]}, {"required": ["whole_game_rollout_comparison"]}, {"required": ["whole_game_rollout_derivation"]}]}}
+    },
+    {
       "if": {"required": ["recommendation_method_summary"]},
       "then": {
         "required": ["bounded_search_result"],
@@ -353,6 +377,9 @@
           }
         },
         "else": {
+          "if": {"properties": {"recommendation_method_summary": {"properties": {"requested_method": {"const": "whole_game_rollout"}}}}, "required": ["recommendation_method_summary"]},
+          "then": {"properties": {"bounded_search_result": {"type": "null"}}},
+          "else": {
           "properties": {
             "bounded_search_result": {
               "allOf": [
@@ -366,6 +393,7 @@
                 }
               ]
             }
+          }
           }
         }
       }
@@ -573,7 +601,8 @@
             "immediate_expected_value",
             "bounded_search",
             "auto",
-            "information_set_search"
+            "information_set_search",
+            "whole_game_rollout"
           ]
         },
         "bounded_search_settings": {
@@ -582,6 +611,7 @@
             {"type": "null"}
           ]
         },
+        "whole_game_rollout_settings": {"$ref": "https://example.local/skatmind/whole_game_rollout.schema.json#/$defs/settings"},
         "information_set_search_settings": {
           "oneOf": [
             {"$ref": "#/$defs/information_set_search_settings"},
@@ -713,6 +743,9 @@
     "information_set_search_comparison": {
       "$ref": "https://example.local/skatmind/information_set_search_comparison.schema.json"
     },
+    "whole_game_rollout_result": {"$ref": "https://example.local/skatmind/whole_game_rollout.schema.json"},
+    "whole_game_rollout_comparison": {"$ref": "https://example.local/skatmind/whole_game_rollout.schema.json#/$defs/comparison"},
+    "whole_game_rollout_derivation": {"$ref": "https://example.local/skatmind/whole_game_rollout.schema.json#/$defs/derivation"},
     "multi_step_result": {
       "$ref": "#/$defs/multi_step_result"
     },
@@ -816,7 +849,8 @@
             "immediate_expected_value",
             "bounded_search",
             "auto",
-            "information_set_search"
+            "information_set_search",
+            "whole_game_rollout"
           ]
         },
         "effective_method": {
@@ -825,6 +859,7 @@
             "immediate_expected_value",
             "compatible_world_minimax_v1",
             "bounded_information_set_policy_search_v1",
+            "whole_game_rollout",
             "none"
           ]
         },
@@ -840,6 +875,10 @@
         }
       },
       "allOf": [
+        {
+          "if": {"properties": {"requested_method": {"const": "whole_game_rollout"}}},
+          "then": {"properties": {"effective_method": {"enum": ["whole_game_rollout", "none"]}, "search_attempted": {"const": false}, "fallback_used": {"const": false}, "fallback_method": {"type": "null"}, "analysis_report_method": {"const": "none"}}}
+        },
         {
           "if": {
             "properties": {

@@ -248,18 +248,17 @@ The measured success fractions are fixed-policy simulated outcomes, not
 calibrated real-player win probabilities. Timing is not a cross-machine latency
 guarantee or a recurring benchmark gate.
 
-## Pending stage 2 and acceptance
+## Stage 2 integration and acceptance
 
-Recorded-review integration must explicitly derive a new analysis from an
-unchanged frozen decision snapshot, bind it to that exact source/cutoff, provide
-optional method/objective/settings selection and understandable terminal output,
-and add the required provenance and transport validation. Observed actual-card
-comparison belongs after evaluation in that stage. Existing historical
-Requests/Results must not be silently replaced.
+Issue #285 implements [explicit recorded whole-game review](recorded_whole_game_review.md)
+through the separately derived public `whole_game_rollout` Position method,
+strict settings/schema/serialization, bounded provenance, post-evaluation actual
+comparison, localized Session controls, and separate retained result ownership.
+The accepted core policy, scoring, sampling, and work semantics remain unchanged.
 
-This core adds no Root method routing, public exports or schemas, CLI/UI
-controls, Session persistence fields, or default changes. Internal tests and
-Quick are local evidence; exact-commit branch CI and identical-commit main
-integration remain maintainer acceptance work. Issue #208 and the UAT analysis
-finding remain open. Completing this core does not establish general optimal
-Skat, overall recommendation quality, frontend availability, or user acceptance.
+Stage 1 itself added no public routing or controls. Its technical acceptance is
+recorded at `2b7eae6`. Stage 2 retains the package/API/workflow versions, Session
+persistence, and global defaults. Its focused tests and Quick are local evidence;
+exact-commit CI, identical-commit integration, and the brief installed retest remain
+maintainer work. Issue #208 remains open. These methods do not establish general
+optimal Skat, overall recommendation quality, or user acceptance.
