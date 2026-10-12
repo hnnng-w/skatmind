@@ -667,6 +667,14 @@ def _build_position_analysis_result(
         player_role=state.player_role,
         game_value=game_value_summary["game_value"],
     )
+    if is_rollout:
+        post_game_review_summary["decision_explanation"] = (
+            "The legacy immediate-trick review summary is unavailable for whole_game_rollout. "
+            + ("See whole_game_rollout_comparison for the separate whole-game card comparison."
+               if rollout_comparison["status"] != "unavailable" else
+               "The whole-game evaluation is incomplete or unavailable; "
+               "no whole-game card comparison is available.")
+        )
     retain_assessment = getattr(
         provenance_collector,
         "retain_flat_retrospective_assessment",

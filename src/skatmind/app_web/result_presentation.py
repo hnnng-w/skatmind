@@ -111,6 +111,7 @@ class BrowserSafeResultPresentationV1:
     workflow: str
     sections: tuple[ResultSectionV1, ...]
     warnings: tuple[str, ...] = ()
+    technical_disclosure_label: str | None = None
 
     def __post_init__(self) -> None:
         if self.workflow not in {_POSITION_WORKFLOW, _HISTORICAL_WORKFLOW}:
@@ -125,6 +126,8 @@ class BrowserSafeResultPresentationV1:
             raise ValueError("Result sections must use the exact canonical order.")
         if any(type(warning) is not str or not warning for warning in warnings):
             raise ValueError("warnings must contain non-empty text.")
+        if self.technical_disclosure_label is not None:
+            _require_text(self.technical_disclosure_label, "Technical disclosure label")
 
 
 def _object(value: object) -> Mapping[str, object]:

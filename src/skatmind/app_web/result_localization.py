@@ -5,6 +5,9 @@ from .render_locale import message
 
 # These are trusted presentation-field identities, never user-content lookups.
 RESULT_LABEL_KEYS = {
+    "Recommended card": "rollout.recommended",
+    "Played card": "rollout.played",
+    "Simulated settlement success": "rollout.settlement_success",
     "Sampled party success": "rollout.success",
     "Final local point margin": "rollout.margin",
     "Mean settlement score": "rollout.score",

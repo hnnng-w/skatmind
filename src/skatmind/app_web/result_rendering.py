@@ -195,7 +195,9 @@ def render_result_presentation_v1(
             rendered.append(
                 f'<section class="analysis-technical" aria-labelledby="{identifier}">'
                 f'<details class="technical-details"><summary id="{identifier}">'
-                f'{_t("result.analysis_details")}</summary>{body}</details></section>')
+                + (escape(presentation.technical_disclosure_label)
+                   if presentation.technical_disclosure_label is not None else _t("result.analysis_details"))
+                + f'</summary>{body}</details></section>')
             continue
         rendered.append(
             f'<section aria-labelledby="{identifier}">'

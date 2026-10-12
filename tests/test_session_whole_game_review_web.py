@@ -60,7 +60,8 @@ def test_real_post_derived_root_dual_downloads_and_passive_languages(localized_s
         assert browser.submit(form, language=language)[0] == 303
         page = browser.page()
         assert text(language, "rollout.heading") in page
-        assert text(language, "rollout.primary_tie") in page
+        assert text(language, "rollout.all_succeeded", candidates=10, samples=2,
+                    goal=text(language, "rollout.goal.played_game_goal")) in page
         assert 'value="7"' in page
         assert 'class="result-table-wrap candidate-comparison"' in page
         for name, expected in (("request", legacy.request_json_bytes),
@@ -211,3 +212,51 @@ def test_enhanced_language_return_preserves_rollout_view_and_unsent_settings(
         assert (values["random_seed"], values["requested_worlds"], values["objective"]) == (
             "99", "5", "complete_settlement")
         assert context.rollout_execution is retained and context.document is document
+
+
+def test_passive_clarity_rendering_preserves_an_old_export_explanation(
+    localized_server, monkeypatch,
+):
+    from dataclasses import replace
+
+    import skatmind.api.v1.session.files as files
+    from skatmind.api.v1 import ExecutionResultV1
+    from skatmind.api.v1.schema_validation import validate_output_document
+    from skatmind.app_web.json_transfer import canonical_frontend_json_bytes_v1
+
+    context, checkpoint = activate_saved_opening(localized_server)
+    browser = Browser(localized_server)
+    assert browser.submit(rollout_form(browser), requested_worlds="1")[0] == 303
+    executed = context.rollout_execution
+    old_document = executed.result.result.to_dict()["document"]
+    old_text = ("No post-game review decision quality is available because "
+                "immediate analysis is unavailable.")
+    old_document["post_game_review_summary"]["decision_explanation"] = old_text
+    validate_output_document(old_document)
+    old_result = ExecutionResultV1(result=replace(executed.result.result, document=old_document))
+    # Simulate a valid previously retained producer Result, never alter a saved file.
+    retained = replace(executed, result=old_result,
+        result_json_bytes=canonical_frontend_json_bytes_v1(serialize_result(old_result)))
+    context.rollout_execution = retained
+    source = context.rollout_review_source
+    saved, frozen = context.path.read_bytes(), checkpoint.to_dict()
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Passive rendering must not execute or save")
+    monkeypatch.setattr(execution_module, "execute", forbidden)
+    monkeypatch.setattr(files, "save_session_file", forbidden)
+    for locale in ("de", "en"):
+        page = browser.page()
+        response = browser.submit(Forms(page).find("/actions/profile/language"), language=locale)
+        assert response[0] == 303
+        page = browser.page()
+        assert text(locale, "rollout.recommended") in page
+        assert text(locale, "rollout.calculation_details") in page
+        assert '<details class="technical-details">' in page
+        assert 'class="recorded-review-source"' in page and 'href="#recorded-decision-1"' in page
+        assert browser.request("GET", "/sessions/downloads/rollout-request.json")[2] == (
+            retained.request_json_bytes)
+        assert browser.request("GET", "/sessions/downloads/rollout-result.json")[2] == (
+            retained.result_json_bytes)
+        assert old_text in retained.result_json_bytes.decode()
+        assert context.rollout_execution is retained and context.rollout_review_source is source
+        assert context.path.read_bytes() == saved and checkpoint.to_dict() == frozen

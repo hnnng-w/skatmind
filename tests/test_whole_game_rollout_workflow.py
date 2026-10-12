@@ -218,3 +218,27 @@ def test_installed_style_canonical_run_matches_public_execution(tmp_path, capsys
     actual["whole_game_rollout_result"]["work"]["elapsed_ms"] = 0
     expected["whole_game_rollout_result"]["work"]["elapsed_ms"] = 0
     assert actual == expected
+
+
+@pytest.mark.parametrize("settings,comparison_available", [({}, True),
+    ({"max_card_transitions": 1}, False), ({"objective": "complete_settlement"}, False)])
+def test_legacy_explanation_is_scoped_without_changing_machine_fields(
+    settings, comparison_available,
+):
+    from skatmind.post_game_review import build_post_game_review_summary
+
+    result = run(opening_request(**settings))
+    original = build_post_game_review_summary("CJ", [])
+    summary = result["post_game_review_summary"]
+    assert {key: value for key, value in summary.items() if key != "decision_explanation"} == {
+        key: value for key, value in original.items() if key != "decision_explanation"}
+    assert original["decision_explanation"] == (
+        "No post-game review decision quality is available because "
+        "immediate analysis is unavailable.")
+    assert summary["decision_explanation"].startswith(
+        "The legacy immediate-trick review summary is unavailable for whole_game_rollout.")
+    if comparison_available:
+        assert "See whole_game_rollout_comparison" in summary["decision_explanation"]
+    else:
+        assert "no whole-game card comparison is available" in summary["decision_explanation"]
+        assert "See whole_game_rollout_comparison" not in summary["decision_explanation"]

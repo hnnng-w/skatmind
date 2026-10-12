@@ -99,11 +99,13 @@ settings, policy/version, status/reason, structural work, complete common-world
 coverage, exact ranking, and `tied_best_cards`. It exposes no sampled ownership,
 opponent hands, hypothetical Skat identities, or private paths.
 
-The compact candidate table shows sampled local-party success count/fraction,
-mean final local card-point margin, and settlement score for the settlement
-objective. Margin is local party points minus opposing party points, including
-Skat points exactly once for the declarer. These are simulated terminal outcomes,
-not current-trick values or calibrated real-player probabilities.
+The compact candidate table shows the card with recommended/played/equally
+recommended text markers, goal success count and percentage in completed
+simulations, mean final point margin, and settlement score for the settlement
+objective. There is no repetitive lower-rated column. All legal candidates keep
+their exact retained order. Margin is local party points minus opposing party
+points; a defender's party is both defenders together. These are simulated
+terminal outcomes, not current-trick values or real-player win probabilities.
 
 `whole_game_rollout_comparison` attaches the actual card descriptively:
 
@@ -117,6 +119,45 @@ with a different canonical representative is explicitly display ordering only.
 All-candidate primary ties are stated explicitly. Rendering never re-ranks rounded
 values or applies Immediate quality thresholds. The legacy Immediate summary is
 unavailable for this method; the method-specific comparison owns the assessment.
+
+### Focused clarity correction
+
+The normal view uses direct **Recommended card** and **Played card** labels. For
+the supplied 100-world synthetic case, it says that played CJ matches the
+recommendation, all ten cards reached the played goal in all 100 simulations,
+and the higher mean final point margin distinguishes CJ from the next alternative.
+That preference is explicitly not a higher simulated goal-success rate.
+
+Other results use their exact retained comparison state. Primary differences
+refer to success frequency; equal-success secondary differences identify either
+mean settlement score or mean final point margin. Complete-settlement ordering
+remains success, settlement score, then margin. All tied-best cards receive text
+markers and an explanation that their fixed display order confers no evaluated
+advantage. A sole legal card is identified without inventing a comparison.
+
+Number formatting uses the existing request-local locale context. English uses
+`100 of 100 · 100%` and `101.18`; German uses its localized count wording, a space
+before `%`, and `101,18`. Percentages normally use at most two decimal places,
+with additional precision when rounding would falsely produce 0% or 100%.
+Missing/non-finite values are unavailable, zero sample counts are not divided,
+and rounded negative zero is displayed without a minus sign. Formatting never
+changes numeric Result fields, rankings, or semantic ties.
+
+Fixed-policy dependence, simulation-only percentages, the played-goal settlement
+exclusion, and the party-oriented margin definition remain visible. The existing
+native technical disclosure is labelled **Calculation details** for this method.
+It contains policy/version, sampling, source/cutoff explanation, and exact raw
+rollout values. Source captions, decision-return links, and downloads remain
+available; no new JavaScript or global styling is introduced.
+
+Only newly executed rollout output changes the legacy
+`post_game_review_summary.decision_explanation` prose. It starts with
+"The legacy immediate-trick review summary is unavailable for whole_game_rollout."
+A completed comparison directs the reader to `whole_game_rollout_comparison`;
+incomplete/unavailable work explicitly says no whole-game card comparison is
+available. Legacy availability/reason codes, other fields and numeric values,
+schemas, and other methods retain their existing behavior. Passive rendering and
+language changes do not rewrite a previously retained explanation or export.
 
 Incomplete results expose common completed coverage and the stop reason but no
 normal ranking or recommendation. There is no Immediate fallback. Browser failure
@@ -153,7 +194,8 @@ settings, derivation, comparison, and aggregate Result components. Input/output
 Root schemas enforce the additive method and incomplete-result restrictions.
 There are now **72** authoritative and byte-identical packaged schemas.
 The private frontend inventory is **68 POST routes**, **120 form definitions**,
-and **1882 keys per language** (previously 67, 119, and 1832).
+and **1906 keys per language** after the clarity correction (1882 before that
+correction; the initial pre-rollout frontend had 67 routes, 119 forms, and 1832 keys).
 
 `examples/whole_game_rollout.json` is a two-world no-bid opening. The actual
 98-scenario inventory was preserved in order, with four append-only cases:
@@ -167,10 +209,12 @@ failed-attempt retention, source/attempt races, and language/view preservation.
 Small routine fixtures avoid repeated default-size executions. The combined
 affected selection passed 835 tests; the subsequent transport/example/language
 selection passed 474 tests. The generated-output validator passed all 102 cases.
-Final focused follow-ups and Quick are reported separately with the completion
-handoff. Exact-commit CI and installed maintainer acceptance remain outstanding.
+Those figures describe the initial implementation validation. The maintainer
+subsequently confirmed technical integration, installed execution, and English
+readability at actual 200% zoom, but rejected result comprehensibility. Corrected
+wording/table CI and the short maintainer clarity retest remain separate gates.
 
-### Bounded developer browser observation
+### Earlier developer browser observation
 
 One default-size native POST used a disposable saved synthetic opening containing
 all Clubs plus SA/S10, known H7/D7 discards, actual CJ, no bid, seed 0, and 100 worlds.
@@ -200,3 +244,32 @@ Served CSS and script bytes matched checkout resources; CSS SHA-256 was
 This is source-build, headless, synthetic evidence. True 200% browser zoom and the
 brief installed-build observation remain for the maintainer. The UAT installation
 and recording were not accessed. Issue #208 and release acceptance remain open.
+
+### Clarity-correction browser observation
+
+At base `61de48d96f0fa5607a8921030884bfcfb25803b0` with the presentation edits,
+headless Edge **155.0.4283.45** and CPython **3.13.7** reused the earlier
+developer-owned synthetic completed Request/Result pair. Both documents were
+validated and the Request was matched to the disposable saved checkpoint before
+binding the retained fixture. No maintainer recording or download was accessed.
+
+One 7.496-second presentation sequence covered German/English **1365×900** views,
+German **390×844**, native keyboard opening/closing of Calculation details, and
+preservation of the open disclosure across language return. Screenshots and DOM
+measurements showed the direct card labels, three-column comparison, all ten
+cards, localized percentages/margins, and no measured page/result overflow.
+CJ remained `101.18`, SA `92.04`, and C9/C8/C7 `93.20`, with 100/100 successes for
+every candidate. This was retained evidence, not another 100-world evaluation.
+
+After fixture setup, counters recorded **zero analysis executions and zero
+recording saves**. All four native legacy/rollout downloads matched their original
+bytes, including the old retained legacy explanation. Served CSS and script bytes
+matched checkout resources. Evidence is under
+`$env:TEMP/opencode/issue285-clarity-ya1tut9m/report.json`, with module/catalog/asset
+and download hashes plus adjacent screenshots. CSS remains
+`d2b2a25363a879364e61c5b7fcbdf5638f2a3c94d0df6d8bb1bf2437e25f2d74`.
+
+This source-build observation does not transfer the previous installed English
+200%-zoom acceptance to the changed markup and does not establish maintainer
+comprehension. The short installed wording/table and true-zoom observation remains
+with the maintainer; no repeated headless true-zoom probes were performed.

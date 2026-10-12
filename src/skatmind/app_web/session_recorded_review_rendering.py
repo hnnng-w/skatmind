@@ -103,7 +103,7 @@ def render_recorded_review_source_v1(
         '<p class="recorded-review-source"><strong>'
         + translated(locale, "recorded_review.result", game=game_label) + '</strong><br>'
         + _decision_label(locale, source.document.state.players, source.decision) + '</p>'
-        + paragraph(locale, "rollout.source" if rollout else "recorded_review.limit")
+        + ("" if rollout else paragraph(locale, "recorded_review.limit"))
         + '<p><a href="#recorded-decision-'
         + escape(str(source.decision.checkpoint.decision_index)) + '">'
         + translated(locale, "recorded_review.back", trick=source.decision.checkpoint.trick_number,
