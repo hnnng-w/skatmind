@@ -78,9 +78,10 @@ The strict `whole_game_rollout_settings` object requires every effective setting
 | `max_preparation_work` | 100000 | Integer 1–100000 |
 | `wall_clock_timeout_ms` | 30000 | Integer 1–60000; finite and non-null |
 
-Objective, worlds, and seed are exposed in a native advanced disclosure.
-Complete settlement also offers only the applicable bid/matador inputs missing
-from the selected frozen decision, with empty initial values.
+Objective and applicable missing bid/matador inputs are visible basic controls.
+Sample count and seed remain inside the same rollout form, in a normally closed
+native Advanced settings disclosure below the action row. Missing settlement
+values start empty and do not open the technical disclosure.
 The work/time limits and fixed policy remain server-owned in the browser action.
 All settings remain in the Request and technical details. Booleans, unknown
 settings, incompatible method settings, unsupported profiles, and unbounded work
@@ -116,8 +117,8 @@ choice takes precedence, including after invalid numeric submissions. A rejected
 missing, empty, or unsupported objective renders as unselected, rather than
 silently acquiring the fresh default; POST validation remains strict.
 
-For an initially selected complete-settlement objective, the existing advanced
-disclosure opens when required bid/matador inputs are missing. Only those absent
+For an initially selected complete-settlement objective, required bid/matador
+inputs are immediately visible outside the technical disclosure. Only those absent
 in the frozen decision are offered, and they remain empty. Known inputs require
 no supplement. Native rendering and selection neither execute analysis nor save
 the recording, and missing inputs never select another objective automatically.
@@ -191,7 +192,7 @@ originally missing `bid_value` and/or `matadors`. Already known values cannot be
 submitted, even if the proposed value is identical. Other declarations, Cards,
 hands, scores, Players, and history are not editable through this form.
 
-The normal advanced form offers **Bid for this analysis** and/or **Matadors for
+The basic controls offer **Bid for this analysis** and/or **Matadors for
 this analysis**, without defaults. Domain validation retains a positive integer
 bid and the existing positive consecutive-top-trump count: Suit `1–11`, Grand
 `1–4`; both "with 2" and "without 2" use `2`, not a signed replacement convention.
@@ -204,8 +205,8 @@ disregards their text and derives the unchanged original factual root.
 
 One short note explains that the missing values apply only to analysis and the
 recording remains unchanged. Offering an empty field produces no error. An
-explicit empty/invalid submission produces one inline field error, opens the
-advanced disclosure, and focuses the actual input. It does not execute. This
+explicit empty/invalid submission produces one inline field error and focuses
+the actual basic input. It does not open the technical disclosure or execute. This
 case has no repeated red summary or missing-input notice at the result. Safe
 values survive rejection and native/enhanced language return, and remain scoped
 to their source-bound decision form. Previous output is captioned once at its
@@ -249,6 +250,41 @@ Card evidence retains its before-card cutoff; manual settlement values are
 separate assumptions for this analysis. The visible result contains one compact
 manual-input caption and its own objective. Fingerprints and the full derivation
 remain in Calculation details and the canonical Request/Result downloads.
+
+### Compact decision forms and independent actions
+
+The structural correction from baseline `2ed3657` keeps one compact identity row,
+then a responsive basic-control row, a dedicated action row, and finally normally
+closed Advanced settings. Basic fields wrap in their logical order at narrow
+widths. Scoped native customizable-select styling wraps long option text where
+supported, without reducing fonts or hit targets. No fixed clipping height,
+absolute button positioning, or JavaScript coordinate correction is used.
+
+Each row has one primary rollout submit. The saved-method button is alongside it
+or wraps beneath it. Its native `form` attribute points to the row's separate
+legacy form, which contains only the original hidden bindings and uses the
+unchanged selection-only route. The hidden-binding owner has no layout box.
+There are no nested forms, copied submitters, or duplicate named controls within
+an owning form. Sample count and seed remain physically inside their rollout
+form and submit whether the disclosure is open or closed. Invalid rollout
+controls do not participate in legacy-form constraint validation.
+
+General objective guidance appears once above the list. Analysis-only supplement
+help, and the matador convention where needed, use unique shared descriptions
+referenced from each applicable field. Field-specific validation markers keep
+errors in their own field wrapper. Basic errors leave technical settings closed;
+technical errors open only the affected decision's disclosure. Error-summary
+links reach the actual field. Existing source-bound value restoration and the
+language disclosure manifest preserve intentional open state without new settings
+storage or changes to evaluator/provenance contracts.
+
+During browser verification, Edge's native validation blocked an empty numeric
+control inside a closed disclosure without revealing it. A scoped `invalid`
+listener now opens only recorded-review technical disclosures, leaving native
+validation and focus behavior in control. Without JavaScript, invalid technical
+values expose a short correction hint on their summary; the user can open it and
+correct the field. Initial valid defaults show no hint. No passive action runs an
+analysis or saves the recording.
 
 ## Result meaning
 
@@ -378,8 +414,9 @@ settings, derivation, comparison, and aggregate Result components. Input/output
 Root schemas enforce the additive method and incomplete-result restrictions.
 There are now **72** authoritative and byte-identical packaged schemas.
 The private frontend inventory is **68 POST routes**, **120 form definitions**,
-and **1941 keys per language** after the fresh-form default adjustment, derived
-from the registry and both strict catalogs. Analysis-only supplementation had
+and **1942 keys per language** after the compact-form correction, derived from
+the registry and both strict catalogs. The fresh-default adjustment had 1941 keys.
+Analysis-only supplementation had
 1939 keys, and the message-only repair had 1927 keys.
 The existing whole-game form now has six registered safe fields, including its
 two conditional analysis inputs; the installed smoke expectation matches them.
@@ -595,3 +632,66 @@ tied-best, and retained-result modules. The normal declaration-to-checkpoint tes
 also passed. This is synthetic developer evidence, not installed-default
 acceptance. Exact-commit CI, identical-commit integration, and the short installed
 default-selection check remain with the maintainer; #287 remains open.
+
+### Compact-form geometry and interaction evidence
+
+At base `2ed3657b8897caa339846fa122c97fc7b68a4e15`, the existing browser harness
+measured all ten own decisions in disposable completed records, using headless
+Edge **155.0.4283.45**, CPython **3.13.7**, and identical fixture content/settings
+before and after. Both the missing-bid and known-input recordings had identical
+before/after byte digests. No maintainer data was used.
+
+Computed layout confirmed a wrapping **flex** rollout form with
+`align-items: center`; its disclosure and primary button were sibling flex items.
+The primary button was static and not floated. With the supplemental fieldset
+hidden, the English disclosure's intrinsic width allowed all ten primary buttons
+beside it; the German text wrapped differently. The old shared auto-open
+disclosure exposed technical settings together with basic fields, and repeated
+help/fieldset spacing multiplied the height. Language and field visibility were
+measured separately.
+
+Matched **1365×900** measurements in CSS pixels (each row in a case had the same
+height):
+
+| Inputs / locale / objective | Row before | Row after | Ten-row list before | Ten-row list after |
+| --- | ---: | ---: | ---: | ---: |
+| Missing bid / EN / complete settlement | 626.47 | 234.56 | 6264.69 | 2345.63 |
+| Missing bid / DE / complete settlement | 651.27 | 234.56 | 6512.66 | 2345.63 |
+| Missing bid / EN / played-game goal | 402.31 | 234.56 | 4023.13 | 2345.63 |
+| Missing bid / DE / played-game goal | 456.30 | 234.56 | 4562.97 | 2345.63 |
+| Known inputs / either locale / either objective | 141.56 | 234.56 | 1415.63 | 2345.63 |
+
+The known-input rows previously hid the objective inside a closed disclosure;
+their increase reflects the now-required visible basic controls and independent
+action row, not a claimed height reduction. At **390×844**, missing-bid complete-
+settlement rows changed from **750.45 → 443.33** (EN) and **800.05 → 468.13** (DE).
+The corresponding played-goal rows changed from **530.69 → 361.34** and
+**580.28 → 386.14**. All sixteen after-cases (two locales, objectives, input states,
+and viewport widths) had no measured page overflow, correctly owned controls,
+closed initial technical settings, and primary actions below the basic fields.
+Screenshots showed wrapped full labels and normally sized controls. Geometry
+checks used disabled page JavaScript and performed zero evaluations or saves.
+
+A separate ten-decision interaction sequence verified keyboard order from the
+objective through bid, primary action, secondary action, and technical summary;
+opening technical settings then exposed sample count and seed in order. Native
+required-field rejection and independent legacy-form validity were checked.
+Server technical-error navigation reached the correct decision's seed input,
+revealed it after manual collapse, and focused it. Enhanced German/English return
+preserved decision-local objectives, supplements, numeric values, and intentional
+open/closed disclosures. One explicit native rollout POST with technical settings
+closed used one world and seed `9`. Across that sequence there was **one analysis
+and zero recording saves**; original bytes and retained execution identity were
+preserved during subsequent passive actions. HTTP regressions also exercise
+open/closed technical submission and independent legacy execution.
+
+Evidence under `$env:TEMP/opencode/`:
+
+* `issue287-compact-before-ppcx0joe/report.json`
+* `issue287-compact-after-jzbs_q11/report.json`
+* `issue287-compact-interaction-yynw0gdy/report.json`
+
+These are source-checkout viewport measurements at normal scale, not true browser
+zoom or installed-build acceptance. No exhaustive zoom experiment or prior UAT
+matrix was repeated. Exact-commit CI, identical-commit integration, and the short
+installed compact-form check remain with the maintainer; #287 remains open.

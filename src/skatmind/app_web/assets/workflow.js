@@ -218,6 +218,13 @@ for (const fieldset of document.querySelectorAll(".compact-cards")) {
   fieldset.addEventListener("change", () => updateCardSelection(fieldset));
 }
 
+// Reveal only an invalid recorded-review technical field; native validation still owns focus.
+document.addEventListener("invalid", (event) => {
+  if (event.target.matches(".recorded-rollout-form .advanced-settings input")) {
+    event.target.closest("details").open = true;
+  }
+}, true);
+
 // Preserve presentation only during the explicit native language POST.
 // Product operations, legality, and validation remain server-owned.
 document.addEventListener("submit", (event) => {

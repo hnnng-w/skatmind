@@ -56,8 +56,7 @@ def test_fresh_native_form_defaults_and_exposes_only_missing_inputs(
     for name in missing:
         assert values["analysis_" + name] == ""
         node = next(node for node in tree.nodes if node["attrs"].get("name") == "analysis_" + name)
-        assert all("open" in parent["attrs"] for parent in node["parents"]
-                   if parent["tag"] == "details")
+        assert not any(parent["tag"] == "details" for parent in node["parents"])
     for objective in ("complete_settlement", "played_game_goal"):
         assert text(locale, "rollout.option." + objective) in page
     assert 'class="field-error"' not in page and 'class="error-summary"' not in page

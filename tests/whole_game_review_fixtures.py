@@ -1,6 +1,7 @@
 """Disposable saved decisions with a legal synthetic suffix and optional original inputs."""
 
 from dataclasses import replace
+from functools import lru_cache
 
 from test_historical_game import build_historical_input
 from test_session_transitions import _apply, _play_commands_from_data, _retrospective_before_play
@@ -13,6 +14,7 @@ from skatmind.app_web.session_frontend import (
 from skatmind.deck import get_full_deck
 from skatmind.rules import get_legal_cards, get_trick_winner
 from skatmind.session_commands import RecordSessionPlayCommandV1
+from skatmind.session_history import build_session_state_from_accepted_prefix_v1
 
 
 def saved_opening(*, complete=False, reverse_hidden=False, actual="CJ",
@@ -67,6 +69,34 @@ def saved_opening(*, complete=False, reverse_hidden=False, actual="CJ",
 def activate_saved_opening(server, **kwargs):
     state, checkpoint = saved_opening(**kwargs)
     return _activate_saved_decision(server, state, checkpoint)
+
+
+@lru_cache
+def ten_decision_document(*, bid_value=None):
+    """Exact disposable prefixes for all ten own Plays, with cheap legacy settings."""
+    state, _ = saved_opening(complete=True, bid_value=bid_value)
+    checkpoints = []
+    for record in state.command_log:
+        if (record.command.kind != "record_play"
+                or record.command.player_id != state.local_player_id):
+            continue
+        prefix = build_session_state_from_accepted_prefix_v1(
+            state, target_revision=record.revision - 1)
+        exported = session_api.export_session_position_request(
+            prefix, replace(default_session_position_export_options_v1(), sample_count=1)).value
+        checkpoints.append(session_api.build_session_decision_checkpoint(
+            state=prefix, position_export=exported).value)
+    assert len(checkpoints) == 10
+    return session_api.build_session_persistence_document(
+        state, decision_checkpoints=tuple(checkpoints)).value
+
+
+def activate_ten_decisions(server, *, bid_value=None):
+    app = server.app_context
+    context = import_guided_session_v1(app.managed_stateful.root("sessions"),
+        handle="a" * 64, document=ten_decision_document(bid_value=bid_value).to_dict())
+    app.managed_stateful.activate_session(context)
+    return context
 
 
 def activate_saved_defender_decision(server, *, bid_value, game_type="clubs"):

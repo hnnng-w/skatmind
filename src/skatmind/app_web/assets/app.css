@@ -275,20 +275,109 @@ footer a:focus-visible,
   outline-color: #ffd477;
 }
 
-.recorded-decisions li {
+.recorded-decisions {
+  list-style: none;
+  padding: 0;
+  margin-block: 0.75rem 0;
+}
+
+.recorded-decisions > li {
   border-top: 1px solid var(--line);
-  padding-block: 0.6rem;
+  padding-block: 0.75rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
 }
 
 .recorded-decisions form {
+  margin: 0;
+  min-width: 0;
+}
+
+/* This owner contains only hidden bindings; its visible submitter is in the action row. */
+.recorded-decisions form[action="/sessions/review-decision"] {
+  display: none;
+}
+
+.recorded-decisions .recorded-rollout-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.recorded-basic,
+.recorded-technical-fields,
+.recorded-actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem 1rem;
+  gap: 0.5rem 1rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.recorded-decisions .recorded-field {
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.recorded-basic > .recorded-field:first-child {
+  flex: 2 1 30rem;
+}
+
+.recorded-decisions label {
+  min-width: 0;
+  max-width: none;
+}
+
+.recorded-decisions :is(input, select) {
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Keep long translated option text wrapping in the native customizable select. */
+@supports (appearance: base-select) {
+  .recorded-basic select,
+  .recorded-basic select::picker(select) {
+    appearance: base-select;
+    white-space: normal;
+  }
+}
+
+.recorded-decisions .advanced-settings {
+  display: block;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.recorded-decisions summary {
+  min-height: 2.65rem;
+  padding-block: 0.5rem;
+  margin: 0;
+}
+
+.recorded-technical-fields {
+  padding-block: 0.5rem;
+}
+
+/* Native fallback makes a collapsed invalid control discoverable without script. */
+.recorded-decisions .recorded-technical-error {
+  display: none;
+}
+
+.recorded-decisions .advanced-settings:has(input:invalid) .recorded-technical-error {
+  display: inline;
+}
+
+.recorded-decisions button {
+  min-width: 0;
+  white-space: normal;
 }
 
 .recorded-decisions p {
-  flex: 1 1 22rem;
   margin: 0;
   overflow-wrap: anywhere;
 }

@@ -106,10 +106,9 @@ def test_native_missing_inputs_recovery_preserves_source_and_exports(
         target = next(node for node in tree.nodes
                       if node["attrs"].get("name") == "analysis_" + missing[0])
         assert target["tag"] == "input" and "autofocus" in target["attrs"]
-        assert all("open" in node["attrs"] for node in target["parents"]
-                   if node["tag"] == "details")
-        assert message in tree.by_id(
-            target["attrs"]["aria-describedby"])["text"]
+        assert not any(node["tag"] == "details" for node in target["parents"])
+        assert any(message in tree.by_id(identity)["text"]
+                   for identity in target["attrs"]["aria-describedby"].split())
         assert context.rollout_execution is retained and context.rollout_review_source is source
         for name, expected in (("request", request_bytes), ("result", result_bytes)):
             assert browser.request("GET", f"/sessions/downloads/rollout-{name}.json")[2] == expected

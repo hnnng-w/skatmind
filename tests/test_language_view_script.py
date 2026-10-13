@@ -45,6 +45,12 @@ if(input.cancel)emit(input.cancel);
 ready=true;
 observers.forEach(observer=>{if(observer.active)observer.fn()});
 emit('DOMContentLoaded');
+if(input.invalid){
+  const details={};
+  Object.defineProperty(details,'open',{set:value=>calls.push({kind:'open',value})});
+  emit('invalid',{target:{matches:selector=>input.invalid==='recorded' &&
+    selector==='.recorded-rollout-form .advanced-settings input',closest:()=>details}});
+}
 // Later lifecycle events and even a second readiness callback cannot restore twice.
 emit('pageshow',{persisted:true});emit('scroll');
 observers.forEach(observer=>{if(observer.active)observer.fn()});
@@ -108,3 +114,9 @@ def test_capture_uses_current_content_position(y, anchor, offset):
     result = run_script(view=None, capture=True, y=y)
     assert result["payload"] == {"forms": [], "disclosures": [],
         "view": {"anchor": anchor, "offset": offset, "x": 0, "focus": "de"}}
+
+
+def test_invalid_recorded_technical_control_opens_without_custom_focus_or_submit():
+    assert run_script(view=None, navigation="reload", invalid="recorded")["calls"] == [
+        {"kind": "open", "value": True}]
+    assert run_script(view=None, navigation="reload", invalid="unrelated")["calls"] == []
