@@ -5,7 +5,7 @@ from dataclasses import replace
 from html import escape
 
 from .card_entry_http import MATCH_EVIDENCE_FORMS
-from .form_parsing import FormValuesV1
+from .form_parsing import FormValuesV1, FormValueV1
 from .form_registry import (
     FrontendFormDefinitionV1,
     FrontendFormFieldV1,
@@ -631,6 +631,10 @@ def apply_validation_feedback_to_html_v1(
         return html
     form_start, form_end = bounds
     block = _replace_values(html[form_start:form_end], state)
+    if (definition.form_key == "session.review_whole_game"
+            and not state.safe_visible_values.contains("objective")):
+        # A rejected missing/unsupported choice is not a fresh-form default.
+        block = _replace_safe_values(block, FormValuesV1((FormValueV1("objective", ("",)),)))
     for entry in state.safe_visible_values.entries:
         count_marker = f'<p data-validation-card-count="{entry.field}">'
         if count_marker not in block:

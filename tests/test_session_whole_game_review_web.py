@@ -53,7 +53,8 @@ def test_native_missing_inputs_recovery_preserves_source_and_exports(
     assert (declaration.bid_value, declaration.matadors) == (bid, matadors)
     saved, frozen = context.path.read_bytes(), checkpoint.to_dict()
     browser = Browser(localized_server)
-    assert browser.submit(rollout_form(browser), requested_worlds="1", random_seed="7")[0] == 303
+    assert browser.submit(rollout_form(browser), objective="played_game_goal",
+                          requested_worlds="1", random_seed="7")[0] == 303
     retained, source = context.rollout_execution, context.rollout_review_source
     request_bytes, result_bytes = retained.request_json_bytes, retained.result_json_bytes
     real_execute = execution_module.execute
@@ -170,8 +171,7 @@ def test_supported_second_trick_settlement_uses_legitimate_frozen_inputs(localiz
         localized_server, decision_trick=2, actual="C7", bid_value=18, matadors=1)
     saved, frozen = context.path.read_bytes(), checkpoint.to_dict()
     browser = Browser(localized_server)
-    response = browser.submit(rollout_form(browser), objective="complete_settlement",
-                              requested_worlds="1", random_seed="7")
+    response = browser.submit(rollout_form(browser), requested_worlds="1", random_seed="7")
     assert response[0] == 303, response[2].decode()
     execution = context.rollout_execution
     root = execution.request.to_dict()["document"]
@@ -189,7 +189,8 @@ def test_supplement_field_errors_are_inline_and_safe_values_survive_language(loc
                                                                           monkeypatch):
     context, checkpoint = activate_saved_opening(localized_server)
     browser = Browser(localized_server)
-    assert browser.submit(rollout_form(browser), requested_worlds="1")[0] == 303
+    assert browser.submit(rollout_form(browser), objective="played_game_goal",
+                          requested_worlds="1")[0] == 303
     prior = context.rollout_execution
     saved, frozen = context.path.read_bytes(), checkpoint.to_dict()
     def forbidden(*args, **kwargs):
@@ -317,7 +318,7 @@ def test_reloaded_whole_game_selection_is_stale_without_execution(localized_serv
     assert text("en", "validation.rollout.missing_bid") not in page
     fresh = Forms(page).find("/sessions/review-whole-game")["values"]
     assert fresh["decision_selection"] != form["values"]["decision_selection"]
-    assert fresh["objective"] == "played_game_goal"
+    assert fresh["objective"] == "complete_settlement"
     assert context.rollout_execution is None
 
 
@@ -334,7 +335,8 @@ def test_tied_primary_summary_http_languages_and_retained_download_identity(
     # Only the candidate fixture is synthetic; POST, source binding, public output
     # validation, retained execution, rendering and downloads use the real path.
     monkeypatch.setattr(workflow, "evaluate_whole_game_rollout_v1", synthetic_tied_rollout)
-    assert browser.submit(rollout_form(browser), requested_worlds="100")[0] == 303
+    assert browser.submit(rollout_form(browser), objective="played_game_goal",
+                          requested_worlds="100")[0] == 303
     retained, source = context.rollout_execution, context.rollout_review_source
     document = retained.result.result.to_dict()["document"]
     validate_output_document(document)
@@ -378,7 +380,8 @@ def test_real_post_derived_root_dual_downloads_and_passive_languages(localized_s
     assert browser.submit(legacy_form)[0] == 303
     legacy = context.execution
     form = rollout_form(browser)
-    status, headers, body = browser.submit(form, requested_worlds="2", random_seed="7")
+    status, headers, body = browser.submit(form, objective="played_game_goal",
+                                           requested_worlds="2", random_seed="7")
     assert status == 303, body.decode()
     assert headers["location"] == "/sessions/current#session-rollout-result"
     retained = context.rollout_execution
@@ -424,7 +427,8 @@ def test_real_post_derived_root_dual_downloads_and_passive_languages(localized_s
 def test_missing_settlement_and_rejected_attempt_retain_completed_output(localized_server):
     context, _ = activate_saved_opening(localized_server)
     browser = Browser(localized_server)
-    assert browser.submit(rollout_form(browser), requested_worlds="1")[0] == 303
+    assert browser.submit(rollout_form(browser), objective="played_game_goal",
+                          requested_worlds="1")[0] == 303
     retained, source = context.rollout_execution, context.rollout_review_source
     form = rollout_form(browser)
     status, _, content = browser.submit(form, objective="complete_settlement")
@@ -481,7 +485,8 @@ def test_out_of_order_rollout_publication_is_source_and_attempt_owned(
         return real(request, **kwargs)
     monkeypatch.setattr(execution_module, "execute", blocked)
     with ThreadPoolExecutor(max_workers=2) as pool:
-        prior = pool.submit(browser.submit, form, requested_worlds="1", random_seed="1")
+        prior = pool.submit(browser.submit, form, objective="played_game_goal",
+                            requested_worlds="1", random_seed="1")
         assert entered.wait(30)
         # This would deadlock if the global or Session lock covered evaluation.
         extra = {"analysis_bid_value": "18"} if objective == "complete_settlement" and (
@@ -517,7 +522,7 @@ def test_inflight_context_or_file_change_cannot_publish(localized_server, monkey
     monkeypatch.setattr(execution_module, "execute", blocked)
     with ThreadPoolExecutor(max_workers=1) as pool:
         extra = {"objective": "complete_settlement", "analysis_bid_value": "18"} if (
-            supplemented) else {}
+            supplemented) else {"objective": "played_game_goal"}
         future = pool.submit(browser.submit, form, requested_worlds="1", **extra)
         assert entered.wait(30)
         if change == "reload":
@@ -542,7 +547,8 @@ def test_interrupted_real_core_and_executor_failure_keep_previous_bytes(
     from skatmind.errors import SkatMindValidationError
     context, _ = activate_saved_opening(localized_server)
     browser = Browser(localized_server)
-    assert browser.submit(rollout_form(browser), requested_worlds="1")[0] == 303
+    assert browser.submit(rollout_form(browser), objective="played_game_goal",
+                          requested_worlds="1")[0] == 303
     retained = context.rollout_execution
     real = workflow.evaluate_whole_game_rollout_v1
     def timed_out(view, settings):
@@ -577,7 +583,8 @@ def test_enhanced_language_return_preserves_rollout_view_and_unsent_settings(
 
     context, _ = activate_saved_opening(localized_server)
     browser = Browser(localized_server)
-    assert browser.submit(rollout_form(browser), requested_worlds="1")[0] == 303
+    assert browser.submit(rollout_form(browser), objective="played_game_goal",
+                          requested_worlds="1")[0] == 303
     retained, document = context.rollout_execution, context.document
     def forbidden(*args, **kwargs):
         raise AssertionError("Language return must not execute")
@@ -612,7 +619,8 @@ def test_passive_clarity_rendering_preserves_an_old_export_explanation(
 
     context, checkpoint = activate_saved_opening(localized_server)
     browser = Browser(localized_server)
-    assert browser.submit(rollout_form(browser), requested_worlds="1")[0] == 303
+    assert browser.submit(rollout_form(browser), objective="played_game_goal",
+                          requested_worlds="1")[0] == 303
     executed = context.rollout_execution
     old_document = executed.result.result.to_dict()["document"]
     old_text = ("No post-game review decision quality is available because "

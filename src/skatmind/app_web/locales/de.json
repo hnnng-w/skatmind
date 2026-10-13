@@ -1044,6 +1044,8 @@
   "rollout.objective.played_game_goal": "Spielziel (ohne Überreizung und Abrechnung)",
   "rollout.objective_help": "Beide Ziele bewerten das verbleibende Spiel. Die vollständige Abrechnung berücksichtigt zusätzlich Reizwert, Spitzen und Überreizung.",
   "rollout.only_card": "Dies war die einzige erlaubte Karte.",
+  "rollout.option.complete_settlement": "Mit Reizwert und Spielwert bewerten — Standard",
+  "rollout.option.played_game_goal": "Nur Karten und Ansage bewerten — ohne Abrechnung",
   "rollout.outcomes": "Simulierte Endergebnisse in Empfehlungsreihenfolge",
   "rollout.party.declarer": "Hier ist Ihre Partei der Alleinspieler.",
   "rollout.party.defenders": "Hier besteht Ihre Partei aus beiden Gegenspielern zusammen.",

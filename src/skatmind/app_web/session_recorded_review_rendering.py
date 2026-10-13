@@ -49,13 +49,14 @@ def render_recorded_session_decisions_v1(
         fields = (hidden("managed_handle", context.handle)
                   + hidden("expected_revision", context.state.revision)
                   + hidden("decision_selection", row.selection))
-        settings = {"objective": "played_game_goal", "requested_worlds": 100, "random_seed": 0}
+        # Presentation initialization only; core and public defaults are independent.
+        settings = {"objective": "complete_settlement", "requested_worlds": 100, "random_seed": 0}
         if (context.rollout_review_source is not None
                 and context.rollout_review_source.decision.selection == row.selection):
             settings = context.rollout_execution.request.document["whole_game_rollout_settings"]
         advanced = select_field(locale, "objective", "rollout.objective", (
-            (value, translated(locale, f"rollout.objective.{value}"))
-            for value in ("played_game_goal", "complete_settlement")), settings["objective"])
+            (value, translated(locale, f"rollout.option.{value}"))
+            for value in ("complete_settlement", "played_game_goal")), settings["objective"])
         advanced += paragraph(locale, "rollout.objective_help")
         missing = missing_rollout_settlement_inputs(row.checkpoint.request.to_dict()["document"])
         if missing:
@@ -80,13 +81,16 @@ def render_recorded_session_decisions_v1(
             advanced += (f'<label>{translated(locale, key)} <input type="number" '
                          f'name="{name}" min="{1 if name == "requested_worlds" else 0}" '
                          f'max="{maximum}" step="1" required value="{settings[name]}"></label>')
+        advanced = disclosure(locale, "task.advanced", advanced)
+        if missing and settings["objective"] == "complete_settlement":
+            advanced = advanced.replace("<details ", "<details open ", 1)
         method = row.checkpoint.request.document.get(
             "recommendation_method", "immediate_expected_value")
         content += (
             '<li>'
             + f'<p id="{label_id}">{_decision_label(locale, context.state.players, row)}</p>'
             + '<form method="post" action="/sessions/review-whole-game">' + fields
-            + disclosure(locale, "task.advanced", advanced)
+            + advanced
             + f'<button type="submit" class="primary" aria-describedby="{label_id}">'
             + translated(locale, "rollout.action") + '</button></form>'
             + '<form method="post" action="/sessions/review-decision">' + fields

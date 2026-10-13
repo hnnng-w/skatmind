@@ -69,7 +69,7 @@ The strict `whole_game_rollout_settings` object requires every effective setting
 
 | Field | Session action default | Public accepted values |
 | --- | ---: | --- |
-| `objective` | `played_game_goal` | `played_game_goal`, `complete_settlement` |
+| `objective` | `complete_settlement` | `played_game_goal`, `complete_settlement` |
 | `requested_worlds` | 100 | Integer 1–1000 |
 | `random_seed` | 0 | Integer 0–2^64−1 |
 | `policy_profile` | `side_aware_baseline` | Exactly this profile |
@@ -100,6 +100,40 @@ Ouvert hand produces an explicit unavailable pre-core result with
 unprepared safe input, not a fabricated Search view. Valid prepared results keep
 the core's safe-view fingerprint and `current_decision` cutoff. Other malformed
 or contradictory inputs retain normal validation errors.
+
+### Fresh-form objective default
+
+The final #287 adjustment, starting from `8725692`, changes only recorded-Session
+form initialization and objective-option wording. The local settings dictionary
+in `render_recorded_session_decisions_v1` selects `complete_settlement` when no
+applicable retained choice exists. It is independent of core/API defaults.
+
+The retained execution's settings apply only to its exact source-bound decision.
+Validation feedback then restores safe submitted values to the matching form;
+enhanced language return can restore an explicit unsent choice. Native language
+return preserves submitted/retained choices. An explicit `played_game_goal`
+choice takes precedence, including after invalid numeric submissions. A rejected
+missing, empty, or unsupported objective renders as unselected, rather than
+silently acquiring the fresh default; POST validation remains strict.
+
+For an initially selected complete-settlement objective, the existing advanced
+disclosure opens when required bid/matador inputs are missing. Only those absent
+in the frozen decision are offered, and they remain empty. Known inputs require
+no supplement. Native rendering and selection neither execute analysis nor save
+the recording, and missing inputs never select another objective automatically.
+
+The selector uses separate `rollout.option.*` catalog keys. Its default annotation
+does not appear in retained result identity. Result captions, numeric formatting
+(including two-decimal settlement values), columns, layout, ranking, and ties
+are unchanged. Core `WholeGameRolloutSettingsV1` still defaults to
+`played_game_goal`; public rollout Requests still require the explicit objective,
+and omitted-method API/CLI Requests retain their existing semantics. Derivation
+versions 1 and 2 and original checkpoint settings remain unchanged.
+
+An HTTP regression uses the normal live declaration form to enter bid `24` once,
+records six Plays, and verifies that multiple automatically collected decision
+snapshots retain that bid. Their whole-game forms do not ask for a manual bid.
+No declaration-entry defect was found, and no older snapshot is backfilled.
 
 ### Initial complete-settlement feedback repair
 
@@ -344,8 +378,9 @@ settings, derivation, comparison, and aggregate Result components. Input/output
 Root schemas enforce the additive method and incomplete-result restrictions.
 There are now **72** authoritative and byte-identical packaged schemas.
 The private frontend inventory is **68 POST routes**, **120 form definitions**,
-and **1939 keys per language** after analysis-only supplementation, derived from
-the registry and both strict catalogs. The message-only repair had 1927 keys.
+and **1941 keys per language** after the fresh-form default adjustment, derived
+from the registry and both strict catalogs. Analysis-only supplementation had
+1939 keys, and the message-only repair had 1927 keys.
 The existing whole-game form now has six registered safe fields, including its
 two conditional analysis inputs; the installed smoke expectation matches them.
 No route, form, schema filename, or generated-output scenario was added.
@@ -535,3 +570,28 @@ factual/metadata tampering, exported public execution, objective switches, and
 cross-decision isolation. These developer checks do not establish historical
 truth or maintainer comprehension. Exact-commit CI, identical-commit integration,
 and the brief installed supplementation recovery-path retest remain pending.
+
+### Fresh-default browser observation
+
+At base `87256928048739dcfa7cc4c30a681eaabddd14a4`, the existing browser harness
+used a new disposable second-trick C7 snapshot with a missing bid. Headless Edge
+**155.0.4283.45**, CPython **3.13.7**, and disabled page JavaScript showed fresh
+English and German forms with complete settlement selected, the exact approved
+option labels, an open advanced disclosure, and an immediately visible empty bid
+field. No failed submission was needed to discover it. Screenshots were inspected.
+
+An explicit native selection of played-game goal hid the supplemental field and
+caused no evaluation. One explicit one-world/seed-7 submission then retained a
+played-goal result. Native English/German language return preserved that choice,
+execution identity, Request/Result bytes, and unchanged recording/checkpoint bytes.
+Counters recorded **zero evaluations before explicit submit**, **one evaluation
+in total**, and **zero recording saves**. No recommendation or zoom matrix was
+repeated. Evidence is under
+`$env:TEMP/opencode/issue287-default-gtt_vn_u/report.json`.
+
+The affected selection passed **436 tests**, including actual Session HTTP,
+form-preservation, localization, derivation, public-default, numerical-formatting,
+tied-best, and retained-result modules. The normal declaration-to-checkpoint test
+also passed. This is synthetic developer evidence, not installed-default
+acceptance. Exact-commit CI, identical-commit integration, and the short installed
+default-selection check remain with the maintainer; #287 remains open.

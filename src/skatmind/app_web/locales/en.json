@@ -1044,6 +1044,8 @@
   "rollout.objective.played_game_goal": "Played-game goal (excludes overbid and settlement)",
   "rollout.objective_help": "Both objectives evaluate remaining play. Complete settlement also accounts for the bid, matadors, and overbid.",
   "rollout.only_card": "This was the only legal card.",
+  "rollout.option.complete_settlement": "Include bid and game value — default",
+  "rollout.option.played_game_goal": "Evaluate cards and declaration only — without settlement",
   "rollout.outcomes": "Simulated final results in recommendation order",
   "rollout.party.declarer": "Here, your party is the declarer.",
   "rollout.party.defenders": "Here, your party is the two defenders together.",
