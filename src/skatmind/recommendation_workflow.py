@@ -316,7 +316,7 @@ def build_recommendation_method_configuration(
     information_set_settings_supplied = "information_set_search_settings" in data
     if requested_method == WHOLE_GAME_ROLLOUT_METHOD:
         if "whole_game_rollout_derivation" in data:
-            validate_rollout_derivation(data["whole_game_rollout_derivation"])
+            validate_rollout_derivation(data["whole_game_rollout_derivation"], data)
         if bounded_settings_supplied or information_set_settings_supplied:
             raise ValueError("Whole-game rollout rejects other method settings.")
         return RecommendationMethodConfiguration(

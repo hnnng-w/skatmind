@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 
+from skatmind.game_declaration import validate_bid_value, validate_matadors
+from skatmind.rollout_derivation import missing_rollout_settlement_inputs
 from skatmind.whole_game_rollout_contracts import WholeGameRolloutSettingsV1
 from skatmind.whole_game_rollout_workflow import PUBLIC_ROLLOUT_TIMEOUT_MS
 
@@ -60,7 +62,10 @@ def recorded_rollout_notice_feedback_v1(
 
 
 def parse_recorded_rollout_form_v1(values: Mapping[str, str]):
-    if set(values) != {"decision_selection", "objective", "requested_worlds", "random_seed"}:
+    required = {"decision_selection", "objective", "requested_worlds", "random_seed"}
+    if not required <= set(values) or set(values) - required - {
+        "analysis_bid_value", "analysis_matadors"
+    }:
         raise RecordedRolloutFormError("invalid_fields")
     try:
         selection = parse_recorded_review_selection_v1({
@@ -73,7 +78,39 @@ def parse_recorded_rollout_form_v1(values: Mapping[str, str]):
         if (re.fullmatch(r"[0-9]{1,20}", values[name]) is None
                 or not minimum <= int(values[name]) <= maximum):
             raise RecordedRolloutFormError("invalid_" + name, name)
-    return selection, WholeGameRolloutSettingsV1(
+    settings = WholeGameRolloutSettingsV1(
         objective=values["objective"], requested_worlds=int(values["requested_worlds"]),
         random_seed=int(values["random_seed"]), wall_clock_timeout_ms=PUBLIC_ROLLOUT_TIMEOUT_MS,
     )
+    return selection, settings, {name.removeprefix("analysis_"): value
+                                for name, value in values.items() if name.startswith("analysis_")}
+
+
+def parse_recorded_rollout_supplements_v1(values, root, objective):
+    missing = missing_rollout_settlement_inputs(root)
+    if set(values) - set(missing):
+        raise RecordedRolloutFormError("known_input")
+    # Native controls may still contain text when the user changes objectives.
+    # It is not applied, validated as historical knowledge, or copied to the root.
+    if objective != "complete_settlement":
+        return {}
+    result = {}
+    for name in missing:
+        raw = values.get(name, "")
+        field = "analysis_" + name
+        reason = "invalid_bid" if name == "bid_value" else (
+            "invalid_matadors_grand" if root["game_type"] == "grand" else "invalid_matadors_suit")
+        if not raw:
+            raise RecordedRolloutFormError("required_" + name, field)
+        try:
+            if re.fullmatch(r"-?[0-9]{1,20}", raw) is None:
+                raise ValueError("Expected a bounded whole number.")
+            value = int(raw)
+            if name == "bid_value":
+                validate_bid_value(value)
+            else:
+                validate_matadors(value, root["game_type"])
+        except ValueError as error:
+            raise RecordedRolloutFormError(reason, field) from error
+        result[name] = value
+    return result

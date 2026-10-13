@@ -9,8 +9,12 @@ Issue #285 adds `recommendation_method: "whole_game_rollout"` only for flat
 `whole_game_rollout_settings` object. The exact versioned profile, seed, objective,
 world count, preparation/transition budgets, and finite timeout are all explicit.
 Optional bounded `whole_game_rollout_derivation` identifies an original checkpoint
-Request without changing the evaluator's facts. It is source-reference metadata,
-not authentication of arbitrary imported history. See the
+Request. Version `1` retains method/settings-only derivation. Additive version `2`,
+policy `frozen_checkpoint_with_manual_settlement_inputs`, carries the exact original
+Request, explicit originally missing bid/matador supplements with
+`manual_analysis_input` origin, and the effective declaration. Public execution
+validates the permitted differences; the metadata does not authenticate arbitrary
+imported history. See the
 [field table and execution boundary](recorded_whole_game_review.md#settings-and-objective-availability)
 and [`examples/whole_game_rollout.json`](../examples/whole_game_rollout.json).
 

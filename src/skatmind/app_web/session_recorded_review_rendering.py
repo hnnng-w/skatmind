@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from html import escape
 
+from skatmind.rollout_derivation import missing_rollout_settlement_inputs
+
 from .session_frontend import GuidedSessionContextV1
 from .session_recorded_review import (
     RecordedDecisionV1,
@@ -55,6 +57,24 @@ def render_recorded_session_decisions_v1(
             (value, translated(locale, f"rollout.objective.{value}"))
             for value in ("played_game_goal", "complete_settlement")), settings["objective"])
         advanced += paragraph(locale, "rollout.objective_help")
+        missing = missing_rollout_settlement_inputs(row.checkpoint.request.to_dict()["document"])
+        if missing:
+            supplied = {}
+            if (context.rollout_review_source is not None
+                    and context.rollout_review_source.decision.selection == row.selection):
+                supplied = context.rollout_execution.request.document.get(
+                    "whole_game_rollout_derivation", {}).get("supplements", {})
+            advanced += '<fieldset class="rollout-settlement-inputs"><legend>' + translated(
+                locale, "rollout.supplement_heading") + '</legend>'
+            for name in missing:
+                advanced += ('<label>' + translated(locale, "rollout.analysis_" + name)
+                    + ' <input type="text" inputmode="numeric" maxlength="21" '
+                    + f'name="analysis_{name}" value="{escape(str(supplied.get(name, "")))}">'
+                    + '</label>')
+            advanced += paragraph(locale, "rollout.supplement_help")
+            if "matadors" in missing:
+                advanced += paragraph(locale, "declaration.count_examples")
+            advanced += '</fieldset>'
         for name, key, maximum in (("requested_worlds", "rollout.worlds", 1000),
                                    ("random_seed", "rollout.seed", 2**64 - 1)):
             advanced += (f'<label>{translated(locale, key)} <input type="number" '

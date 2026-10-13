@@ -30,13 +30,13 @@ def rollout_form(browser):
     return Forms(browser.page()).find("/sessions/review-whole-game")
 
 
-@pytest.mark.parametrize("bid,matadors,missing,key", [
-    (None, 1, ("bid_value",), "missing_bid"),
-    (18, None, ("matadors",), "missing_matadors"),
-    (None, None, ("bid_value", "matadors"), "missing_bid_and_matadors"),
+@pytest.mark.parametrize("bid,matadors,missing", [
+    (None, 1, ("bid_value",)),
+    (18, None, ("matadors",)),
+    (None, None, ("bid_value", "matadors")),
 ])
-def test_objective_only_change_names_missing_inputs(
-    localized_server, monkeypatch, bid, matadors, missing, key,
+def test_native_missing_inputs_recovery_preserves_source_and_exports(
+    localized_server, monkeypatch, bid, matadors, missing,
 ):
     import skatmind.api.v1.session.files as files
     import skatmind.recommendation_workflow as workflow
@@ -56,6 +56,8 @@ def test_objective_only_change_names_missing_inputs(
     assert browser.submit(rollout_form(browser), requested_worlds="1", random_seed="7")[0] == 303
     retained, source = context.rollout_execution, context.rollout_review_source
     request_bytes, result_bytes = retained.request_json_bytes, retained.result_json_bytes
+    real_execute = execution_module.execute
+    real_space = core.build_compatible_search_world_space
     outcomes = []
     real = workflow.evaluate_whole_game_rollout_v1
     def observe(view, settings):
@@ -69,16 +71,12 @@ def test_objective_only_change_names_missing_inputs(
     monkeypatch.setattr(workflow, "recommend_card_by_expected_value", forbidden)
     monkeypatch.setattr(files, "save_session_file", forbidden)
     form = rollout_form(browser)
+    assert {name for name in form["values"] if name.startswith("analysis_")} == {
+        "analysis_" + name for name in missing}
+    assert all(form["values"]["analysis_" + name] == "" for name in missing)
     status, _, content = browser.submit(form, objective="complete_settlement")
     assert status == 400
-    assert len(outcomes) == 1
-    result = outcomes[0]
-    assert result.status == "unavailable"
-    assert result.stop_reason == "missing_terminal_utility_inputs"
-    assert result.settings.objective == "complete_settlement"
-    assert result.work.sampled_worlds == result.work.card_transitions == 0
-    assert result.work.terminal_evaluations == 0 and result.recommended_card is None
-    assert context.rollout_notice.missing_inputs == missing
+    assert outcomes == [] and context.rollout_notice is None
     monkeypatch.setattr(execution_module, "execute", forbidden)
     page = content.decode()
     for index, locale in enumerate(("en", "de", "en")):
@@ -94,29 +92,77 @@ def test_objective_only_change_names_missing_inputs(
                             }), locale))
             assert response[0] == 303
             page = follow(browser, response)
-        assert text(locale, "validation.rollout." + key) in page
-        assert text(locale, "validation.rollout.unavailable_heading") in page
+        message = text(locale, "validation.rollout.required_" + missing[0])
+        assert page.count(message) == 1
+        assert 'class="error-summary"' not in page
         assert text(locale, "validation.summary.heading") not in page
         assert text(locale, "validation.recorded_review.invalid_fields") not in page
-        assert text(locale, "rollout.retained_objective", objective=text(
-            locale, "rollout.objective.played_game_goal")) in page
+        assert page.count(text(locale, "rollout.retained")) == 1
+        assert text(locale, "rollout.objective.played_game_goal") in page
         values = Forms(page).find("/sessions/review-whole-game")["values"]
         assert values == {**form["values"], "objective": "complete_settlement"}
         tree = Hierarchy(page)
-        summary = next(node for node in tree.nodes if node["attrs"].get("class") == "error-summary")
-        link = next(node for node in tree.nodes
-                    if node["tag"] == "a" and summary in node["parents"])
-        target = tree.by_id(link["attrs"]["href"][1:])
-        assert target["tag"] == "select" and target["attrs"]["name"] == "objective"
+        target = next(node for node in tree.nodes
+                      if node["attrs"].get("name") == "analysis_" + missing[0])
+        assert target["tag"] == "input" and "autofocus" in target["attrs"]
         assert all("open" in node["attrs"] for node in target["parents"]
                    if node["tag"] == "details")
-        assert text(locale, "validation.rollout." + key) in tree.by_id(
+        assert message in tree.by_id(
             target["attrs"]["aria-describedby"])["text"]
         assert context.rollout_execution is retained and context.rollout_review_source is source
         for name, expected in (("request", request_bytes), ("result", result_bytes)):
             assert browser.request("GET", f"/sessions/downloads/rollout-{name}.json")[2] == expected
         assert context.path.read_bytes() == saved and checkpoint.to_dict() == frozen
-    assert len(outcomes) == 1
+    assert outcomes == []
+    if len(missing) == 2:
+        response = browser.submit(Forms(page).find("/sessions/review-whole-game"),
+                                  analysis_bid_value="18")
+        assert response[0] == 400
+        page = response[2].decode()
+        assert page.count(text("en", "validation.rollout.required_matadors")) == 1
+        response = enhanced_switch(browser, page, envelope(
+            page, "/sessions/review-whole-game", {"analysis_bid_value": ["18"]}), "de")
+        assert response[0] == 303
+        page = follow(browser, response)
+        values = Forms(page).find("/sessions/review-whole-game")["values"]
+        assert values["analysis_bid_value"] == "18" and values["analysis_matadors"] == ""
+        assert outcomes == [] and context.rollout_execution is retained
+    monkeypatch.setattr(execution_module, "execute", real_execute)
+    monkeypatch.setattr(core, "build_compatible_search_world_space", real_space)
+    supplements = {name: 18 if name == "bid_value" else 1 for name in missing}
+    response = browser.submit(Forms(page).find("/sessions/review-whole-game"), **{
+        "analysis_" + name: str(value) for name, value in supplements.items()})
+    assert response[0] == 303, response[2].decode()
+    new = context.rollout_execution
+    assert new is not retained and len(outcomes) == 1
+    root = json.loads(new.request_json_bytes)
+    derivation = root["whole_game_rollout_derivation"]
+    assert derivation["supplements"] == supplements
+    assert derivation["original_request"] == checkpoint.request.to_dict()
+    assert derivation["effective_declaration"] == root["game_declaration"]
+    result = json.loads(new.result_json_bytes)["document"]
+    assert result["whole_game_rollout_result"]["objective"] == "complete_settlement"
+    assert result["whole_game_rollout_result"]["status"] == "complete"
+    replayed = execute(parse_request(root)).result.to_dict()["document"]
+    assert without_time(replayed["whole_game_rollout_result"]) == without_time(
+        result["whole_game_rollout_result"])
+    assert replayed["whole_game_rollout_derivation"] == result["whole_game_rollout_derivation"]
+    for name, expected in (("request", new.request_json_bytes), ("result", new.result_json_bytes)):
+        assert browser.request("GET", f"/sessions/downloads/rollout-{name}.json")[2] == expected
+    monkeypatch.setattr(execution_module, "execute", forbidden)
+    for locale in ("de", "en"):
+        assert browser.submit(Forms(browser.page()).find("/actions/profile/language"),
+                              language=locale)[0] == 303
+        page = browser.page()
+        caption = text(locale, "rollout.manual_inputs", values="; ".join(
+            text(locale, "rollout.analysis_" + name) + ": " + str(value)
+            for name, value in supplements.items()))
+        assert page.count(caption) == 1
+        assert text(locale, "rollout.source") not in page
+        assert context.rollout_execution is new
+        assert context.path.read_bytes() == saved and checkpoint.to_dict() == frozen
+    assert retained.request_json_bytes == request_bytes
+    assert retained.result_json_bytes == result_bytes
 
 
 def test_supported_second_trick_settlement_uses_legitimate_frozen_inputs(localized_server):
@@ -137,6 +183,122 @@ def test_supported_second_trick_settlement_uses_legitimate_frozen_inputs(localiz
     assert all(row["total_local_game_score"] is not None for row in result["candidates"])
     assert context.rollout_notice is None
     assert context.path.read_bytes() == saved and checkpoint.to_dict() == frozen
+
+
+def test_supplement_field_errors_are_inline_and_safe_values_survive_language(localized_server,
+                                                                          monkeypatch):
+    context, checkpoint = activate_saved_opening(localized_server)
+    browser = Browser(localized_server)
+    assert browser.submit(rollout_form(browser), requested_worlds="1")[0] == 303
+    prior = context.rollout_execution
+    saved, frozen = context.path.read_bytes(), checkpoint.to_dict()
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Invalid manual inputs must not evaluate")
+    monkeypatch.setattr(execution_module, "execute", forbidden)
+    for value in ("", "0", "-18", "18.5", "true", "9" * 22):
+        response = browser.submit(rollout_form(browser), objective="complete_settlement",
+                                  analysis_bid_value=value)
+        assert response[0] == 400
+        page = response[2].decode()
+        for locale in ("en", "de", "en"):
+            response = browser.submit(Forms(page).find("/actions/profile/language"),
+                                      language=locale)
+            assert response[0] == 303
+            page = browser.page()
+            reason = "required_bid_value" if not value else "invalid_bid"
+            assert page.count(text(locale, "validation.rollout." + reason)) == 1
+            assert 'class="error-summary"' not in page
+            assert Forms(page).find("/sessions/review-whole-game")["values"][
+                "analysis_bid_value"] == value
+            assert context.rollout_execution is prior
+            assert context.path.read_bytes() == saved and checkpoint.to_dict() == frozen
+
+
+@pytest.mark.parametrize("game_type,invalid", [("clubs", "12"), ("grand", "5")])
+def test_matador_supplement_uses_existing_count_convention(localized_server, monkeypatch,
+                                                        game_type, invalid):
+    activate_saved_defender_decision(localized_server, bid_value=18, game_type=game_type)
+    browser = Browser(localized_server)
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Invalid matadors must not evaluate")
+    monkeypatch.setattr(execution_module, "execute", forbidden)
+    for value in (invalid, "-2", "0", "without 2"):
+        response = browser.submit(rollout_form(browser), objective="complete_settlement",
+                                  analysis_matadors=value)
+        assert response[0] == 400
+        reason = "invalid_matadors_grand" if game_type == "grand" else "invalid_matadors_suit"
+        assert text("en", "validation.rollout." + reason) in response[2].decode()
+
+
+def test_known_values_and_unrelated_facts_cannot_be_submitted(localized_server, monkeypatch):
+    context, _ = activate_saved_opening(localized_server, bid_value=18)
+    browser = Browser(localized_server)
+    form = rollout_form(browser)
+    assert not any(name.startswith("analysis_") for name in form["values"])
+    saved = context.path.read_bytes()
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Overwrites and factual edits must not execute")
+    monkeypatch.setattr(execution_module, "execute", forbidden)
+    for field in ("analysis_bid_value", "analysis_matadors", "bid_value", "game_declaration",
+                  "hand", "declarer_points", "original_request", "whole_game_rollout_derivation"):
+        response = browser.submit(form, objective="complete_settlement", **{field: "18"})
+        assert response[0] == 400
+        key = "known_input" if field.startswith("analysis_") else "invalid_fields"
+        assert text("en", "validation.rollout." + key) in response[2].decode()
+        assert context.path.read_bytes() == saved
+
+
+def test_switch_back_to_played_goal_drops_manual_facts(localized_server):
+    context, checkpoint = activate_saved_opening(localized_server)
+    browser = Browser(localized_server)
+    assert browser.submit(rollout_form(browser), requested_worlds="1",
+                          objective="complete_settlement", analysis_bid_value="18")[0] == 303
+    supplemented = context.rollout_execution
+    form = rollout_form(browser)
+    assert form["values"]["analysis_bid_value"] == "18"
+    assert browser.submit(form, objective="played_game_goal")[0] == 303
+    root = context.rollout_execution.request.to_dict()["document"]
+    assert root["whole_game_rollout_derivation"]["version"] == 1
+    assert "supplements" not in root["whole_game_rollout_derivation"]
+    assert root["game_declaration"] == checkpoint.request.to_dict()["document"]["game_declaration"]
+    assert supplemented.request.document["game_declaration"]["bid_value"] == 18
+    assert text("en", "rollout.supplemented_source") not in browser.page()
+
+
+def test_manual_values_are_bound_to_one_decision_form(localized_server):
+    from whole_game_review_fixtures import saved_opening
+
+    import skatmind.api.v1.session as session_api
+    from skatmind.app_web.session_frontend import import_guided_session_v1
+
+    _, first = saved_opening()
+    state, second = saved_opening(decision_trick=2, actual="C7")
+    app = localized_server.app_context
+    document = session_api.build_session_persistence_document(
+        state, decision_checkpoints=(first, second)).value
+    context = import_guided_session_v1(app.managed_stateful.root("sessions"),
+                                       handle="b" * 64, document=document.to_dict())
+    app.managed_stateful.activate_session(context)
+    browser = Browser(localized_server)
+    form = Forms(browser.page()).find("/sessions/review-whole-game", index=1)
+    response = browser.submit(form, objective="complete_settlement", requested_worlds="1",
+                              analysis_bid_value="18")
+    assert response[0] == 303, response[2].decode()
+    forms = Forms(browser.page())
+    assert forms.find("/sessions/review-whole-game", index=0)["values"]["analysis_bid_value"] == ""
+    second_values = forms.find("/sessions/review-whole-game", index=1)["values"]
+    assert second_values["analysis_bid_value"] == "18"
+
+
+def test_unsupported_contract_is_not_misreported_as_missing_bid(localized_server):
+    activate_saved_defender_decision(localized_server, bid_value=None, game_type="null")
+    browser = Browser(localized_server)
+    form = rollout_form(browser)
+    assert "analysis_bid_value" not in form["values"] and "analysis_matadors" not in form["values"]
+    response = browser.submit(form, objective="complete_settlement", requested_worlds="1")
+    assert response[0] == 400
+    assert text("en", "rollout.reason.unsupported_game_type") in response[2].decode()
+    assert text("en", "validation.rollout.required_bid_value") not in response[2].decode()
 
 
 def test_reloaded_whole_game_selection_is_stale_without_execution(localized_server, monkeypatch):
@@ -268,7 +430,7 @@ def test_missing_settlement_and_rejected_attempt_retain_completed_output(localiz
     status, _, content = browser.submit(form, objective="complete_settlement")
     assert status == 400
     page = content.decode()
-    assert text("en", "validation.rollout.missing_bid") in page
+    assert text("en", "validation.rollout.required_bid_value") in page
     assert text("en", "rollout.retained") in page
     assert context.rollout_execution is retained and context.rollout_review_source is source
     for extra, reason in (({"actual_card_played": "SA"}, "invalid_fields"),
@@ -300,7 +462,7 @@ def test_missing_settlement_and_rejected_attempt_retain_completed_output(localiz
 
 
 @pytest.mark.parametrize("objective,status", [
-    ("played_game_goal", 303), ("complete_settlement", 400)])
+    ("played_game_goal", 303), ("complete_settlement", 400), ("complete_settlement", 303)])
 def test_out_of_order_rollout_publication_is_source_and_attempt_owned(
     localized_server, monkeypatch, objective, status,
 ):
@@ -322,17 +484,25 @@ def test_out_of_order_rollout_publication_is_source_and_attempt_owned(
         prior = pool.submit(browser.submit, form, requested_worlds="1", random_seed="1")
         assert entered.wait(30)
         # This would deadlock if the global or Session lock covered evaluation.
-        response = browser.submit(form, requested_worlds="1", random_seed="2", objective=objective)
+        extra = {"analysis_bid_value": "18"} if objective == "complete_settlement" and (
+            status == 303) else {}
+        response = browser.submit(form, requested_worlds="1", random_seed="2", objective=objective,
+                                  **extra)
         assert response[0] == status
         latest = context.rollout_execution
         release.set()
         assert prior.result(timeout=30)[0] == 409
     assert context.rollout_execution is latest
-    assert latest.request.document["whole_game_rollout_settings"]["random_seed"] == 2
+    if status == 303:
+        assert latest.request.document["whole_game_rollout_settings"]["random_seed"] == 2
+    else:
+        assert latest is None
 
 
 @pytest.mark.parametrize("change", ["reload", "retire", "file"])
-def test_inflight_context_or_file_change_cannot_publish(localized_server, monkeypatch, change):
+@pytest.mark.parametrize("supplemented", [False, True])
+def test_inflight_context_or_file_change_cannot_publish(localized_server, monkeypatch, change,
+                                                      supplemented):
     from skatmind.app_web.managed_item_discovery import discover_managed_items_v1
     from skatmind.app_web.session_frontend import open_guided_session_v1, reload_guided_session_v1
     context, _ = activate_saved_opening(localized_server)
@@ -346,7 +516,9 @@ def test_inflight_context_or_file_change_cannot_publish(localized_server, monkey
         return real(request, **kwargs)
     monkeypatch.setattr(execution_module, "execute", blocked)
     with ThreadPoolExecutor(max_workers=1) as pool:
-        future = pool.submit(browser.submit, form, requested_worlds="1")
+        extra = {"objective": "complete_settlement", "analysis_bid_value": "18"} if (
+            supplemented) else {}
+        future = pool.submit(browser.submit, form, requested_worlds="1", **extra)
         assert entered.wait(30)
         if change == "reload":
             reload_guided_session_v1(context)
@@ -386,7 +558,8 @@ def test_interrupted_real_core_and_executor_failure_keep_previous_bytes(
     def failed(*args, **kwargs):
         raise SkatMindValidationError("Synthetic rejected execution")
     monkeypatch.setattr(execution_module, "execute", failed)
-    response = browser.submit(rollout_form(browser), requested_worlds="1")
+    response = browser.submit(rollout_form(browser), requested_worlds="1",
+                              objective="complete_settlement", analysis_bid_value="18")
     assert response[0] == 400
     assert text("en", "validation.rollout.execution_failed") in response[2].decode()
     assert text("en", "validation.recorded_review.invalid_fields") not in response[2].decode()

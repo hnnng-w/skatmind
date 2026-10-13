@@ -293,6 +293,13 @@ footer a:focus-visible,
   overflow-wrap: anywhere;
 }
 
+/* Native objective selection controls presentation only, including without JavaScript. */
+form[action="/sessions/review-whole-game"]:has(
+  select[name="objective"] option[value="played_game_goal"]:checked
+) .rollout-settlement-inputs {
+  display: none;
+}
+
 #recorded-decisions h2,
 .recorded-review-source,
 .recorded-decisions button {

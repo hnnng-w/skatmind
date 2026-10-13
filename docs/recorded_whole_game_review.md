@@ -36,17 +36,23 @@ rollout does not add a category or alter those retained summary identities.
 `session_rollout_review.py` is a separate derived-request adapter. Server-owned
 selection and observation checks resolve one existing frozen checkpoint. The
 unchanged `frozen_request_plus_observed_card` exporter supplies a fresh Request;
-the adapter replaces only the analysis method and its method-specific settings,
-removes incompatible Search settings, and adds bounded derivation metadata:
+the adapter's original version-1 path replaces only the analysis method and its
+method-specific settings, removes incompatible Search settings, and adds bounded
+derivation metadata:
 
 * derivation version `1` and `frozen_checkpoint_method_settings_only` policy;
 * domain-separated SHA-256 original Request and checkpoint fingerprints;
 * checkpoint source revision and explicitly named `checkpoint_decision_index`.
 
+Issue #287 additionally permits explicit analysis-only missing settlement inputs
+under the separate version-2 policy documented below. It never describes these
+manual values as facts frozen in the original checkpoint.
+
 The original Request, checkpoint, and Session persistence bytes are not changed.
 No missing checkpoint is constructed. Current opponent hands, later plays,
 final results, later declarations, and later Skat facts never enrich the root.
-The core receives only its safe decision-time view and settings. Actual-card
+The core receives its safe card-information view, explicit settings, and any
+separately declared manual settlement inputs. Actual-card
 comparison is attached after retaining the candidate result. Changing the actual
 annotation cannot change sampled worlds, continuation actions, or ranking.
 
@@ -72,7 +78,9 @@ The strict `whole_game_rollout_settings` object requires every effective setting
 | `max_preparation_work` | 100000 | Integer 1–100000 |
 | `wall_clock_timeout_ms` | 30000 | Integer 1–60000; finite and non-null |
 
-Only objective, worlds, and seed are exposed in a native advanced disclosure.
+Objective, worlds, and seed are exposed in a native advanced disclosure.
+Complete settlement also offers only the applicable bid/matador inputs missing
+from the selected frozen decision, with empty initial values.
 The work/time limits and fixed policy remain server-owned in the browser action.
 All settings remain in the Request and technical details. Booleans, unknown
 settings, incompatible method settings, unsupported profiles, and unbounded work
@@ -81,7 +89,8 @@ context; they do not override the rollout-specific settings or policies.
 
 Played-game goal uses complete simulated card outcomes and normalized declaration
 conditions, excluding overbid and complete settlement. It can run without a bid.
-Complete settlement requires the core's known bid and matador inputs. The adapter
+Complete settlement requires explicit bid and matador inputs, either retained
+in the frozen Request or supplied manually for this new analysis. The adapter
 does not infer an absent matador value even when another method could do so. It
 does not substitute a bid or silently choose the other objective.
 
@@ -92,7 +101,11 @@ unprepared safe input, not a fabricated Search view. Valid prepared results keep
 the core's safe-view fingerprint and `current_decision` cutoff. Other malformed
 or contradictory inputs retain normal validation errors.
 
-### Complete-settlement availability feedback
+### Initial complete-settlement feedback repair
+
+This subsection records the message-only repair integrated at `8c57a02`. Its
+objective-only recovery was rejected in the installed retest; the current
+supplementation path below supersedes that recovery presentation.
 
 Issue #287 reproduces the ordinary rendered-form sequence at baseline
 `75d189dea3d871ea81195e58752f3006830f5f89`: a successful played-goal result,
@@ -134,6 +147,74 @@ execution, its source label, and exact Request/Result bytes. An additional
 caption identifies the retained result's own objective separately from the new
 attempt. Existing source/generation/attempt checks, supersession, actual-card
 comparison, ranking, tied-best presentation, and sampling remain in force.
+
+### Analysis-only missing-input supplementation (current)
+
+The October 13 maintainer addendum explicitly extends #287 beyond message repair.
+The original recording, checkpoint, and frozen Request remain immutable. A new
+complete-settlement analysis may use only explicit, validated values for
+originally missing `bid_value` and/or `matadors`. Already known values cannot be
+submitted, even if the proposed value is identical. Other declarations, Cards,
+hands, scores, Players, and history are not editable through this form.
+
+The normal advanced form offers **Bid for this analysis** and/or **Matadors for
+this analysis**, without defaults. Domain validation retains a positive integer
+bid and the existing positive consecutive-top-trump count: Suit `1–11`, Grand
+`1–4`; both "with 2" and "without 2" use `2`, not a signed replacement convention.
+The browser text transport accepts at most 20 digits (plus an optional minus
+sign, which domain validation rejects). The native objective selector uses CSS
+conditional presentation, not an analysis request or JavaScript requirement.
+Without support for that CSS enhancement, the same labelled inputs remain usable
+and explicitly scoped to complete settlement. Switching to played-game goal
+disregards their text and derives the unchanged original factual root.
+
+One short note explains that the missing values apply only to analysis and the
+recording remains unchanged. Offering an empty field produces no error. An
+explicit empty/invalid submission produces one inline field error, opens the
+advanced disclosure, and focuses the actual input. It does not execute. This
+case has no repeated red summary or missing-input notice at the result. Safe
+values survive rejection and native/enhanced language return, and remain scoped
+to their source-bound decision form. Previous output is captioned once at its
+result section. Genuine conflicts, unsupported contracts, and execution failures
+retain distinct feedback.
+
+`rollout_derivation.py` validates the additive policy:
+
+| Derivation field | Meaning |
+| --- | --- |
+| `version: 2` | Separate derivation version; Public API remains version `1` |
+| `policy: "frozen_checkpoint_with_manual_settlement_inputs"` | Original facts plus the narrowly permitted explicit supplements |
+| Existing source fingerprints/revision/index | Original Request/checkpoint identity, unchanged |
+| `original_request` | Exact original public Request wrapper, with before-card mode and no nested rollout derivation |
+| `supplement_origin: "manual_analysis_input"` | Caller-supplied analysis assumptions, not verified historical facts |
+| `supplements` | Nonempty object containing only originally absent `bid_value` and/or `matadors` |
+| `effective_declaration` | Exact normalized declaration used in the new execution |
+
+The ordinary public execution boundary validates the original fingerprint,
+reconstructs the permitted method/settings/observed-card transformation plus
+supplements, and compares every other Request fact exactly. Schema validation
+rejects malformed metadata and unknown fields; runtime validation rejects known
+overwrites, contradictory effective inputs, changed facts, invalid domain values,
+and supplements on played-game goal. Version-1 derivations retain their exact
+policy and validation, and unsupplemented Requests do not acquire new metadata.
+No old retained/exported bytes are rewritten.
+
+An imported Request can establish consistency with its supplied original, not
+authenticate a real historical recording by itself. The Session path additionally
+resolves and revalidates the actual server-owned checkpoint, document, generation,
+file fingerprint, and attempt token. Evaluation remains outside the global lock.
+Supplement values are copied as immutable work, never written to recording or
+profile storage. Failed and superseded work cannot replace the prior completed
+execution. An explicit incomplete-input attempt also supersedes older in-flight
+work, without running an alternative objective.
+
+The existing Result echoes the validated derivation and effective declaration.
+Result field provenance identifies supplemented declaration values as
+`caller_supplied`, referencing `/whole_game_rollout_derivation/supplements/...`.
+Card evidence retains its before-card cutoff; manual settlement values are
+separate assumptions for this analysis. The visible result contains one compact
+manual-input caption and its own objective. Fingerprints and the full derivation
+remain in Calculation details and the canonical Request/Result downloads.
 
 ## Result meaning
 
@@ -263,8 +344,12 @@ settings, derivation, comparison, and aggregate Result components. Input/output
 Root schemas enforce the additive method and incomplete-result restrictions.
 There are now **72** authoritative and byte-identical packaged schemas.
 The private frontend inventory is **68 POST routes**, **120 form definitions**,
-and **1927 keys per language** after the availability-feedback correction,
-derived from the registry and both strict catalogs. The tied-summary correction
+and **1939 keys per language** after analysis-only supplementation, derived from
+the registry and both strict catalogs. The message-only repair had 1927 keys.
+The existing whole-game form now has six registered safe fields, including its
+two conditional analysis inputs; the installed smoke expectation matches them.
+No route, form, schema filename, or generated-output scenario was added.
+The tied-summary correction
 had 1914 keys per language (1906 after the earlier clarity correction, 1882
 before it; the initial pre-rollout frontend had 67 routes, 119 forms, and 1832 keys).
 
@@ -418,3 +503,35 @@ This is developer-owned synthetic source-build evidence, not installed-build
 acceptance or evidence of maintainer comprehension. Full exact-commit CI,
 identical-commit integration, and the brief installed missing-input retest remain
 with the maintainer. Issue #287 remains open pending that acceptance.
+
+### Supplementation browser observation
+
+At base `8c57a02b238093b5c97afed1efc99fe6b494666d`, the existing local browser
+harness used a new disposable completed recording and its saved second-trick C7
+decision. Headless Edge **155.0.4283.45**, CPython **3.13.7**, **1365×900**, and
+disabled page JavaScript exercised the native form. This did not access UAT data.
+
+One-world played-game analysis completed. Changing only the objective exposed an
+empty bid control without an availability error or execution. Submitting it empty
+focused the actual field with one short inline error and retained both prior
+downloads byte-for-byte. Entering **18** explicitly and submitting produced a new
+complete-settlement result. That number is a declared synthetic analysis
+assumption, not a recovered historical bid; the frozen bid remains absent.
+
+English → German → English showed the single manual-input result caption,
+complete-settlement objective, preserved form value, and unchanged tied-best
+presentation. Native downloads matched the new execution's exact bytes. There
+were **two executions, two core calls, and zero recording saves** across the whole
+sequence; the empty submission, typing, selection, language return, and downloads
+caused no extra execution. Original recording/checkpoint bytes and the old
+Request/Result objects remained unchanged. Screenshots were inspected. Evidence
+and hashes are under `$env:TEMP/opencode/issue287-supplement-88u7hrz5/report.json`.
+
+The affected selection passed **1037 tests**, including actual Session/export,
+HTTP, public API, input/output schema, provenance/serialization, localization,
+retention/race, and package-resource/smoke-inventory modules. Tests include missing
+bid, missing matadors, both missing, invalid values, known-value rejection,
+factual/metadata tampering, exported public execution, objective switches, and
+cross-decision isolation. These developer checks do not establish historical
+truth or maintainer comprehension. Exact-commit CI, identical-commit integration,
+and the brief installed supplementation recovery-path retest remain pending.

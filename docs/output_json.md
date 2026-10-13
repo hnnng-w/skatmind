@@ -15,6 +15,12 @@ score/margin gaps, or unavailability. Incomplete work has no ranking or normal
 recommendation and never falls back. The legacy Immediate review summary is
 unavailable for this method. See [Result meaning](recorded_whole_game_review.md#result-meaning).
 
+Supplemented analyses echo version-2 derivation metadata containing the original
+Request, explicit manual settlement inputs, and the effective declaration.
+Supplemented declaration fields have caller-supplied provenance; they are not
+claimed as frozen historical facts. Existing version-1 derivations and retained
+exports are unchanged. See [analysis-only supplementation](recorded_whole_game_review.md#analysis-only-missing-input-supplementation-current).
+
 ## JSON schema
 
 The output JSON schema is available at:

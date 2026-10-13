@@ -693,6 +693,21 @@ def apply_validation_feedback_to_html_v1(
             block = _insert_field_messages(block, field, rendered_messages)
 
     form_anchor_id = f"validation-form-heading-{state.feedback_generation}"
+    if definition.form_key == "session.review_whole_game" and all(
+        issue.field_key in {"analysis_bid_value", "analysis_matadors"}
+        for issue in state.validation_issues
+    ):
+        # One concise inline error at the actual missing input, with native focus.
+        identifier = next(iter(rendered_fields.values()), None)
+        if identifier:
+            block = re.sub(rf'<input\b(?=[^>]*\bid="{re.escape(identifier)}")[^>]*>',
+                lambda match: _set_attribute(match[0], "autofocus", "autofocus"), block, count=1)
+        rendered = html[:form_start] + block + html[form_end:]
+        if last_valid_result_retained:
+            marker = '<div id="session-rollout-result" tabindex="-1">'
+            caption = escape(translate_frontend_message_v1(locale, "rollout.retained"))
+            rendered = rendered.replace(marker, marker + f'<p>{caption}</p>', 1)
+        return rendered
     summary = _render_summary(
         state,
         translated,

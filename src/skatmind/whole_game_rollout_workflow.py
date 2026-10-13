@@ -46,13 +46,22 @@ def parse_rollout_settings(value: object) -> WholeGameRolloutSettingsV1:
     })
 
 
-def validate_rollout_derivation(value: object) -> None:
+def validate_rollout_derivation(value: object, data: dict | None = None) -> None:
+    from skatmind.rollout_derivation import (
+        MANUAL_SETTLEMENT_POLICY,
+        validate_manual_rollout_derivation,
+    )
+
     keys = {"version", "policy", "original_request_fingerprint", "checkpoint_fingerprint",
             "source_revision", "checkpoint_decision_index"}
+    manual = type(value) is dict and value.get("policy") == MANUAL_SETTLEMENT_POLICY
+    if manual:
+        keys.update(("original_request", "supplement_origin", "supplements",
+                     "effective_declaration"))
     if type(value) is not dict or set(value) != keys:
         raise ValueError("Rollout derivation must contain exactly its bounded source references.")
-    if type(value["version"]) is not int or value["version"] != 1 or (
-        value["policy"] != "frozen_checkpoint_method_settings_only"
+    if type(value["version"]) is not int or value["version"] != (2 if manual else 1) or (
+        not manual and value["policy"] != "frozen_checkpoint_method_settings_only"
     ):
         raise ValueError("Unsupported rollout derivation version or policy.")
     for name in ("original_request_fingerprint", "checkpoint_fingerprint"):
@@ -63,6 +72,10 @@ def validate_rollout_derivation(value: object) -> None:
         or not 1 <= value["checkpoint_decision_index"] <= 30
     ):
         raise ValueError("Invalid rollout checkpoint identity.")
+    if manual:
+        if data is None:
+            raise ValueError("Manual derivation validation requires the effective Request.")
+        validate_manual_rollout_derivation(value, data)
 
 
 def unavailable_rollout_root(*, state, declaration, left_hand_size, right_hand_size,

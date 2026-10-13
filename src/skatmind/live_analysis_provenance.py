@@ -955,7 +955,8 @@ def _generic_result_entry(
         references = (_reference("algorithm", "whole_game_candidate_rollout_v1"),)
         dependencies = visible_dependencies
     elif top == "whole_game_rollout_derivation":
-        origin = "validated_copy"
+        origin = "caller_supplied" if len(tokens) > 1 and tokens[1] == "supplements" else (
+            "validated_copy")
         derivation = "validated"
         references = (_reference("request", "position_analysis_request", field_path=path),)
     elif "hidden_card_inference_summary" in tokens:

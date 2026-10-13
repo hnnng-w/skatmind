@@ -137,6 +137,7 @@ def _require_source(context: GuidedSessionContextV1, source: RecordedReviewSourc
 def execute_recorded_session_decision_v1(
     app: AppWebContextV1, context: GuidedSessionContextV1, *, selection: str,
     rollout_settings: WholeGameRolloutSettingsV1 | None = None,
+    rollout_supplements: dict[str, str] | None = None,
 ) -> RecordedRolloutNoticeV1 | None:
     """Publish after unlocked execution; return only the source-checked incomplete notice."""
     with context.lock:
@@ -152,13 +153,20 @@ def execute_recorded_session_decision_v1(
         ).value
         if exported.status != "available" or exported.observation != decision.observation:
             raise RecordedDecisionReviewConflictError()
-        request = exported.request if rollout_settings is None else (
-            derive_session_rollout_review_request_v1(
-                state=context.state, checkpoint=decision.checkpoint, settings=rollout_settings))
         with app.lock:
             _require_binding(app, context)
             attempt = context.begin_execution()
             source = RecordedReviewSourceV1(context.document, context.generation, decision, attempt)
+        request = exported.request
+        if rollout_settings is not None:
+            from .session_recorded_review_form import parse_recorded_rollout_supplements_v1
+            context.rollout_notice = None
+            supplements = parse_recorded_rollout_supplements_v1(
+                rollout_supplements or {}, decision.checkpoint.request.to_dict()["document"],
+                rollout_settings.objective)
+            request = derive_session_rollout_review_request_v1(
+                state=context.state, checkpoint=decision.checkpoint, settings=rollout_settings,
+                supplements=supplements)
     execution = execute_guided_frontend_review_v1(request, options=ExecutionOptionsV1())
     with context.lock:
         _require_source(context, source)

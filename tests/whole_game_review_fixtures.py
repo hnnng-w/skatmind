@@ -69,9 +69,9 @@ def activate_saved_opening(server, **kwargs):
     return _activate_saved_decision(server, state, checkpoint)
 
 
-def activate_saved_defender_decision(server, *, bid_value):
+def activate_saved_defender_decision(server, *, bid_value, game_type="clubs"):
     """Own defender hand cannot establish the hidden declarer's matadors."""
-    data = build_historical_input(game_type="clubs", declarer_player_id="player-a",
+    data = build_historical_input(game_type=game_type, declarer_player_id="player-a",
                                   bid_value=bid_value)
     state = _retrospective_before_play(data, local_player_id="player-b")
     first, second = data["tricks"][0]["plays"][:2]

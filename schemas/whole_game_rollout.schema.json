@@ -22,6 +22,40 @@
       }
     },
     "derivation": {
+      "oneOf": [{"$ref": "#/$defs/settings_derivation"}, {"$ref": "#/$defs/manual_derivation"}]
+    },
+    "manual_derivation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["version", "policy", "original_request_fingerprint", "checkpoint_fingerprint", "source_revision", "checkpoint_decision_index", "original_request", "supplement_origin", "supplements", "effective_declaration"],
+      "properties": {
+        "version": {"const": 2},
+        "policy": {"const": "frozen_checkpoint_with_manual_settlement_inputs"},
+        "original_request_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "checkpoint_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "source_revision": {"type": "integer", "minimum": 0},
+        "checkpoint_decision_index": {"type": "integer", "minimum": 1, "maximum": 30},
+        "original_request": {
+          "$ref": "https://example.local/skatmind/session.schema.json#/$defs/request_document",
+          "properties": {"workflow": {"const": "position_analysis"}, "document": {
+            "properties": {"analysis_mode": {"const": "live_decision"}},
+            "not": {"required": ["actual_card_played"]}
+          }}
+        },
+        "supplement_origin": {"const": "manual_analysis_input"},
+        "supplements": {
+          "type": "object", "additionalProperties": false, "minProperties": 1,
+          "properties": {
+            "bid_value": {"type": "integer", "minimum": 1},
+            "matadors": {"type": "integer", "minimum": 1, "maximum": 11}
+          }
+        },
+        "effective_declaration": {
+          "$ref": "https://example.local/skatmind/output.schema.json#/$defs/game_declaration",
+          "propertyNames": {"enum": ["game_type", "hand_game", "ouvert", "schneider_announced", "schwarz_announced", "matadors", "bid_value"]}
+        }
+      }
+    },
+    "settings_derivation": {
       "type": "object", "additionalProperties": false,
       "required": ["version", "policy", "original_request_fingerprint", "checkpoint_fingerprint", "source_revision", "checkpoint_decision_index"],
       "properties": {

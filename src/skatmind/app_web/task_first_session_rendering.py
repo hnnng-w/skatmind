@@ -324,9 +324,6 @@ def _rollout_result(context, locale, game_label):
     if notice is not None:
         if execution.result.result.document["whole_game_rollout_result"]["status"] == "complete":
             content += paragraph(locale, "rollout.retained")
-            content += paragraph(locale, "rollout.retained_objective", objective=translated(
-                locale, "rollout.objective." + execution.result.result.document[
-                    "whole_game_rollout_result"]["objective"]))
     return ('<div id="session-rollout-result" tabindex="-1">' + content
         + render_recorded_review_source_v1(context, locale=locale, game_label=game_label, rollout=True)
         + render_result_presentation_v1(

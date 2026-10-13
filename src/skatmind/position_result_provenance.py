@@ -132,6 +132,12 @@ def _declaration_entry(
     declaration = result.get("game_declaration")
     if not isinstance(declaration, Mapping):
         declaration = {}
+    metadata = (source_document or {}).get("whole_game_rollout_derivation", {})
+    if isinstance(metadata, Mapping) and field_name in metadata.get("supplements", {}):
+        return result_provenance_entry(
+            path, origin="caller_supplied", visibility="public", available_from="request_start",
+            derivation="validated", source_references=(_request_reference(
+                "/whole_game_rollout_derivation/supplements/" + field_name),))
     source_path = _source_declaration_path(source_document, field_name)
     if field_name == "game_type":
         source_path = "/game_type"

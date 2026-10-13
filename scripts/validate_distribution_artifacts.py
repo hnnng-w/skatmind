@@ -1191,7 +1191,8 @@ assert rollout.action_route == "/sessions/review-whole-game"
 assert rollout.originating_page == "/sessions/current"
 assert rollout.success_redirect == "/sessions/current#session-rollout-result"
 assert {field.field_key for field in rollout.safe_fields} == {
-    "decision_selection", "objective", "requested_worlds", "random_seed"}
+    "decision_selection", "objective", "requested_worlds", "random_seed",
+    "analysis_bid_value", "analysis_matadors"}
 direct = next(form for form in FRONTEND_FORM_REGISTRY
               if form.form_key == "learning.add_recorded_match")
 assert direct.action_route == "/learning/add-recorded-match" and direct.body_limit == 8192

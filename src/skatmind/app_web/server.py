@@ -2632,10 +2632,11 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         values = dict(values)
         del values["expected_revision"]
         if path == "/sessions/review-whole-game":
-            selection, settings = parse_recorded_rollout_form_v1(values)
+            selection, settings, supplements = parse_recorded_rollout_form_v1(values)
             self._rollout_execution_started = True
             notice = execute_recorded_session_decision_v1(
                 self.server.app_context, active, selection=selection, rollout_settings=settings,
+                rollout_supplements=supplements,
             )
             if notice is None:
                 self._redirect("/sessions/current#session-rollout-result")

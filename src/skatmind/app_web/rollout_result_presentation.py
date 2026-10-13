@@ -75,8 +75,15 @@ def build_rollout_presentation(execution, document, information_source):
     comparison = document["whole_game_rollout_comparison"]
     complete = result["status"] == "complete"
     objective = message("rollout.objective." + result["objective"])
+    derivation = document.get("whole_game_rollout_derivation", {})
+    supplements = derivation.get("supplements", {})
+    supplemental_caption = (() if not supplements else (message(
+        "rollout.manual_inputs", values="; ".join(
+            message("rollout.analysis_" + name) + ": " + str(supplements[name])
+            for name in ("bid_value", "matadors") if name in supplements)),))
     summary = ResultSectionV1("Summary", paragraphs=(
         message("rollout.heading"),
+        *supplemental_caption,
         message("rollout.coverage", completed=result["completed_common_worlds"],
                 requested=result["requested_worlds"]),
     ), details=(ResultDetailV1("Comparison objective", objective),))
@@ -139,7 +146,8 @@ def build_rollout_presentation(execution, document, information_source):
         ResultSectionV1("Technical details", paragraphs=(
             message("rollout.policy_details", profile=result["policy"]["profile"],
                     version=result["policy"]["version"]), message("rollout.objective_help"),
-            message("rollout.source" if information_source == "session_checkpoint"
+            message("rollout.supplemented_source" if supplements else
+                    "rollout.source" if information_source == "session_checkpoint"
                     else "rollout.supplied_source"),
         ), details=(ResultDetailV1(
             "Whole-game rollout", json.dumps(technical, ensure_ascii=True, sort_keys=True)),)),

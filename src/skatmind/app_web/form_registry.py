@@ -1010,13 +1010,16 @@ _FORMS: list[FrontendFormDefinitionV1] = [
     _definition(
         "session.review_whole_game",
         "/sessions/review-whole-game",
-        ("decision_selection", "objective", "requested_worlds", "random_seed"),
+        ("decision_selection", "objective", "requested_worlds", "random_seed",
+         "analysis_bid_value", "analysis_matadors"),
         page="/sessions/current", active="sessions",
         success="/sessions/current#session-rollout-result",
         choice_overrides={"objective": ("played_game_goal", "complete_settlement")},
         control_overrides={"objective": "select"},
         label_overrides={"objective": "validation.field.rollout_objective",
-                         "requested_worlds": "validation.field.rollout_worlds"},
+                         "requested_worlds": "validation.field.rollout_worlds",
+                         "analysis_bid_value": "validation.field.bid_value",
+                         "analysis_matadors": "validation.field.matadors"},
     ),
     _definition(
         "session.review",
