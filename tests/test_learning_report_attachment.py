@@ -141,7 +141,7 @@ def test_optional_source_help_names_wrapper_effect_and_lifetime():
     assert "-strategy-source.json" in page and "Download for Learning Corpus" in page
     assert "Request, Result or recording JSON" in page
     assert "restart" in page and "Reload" in page
-    assert "not evaluate the collection" in page
+    assert "not prepare datasets" in page
 
 
 def test_hidden_target_error_links_to_visible_description_and_is_not_restored():

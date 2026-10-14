@@ -4,6 +4,7 @@ import os
 import secrets
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from skatmind.corpus_web.context import LearningCorpusWebContextV1
 from skatmind.corpus_web.contracts import LearningCorpusWebResultV1
@@ -41,6 +42,9 @@ from .managed_item_storage import (
 from .operation_feedback import PendingOperationFeedback, feedback_source
 from .operation_feedback_mapping import learning_import_message
 
+if TYPE_CHECKING:
+    from .debrief_frontend import DebriefSourceStoreV1
+
 
 @dataclass(slots=True, kw_only=True)
 class UnifiedLearningContextV1:
@@ -56,8 +60,13 @@ class UnifiedLearningContextV1:
     entry_key: bytes = field(default_factory=lambda: secrets.token_bytes(32), repr=False)
     entry_outcome: LearningEntryOutcome | None = field(
         default=None, repr=False)
+    debrief_sources: DebriefSourceStoreV1 | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
+        from .debrief_frontend import DebriefSourceStoreV1
+
+        if self.debrief_sources is None:
+            self.debrief_sources = DebriefSourceStoreV1()
         if not isinstance(self.category_root, Path) or not isinstance(self.path, Path):
             raise ValueError("Managed Corpus paths must be private Paths.")
         if self.path.parent != self.category_root:

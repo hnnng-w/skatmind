@@ -1183,8 +1183,8 @@ assert FRONTEND_TRANSLATION_CATALOG_VERSION == 1
 assert LOCAL_FRONTEND_PROFILE_VERSION == 1
 assert FRONTEND_INFORMATION_ARCHITECTURE_VERSION == 1
 assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-assert len(UNIFIED_FRONTEND_POST_ROUTES) == 70
-assert len(FRONTEND_FORM_REGISTRY) == 122
+assert len(UNIFIED_FRONTEND_POST_ROUTES) == 72
+assert len(FRONTEND_FORM_REGISTRY) == 124
 rollout, = (form for form in FRONTEND_FORM_REGISTRY
             if form.form_key == "session.review_whole_game")
 assert rollout.action_route == "/sessions/review-whole-game"
@@ -1208,6 +1208,11 @@ assert {field.field_key for field in selection.safe_fields} == {
 legacy_decision, = (form for form in FRONTEND_FORM_REGISTRY
                    if form.form_key == "match.analysis.analyze_decision")
 assert "decision_selection" in {field.field_key for field in legacy_decision.safe_fields}
+debrief_forms = tuple(form for form in FRONTEND_FORM_REGISTRY
+                      if form.form_key.startswith("learning.debrief."))
+assert tuple(form.action_route for form in debrief_forms) == (
+    "/learning/debrief/include", "/learning/debrief/remove")
+assert all(form.body_limit == 8192 and not form.safe_fields for form in debrief_forms)
 direct = next(form for form in FRONTEND_FORM_REGISTRY
               if form.form_key == "learning.add_recorded_match")
 assert direct.action_route == "/learning/add-recorded-match" and direct.body_limit == 8192

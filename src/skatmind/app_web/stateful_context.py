@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import RLock
+from typing import TYPE_CHECKING
 
 from .contracts import ManagedHomeV1
 from .learning_frontend import UnifiedLearningContextV1
@@ -13,6 +14,9 @@ from .managed_item_contracts import (
 from .managed_item_discovery import discover_managed_items_v1
 from .match_frontend import UnifiedMatchContextV1
 from .session_frontend import GuidedSessionContextV1
+
+if TYPE_CHECKING:
+    from .debrief_frontend import DebriefScopeV1
 
 
 @dataclass(slots=True, kw_only=True)
@@ -34,6 +38,7 @@ class ManagedStatefulContextV1:
     match_lifecycle_lock: RLock = field(default_factory=RLock, repr=False)
     active_learning: UnifiedLearningContextV1 | None = field(default=None, repr=False)
     learning_lifecycle_lock: RLock = field(default_factory=RLock, repr=False)
+    debrief_scopes: dict[str, DebriefScopeV1] = field(default_factory=dict, repr=False)
 
     def __post_init__(self) -> None:
         if type(self.managed_home) is not ManagedHomeV1:

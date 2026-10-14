@@ -27,8 +27,7 @@ def test_current_singleton_has_no_empty_alternatives_or_selection(locale):
     page = render(specimen("build"), locale)
     assert not selections(page)
     assert text(locale, "task.learning.alternatives") not in page
-    assert ("Selected for evaluation" if locale == "en" else
-            "Für die Auswertung ausgewählt") in page
+    assert text(locale, "task.learning.used_version") in page
     assert 'id="learning-match-' in page and 'id="learning-version-' in page
 
 

@@ -381,3 +381,14 @@ py -3.13 -m pytest tests/test_match_decision_selection_web.py tests/test_match_d
 These groups overlap. The installed-smoke registry assertions were executed through
 the packaging test module. Final local validation is explicit Quick; complete
 exact-commit hosted CI and the short installed selection retest remain pending.
+
+## Retained post-game debrief reuse (Issue #289)
+
+The new [Match debrief](learning_match_debrief.md) supersedes the former blanket
+Learning-transfer limitation only for a narrow private player-facing evidence
+family. Completed Reports expose a direct captured review, and opened collections
+offer explicit compatible Report incorporation without JSON handling. Detailed
+comparisons and canonical downloads reuse the retained Request/Result; they do
+not evaluate again. The original source handle/content is checked separately on
+recording return. Teacher source exports/codecs, `FLAT_RECOMMENDATION_METHODS`,
+Dataset and qualified Coaching eligibility remain unchanged and reject rollout.

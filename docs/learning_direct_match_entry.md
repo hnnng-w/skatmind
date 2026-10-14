@@ -383,3 +383,14 @@ Both `check` and `v1-supported-platform-matrix` must pass on the exact merged co
 before manual closure. #235 remains completed. #208/unresolved findings remain open;
 UAT-01 failed, UAT-02–12 paused, B-09/B-07 open, B-06 closed. This is not maintainer
 UAT, a whole-UAT pass, release preparation, or a change to the closed technical ledger.
+
+## Current post-game review entry (Issue #289)
+
+The historical evaluation wording above is superseded by the separate player-
+facing [retained Match debrief](learning_match_debrief.md). An available completed
+whole-game Report opens a direct read-only review without a collection. Existing
+collections offer explicit native incorporation of compatible available Reports.
+Adding a recording still copies only the Workspace; it imports no Report and
+runs no analysis. Current selection and conflict policies remain unchanged.
+The dataset-only action is now **Prepare dataset**, with its technical results
+and ten exports collapsed separately from concrete decision comparisons.

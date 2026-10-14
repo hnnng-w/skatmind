@@ -275,3 +275,12 @@ analysis. Only unanimous distinct-semantic complete-Search Assessments can
 qualify for bounded repeated cross-Game focus; Immediate, partial, timeout,
 unavailable, not-assessable, and mixed evidence remains descriptive. See
 [Learning Corpus Tactical Cross-game Coaching](learning_corpus_tactical_cross_game_coaching.md).
+
+## Separate rollout debrief evidence (Issue #289)
+
+Completed selected-Match rollout Reports can now be captured or explicitly
+incorporated into the unified app's [player-facing debrief](learning_match_debrief.md).
+This uses `MatchDebriefEvidenceV1`, not this Teacher contract. Rollout remains
+unsupported by the Teacher source wrapper/codecs, Dataset-v2 labels and qualified
+Coaching assessment. Original-source content and selected-target Decision Request
+reconciliation remain distinct; explicit supplements stay analysis inputs.

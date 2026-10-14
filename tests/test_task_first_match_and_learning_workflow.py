@@ -106,7 +106,7 @@ def test_explicit_transfer_selection_build_and_ten_downloads(tmp_path, locale):
     state = build_unified_learning_state_v1(target)
     html = render_task_first_learning_v1(state, managed_handle=target.handle, locale=locale)
     assert t(locale, "task.learning.current_results") in html
-    assert t(locale, "task.learning.view_results") in html
+    assert t(locale, "debrief.preparation") in html
     assert t(locale, "task.learning.rebuild") in html
     assert 'href="#learning-results"' in html
     assert html.count('value="prepare_learning_artifacts"') == 1

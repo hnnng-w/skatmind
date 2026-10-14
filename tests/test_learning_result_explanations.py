@@ -88,7 +88,9 @@ def assert_downloads(tree, locale="en"):
     assert LEARNING_CORPUS_ALL_PREPARED_DOWNLOAD_KINDS == CANONICAL
     for link in links:
         assert "download" in link["attrs"] and "autofocus" not in link["attrs"]
-        assert Hierarchy.visible(link) and len(link["text"]) > 10 and "JSON" in link["text"]
+        assert not Hierarchy.visible(link)  # Dataset exports are secondary to #289 debriefs.
+        assert len(link["text"]) > 10 and "JSON" in link["text"]
+        assert any(p["tag"] == "details" and "open" not in p["attrs"] for p in link["parents"])
         item = next(p for p in reversed(link["parents"]) if p["tag"] == "li")
         assert len(item["text"]) > len(link["text"]) + 25
     if locale == "en":

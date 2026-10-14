@@ -37,6 +37,15 @@ from .cross_area_transfer import (
     transfer_active_match_report_to_corpus_v1,
     transfer_active_match_workspace_to_corpus_v1,
 )
+from .debrief_frontend import DEBRIEF_POST_ROUTES, available_reports, collection_scope
+from .debrief_http import (
+    DEBRIEF_FROM_PATTERN,
+    DEBRIEF_PAGE_PATTERN,
+    DEBRIEF_RESOURCE_PATTERN,
+    handle_debrief_get,
+    handle_debrief_post,
+)
+from .debrief_rendering import render_available_reports, render_debrief
 from .form_parsing import FormValuesV1
 from .form_registry import (
     FRONTEND_FORM_REGISTRY,
@@ -381,6 +390,7 @@ _SESSION_DOWNLOAD_ROUTES = {
     "/sessions/downloads/rollout-result.json",
 }
 _STATEFUL_POST_ROUTES = {
+    *DEBRIEF_POST_ROUTES,
     *CORRECTION_ROUTES,
     *DELETION_POST_ROUTES,
     OPEN_RECORDING_ROUTE,
@@ -461,6 +471,9 @@ def _is_stateful_get_route(path: str) -> bool:
         or path in _SESSION_DOWNLOAD_ROUTES
         or path in _MATCH_EXPORT_ROUTES
         or path in _LEARNING_DOWNLOAD_ROUTES
+        or DEBRIEF_FROM_PATTERN.fullmatch(path) is not None
+        or DEBRIEF_PAGE_PATTERN.fullmatch(path) is not None
+        or DEBRIEF_RESOURCE_PATTERN.fullmatch(path) is not None
         or _MATCH_POSITION_PATTERN.fullmatch(path) is not None
         or _MATCH_REVIEW_PATTERN.fullmatch(path) is not None
         or _MATCH_REPORT_PATTERN.fullmatch(path) is not None
@@ -2066,15 +2079,22 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         operation_notice: str | None = None,
         operation_notice_kind: str = "info",
         review: bool = False,
+        debrief_evidence=None,
     ) -> None:
         review = review or report_id is not None
         self._match_review_return = review
         self._match_page_return = position if report_id is None else None
         with active.capture.lock:
+            if debrief_evidence is not None:
+                from .debrief_frontend import require_evidence_recording
+
+                require_evidence_recording(active, debrief_evidence)
             if active.selected_position != position:
                 with self.server.app_context.lock:
                     self.server.app_context.form_feedback.clear("matches")
             select_unified_match_position_v1(active, position)
+            if debrief_evidence is not None:
+                apply_match_decision_selection(active, debrief_evidence.report.decision_index)
             if active.capture.report_store.list():
                 try:
                     require_recording_fresh_v1(active, "matches")
@@ -2094,6 +2114,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         with active.capture.lock:
             # A concurrent navigation may have moved selection since language capture.
             # Keep the page, recovery actions and Card bindings on the same Game.
+            if debrief_evidence is not None:
+                require_evidence_recording(active, debrief_evidence)
+                if active.selected_review_decision != debrief_evidence.report.decision_index:
+                    raise LanguageContextConflict
             select_unified_match_position_v1(active, position)
             view = project_task_first_match_v1(active.workspace, selected_position=position)
             state = build_task_first_match_page_state_v1(active, view, report_id=report_id)
@@ -2296,6 +2320,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             entry_outcome=entry_outcome,
             rejected_build=(feedback is not None
                 and feedback.form_key == "learning.operation.prepare_learning_artifacts"),
+            debrief=render_debrief(collection_scope(self.server.app_context, active),
+                                  locale, profile=profile)
+                + render_available_reports(available_reports(self.server.app_context, active),
+                                           active, locale, profile),
         )
         if notice is not None and entry_outcome is None:
             key = ("task.operation.conflict" if notice_kind in {"warning", "error"}
@@ -2386,6 +2414,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         return False
 
     def _stateful_get(self, path: str) -> bool:
+        if handle_debrief_get(self, path):
+            return True
         if path == DELETION_PAGE:
             render_deletion_page(self)
             return True
@@ -3230,6 +3260,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if path == LEARNING_ADD_ROUTE:
             dispatch_learning_direct_entry(self, self._text_form(body, content_type))
             return
+        if path in DEBRIEF_POST_ROUTES:
+            handle_debrief_post(self, path, self._text_form(body, content_type))
+            return
         if path in DELETION_POST_ROUTES:
             dispatch_recording_deletion(self, path, self._text_form(body, content_type))
             return
@@ -3449,7 +3482,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             if parsed.path in _STATEFUL_POST_ROUTES:
                 if parsed.path in DELETION_POST_ROUTES:
                     max_bytes = DELETION_BODY_LIMIT
-                elif parsed.path == LEARNING_ADD_ROUTE:
+                elif parsed.path == LEARNING_ADD_ROUTE or parsed.path in DEBRIEF_POST_ROUTES:
                     max_bytes = LEARNING_ENTRY_BODY_LIMIT
                 elif parsed.path in CORRECTION_ROUTES:
                     max_bytes = CORRECTION_BODY_LIMIT

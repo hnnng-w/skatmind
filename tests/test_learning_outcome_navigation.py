@@ -59,7 +59,7 @@ def test_first_add_returns_to_accepted_match_not_source_selector(localized_serve
     page = follow(browser, response)
     row = node(page, target)
     assert row["attrs"]["tabindex"] == "-1" and "autofocus" not in row["attrs"]
-    assert "Selected for evaluation" in row["text"]
+    assert "Selected input" in row["text"]
     assert any(p["attrs"].get("id") == target for p in notice(page, "version_added")["parents"])
 
 
@@ -89,7 +89,7 @@ def affected(page, active):
     if len(same_revision) > 1:
         label += f" — variant {same_revision.index(outcome.snapshot_id) + 1}"
     assert f"Affected saved version: {label}. The selected input is shown below." in row["text"]
-    assert "Selected for evaluation" in row["text"]
+    assert "Selected input" in row["text"]
     current = next(s for s in match["snapshots"] if s["current"])
     assert text("en", "task.learning.saved_revision",
                 revision=current["workspace_revision"]) in row["text"]
@@ -291,7 +291,7 @@ def test_failed_recreation_keeps_older_bytes_but_error_has_priority(localized_se
     assert response[0] == 400 and "location" not in response[1]
     page = response[2].decode()
     assert 'role="alert"' in page and 'autofocus' in page and not notices(page)
-    assert page.index('class="error-summary"') < page.index('id="learning-results"')
+    assert page.index('class="error-summary"') < page.index('id="learning-prepared-result"')
     assert active.corpus.prepared_artifacts is prepared and downloads(browser) == retained
     assert Forms(page).forms  # Safe invalid value is still in its actual preparation form.
     assert operation_form(page, "prepare_learning_artifacts")["values"]["train_weight"] == "0"

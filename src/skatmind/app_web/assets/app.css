@@ -382,6 +382,35 @@ footer a:focus-visible,
   overflow-wrap: anywhere;
 }
 
+.debrief-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-block: 1rem;
+}
+
+.debrief-actions [aria-current="true"] {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.debrief-decision {
+  border-top: 1px solid var(--line);
+  padding-block: 1rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+#learning-debrief {
+  scroll-margin-block: 1rem;
+  overflow-wrap: anywhere;
+}
+
+#learning-debrief:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
 /* Native objective selection controls presentation only, including without JavaScript. */
 [data-match-selection] [hidden] {
   display: none;

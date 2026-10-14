@@ -12,6 +12,7 @@ from skatmind.session_commands import SESSION_COMMAND_KINDS
 
 from .card_entry_http import CARD_ENTRY_ROUTES, MATCH_CARD_OPERATIONS, MATCH_EVIDENCE_FORMS
 from .compact_declaration_form import DECLARATION_FIELDS
+from .debrief_frontend import DEBRIEF_POST_ROUTES
 from .form_parsing import FormValuesV1, FormValueV1
 from .frontend_profile_operations import (
     FRONTEND_PROFILE_ACTION_ROUTES,
@@ -1493,6 +1494,11 @@ for action in ("preview", "apply", "cancel"):
         choice_overrides={"confirm_delete": ("on",)},
         label_overrides={"confirm_delete": "validation.field.confirm_delete"},
     ))
+for route in DEBRIEF_POST_ROUTES:
+    _FORMS.append(_definition(
+        "learning.debrief." + route.rsplit("/", 1)[1], route,
+        page="/learning/current", active="learning", success="contextual",
+        body_limit=8192, value_free=True))
 FRONTEND_FORM_REGISTRY = tuple(_FORMS)
 UNIFIED_FRONTEND_POST_ROUTES = tuple(
     dict.fromkeys(
@@ -1503,6 +1509,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             *CORRECTION_ROUTES,
             OPEN_RECORDING_ROUTE,
             *DELETION_POST_ROUTES,
+            *DEBRIEF_POST_ROUTES,
             "/sessions/create",
             "/sessions/import",
             "/sessions/open",

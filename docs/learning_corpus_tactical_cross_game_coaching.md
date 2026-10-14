@@ -275,3 +275,12 @@ interpretation, Player Ratings, traits, causal attribution, significance tests,
 preferred Teachers, method voting, learned guidance, model training, derived
 persistence, automatic Report capture, or a public Coaching surface. These areas
 remain separate candidate work subject to their existing product classifications.
+
+## Retained content in unified debriefs (Issue #289)
+
+The unified [post-game debrief](learning_match_debrief.md) can render already-
+prepared Player focus rows, their exact Decision/Game counts and fixed Guidance.
+This supersedes the historical aggregate-only unified presentation above. It
+does not recompute eligibility, consensus or thresholds, and does not change the
+standalone dashboard or canonical download. Separate descriptive rollout entries
+and exact motif groups never satisfy `complete_search` eligibility by relabeling.

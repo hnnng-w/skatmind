@@ -78,6 +78,18 @@ Report transfer, and downloads remain explicit. See
 [Managed stateful workflows](unified_local_frontend_stateful_workflows.md), and
 [Unified local frontend contract](unified_local_frontend_contract.md).
 
+## Unified player-facing debrief extension (Issue #289)
+
+The unified app now presents [retained Match debriefs](learning_match_debrief.md)
+before technical dataset preparation. A separate typed rollout evidence family
+uses explicit native incorporation into the active unified collection; it does
+not enter `corpus_web` Teacher sources, Dataset-v2 preparation or the ten prepared
+downloads. Direct captured report scopes also work without a collection. Both
+entries share the existing rollout comparison renderer and exact Match serializers.
+The standalone Corpus contracts described above remain unchanged. The historical
+expanded-result presentation is superseded in the unified app by collapsed dataset
+preparation/exports, visible action feedback, and concrete source-bound entries.
+
 ## One explicit root
 
 One server owns exactly the path supplied through `--corpus`:

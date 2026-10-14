@@ -93,6 +93,17 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
     """
     if not is_safe_frontend_return_path_v1(route):
         raise ValueError("Language origin must be a safe HTML route.")
+    if route.startswith("/learning/debrief/"):
+        from .debrief_frontend import DebriefUnavailable, resolve_scope
+
+        try:
+            scope = resolve_scope(context, route.split("/")[3])
+        except DebriefUnavailable as error:
+            raise LanguageContextConflict from error
+        with context.lock:
+            labels = context.frontend_profile.document
+        return LanguageSourceV1(route, (scope,), (
+            () if labels is None else labels.managed_item_display_labels,))
     if route == "/recordings/delete":
         from .recording_deletion import _active, _binding, _label, current_deletion_preview
         preview = current_deletion_preview(context)
@@ -211,7 +222,8 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
                 learning.corpus.tactical_prepared_artifacts,
                 learning.corpus.tactical_coaching_prepared_artifacts, learning.last_result))
             values.extend((learning.corpus.generation,
-                           learning.corpus.strategy_source_store.revision))
+                           learning.corpus.strategy_source_store.revision,
+                           learning.debrief_sources.revision))
         if route == "/learning/current":
             with context.lock:
                 references.append(managed.discoveries.get("matches"))
@@ -220,6 +232,8 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
             if match is not None:
                 with match.capture.lock:
                     references.append(match.workspace)
+                    references.extend(match.capture.report_store.list())
+                    values.append(match.capture.report_store.generation)
     return LanguageSourceV1(route, tuple(references), tuple(values))
 
 
