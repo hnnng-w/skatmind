@@ -56,8 +56,13 @@ def test_complete_policy_catalog_and_packaged_projection_modules():
                  "assets/workflow.js", "locales/en.json", "locales/de.json"):
         assert resources.joinpath(name).is_file()
     script = resources.joinpath("assets/workflow.js").read_text("utf-8")
-    for forbidden in ("fetch(", "localStorage", "sessionStorage", "XMLHttpRequest", "http://", "https://"):
+    for forbidden in ("localStorage", "sessionStorage", "XMLHttpRequest", "http://", "https://"):
         assert forbidden not in script
+    selection_start = script.index("function initializeMatchDecisionSelection(")
+    selection_end = script.index('\ndocument.addEventListener("DOMContentLoaded"', selection_start)
+    assert script.count("fetch(") == 1
+    assert "fetch(" in script[selection_start:selection_end]
+    assert '"X-SkatMind-Selection": "prepare"' in script[selection_start:selection_end]
 
 
 def test_phase_matrix_fixture_covers_all_retained_phases():

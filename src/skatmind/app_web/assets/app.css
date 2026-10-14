@@ -383,6 +383,10 @@ footer a:focus-visible,
 }
 
 /* Native objective selection controls presentation only, including without JavaScript. */
+[data-match-selection] [hidden] {
+  display: none;
+}
+
 form:is([action="/sessions/review-whole-game"], [action="/matches/review-whole-game"]):has(
   select[name="objective"] option[value="played_game_goal"]:checked
 ) .rollout-settlement-inputs {

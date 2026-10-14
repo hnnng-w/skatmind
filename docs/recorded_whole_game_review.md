@@ -420,8 +420,9 @@ The authoritative and packaged `whole_game_rollout.schema.json` adds strict
 settings, derivation, comparison, and aggregate Result components. Input/output
 Root schemas enforce the additive method and incomplete-result restrictions.
 There are now **72** authoritative and byte-identical packaged schemas.
-The private frontend inventory after Issue #288 is **69 POST routes**, **121 form
-definitions**, and **1949 keys per language**. The preceding compact-form correction
+The private frontend inventory after Issue #288's selection correction is **70 POST
+routes**, **122 form definitions**, and **1956 keys per language**. The initial Match
+integration had 69 routes, 121 forms and 1949 keys. The preceding compact-form correction
 had **68 POST routes**, **120 form definitions**, and **1942 keys per language**, derived from
 the registry and both strict catalogs. The fresh-default adjustment had 1941 keys.
 Analysis-only supplementation had

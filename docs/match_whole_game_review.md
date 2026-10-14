@@ -6,12 +6,20 @@ on `feature/288-match-whole-game-review`. It reuses the existing rollout evaluat
 fixed policy, terminal scoring, exact tie semantics, settlement supplementation,
 and shared localized result presentation.
 
+The maintainer subsequently confirmed the installed Alex/C7 evaluation and matching
+exports at `9cae27c1bd6fb06a4d56b92b68884744f769dcad`. The remaining selection-workflow
+correction below starts from that commit. It changes selection/preparation and
+ownership checks, not the evaluator, scoring or reconstructed Request semantics.
+
 ## Execution map
 
-1. `/matches/review/N` offers a native decision selector. Its GET selection is
-   normalized back to the query-free route without analysis or recording saves.
+1. `/matches/review/N` offers an authenticated decision-preparation form at
+   `POST /matches/select-decision`. The enhanced path applies committed selection
+   changes in place. The native path explicitly applies a choice before exposing
+   its analysis actions. The existing bounded GET selection remains supported.
 2. `POST /matches/review-whole-game` resolves the managed handle, expected revision,
-   selected Game and opaque authenticated decision selection. Freshness is checked
+   selected Game, submitted visible decision and opaque authenticated decision
+   selection. The independent legacy action checks the same ownership. Freshness is checked
    against the strictly loaded managed Workspace file.
 3. `execute_unified_match_rollout` captures the immutable Workspace, settings,
    supplements, report-store generation and attempt ownership under the Capture
@@ -140,11 +148,15 @@ preparation absence, incomplete/controlled-timeout execution, public round trips
 recomputed-hash known-value tampering, provenance, report tampering, native forms,
 both locales, exact ties, stale files/selections, supersession and retained downloads.
 
-Actual current definitions contain **69 POST routes**, **121 form definitions**,
-**1949 keys per language**, **72 authoritative/packaged schemas**, and **102 generated
-output scenarios**. The feature adds one POST route/form, one authenticated GET
-Request download, one Match derivation alternative in the existing rollout schema,
-and seven keys per language. Schema filenames and generated scenarios are unchanged.
+Actual current definitions after the selection correction contain **70 POST routes**,
+**122 form definitions**, **1956 keys per language**, **72 authoritative/packaged
+schemas**, and **102 generated output scenarios**. The initial integration added one
+POST route/form, one authenticated GET Request download, one Match derivation
+alternative and seven keys per language. The selection correction adds one private
+preparation POST/form and seven further keys per language. Schema filenames and
+generated scenarios are unchanged. The legacy analysis form additionally registers
+its hidden decision proof for source-safe validation feedback; its method settings
+and independent native validation remain separate from rollout.
 The installed-smoke registry assertions are updated and executed by
 `test_installed_smoke_frontend_registry_contract_executes`; this is executable source
 validation of those assertions, not a claim of installed UAT acceptance.
@@ -232,6 +244,140 @@ py -3.13 -m pytest tests/test_match_rollout_review.py tests/test_match_rollout_w
 py -3.13 scripts/validate_generated_outputs_schema.py
 ```
 
-The final local handoff uses `.\scripts\check.ps1 -Mode Quick` with process-local
+That initial handoff used `.\scripts\check.ps1 -Mode Quick` with process-local
 CPython 3.13 selection. Full exact-commit CI and the installed Match whole-game
-retest remain the maintainer's acceptance steps.
+retest were then pending; the subsequently confirmed installed evaluation and the
+remaining selection correction are recorded below.
+
+## Applied selection correction
+
+### Reproduced boundary
+
+At the installed baseline above, the visible dropdown belonged to a separate GET
+form. Changing it to Alex/decision 3 without submitting that form left the rollout
+form's hidden decision and proof bound to Bea/decision 1. A disposable, JavaScript-
+enabled Edge reproduction observed visible `3`, submitted/bound `1`, then a coherent
+Bea/CQ Request and Result. It recorded one small explicit evaluation and zero saves.
+The engine did not mix an Alex Request with a Bea Result. Earlier disabled-script
+browser evidence did not exercise automatic selection.
+
+### Enhanced preparation and ownership
+
+`initializeMatchDecisionSelection` in the existing packaged workflow script is
+scoped to the selected-Match control region. An input change immediately makes both
+analysis actions unready. A committed change requests preparation through the new
+authenticated form using the existing accepted-evidence builder. It performs no
+evaluation and no Match save.
+
+Preparation requests are serialized; rapid changes coalesce to the latest intended
+choice. A delayed response can advance the transport binding for that next choice
+but cannot install older controls. No analysis click is queued. Failed, foreign,
+malformed or contradictory responses leave analysis blocked and expose explicit
+native recovery. There is no automatic retry.
+
+Only the analysis controls and their language-return binding are refreshed. The
+selector node remains in place, retaining keyboard focus and its current viewport
+offset. Pending settings are copied through the existing safe-field/length rules
+into bounded page-local, source-and-decision-specific drafts. Returning to Bea on the
+same page restores Bea's draft; it does not copy those supplements into Alex. Current
+visible values continue through the existing language-return mechanism. Drafts for
+inactive decisions are not durable and do not survive a new page navigation.
+
+Both actions submit `visible_decision_index`, their bound `decision_index` and an
+opaque decision proof. The server requires exact agreement with the current ready
+context, expected Workspace revision, managed-source identity and fresh file. A
+separate decision generation invalidates earlier proofs and in-flight analysis
+without invalidating unrelated same-Game capture forms. The legacy Capture service
+has an optional source guard, checked under its lock before execution and before
+publication; standalone callers retain its omitted default. Rollout retains its
+existing attempt/source publication checks.
+
+Selection failures preserve the originating review, recording or exact Report page.
+In-place error controls therefore use the same complete form/disclosure manifest as
+the retained page for language return. The failed selection remains unready. Prior
+completed Results and their canonical downloads keep their own source identity.
+
+### Native fallback
+
+Without JavaScript, or when enhancement cannot initialize, the user first chooses
+and explicitly applies a decision. Only then are the independent rollout and legacy
+forms exposed beside a noneditable prepared-decision caption. A visible **Choose a
+different decision** link returns to the selection step. Editable unapplied selection
+and executable old analysis are never shown together. No additional confirmation
+wizard or global preference is introduced. The manual apply button is hidden only
+after the scoped enhancement initializes successfully.
+
+Missing, unknown, foreign, stale or inconsistent selections do not silently fall
+back to the first or previous decision. Source changes and failed preparation cannot
+make an older context appear to be the successfully prepared new choice.
+If a recording edit removes the selected decision but other decisions remain
+preparable, the selector offers an unselected preparation-only state. The user must
+choose again; the first remaining decision is not silently installed for analysis.
+
+### Bounded browser evidence
+
+`scripts/verify_match_decision_selection.py` reuses the disposable #288 Workspace
+fixture. The completed source-checkout observation used Headless Edge
+**155.0.4283.45**, CPython **3.13.7**, and **1365×900** with JavaScript enabled, followed
+by a bounded disabled-script native check. It did not re-enter ten tricks or rerun
+the 100-world benchmark.
+
+The sequence checked delayed Bea → Alex → Bea selection, blocking a click during
+loading, restoration of Bea's unsent matador value `2`, empty Alex supplement fields,
+and one explicit **one-world** Alex/decision-3 evaluation with analysis assumption
+`matadors: 1`. The selector kept keyboard focus and the same **428.6875 px** top
+offset across successful in-place preparation. Both legacy and rollout bindings
+identified decision `3`; the executed Request/Result identified Alex and actual C7.
+
+A deliberately failed later preparation left analysis unavailable. English/German
+return retained the prior report and unready selection, followed by explicit
+recovery. The native check showed no analysis action while an unapplied choice was
+editable, then exposed only the explicitly applied context. Across the completed
+sequence there were **six explicit selection-preparation attempts, one evaluation and zero recording
+saves**. The recording bytes and prior Request/Result download bytes were unchanged.
+Screenshots were inspected; served CSS/script bytes matched checkout resources.
+
+Evidence is outside the repository under
+`$env:TEMP/opencode/issue288-selection-after-05/`, with source-browser identity,
+request statuses, observations, screenshots and download/resource hashes in
+`report.json`. The before-correction reproduction is under
+`$env:TEMP/opencode/issue288-selection-before-f98yw7bi/`. Earlier development probes
+preceded the explicit navigation wait and the Report-page failure-manifest repair;
+they are not final acceptance evidence.
+
+Final served script SHA-256:
+`5237d60fb26a69c7ae9e2c0f32a4a9a6020ff520787e8409858ec4baa909011a`.
+CSS SHA-256:
+`5d42513895f0c8e62697774867a3b9134a8f00b4d8acdc5c5c9fa4ce8e6b5c31`.
+
+The script tests cover delayed/stale replies, failure, foreign source, exact draft
+isolation, independent action blocking and initialization fallback. Real HTTP tests
+cover the shared visible/bound checks, missing proofs, strict preparation, stale
+files/revisions, source changes during preparation, both in-flight publication
+paths, language return and retained downloads. The strict rename inventory module
+is included in local verification; no inventoried occurrence was moved by this
+selection correction.
+
+This is synthetic source-checkout evidence. #288 remains open for exact-commit CI
+and the maintainer's short installed decision-selection retest.
+
+### Selection correction validation
+
+The complete affected HTTP/script/language, source-binding, retention, Session,
+packaging and strict rename modules passed **589 tests in 379.32 s**:
+
+```powershell
+py -3.13 -m pytest tests/test_match_decision_selection_web.py tests/test_match_decision_selection_script.py tests/test_match_rollout_web.py tests/test_match_rollout_review.py tests/test_match_analysis_action_placement.py tests/test_local_match_capture_web_analysis.py tests/test_task_first_match_and_learning_workflow.py tests/test_recorded_review_navigation.py tests/test_language_view_script.py tests/test_language_view_continuity.py tests/test_language_switch_context.py tests/test_task_first_language_preservation.py tests/test_frontend_language_switching.py tests/test_frontend_validation_preservation.py tests/test_complete_frontend_localization.py tests/test_frontend_localization_foundation.py tests/test_operation_feedback_script.py tests/test_operation_feedback_web.py tests/test_operation_feedback_language.py tests/test_packaging_and_distribution.py tests/test_guided_frontend_packaging.py tests/test_skatmind_rename.py tests/test_direct_match_evidence.py tests/test_session_rollout_review.py tests/test_recorded_review_compact_forms.py tests/test_recorded_review_objective_default.py tests/test_unified_local_app_web.py -q
+```
+
+After the final removed-decision recovery, uncommitted-preview and retired-selector-
+feedback checks, the directly affected selection, language and ownership modules
+passed **149 tests in 95.38 s**:
+
+```powershell
+py -3.13 -m pytest tests/test_match_decision_selection_web.py tests/test_match_decision_selection_script.py tests/test_match_rollout_web.py tests/test_match_analysis_action_placement.py tests/test_language_view_script.py tests/test_language_view_continuity.py tests/test_task_first_language_preservation.py tests/test_skatmind_rename.py -q
+```
+
+These groups overlap. The installed-smoke registry assertions were executed through
+the packaging test module. Final local validation is explicit Quick; complete
+exact-commit hosted CI and the short installed selection retest remain pending.

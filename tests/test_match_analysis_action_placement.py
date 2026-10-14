@@ -76,18 +76,29 @@ def assert_decision_form(page, locale, *, indexes, focused, ordered=True):
     controls = [n for n in nodes if n["tag"] in {"input", "select", "textarea"}]
     assert Counter(n["attrs"]["name"] for n in controls) == Counter({
         **{key: 1 for key in (*ADVANCED, "decision_index", "managed_handle", "operation",
+                             "decision_selection", "visible_decision_index",
                              "match_position", "expected_revision", "_frontend_form_instance")},
         **({"review_binding": 1} if focused else {}),
     })
     assert {n["attrs"]["name"] for n in controls
             if any(p is advanced for p in n["parents"])} == set(ADVANCED)
-    for name, expected in (("decision_index", indexes), ("recommendation_method", METHODS),
-                           ("search_budget_profile", BUDGETS)):
+    assert selector["attrs"]["type"] == "hidden" and selector["attrs"]["value"] in indexes
+    visible = next(n for n in controls if n["attrs"]["name"] == "visible_decision_index")
+    assert visible["attrs"]["value"] == selector["attrs"]["value"]
+    page_nodes = Hierarchy(page).nodes
+    shared = next(n for n in page_nodes
+        if n["tag"] == "select" and n["attrs"].get("name") == "decision_index"
+        and any(p["attrs"].get("action") == "/matches/select-decision" for p in n["parents"]))
+    options = [n for n in page_nodes if n["tag"] == "option"
+               and any(p is shared for p in n["parents"])]
+    assert tuple(n["attrs"]["value"] for n in options) == indexes
+    for name, expected in (("recommendation_method", METHODS),
+                            ("search_budget_profile", BUDGETS)):
         select, = [n for n in controls if n["attrs"]["name"] == name]
         options = [n for n in nodes if n["tag"] == "option"
                    and any(p is select for p in n["parents"])]
         assert tuple(n["attrs"]["value"] for n in options) == expected
-    assert set(owner["attrs"]["data-preserve-fields"].split()) == {*ADVANCED, "decision_index"}
+    assert set(owner["attrs"]["data-preserve-fields"].split()) == set(ADVANCED)
     assert re.fullmatch("[0-9a-f]{64}", owner["attrs"]["data-language-form"])
     return owner, advanced
 
@@ -197,6 +208,8 @@ def test_multiple_choices_error_language_recovery_exact_execution_and_stale_sour
     downloads = {route: browser.request("GET", route)[2] for route in re.findall(
         r'href="(/matches/api/v1/reports/[^\"]+)"', page)}
     assert downloads
+    page = follow(browser, browser.submit(Forms(page).find("/matches/select-decision"),
+                                          decision_index="6"))
     submitted = operation_form(page, "analyze_decision")
     submitted["values"].pop("use_profile_presets")
     response = browser.submit(submitted, decision_index="6", immediate_sample_count="-1",
@@ -248,9 +261,10 @@ def test_multiple_choices_error_language_recovery_exact_execution_and_stale_sour
     assert invocations[-1].options == prepared.application_options
     assert invocations[-1].external_documents == prepared.external_documents
     assert len(calls) == len(invocations) == 2
-    # A retained non-first Report does not supply the new selector or advanced defaults.
+    # The explicitly applied decision owns both actions; a retained Report does not
+    # supply different advanced defaults or silently reset that selection.
     values = operation_form(page, "analyze_decision")["values"]
-    assert values["decision_index"] == "1"
+    assert values["decision_index"] == "6"
     assert {key: values[key] for key in ADVANCED} == DEFAULTS
     retained = canonical(report.to_dict())
     stale = operation_form(page, "analyze_decision")
@@ -378,7 +392,10 @@ def test_returned_form_executes_small_late_search(localized_server):
         expected_content_fingerprint=None).status == "saved"
     browser = Browser(localized_server)
     follow(browser, browser.submit(chooser_form(home_chooser(browser), "matches")))
-    offered = operation_form(browser.page("/matches/review/3"), "analyze_decision")
+    page = browser.page("/matches/review/3")
+    page = follow(browser, browser.submit(Forms(page).find("/matches/select-decision"),
+                                          decision_index="28"))
+    offered = operation_form(page, "analyze_decision")
     response = browser.submit(offered, decision_index="28", recommendation_method="bounded_search",
         immediate_sample_count="1", immediate_random_seed="13", search_random_seed="7",
         search_budget_profile="interactive_v1")

@@ -84,6 +84,9 @@ class UnifiedMatchContextV1:
     recovery: MatchRecoveryState = field(default_factory=MatchRecoveryState, repr=False)
     card_entry_key: bytes = field(default_factory=lambda: secrets.token_bytes(32), repr=False)
     selected_review_decision: int | None = None
+    review_decision_generation: int = 0
+    review_selection_pending: bool = False
+    review_selection_native_ready: bool = False
     rollout_attempt: object | None = field(default=None, repr=False)
     rollout_notice: tuple[MatchAnalysisReportV1, int] | None = field(default=None, repr=False)
 
@@ -281,20 +284,39 @@ def apply_unified_match_operation_v1(
 def execute_unified_match_analysis_v1(
     context: UnifiedMatchContextV1,
     values: Mapping[str, object],
+    *,
+    decision_binding: Mapping[str, object] | None = None,
 ) -> MatchCaptureWebResultV1:
     with context.capture.lock:
         context.require_attached()
-        context.rollout_attempt = None
+        attempt = object()
+        context.rollout_attempt = attempt
+        if decision_binding is not None:
+            from .match_decision_selection import require_bound_match_decision
+
+            require_bound_match_decision(context, decision_binding)
         context.operation_feedback.begin()
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
             expected_kind="file",
         )
+    def source_guard():
+        from .match_decision_selection import require_bound_match_decision
+        from .recorded_review_opening import RecordingOpenConflict
+
+        try:
+            context.require_attached()
+            require_bound_match_decision(context, decision_binding)
+            return context.rollout_attempt is attempt
+        except (RecordingOpenConflict, ValueError):
+            return False
+
     result = execute_match_capture_web_analysis_v1(
         context.capture,
         values,
         browser_form=True,
+        source_guard=source_guard if decision_binding is not None else None,
     )
     with context.capture.lock:
         context.require_attached()
@@ -316,6 +338,8 @@ def select_unified_match_position_v1(
         context.operation_feedback.begin()
         context.position_generation += 1
         context.selected_review_decision = None
+        context.review_selection_pending = False
+        context.review_selection_native_ready = False
         context.rollout_notice = None
     context.selected_position = position
 

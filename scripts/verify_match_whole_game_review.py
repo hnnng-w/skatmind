@@ -83,14 +83,14 @@ def main():
                 counted("evaluations", frontend.execute_match_decision_analysis_v1)))
             stack.enter_context(patch.object(capture, "save_match_workspace_file_v1",
                 counted("recording_saves", capture.save_match_workspace_file_v1)))
-            # Select Alex's third-card decision through the ordinary native GET form.
-            selector = 'form[method="get"] select[name="decision_index"]'
+            # Select Alex's third-card decision through the explicit native preparation form.
+            selector = 'form[data-decision-selector] select[name="decision_index"]'
             click(cdp, selector)
             keyboard(cdp, "Home", "Home", 36)
             keyboard(cdp, "ArrowDown", "ArrowDown", 40)
             keyboard(cdp, "ArrowDown", "ArrowDown", 40)
             keyboard(cdp, "Enter", "Enter", 13, "\r")
-            click(cdp, 'form[method="get"]:has(select[name="decision_index"]) button')
+            click(cdp, 'form[data-decision-selector] button')
             time.sleep(.8)
             assert cdp.evaluate(
                 f'document.querySelector(\'{FORM} input[name="decision_index"]\').value') == "3"

@@ -1183,8 +1183,8 @@ assert FRONTEND_TRANSLATION_CATALOG_VERSION == 1
 assert LOCAL_FRONTEND_PROFILE_VERSION == 1
 assert FRONTEND_INFORMATION_ARCHITECTURE_VERSION == 1
 assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-assert len(UNIFIED_FRONTEND_POST_ROUTES) == 69
-assert len(FRONTEND_FORM_REGISTRY) == 121
+assert len(UNIFIED_FRONTEND_POST_ROUTES) == 70
+assert len(FRONTEND_FORM_REGISTRY) == 122
 rollout, = (form for form in FRONTEND_FORM_REGISTRY
             if form.form_key == "session.review_whole_game")
 assert rollout.action_route == "/sessions/review-whole-game"
@@ -1200,6 +1200,14 @@ assert match_rollout.active_context_requirement == "matches"
 assert {field.field_key for field in match_rollout.safe_fields} == {
     "decision_selection", "objective", "requested_worlds", "random_seed",
     "analysis_bid_value", "analysis_matadors"}
+selection, = (form for form in FRONTEND_FORM_REGISTRY if form.form_key == "match.select_decision")
+assert selection.action_route == "/matches/select-decision"
+assert selection.active_context_requirement == "matches"
+assert {field.field_key for field in selection.safe_fields} == {
+    "decision_index", "selection_context"}
+legacy_decision, = (form for form in FRONTEND_FORM_REGISTRY
+                   if form.form_key == "match.analysis.analyze_decision")
+assert "decision_selection" in {field.field_key for field in legacy_decision.safe_fields}
 direct = next(form for form in FRONTEND_FORM_REGISTRY
               if form.form_key == "learning.add_recorded_match")
 assert direct.action_route == "/learning/add-recorded-match" and direct.body_limit == 8192

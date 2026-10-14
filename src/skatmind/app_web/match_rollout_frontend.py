@@ -13,6 +13,7 @@ from skatmind.match_decision_analysis import (
 )
 from skatmind.rollout_derivation import missing_rollout_settlement_inputs
 
+from .match_decision_selection import require_bound_match_decision
 from .recorded_review_opening import RecordingOpenConflict, require_recording_fresh_v1
 from .session_recorded_review_form import (
     RecordedRolloutFormError,
@@ -23,7 +24,7 @@ from .session_recorded_review_form import (
 
 def match_rollout_binding(active, decision):
     source = (active.handle, active.capture.content_fingerprint, active.position_generation,
-              active.selected_position, decision)
+              active.selected_position, active.review_decision_generation, decision)
     return hmac.new(active.card_entry_key, repr(source).encode(), hashlib.sha256).hexdigest()
 
 
@@ -33,8 +34,13 @@ def project_match_rollout_form(active, preparation):
     if not ready:
         return None
     decision = active.selected_review_decision
-    if decision not in ready:
+    if decision is None:
         decision = ready[0]
+    elif decision not in ready:
+        # A removed/unavailable explicit choice is not permission to analyze the
+        # first remaining decision. Offer an unselected preparation-only state.
+        return {"decision": "", "selection": "", "settings": {}, "supplied": {},
+                "native_ready": False, "ready": False, "missing": ()}
     request = build_match_decision_position_request_v1(active.workspace,
         match_position=active.selected_position, decision_index=decision,
         options=MatchDecisionAnalysisOptionsV1(use_profile_presets=False)).request
@@ -51,6 +57,8 @@ def project_match_rollout_form(active, preparation):
             break
     return {"decision": decision, "selection": match_rollout_binding(active, decision),
             "settings": settings, "supplied": supplied,
+            "native_ready": active.review_selection_native_ready,
+            "ready": not active.review_selection_pending,
             "missing": missing_rollout_settlement_inputs(root)}
 
 
@@ -64,6 +72,8 @@ def execute_unified_match_rollout(active, values):
         except RecordingOpenConflict:
             active.capture.report_store.clear()
             raise
+        require_bound_match_decision(active, values)
+        values.pop("visible_decision_index")
         try:
             position = int(values.pop("match_position"))
             decision = int(values.pop("decision_index"))
@@ -118,4 +128,5 @@ def execute_unified_match_rollout(active, values):
         if complete or retained is None:
             active.capture.report_store.put(report)
         active.selected_review_decision = decision
+        active.review_selection_native_ready = True
     return report, report if complete or retained is None else retained

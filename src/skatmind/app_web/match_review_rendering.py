@@ -24,20 +24,22 @@ def render_match_analysis_v1(state, view, handle, locale):
     coverage = paragraph(locale, "recordings.match.coverage")
     preparation = state["decision_preparation"]
     ready = preparation["prepared_decision_count"] > 0
+    if "decision_source_scope" in state and state.get("rollout_form") is None:
+        ready = False
     coverage += paragraph(locale, "recordings.match.prepared",
                          prepared=preparation["prepared_decision_count"], total=preparation["source_play_count"])
     content = "" if state.get("rollout_form") is not None else coverage
     if ready:
         from .match_rollout_rendering import render_match_rollout_form
 
-        content += render_match_rollout_form(state, handle, locale)
         legacy = operation_form(state, handle, locale, "analyze_decision", analysis=True,
             primary=state.get("rollout_form") is None, values={
             "immediate_sample_count": 100, "immediate_random_seed": 0, "search_random_seed": 0,
             "search_budget_profile": "historical_review_v1", "recommendation_method": "immediate_expected_value",
              "use_profile_presets": True})
-        content += (disclosure(locale, "match_rollout.legacy", coverage + legacy)
-                    if state.get("rollout_form") is not None else legacy)
+        content += (render_match_rollout_form(state, handle, locale,
+            legacy=disclosure(locale, "match_rollout.legacy", coverage + legacy))
+            if state.get("rollout_form") is not None else legacy)
     else:
         content += paragraph(locale, "task.match.decision_blocked")
     skipped = ''

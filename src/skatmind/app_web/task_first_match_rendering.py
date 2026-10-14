@@ -94,10 +94,19 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
     fields = _hidden(state, handle, operation) + extra
     if analysis and state.get("review_binding"):
         fields += hidden("review_binding", state["review_binding"])
+    bound = state.get("rollout_form") if analysis and operation == "analyze_decision" else None
+    if bound is not None:
+        fields += hidden("decision_selection", bound["selection"])
+        fields += hidden("visible_decision_index", bound["decision"])
     technical = ""
     advanced = ""
     for field in definition.safe_fields:
         name = field.field_key
+        if name == "decision_selection":
+            continue
+        if name == "decision_index" and bound is not None:
+            fields += hidden(name, bound["decision"])
+            continue
         if operation == "update_match_metadata" and name == "played_at" and state.get("local_time_context"):
             fields += render_local_time_editor(locale, state["local_time_context"],
                 original=values.get("played_at"), new=False)

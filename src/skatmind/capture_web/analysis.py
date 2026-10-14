@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 
 from skatmind.errors import SkatMindError, SkatMindInvariantError
 from skatmind.match_analysis_contracts import (
@@ -262,6 +262,7 @@ def execute_match_capture_web_analysis_v1(
     values: Mapping[str, object],
     *,
     browser_form: bool = False,
+    source_guard: Callable[[], bool] | None = None,
 ) -> MatchCaptureWebResultV1:
     """Executes one explicit report operation outside the Capture context lock."""
     operation = _text(values, "operation")
@@ -279,7 +280,8 @@ def execute_match_capture_web_analysis_v1(
         workspace = context.workspace
         if workspace is None:
             raise ValueError("Create the Workspace before running analysis.")
-        if expected_revision != workspace.revision:
+        if (expected_revision != workspace.revision
+                or source_guard is not None and not source_guard()):
             return MatchCaptureWebResultV1(
                 operation=operation,
                 status="revision_conflict",
@@ -338,6 +340,7 @@ def execute_match_capture_web_analysis_v1(
             and current.revision == source_revision
             and context.content_fingerprint == source_fingerprint
             and context.report_store.generation == source_report_generation
+            and (source_guard is None or source_guard())
         )
         if not unchanged:
             return MatchCaptureWebResultV1(

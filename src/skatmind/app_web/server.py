@@ -147,6 +147,15 @@ from .managed_item_storage import (
     build_managed_item_handle_v1,
     build_managed_item_storage_name_v1,
 )
+from .match_decision_selection import (
+    MATCH_DECISION_SELECTION_ROUTE,
+    MatchDecisionSelectionConflict,
+    apply_match_decision_selection,
+    match_decision_selection_binding,
+    match_decision_source_scope,
+    require_bound_match_decision,
+    select_match_decision,
+)
 from .match_frontend import (
     apply_unified_match_operation_v1,
     build_unified_match_export_download_v1,
@@ -393,6 +402,7 @@ _STATEFUL_POST_ROUTES = {
     "/matches/api/v1/operation",
     "/matches/api/v1/analysis",
     "/matches/review-whole-game",
+    MATCH_DECISION_SELECTION_ROUTE,
     "/matches/transfer-workspace",
     "/matches/transfer-report",
     *RECOVERY_ROUTES,
@@ -757,7 +767,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 self._redirect(f"/matches/review/{selection.group(1)}")
                 return False
             decision = re.fullmatch(r"decision_index=([1-9]|[12][0-9]|30)", query)
-            if decision is not None:
+            if decision is not None or query == "choose_decision=1":
                 try:
                     active = self._active_match()
                 except KeyError:
@@ -765,13 +775,20 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     return False
                 with active.capture.lock:
                     select_unified_match_position_v1(active, int(path.rsplit("/", 1)[1]))
-                    if active.selected_review_decision != int(decision.group(1)):
-                        active.position_generation += 1
-                        active.selected_review_decision = int(decision.group(1))
-                        active.rollout_notice = None
+                    try:
+                        require_recording_fresh_v1(active, "matches")
+                        if decision is not None:
+                            apply_match_decision_selection(active, int(decision.group(1)))
+                        else:
+                            active.review_selection_native_ready = False
+                            active.review_decision_generation += 1
+                            active.rollout_attempt = None
                         with self.server.app_context.lock:
                             self.server.app_context.form_feedback.clear("matches")
-                self._redirect(path)
+                    except RecordingOpenConflict:
+                        self._send_common_error(HTTPStatus.CONFLICT)
+                        return False
+                self._redirect(path + "#match-decision-controls")
                 return False
         if query or not self._cookie_is_valid():
             self._send_authorization_failure()
@@ -1312,7 +1329,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 media_type=registered_media_type,
             )
             if (path == "/matches/api/v1/analysis" and "review_binding" in parsed
-                    or path == "/matches/review-whole-game"):
+                    or path in {"/matches/review-whole-game", MATCH_DECISION_SELECTION_ROUTE}):
                 self._match_review_return = True
             safe_values = capture_safe_submitted_values_v1(definition, parsed)
             if definition.form_key == "match.transfer_report":
@@ -1444,7 +1461,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                             and item.value.result.document["whole_game_rollout_result"][
                                 "status"] == "complete"), None)
                         report_id = None if previous is None else previous.report_id
-                if (definition.form_key in {"match.transfer_report", "match.review_whole_game"}
+                if (definition.form_key in {"match.transfer_report", "match.review_whole_game",
+                                            "match.select_decision"}
                         and report_id is not None):
                     report_status, report = get_unified_match_report_v1(active, report_id)
                     if report_status == "found" and report is not None:
@@ -1541,10 +1559,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 field_key=None, message_key=f"validation.recordings.{key}"),)
         if (isinstance(error, RecordingOpenConflict)
                 and (definition.form_key.startswith("match.analysis.")
-                     or definition.form_key == "match.review_whole_game")):
+                     or definition.form_key in {
+                         "match.review_whole_game", "match.select_decision"})):
             issues = (FrontendValidationIssueV1(field_key=None,
                 message_key="validation.recordings.match_file" if error.reason == "file"
                 else "validation.message.stale"),)
+        if isinstance(error, MatchDecisionSelectionConflict):
+            issues = (FrontendValidationIssueV1(field_key=None,
+                message_key="validation.match_selection.unapplied"),)
         if isinstance(error, LanguageContextConflict):
             message = ("validation.message.language_context_saved_conflict"
                        if getattr(self, "_language_profile_saved", False)
@@ -2077,6 +2099,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             state = build_task_first_match_page_state_v1(active, view, report_id=report_id)
             state["rollout_form"] = project_match_rollout_form(
                 active, state["decision_preparation"])
+            state["decision_source_scope"] = match_decision_source_scope(active)
+            state["decision_selection_context"] = match_decision_selection_binding(
+                active, return_to)
+            state["decision_selection_return"] = return_to
             notice = active.rollout_notice
             if notice is not None and (notice[1] != active.capture.report_store.generation
                     or notice[0].workspace_revision != active.workspace.revision
@@ -2850,6 +2876,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             select_unified_match_position_v1(active, position)
             result = reload_unified_match_v1(active)
         elif path.endswith("/analysis"):
+            decision_binding = None
+            if values.get("operation") == "analyze_decision":
+                with active.capture.lock:
+                    require_bound_match_decision(active, values)
+                    decision_binding = dict(values)
+                    values.pop("visible_decision_index")
+                    values.pop("decision_selection")
             if "review_binding" in values:
                 self._match_review_return = True
                 with self.server.app_context.managed_stateful.match_lifecycle_lock:
@@ -2858,7 +2891,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                             if self.server.app_context.managed_stateful.active_match is not active:
                                 raise RecordingOpenConflict()
                         require_match_review_binding_v1(active, values)
-                    result = execute_unified_match_analysis_v1(active, values)
+                    result = execute_unified_match_analysis_v1(
+                        active, values, decision_binding=decision_binding)
                     with active.capture.lock:
                         try:
                             require_recording_fresh_v1(active, "matches")
@@ -2866,7 +2900,32 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                             active.capture.report_store.clear()
                             raise
             else:
-                result = execute_unified_match_analysis_v1(active, values)
+                result = execute_unified_match_analysis_v1(
+                    active, values, decision_binding=decision_binding)
+        elif path == MATCH_DECISION_SELECTION_ROUTE:
+            supplied_return = values.get("return_to", "")
+            self._match_review_return = (
+                isinstance(supplied_return, str) and supplied_return.startswith(
+                    ("/matches/review/", "/matches/reports/")))
+            report_return = (_MATCH_REPORT_PATTERN.fullmatch(supplied_return)
+                             if isinstance(supplied_return, str) else None)
+            if report_return is not None:
+                with active.capture.lock:
+                    status, report = get_unified_match_report_v1(active, report_return.group(1))
+                    if (status == "found" and report is not None
+                            and report.match_position == active.selected_position):
+                        self._current_match_report_id = report.report_id
+            return_to = select_match_decision(active, values)
+            with self.server.app_context.lock:
+                self.server.app_context.form_feedback.clear("matches")
+            if self.headers.get("X-SkatMind-Selection") == "prepare":
+                report = _MATCH_REPORT_PATTERN.fullmatch(return_to)
+                self._match_page(active, position=active.selected_position,
+                    report_id=None if report is None else report.group(1),
+                    review=return_to.startswith(("/matches/review/", "/matches/reports/")))
+            else:
+                self._redirect(return_to + "#match-decision-controls")
+            return
         elif path == "/matches/review-whole-game":
             self._match_review_return = True
             self._rollout_execution_started = True
@@ -3217,6 +3276,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             "/matches/api/v1/operation",
             "/matches/api/v1/analysis",
             "/matches/review-whole-game",
+            MATCH_DECISION_SELECTION_ROUTE,
         }:
             self._match_operation(
                 path,

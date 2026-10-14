@@ -291,7 +291,8 @@ def _field(
             if name == "account_platform" or name in {
                 "forehand_name", "middlehand_name", "rearhand_name"}
             else 64
-            if name in {"decision_selection", "recovery_selection", "report_id",
+            if name in {"decision_selection", "selection_context", "recovery_selection",
+                        "report_id",
                         "card_selection", "declaration_selection", "time_selection",
                         "correction_selection"}
             else 4
@@ -525,6 +526,7 @@ _MATCH_ANALYSIS_FIELDS = {
     "prepare_materialization": (),
     "analyze_decision": (
         "decision_index",
+        "decision_selection",
         "recommendation_method",
         "immediate_sample_count",
         "immediate_random_seed",
@@ -1034,6 +1036,11 @@ _FORMS: list[FrontendFormDefinitionV1] = [
                          "analysis_matadors": "validation.field.matadors"},
     ),
     _definition(
+        "match.select_decision", "/matches/select-decision",
+        ("decision_index", "selection_context"), page="/matches/current", active="matches",
+        success="contextual", control_overrides={"decision_index": "select"},
+    ),
+    _definition(
         "session.review",
         "/sessions/review",
         (
@@ -1514,6 +1521,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             "/matches/api/v1/analysis",
             "/matches/transfer-workspace",
             "/matches/review-whole-game",
+            "/matches/select-decision",
             "/matches/transfer-report",
             *RECOVERY_ROUTES,
             "/learning/create",

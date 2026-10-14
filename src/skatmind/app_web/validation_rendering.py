@@ -502,7 +502,7 @@ def apply_validation_feedback_to_html_v1(
         if definition.form_key in {"profile.player_update", "profile.player_remove"}
         else ("decision_selection",)
         if definition.form_key in {"session.review_decision", "session.review_whole_game",
-                                   "match.review_whole_game"}
+                                   "match.review_whole_game", "match.analysis.analyze_decision"}
         else ("report_id",)
         if definition.form_key == "match.transfer_report"
         else ("recovery_selection",)

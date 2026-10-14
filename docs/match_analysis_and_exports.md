@@ -11,6 +11,12 @@ current inventories and synthetic verification. The historical Issue-#264 form
 description below describes the retained secondary legacy form. Rollout is not
 added to Historical batches or Learning/Teacher consumers.
 
+The subsequent selection correction applies committed dropdown changes in place
+through `/matches/select-decision`, without evaluation or recording saves. Both
+analysis actions require a matching visible decision and current source proof.
+Native fallback separates editable selection from ready analysis. See the
+[applied selection correction](match_whole_game_review.md#applied-selection-correction).
+
 Issue #168 completes the functional `v0.15.0` local Match Capture milestone by
 connecting the private Match Capture browser to the existing Position and
 Historical Application workflows and to the Issue #167 materialization layer.

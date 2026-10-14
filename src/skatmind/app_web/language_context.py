@@ -189,6 +189,8 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
             references.append(match.rollout_notice)
             values.extend((match.selected_position, match.position_generation,
                            match.selected_review_decision,
+                           match.review_decision_generation, match.review_selection_pending,
+                           match.review_selection_native_ready,
                            match.capture.content_fingerprint,
                            match.capture.report_store.generation))
             if route.startswith("/matches/reports/"):
