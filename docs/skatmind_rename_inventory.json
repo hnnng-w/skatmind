@@ -1000,7 +1000,7 @@
                         },
                         {
                             "path":  "src/skatmind/match_analysis_contracts.py",
-                            "line":  88,
+                            "line":  94,
                             "token":  "hyphenated_identity",
                             "count":  1,
                             "classification":  "legacy_persisted_input",
