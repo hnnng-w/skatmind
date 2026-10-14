@@ -22,7 +22,36 @@
       }
     },
     "derivation": {
-      "oneOf": [{"$ref": "#/$defs/settings_derivation"}, {"$ref": "#/$defs/manual_derivation"}]
+      "oneOf": [{"$ref": "#/$defs/settings_derivation"}, {"$ref": "#/$defs/manual_derivation"}, {"$ref": "#/$defs/match_derivation"}]
+    },
+    "match_derivation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["version", "policy", "reconstruction_policy", "match_id", "workspace_revision", "workspace_content_fingerprint", "game_id", "match_position", "match_decision_index", "relative_player_map", "original_request", "original_request_fingerprint", "effective_settings", "supplement_origin", "supplements", "effective_declaration", "derivation_fingerprint"],
+      "properties": {
+        "version": {"const": 1},
+        "policy": {"const": "reconstructed_match_decision"},
+        "reconstruction_policy": {"const": "reconstruct_decision_time_own_hand_without_future_opponent_information"},
+        "match_id": {"type": "string", "minLength": 1},
+        "workspace_revision": {"type": "integer", "minimum": 0},
+        "workspace_content_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "game_id": {"type": "string", "minLength": 1},
+        "match_position": {"type": "integer", "minimum": 1, "maximum": 36},
+        "match_decision_index": {"type": "integer", "minimum": 1, "maximum": 30},
+        "relative_player_map": {
+          "type": "object", "additionalProperties": false, "required": ["me", "left", "right"],
+          "properties": {"me": {"type": "string", "minLength": 1}, "left": {"type": "string", "minLength": 1}, "right": {"type": "string", "minLength": 1}}
+        },
+        "original_request": {"$ref": "#/$defs/manual_derivation/properties/original_request"},
+        "original_request_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "effective_settings": {"$ref": "#/$defs/settings"},
+        "supplement_origin": {"enum": [null, "manual_analysis_input"]},
+        "supplements": {
+          "type": "object", "additionalProperties": false,
+          "properties": {"bid_value": {"type": "integer", "minimum": 1}, "matadors": {"type": "integer", "minimum": 1, "maximum": 11}}
+        },
+        "effective_declaration": {"$ref": "#/$defs/manual_derivation/properties/effective_declaration"},
+        "derivation_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
     },
     "manual_derivation": {
       "type": "object", "additionalProperties": false,

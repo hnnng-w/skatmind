@@ -1,5 +1,16 @@
 # Match analysis and exports
 
+## Current selected-decision whole-game path (Issue #288)
+
+The unified selected-decision frontend now uses explicit whole-game rollout as its
+primary action, with complete settlement as the fresh UI objective. The separate
+legacy form and omitted private/API settings retain their previous behavior. See
+[selected Match whole-game review](match_whole_game_review.md) for the exact source
+derivation, supplementation, shared results, Request/Result downloads, ownership,
+current inventories and synthetic verification. The historical Issue-#264 form
+description below describes the retained secondary legacy form. Rollout is not
+added to Historical batches or Learning/Teacher consumers.
+
 Issue #168 completes the functional `v0.15.0` local Match Capture milestone by
 connecting the private Match Capture browser to the existing Position and
 Historical Application workflows and to the Issue #167 materialization layer.

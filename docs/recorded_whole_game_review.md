@@ -1,5 +1,10 @@
 # Explicit recorded whole-game review
 
+Issue #288 adds [selected Match whole-game review](match_whole_game_review.md) with
+its own reconstructed-source derivation. It shares the native objective/supplement
+and technical-control helpers and the Result builder/renderer described here.
+Session derivation versions 1/2 and frozen-checkpoint semantics are preserved.
+
 Issue #285 connects the accepted #284 core at
 `2b7eae606c59230268bdcc4563eff211cc442c95` to individual saved Session decisions.
 Implementation began on `feature/285-recorded-whole-game-review`, at that exact
@@ -28,8 +33,10 @@ endgame, sampling, policy, and scoring semantics remain those documented in
 
 Internally, `POSITION_RECOMMENDATION_METHODS` admits the additive rollout method.
 The shared `FLAT_RECOMMENDATION_METHODS` vocabulary retains its four existing
-methods for Match Reports and their Teacher, Dataset, and Coaching consumers;
-rollout does not add a category or alter those retained summary identities.
+methods for legacy Match Reports and their Teacher, Dataset, and Coaching consumers.
+Issue #288 extends only the selected-Match-decision adapter through a separate
+method vocabulary; rollout does not add a Learning category or alter retained
+summary identities.
 
 ## Immutable derivation
 
@@ -413,14 +420,17 @@ The authoritative and packaged `whole_game_rollout.schema.json` adds strict
 settings, derivation, comparison, and aggregate Result components. Input/output
 Root schemas enforce the additive method and incomplete-result restrictions.
 There are now **72** authoritative and byte-identical packaged schemas.
-The private frontend inventory is **68 POST routes**, **120 form definitions**,
-and **1942 keys per language** after the compact-form correction, derived from
+The private frontend inventory after Issue #288 is **69 POST routes**, **121 form
+definitions**, and **1949 keys per language**. The preceding compact-form correction
+had **68 POST routes**, **120 form definitions**, and **1942 keys per language**, derived from
 the registry and both strict catalogs. The fresh-default adjustment had 1941 keys.
 Analysis-only supplementation had
 1939 keys, and the message-only repair had 1927 keys.
 The existing whole-game form now has six registered safe fields, including its
 two conditional analysis inputs; the installed smoke expectation matches them.
-No route, form, schema filename, or generated-output scenario was added.
+That compact-form correction added no route, form, schema filename, or generated-output
+scenario. Issue #288 adds the separate Match route/form and Request download, while
+preserving the schema-filename and generated-scenario inventories.
 The tied-summary correction
 had 1914 keys per language (1906 after the earlier clarity correction, 1882
 before it; the initial pre-rollout frontend had 67 routes, 119 forms, and 1832 keys).

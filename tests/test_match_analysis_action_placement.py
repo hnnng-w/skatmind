@@ -63,7 +63,7 @@ def assert_decision_form(page, locale, *, indexes, focused, ordered=True):
     assert "enctype" not in owner["attrs"]
     assert not any(n["tag"] == "form" for n in nodes)
     button, = [n for n in nodes if n["tag"] == "button"]
-    assert button["attrs"] == {"type": "submit", "class": "primary"}
+    assert button["attrs"] == {"type": "submit", "class": "secondary"}
     assert button["text"] == text(locale, "task.match.action.analyze_decision")
     selector, = [n for n in nodes if n["attrs"].get("name") == "decision_index"]
     advanced, = [n for n in nodes if n["tag"] == "details"]
@@ -111,7 +111,7 @@ def test_emitted_callers_group_selection_action_and_settings(localized_server, l
     assert values["operation"] == "analyze_decision" and values["match_position"] == "1"
     assert "open" not in advanced["attrs"]
     outer = [p for p in owner["parents"] if p["tag"] == "details"]
-    assert len(outer) == (1 if caller == "recording" else 0)
+    assert len(outer) == (2 if caller == "recording" else 1)
     assert all("open" not in p["attrs"] for p in outer)
 
 

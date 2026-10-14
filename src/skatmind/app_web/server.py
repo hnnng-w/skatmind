@@ -166,6 +166,7 @@ from .match_recovery_http import dispatch_match_recovery
 from .match_recovery_rendering import render_match_recovery
 from .match_review_context import match_review_binding_v1, require_match_review_binding_v1
 from .match_review_rendering import render_match_review_v1
+from .match_rollout_frontend import execute_unified_match_rollout, project_match_rollout_form
 from .operation_feedback import (
     continue_operation_feedback,
     deliver_operation_feedback,
@@ -337,6 +338,8 @@ _MATCH_POSITION_PATTERN = re.compile(r"^/matches/position/([1-9]|[12][0-9]|3[0-6
 _MATCH_REVIEW_PATTERN = re.compile(r"^/matches/review/([1-9]|[12][0-9]|3[0-6])$")
 _MATCH_REPORT_PATTERN = re.compile(r"^/matches/reports/([0-9a-f]{64})$")
 _MATCH_REPORT_JSON_PATTERN = re.compile(r"^/matches/api/v1/reports/([0-9a-f]{64})\.json$")
+_MATCH_ROLLOUT_REQUEST_PATTERN = re.compile(
+    r"^/matches/api/v1/reports/([0-9a-f]{64})/rollout-request\.json$")
 _MATCH_REPORT_SOURCE_PATTERN = re.compile(
     r"^/matches/api/v1/reports/([0-9a-f]{64})/strategy-source\.json$"
 )
@@ -389,6 +392,7 @@ _STATEFUL_POST_ROUTES = {
     "/matches/api/v1/reload",
     "/matches/api/v1/operation",
     "/matches/api/v1/analysis",
+    "/matches/review-whole-game",
     "/matches/transfer-workspace",
     "/matches/transfer-report",
     *RECOVERY_ROUTES,
@@ -751,6 +755,23 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             selection = re.fullmatch(r"position=([1-9]|[12][0-9]|3[0-6])", query)
             if selection is not None:
                 self._redirect(f"/matches/review/{selection.group(1)}")
+                return False
+            decision = re.fullmatch(r"decision_index=([1-9]|[12][0-9]|30)", query)
+            if decision is not None:
+                try:
+                    active = self._active_match()
+                except KeyError:
+                    self._send_common_error(HTTPStatus.NOT_FOUND)
+                    return False
+                with active.capture.lock:
+                    select_unified_match_position_v1(active, int(path.rsplit("/", 1)[1]))
+                    if active.selected_review_decision != int(decision.group(1)):
+                        active.position_generation += 1
+                        active.selected_review_decision = int(decision.group(1))
+                        active.rollout_notice = None
+                        with self.server.app_context.lock:
+                            self.server.app_context.form_feedback.clear("matches")
+                self._redirect(path)
                 return False
         if query or not self._cookie_is_valid():
             self._send_authorization_failure()
@@ -1290,7 +1311,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 flattened,
                 media_type=registered_media_type,
             )
-            if path == "/matches/api/v1/analysis" and "review_binding" in parsed:
+            if (path == "/matches/api/v1/analysis" and "review_binding" in parsed
+                    or path == "/matches/review-whole-game"):
                 self._match_review_return = True
             safe_values = capture_safe_submitted_values_v1(definition, parsed)
             if definition.form_key == "match.transfer_report":
@@ -1410,7 +1432,20 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             try:
                 active = self._active_match()
                 report_id = getattr(self, "_current_match_report_id", None)
-                if definition.form_key == "match.transfer_report" and report_id is not None:
+                if definition.form_key == "match.review_whole_game":
+                    with active.capture.lock:
+                        previous = next((
+                            item for item in reversed(active.capture.report_store.list())
+                            if item.report_kind == "decision_analysis"
+                            and item.match_position == active.selected_position
+                            and item.decision_index == active.selected_review_decision
+                            and item.value.status == "executed"
+                            and item.value.options.recommendation_method == "whole_game_rollout"
+                            and item.value.result.document["whole_game_rollout_result"][
+                                "status"] == "complete"), None)
+                        report_id = None if previous is None else previous.report_id
+                if (definition.form_key in {"match.transfer_report", "match.review_whole_game"}
+                        and report_id is not None):
                     report_status, report = get_unified_match_report_v1(active, report_id)
                     if report_status == "found" and report is not None:
                         self._match_page(
@@ -1493,7 +1528,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 return True
             issues = (FrontendValidationIssueV1(field_key=None,
                 message_key="validation.deletion." + deletion_error_key(error, status)),)
-        if definition.form_key == "session.review_whole_game" and issues is None:
+        if (definition.form_key in {"session.review_whole_game", "match.review_whole_game"}
+                and issues is None):
             issues = (recorded_rollout_feedback_v1(error, status=status,
                 execution_started=getattr(self, "_rollout_execution_started", False)),)
         if definition.form_key == "session.review_decision" and issues is None:
@@ -1504,7 +1540,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             issues = (FrontendValidationIssueV1(
                 field_key=None, message_key=f"validation.recordings.{key}"),)
         if (isinstance(error, RecordingOpenConflict)
-                and definition.form_key.startswith("match.analysis.")):
+                and (definition.form_key.startswith("match.analysis.")
+                     or definition.form_key == "match.review_whole_game")):
             issues = (FrontendValidationIssueV1(field_key=None,
                 message_key="validation.recordings.match_file" if error.reason == "file"
                 else "validation.message.stale"),)
@@ -2038,6 +2075,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             select_unified_match_position_v1(active, position)
             view = project_task_first_match_v1(active.workspace, selected_position=position)
             state = build_task_first_match_page_state_v1(active, view, report_id=report_id)
+            state["rollout_form"] = project_match_rollout_form(
+                active, state["decision_preparation"])
+            notice = active.rollout_notice
+            if notice is not None and (notice[1] != active.capture.report_store.generation
+                    or notice[0].workspace_revision != active.workspace.revision
+                    or notice[0].match_position != position):
+                notice = None
+            state["rollout_notice"] = None if notice is None else notice[0].value
             if review:
                 state["review_binding"] = match_review_binding_v1(active)
             card_bindings = {operation: match_card_binding(active, operation)
@@ -2094,7 +2139,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             source_label=title,
             report_id=(report_id if state["selected_report"] is not None
                 and state["selected_report"]["report_kind"] == "decision_analysis"
-                and state["selected_report"]["details"]["status"] == "executed" else None),
+                and state["selected_report"]["details"]["status"] == "executed"
+                and state.get("rollout_report") is None else None),
             target_handle=None if learning is None else learning.handle,
             target_label=None if learning is None else managed_name(
                 locale, profile, "corpora", learning_state["corpus"]["corpus_id"]),
@@ -2244,6 +2290,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         )
 
     def _stateful_download(self, path: str) -> bool:
+        rollout_request = _MATCH_ROLLOUT_REQUEST_PATTERN.fullmatch(path)
+        if rollout_request is not None:
+            filename, content = build_unified_match_report_download_v1(
+                self._active_match(), rollout_request.group(1),
+                strategy_source=False, rollout_request=True)
+            self._send_artifact(filename, content)
+            return True
         if path in _SESSION_DOWNLOAD_ROUTES:
             active = self._active_session()
             with active.lock:
@@ -2814,6 +2867,23 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                             raise
             else:
                 result = execute_unified_match_analysis_v1(active, values)
+        elif path == "/matches/review-whole-game":
+            self._match_review_return = True
+            self._rollout_execution_started = True
+            report, retained = execute_unified_match_rollout(active, values)
+            if report.value.status != "executed":
+                raise ValueError("Selected Match decision is unavailable.")
+            rollout = report.value.result.document["whole_game_rollout_result"]
+            if rollout["status"] != "complete":
+                self._retain_form_feedback(self._current_form_definition,
+                    issues=(FrontendValidationIssueV1(field_key=None,
+                        message_key="validation.rollout.incomplete_attempt"),),
+                    status=HTTPStatus.BAD_REQUEST)
+                self._match_page(active, position=report.match_position,
+                    report_id=retained.report_id, review=True, status=HTTPStatus.BAD_REQUEST)
+            else:
+                self._redirect(f"/matches/reports/{report.report_id}")
+            return
         else:
             result = apply_unified_match_operation_v1(active, values)
         selected = result.state.get("selected_position", active.selected_position)
@@ -3146,6 +3216,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             "/matches/api/v1/reload",
             "/matches/api/v1/operation",
             "/matches/api/v1/analysis",
+            "/matches/review-whole-game",
         }:
             self._match_operation(
                 path,

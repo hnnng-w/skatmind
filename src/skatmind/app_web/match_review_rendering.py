@@ -21,16 +21,23 @@ def render_match_analysis_v1(state, view, handle, locale):
         return paragraph(locale, f"task.match.status.{view.selected.slot_kind}")
     if not view.selected.play_count:
         return paragraph(locale, "recordings.match.no_observations")
-    content = paragraph(locale, "recordings.match.coverage")
+    coverage = paragraph(locale, "recordings.match.coverage")
     preparation = state["decision_preparation"]
     ready = preparation["prepared_decision_count"] > 0
-    content += paragraph(locale, "recordings.match.prepared",
+    coverage += paragraph(locale, "recordings.match.prepared",
                          prepared=preparation["prepared_decision_count"], total=preparation["source_play_count"])
+    content = "" if state.get("rollout_form") is not None else coverage
     if ready:
-        content += operation_form(state, handle, locale, "analyze_decision", analysis=True, primary=True, values={
+        from .match_rollout_rendering import render_match_rollout_form
+
+        content += render_match_rollout_form(state, handle, locale)
+        legacy = operation_form(state, handle, locale, "analyze_decision", analysis=True,
+            primary=state.get("rollout_form") is None, values={
             "immediate_sample_count": 100, "immediate_random_seed": 0, "search_random_seed": 0,
             "search_budget_profile": "historical_review_v1", "recommendation_method": "immediate_expected_value",
-            "use_profile_presets": True})
+             "use_profile_presets": True})
+        content += (disclosure(locale, "match_rollout.legacy", coverage + legacy)
+                    if state.get("rollout_form") is not None else legacy)
     else:
         content += paragraph(locale, "task.match.decision_blocked")
     skipped = ''
@@ -77,14 +84,23 @@ def render_match_review_v1(state, view, *, managed_handle, locale, transfer=""):
         body += section(locale, "recordings.match.result", _reports(state, managed_handle, locale, secondary=False))
     game = state["game"]
     if game is not None:
-        body += accepted_declaration_summary(locale, game["declaration"],
-                                             _named_seat(state, locale, game["declarer_player_id"]))
-        body += render_unplayed_cards(state.get("unplayed_cards"), locale,
-            original_skat=game["original_skat"], discarded_cards=game["discarded_cards"], review=True)
-        body += render_recorded_summary(state["recorded_progress"], locale)
+        declaration = game["declaration"]
+        if declaration is not None:
+            body += paragraph(locale, "match_rollout.context",
+                contract=text(locale, "task.value." + declaration["game_type"]),
+                declarer=_name(state, locale, game["declarer_player_id"]),
+                bid=declaration["bid_value"] if declaration["bid_value"] is not None
+                    else text(locale, "task.unknown"))
     body += section(locale, "task.match.action.analyze_decision" if state[
         "decision_preparation"]["prepared_decision_count"] else "recordings.match.inspect",
                       render_match_analysis_v1(state, view, managed_handle, locale))
+    if game is not None:
+        body += disclosure(locale, "match_rollout.recording_summary",
+            accepted_declaration_summary(locale, game["declaration"],
+                _named_seat(state, locale, game["declarer_player_id"]))
+            + render_unplayed_cards(state.get("unplayed_cards"), locale,
+                original_skat=game["original_skat"], discarded_cards=game["discarded_cards"], review=True)
+            + render_recorded_summary(state["recorded_progress"], locale))
     recorded = state["recorded_progress"]
     body += render_recorded_history(recorded, locale, anchor_prefix="match-play", actions={
         play.decision_index: '<p><a href="/matches/position/' + str(position)

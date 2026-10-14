@@ -20,13 +20,13 @@ from skatmind.match_analysis_contracts import (
     MATCH_ANALYSIS_REPORT_VERSION,
     MATCH_ARTIFACT_EXPORT_KINDS,
     MATCH_ARTIFACT_EXPORT_VERSION,
+    MATCH_DECISION_RECOMMENDATION_METHODS,
     MatchAnalysisReportV1,
     MatchDecisionAnalysisResultV1,
     MatchHistoricalAnalysisResultV1,
     MatchMaterializationReportV1,
 )
 from skatmind.match_workspace_materialization import MatchWorkspaceMaterializationV1
-from skatmind.recommendation_workflow import FLAT_RECOMMENDATION_METHODS
 
 _SAFE_FILENAME_PATTERN = re.compile(r"^[A-Za-z0-9._~-]+\.json$")
 _SAFE_MATCH_ID_PATTERN = re.compile(r"^[A-Za-z0-9._~-]+$")
@@ -177,7 +177,7 @@ def build_match_report_result_export_v1(
             f"{filename_match_id}-position-{value.match_position:02d}-decision-"
             f"{value.decision_index:02d}-{value.options.recommendation_method}.json"
         )
-        if value.options.recommendation_method not in FLAT_RECOMMENDATION_METHODS:
+        if value.options.recommendation_method not in MATCH_DECISION_RECOMMENDATION_METHODS:
             raise ValueError("Decision report has an unsupported recommendation method.")
         document = value.result.to_dict()["document"]
     elif type(value) is MatchHistoricalAnalysisResultV1:
@@ -194,6 +194,18 @@ def build_match_report_result_export_v1(
         filename=filename,
         document=document,
     )
+
+
+def build_match_rollout_request_export_v1(report: MatchAnalysisReportV1) -> MatchArtifactExportV1:
+    """Export the exact executable Request belonging to this rollout report."""
+    result = build_match_report_result_export_v1(report)
+    if (type(report.value) is not MatchDecisionAnalysisResultV1
+            or report.value.options.recommendation_method != "whole_game_rollout"):
+        raise ValueError("Only a selected-Decision rollout has this Request download.")
+    return _build_export(export_kind="rollout_request", match_id=report.match_id,
+        workspace_revision=report.workspace_revision,
+        filename=result.filename.removesuffix(".json") + "-request.json",
+        document=report.value.request.to_dict()["document"])
 
 
 def build_match_materialization_summary_export_v1(

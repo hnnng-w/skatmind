@@ -4,6 +4,7 @@ import hashlib
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Any, Final
 
 from skatmind.api.v1.contracts import (
@@ -34,6 +35,10 @@ from skatmind.search_budget_profiles import (
     INTERACTIVE_SEARCH_BUDGET_PROFILE,
 )
 from skatmind.simulation import DEFAULT_IMMEDIATE_ANALYSIS_SAMPLE_COUNT
+from skatmind.whole_game_rollout_contracts import WholeGameRolloutSettingsV1
+from skatmind.whole_game_rollout_workflow import parse_rollout_settings, serialize_rollout_settings
+
+MATCH_DECISION_RECOMMENDATION_METHODS = (*FLAT_RECOMMENDATION_METHODS, "whole_game_rollout")
 
 MATCH_ANALYSIS_EXECUTION_VERSION = 1
 MATCH_DECISION_ANALYSIS_OPTIONS_VERSION = 1
@@ -63,6 +68,7 @@ MATCH_ANALYSIS_REPORT_KINDS: Final[tuple[str, ...]] = (
 )
 MATCH_ARTIFACT_EXPORT_KINDS: Final[tuple[str, ...]] = (
     "report_result",
+    "rollout_request",
     "materialization_summary",
     "historical_game_collection",
     "training_source_collection",
@@ -125,6 +131,8 @@ class MatchDecisionAnalysisOptionsV1:
     search_random_seed: int | None = None
     search_budget_profile: str = HISTORICAL_REVIEW_SEARCH_BUDGET_PROFILE
     use_profile_presets: bool = True
+    rollout_settings: WholeGameRolloutSettingsV1 | None = None
+    settlement_supplements: Mapping[str, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         _require_version(
@@ -132,10 +140,25 @@ class MatchDecisionAnalysisOptionsV1:
             MATCH_DECISION_ANALYSIS_OPTIONS_VERSION,
             "match_decision_analysis_options_version",
         )
-        if self.recommendation_method not in FLAT_RECOMMENDATION_METHODS:
+        if self.recommendation_method not in MATCH_DECISION_RECOMMENDATION_METHODS:
             raise ValueError(
-                f"recommendation_method must be one of {list(FLAT_RECOMMENDATION_METHODS)}."
+                "recommendation_method must be one supported selected-Decision method."
             )
+        if not isinstance(self.settlement_supplements, Mapping) or any(
+            key not in {"bid_value", "matadors"} or type(value) is not int
+            for key, value in self.settlement_supplements.items()
+        ):
+            raise ValueError("settlement_supplements must contain only explicit integer inputs.")
+        object.__setattr__(self, "settlement_supplements",
+                           MappingProxyType(dict(self.settlement_supplements)))
+        if self.recommendation_method == "whole_game_rollout":
+            if type(self.rollout_settings) is not WholeGameRolloutSettingsV1:
+                raise ValueError("Whole-game analysis requires explicit rollout_settings.")
+            parse_rollout_settings(serialize_rollout_settings(self.rollout_settings))
+            if self.use_profile_presets:
+                raise ValueError("Whole-game rollout uses its fixed policy, not Profile presets.")
+        elif self.rollout_settings is not None or self.settlement_supplements:
+            raise ValueError("Rollout settings and supplements require whole_game_rollout.")
         _require_sample_count(self.immediate_sample_count, "immediate_sample_count")
         if type(self.immediate_random_seed) is not int:
             raise ValueError("immediate_random_seed must be an integer.")
@@ -159,7 +182,7 @@ class MatchDecisionAnalysisOptionsV1:
             raise ValueError("use_profile_presets must be a boolean.")
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "match_decision_analysis_options_version": (
                 self.match_decision_analysis_options_version
             ),
@@ -170,6 +193,10 @@ class MatchDecisionAnalysisOptionsV1:
             "search_budget_profile": self.search_budget_profile,
             "use_profile_presets": self.use_profile_presets,
         }
+        if self.rollout_settings is not None:
+            result.update(rollout_settings=serialize_rollout_settings(self.rollout_settings),
+                          settlement_supplements=dict(self.settlement_supplements))
+        return result
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -346,6 +373,10 @@ class MatchDecisionAnalysisResultV1:
                 raise ValueError(
                     "Executed Decision result must retain the retrospective actual Card."
                 )
+            if self.options.recommendation_method == "whole_game_rollout":
+                from skatmind.match_rollout_review import validate_match_rollout_report_v1
+
+                validate_match_rollout_report_v1(self)
         else:
             if (
                 self.unavailable_reason not in MATCH_DECISION_ANALYSIS_UNAVAILABLE_REASONS

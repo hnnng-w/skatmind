@@ -32,6 +32,7 @@ def build_task_first_match_page_state_v1(context, view, *, report_id=None):
                       .historical_list_materialization.status == "available")
     game = workspace.slots[view.selected_position - 1].observed_game
     recorded = project_match_trick_progress(workspace, view.selected_position)
+    preparation = _decision_preparation_summary(workspace, view.selected_position)
     return {
         "selected_position": view.selected_position,
         "recorded_progress": recorded,
@@ -54,7 +55,10 @@ def build_task_first_match_page_state_v1(context, view, *, report_id=None):
         "position_view": view.selected.to_dict(),
         "game": _game_summary(game),
         "hand_editor_player_id": None if game is None else game.perspective_player_id,
-        "decision_preparation": _decision_preparation_summary(workspace, view.selected_position),
+        "decision_preparation": preparation,
+        "rollout_report": (selected.value if selected is not None
+            and selected.report_kind == "decision_analysis" and selected.value.status == "executed"
+            and selected.value.options.recommendation_method == "whole_game_rollout" else None),
         "reports": [build_match_analysis_report_summary_v1(report, selected=report is selected)
                     for report in reports],
         "selected_report": None if selected is None else _selected_report_details(selected),

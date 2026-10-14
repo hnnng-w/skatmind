@@ -32,6 +32,7 @@ from skatmind.match_analysis_exports import (
     build_match_historical_list_input_export_v1,
     build_match_materialization_summary_export_v1,
     build_match_report_result_export_v1,
+    build_match_rollout_request_export_v1,
     build_match_training_source_collection_export_v1,
 )
 from skatmind.match_analysis_report_source_export import (
@@ -82,6 +83,9 @@ class UnifiedMatchContextV1:
     transfer_feedback_key: str | None = field(default=None, repr=False)
     recovery: MatchRecoveryState = field(default_factory=MatchRecoveryState, repr=False)
     card_entry_key: bytes = field(default_factory=lambda: secrets.token_bytes(32), repr=False)
+    selected_review_decision: int | None = None
+    rollout_attempt: object | None = field(default=None, repr=False)
+    rollout_notice: tuple[MatchAnalysisReportV1, int] | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.category_root, Path) or not isinstance(self.path, Path):
@@ -280,6 +284,7 @@ def execute_unified_match_analysis_v1(
 ) -> MatchCaptureWebResultV1:
     with context.capture.lock:
         context.require_attached()
+        context.rollout_attempt = None
         context.operation_feedback.begin()
         validate_managed_direct_child_path_v1(
             context.category_root,
@@ -310,6 +315,8 @@ def select_unified_match_position_v1(
         context.recovery.clear()
         context.operation_feedback.begin()
         context.position_generation += 1
+        context.selected_review_decision = None
+        context.rollout_notice = None
     context.selected_position = position
 
 
@@ -372,6 +379,7 @@ def build_unified_match_report_download_v1(
     report_id: str,
     *,
     strategy_source: bool,
+    rollout_request: bool = False,
 ) -> tuple[str, bytes]:
     from .recorded_review_opening import RecordingOpenConflict, require_recording_fresh_v1
     with context.capture.lock:
@@ -385,6 +393,13 @@ def build_unified_match_report_download_v1(
             raise KeyError("Match report is unavailable.")
         if status == "stale":
             raise RuntimeError("Match report revision is stale.")
+        if rollout_request:
+            if (report.report_kind != "decision_analysis"
+                    or report.value.status != "executed"
+                    or report.value.options.recommendation_method != "whole_game_rollout"):
+                raise KeyError("Whole-game Request download is unavailable.")
+            artifact = build_match_rollout_request_export_v1(report)
+            return artifact.filename, artifact.to_bytes()
         root_artifact = build_match_report_result_export_v1(report)
         if not strategy_source:
             return root_artifact.filename, root_artifact.to_bytes()
@@ -392,6 +407,7 @@ def build_unified_match_report_download_v1(
             report.report_kind != "decision_analysis"
             or type(report.value) is not MatchDecisionAnalysisResultV1
             or report.value.status != "executed"
+            or report.value.options.recommendation_method == "whole_game_rollout"
         ):
             raise KeyError("Strategy Teacher source is unavailable.")
         exported = build_match_analysis_report_source_export_v1(report)

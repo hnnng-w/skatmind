@@ -31,7 +31,40 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
                 content += ' — ' + translated(locale, "task.match.position", number=report["match_position"])
         content += '</a></p>'
     report = state["selected_report"] if results else None
-    if report is not None:
+    rollout = state.get("rollout_report") if results else None
+    notice = state.get("rollout_notice") if results else None
+    if notice is not None and notice.result is not None:
+        from .task_first_match_rendering import _named_seat
+
+        attempt = notice.result.document["whole_game_rollout_result"]
+        content += paragraph(locale, "recordings.match.game", position=notice.match_position)
+        content += paragraph(locale, "recordings.match.decision",
+            trick=(notice.decision_index - 1) // 3 + 1,
+            player=_named_seat(state, locale, notice.profile_binding.acting_player_id),
+            card=notice.request.document["actual_card_played"])
+        content += paragraph(locale, "rollout.objective." + attempt["objective"])
+        content += paragraph(locale, "rollout.coverage", completed=attempt["completed_common_worlds"],
+                             requested=attempt["requested_worlds"])
+        content += paragraph(locale, "rollout.reason." + attempt["stop_reason"])
+        if rollout is not None and rollout is not notice:
+            content += paragraph(locale, "rollout.retained")
+    if report is not None and rollout is not None:
+        from .result_rendering import render_result_presentation_v1
+        from .rollout_result_presentation import build_rollout_presentation
+
+        content += '<div id="match-rollout-result" tabindex="-1">'
+        content += paragraph(locale, "match_rollout.source")
+        presentation = localized_render(build_rollout_presentation)(
+            rollout, rollout.result.to_dict()["document"], "match_decision", locale=locale)
+        content += render_result_presentation_v1(presentation, locale=locale,
+            request_download_available=True, result_download_available=True,
+            request_download_route=f'/matches/api/v1/reports/{report["report_id"]}/rollout-request.json',
+            result_download_route=f'/matches/api/v1/reports/{report["report_id"]}.json',
+            recorded_context=state.get("decision_context"), recorded_context_locale=locale,
+            identity_prefix="match-rollout-result")
+        content += paragraph(locale, "match_rollout.learning_unsupported")
+        content += '</div>'
+    elif report is not None:
         content += paragraph(locale, f"task.report.{report['report_kind']}")
         if state.get("decision_context") is not None:
             content += render_recorded_decision_context(state["decision_context"], locale)

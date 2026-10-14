@@ -281,6 +281,8 @@ def _validate_exact_decision_report(report: MatchAnalysisReportV1) -> None:
         raise ValueError(
             "Executed Decision Reports require exact options, binding, Request, and Result."
         )
+    if report.value.options.recommendation_method not in FLAT_RECOMMENDATION_METHODS:
+        raise ValueError("Strategy Teacher does not support this selected-Decision method.")
     if _strictly_rebuild_decision_report(report) != report:
         raise ValueError("Source Report must equal its canonical Match Analysis Report.")
 

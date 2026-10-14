@@ -65,6 +65,7 @@ def test_versions_tuples_and_policies_are_exact() -> None:
     )
     assert MATCH_ARTIFACT_EXPORT_KINDS == (
         "report_result",
+        "rollout_request",
         "materialization_summary",
         "historical_game_collection",
         "training_source_collection",
@@ -135,8 +136,8 @@ def test_versions_tuples_and_policies_are_exact() -> None:
     )
 
 
-def test_position_only_rollout_is_rejected_by_match_options() -> None:
-    with pytest.raises(ValueError, match="recommendation_method"):
+def test_selected_rollout_requires_explicit_settings() -> None:
+    with pytest.raises(ValueError, match="rollout_settings"):
         MatchDecisionAnalysisOptionsV1(recommendation_method="whole_game_rollout")
 
 
@@ -150,6 +151,8 @@ def test_decision_options_defaults_fields_and_serialization_are_exact() -> None:
         "search_random_seed",
         "search_budget_profile",
         "use_profile_presets",
+        "rollout_settings",
+        "settlement_supplements",
     )
     assert options.to_dict() == {
         "match_decision_analysis_options_version": 1,

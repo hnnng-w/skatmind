@@ -67,7 +67,8 @@ def session_information_source(context):
 def match_analysis_explanation(report: MatchAnalysisReportV1 | None, workspace: MatchWorkspaceV1):
     """Extract only explanation scalars from the exact selected typed Report snapshot."""
     if (report is None or report.report_kind != "decision_analysis"
-            or report.value.status != "executed"):
+            or report.value.status != "executed"
+            or report.value.options.recommendation_method == "whole_game_rollout"):
         return None
     game = workspace.slots[report.match_position - 1].observed_game
     matches = (report.match_id == workspace.match_definition.match_id

@@ -1,5 +1,11 @@
 # Match review and materialization
 
+Issue #288 also consumes this unchanged safe preparation for
+[one selected Match whole-game review](match_whole_game_review.md). It requires
+neither strict Historical materialization nor a fabricated Session checkpoint.
+Complete-trace own-hand reconstruction does not authorize future opponent ownership
+or hindsight Skat/settlement facts.
+
 Issue #167 adds an internal evidence-aware preparation and materialization layer
 between one validated Match Workspace and existing Historical, Training Dataset,
 and fixed-three-player list contracts. It prepares reusable values but executes

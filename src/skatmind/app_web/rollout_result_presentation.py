@@ -146,7 +146,8 @@ def build_rollout_presentation(execution, document, information_source):
         ResultSectionV1("Technical details", paragraphs=(
             message("rollout.policy_details", profile=result["policy"]["profile"],
                     version=result["policy"]["version"]), message("rollout.objective_help"),
-            message("rollout.supplemented_source" if supplements else
+            message("match_rollout.source" if information_source == "match_decision" else
+                    "rollout.supplemented_source" if supplements else
                     "rollout.source" if information_source == "session_checkpoint"
                     else "rollout.supplied_source"),
         ), details=(ResultDetailV1(

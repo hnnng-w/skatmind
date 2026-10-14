@@ -4,6 +4,7 @@ from html import escape
 
 from skatmind.rollout_derivation import missing_rollout_settlement_inputs
 
+from .rollout_form_rendering import rollout_basic_fields, rollout_technical_fields
 from .session_frontend import GuidedSessionContextV1
 from .session_recorded_review import (
     RecordedDecisionV1,
@@ -12,7 +13,7 @@ from .session_recorded_review import (
 )
 from .session_recorded_review_form import recorded_rollout_notice_feedback_v1
 from .stateful_localization import player_name, translated
-from .task_first_rendering import disclosure, hidden, paragraph, select_field
+from .task_first_rendering import hidden, paragraph
 
 
 def _decision_label(locale: str, players, row: RecordedDecisionV1) -> str:
@@ -66,39 +67,14 @@ def render_recorded_session_decisions_v1(
         if (context.rollout_review_source is not None
                 and context.rollout_review_source.decision.selection == row.selection):
             settings = context.rollout_execution.request.document["whole_game_rollout_settings"]
-        basic = '<div class="recorded-field">' + select_field(
-            locale, "objective", "rollout.objective", (
-            (value, translated(locale, f"rollout.option.{value}"))
-            for value in ("complete_settlement", "played_game_goal")), settings["objective"],
-            described_by="recorded-objective-help")
-        basic += '<!-- validation-messages:objective --></div>'
         missing = missing_inputs[index]
-        if missing:
-            supplied = {}
-            if (context.rollout_review_source is not None
-                    and context.rollout_review_source.decision.selection == row.selection):
-                supplied = context.rollout_execution.request.document.get(
-                    "whole_game_rollout_derivation", {}).get("supplements", {})
-            for name in missing:
-                help_ids = "recorded-settlement-help" + (
-                    " recorded-matadors-help" if name == "matadors" else "")
-                basic += ('<div class="recorded-field rollout-settlement-inputs"><label>'
-                    + translated(locale, "rollout.analysis_" + name)
-                    + ' <input type="text" inputmode="numeric" maxlength="21" '
-                    + f'name="analysis_{name}" aria-describedby="{help_ids}" '
-                    + f'value="{escape(str(supplied.get(name, "")))}"></label>'
-                    + f'<!-- validation-messages:analysis_{name} --></div>')
-        advanced = '<div class="recorded-technical-fields">'
-        for name, key, maximum in (("requested_worlds", "rollout.worlds", 1000),
-                                   ("random_seed", "rollout.seed", 2**64 - 1)):
-            advanced += (f'<div class="recorded-field"><label>{translated(locale, key)} '
-                         '<input type="number" '
-                         f'name="{name}" min="{1 if name == "requested_worlds" else 0}" '
-                         f'max="{maximum}" step="1" required value="{settings[name]}"></label>'
-                         f'<!-- validation-messages:{name} --></div>')
-        advanced = disclosure(locale, "task.advanced", advanced + '</div>')
-        advanced = advanced.replace('</summary>', ' <span class="recorded-technical-error">'
-            + translated(locale, "rollout.technical_invalid") + '</span></summary>', 1)
+        supplied = {}
+        if (context.rollout_review_source is not None
+                and context.rollout_review_source.decision.selection == row.selection):
+            supplied = context.rollout_execution.request.document.get(
+                "whole_game_rollout_derivation", {}).get("supplements", {})
+        basic = rollout_basic_fields(locale, settings, missing, supplied)
+        advanced = rollout_technical_fields(locale, settings)
         method = row.checkpoint.request.document.get(
             "recommendation_method", "immediate_expected_value")
         content += (

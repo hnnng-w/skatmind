@@ -48,6 +48,8 @@ def _validate_exact_executed_decision_report(
         raise ValueError(
             "report must contain exact options, profile binding, Request, and Result values."
         )
+    if value.options.recommendation_method == "whole_game_rollout":
+        raise ValueError("Whole-game rollout Reports are not supported Strategy Teacher sources.")
     rebuilt = build_match_analysis_report_v1(value)
     if rebuilt._identity_document() != report._identity_document():
         raise ValueError("report must equal its canonical Match Analysis Report.")

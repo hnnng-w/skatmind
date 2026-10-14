@@ -186,7 +186,9 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
                                match.recovery.preview if selected is not None else None,
                                match.last_result))
             references.extend(match.capture.report_store.list())
+            references.append(match.rollout_notice)
             values.extend((match.selected_position, match.position_generation,
+                           match.selected_review_decision,
                            match.capture.content_fingerprint,
                            match.capture.report_store.generation))
             if route.startswith("/matches/reports/"):

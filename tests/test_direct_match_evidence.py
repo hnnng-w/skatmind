@@ -142,7 +142,7 @@ def test_exact_new_and_legacy_registry_identity(operation, marker, mode):
     legacy = resolve_frontend_form_v1("/matches/cards", {
         "operation": operation, "card_evidence_mode": mode})
     assert legacy.form_key == "match.cards." + operation
-    assert len(FRONTEND_FORM_REGISTRY) == 120
+    assert len(FRONTEND_FORM_REGISTRY) == 121
     rollout = resolve_frontend_form_v1("/sessions/review-whole-game")
     assert rollout.form_key == "session.review_whole_game"
 

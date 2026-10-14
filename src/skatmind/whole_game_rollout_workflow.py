@@ -47,11 +47,18 @@ def parse_rollout_settings(value: object) -> WholeGameRolloutSettingsV1:
 
 
 def validate_rollout_derivation(value: object, data: dict | None = None) -> None:
+    from skatmind.match_rollout_review import (
+        MATCH_ROLLOUT_POLICY,
+        validate_match_rollout_derivation_v1,
+    )
     from skatmind.rollout_derivation import (
         MANUAL_SETTLEMENT_POLICY,
         validate_manual_rollout_derivation,
     )
 
+    if type(value) is dict and value.get("policy") == MATCH_ROLLOUT_POLICY:
+        validate_match_rollout_derivation_v1(value, data)
+        return
     keys = {"version", "policy", "original_request_fingerprint", "checkpoint_fingerprint",
             "source_revision", "checkpoint_decision_index"}
     manual = type(value) is dict and value.get("policy") == MANUAL_SETTLEMENT_POLICY

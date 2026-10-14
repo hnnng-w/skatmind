@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from skatmind.api.v1.contracts import RequestDocumentV1, WorkflowV1
@@ -363,12 +363,21 @@ def _build_match_decision_position_request_from_selected_v1(
     options: MatchDecisionAnalysisOptionsV1,
     selected: _SelectedDecision,
 ) -> MatchDecisionAnalysisRequestV1:
+    rollout = options.recommendation_method == "whole_game_rollout"
     root = _build_position_root(
         workspace,
         match_position=match_position,
         selected=selected,
-        options=options,
+        options=(replace(options, recommendation_method="immediate_expected_value",
+                         rollout_settings=None, settlement_supplements={}) if rollout else options),
     )
+    if rollout:
+        from skatmind.match_rollout_review import derive_match_rollout_request_v1
+
+        root["analysis_mode"] = "live_decision"
+        root.pop("actual_card_played")
+        root = derive_match_rollout_request_v1(root, workspace=workspace,
+            match_position=match_position, snapshot=selected.snapshot, options=options)
     try:
         validated_root = build_position_from_document(root)
     except SkatMindInvariantError:
@@ -378,12 +387,13 @@ def _build_match_decision_position_request_from_selected_v1(
             "A prepared Match Decision could not build a validated Position Request."
         ) from error
     binding = selected.profile_binding
-    external_documents = _external_documents(workspace, selected)
+    external_documents = (ApplicationExternalDocuments() if rollout
+                          else _external_documents(workspace, selected))
     has_external = external_documents.opponent_statistics_document is not None
     position_options = PositionAnalysisApplicationOptions(
-        sample_count_override=options.immediate_sample_count,
-        random_seed_override=options.immediate_random_seed,
-        use_profile_presets_override=options.use_profile_presets,
+        sample_count_override=None if rollout else options.immediate_sample_count,
+        random_seed_override=None if rollout else options.immediate_random_seed,
+        use_profile_presets_override=False if rollout else options.use_profile_presets,
         left_opponent_player_id=(
             binding.left_opponent_player_id
             if has_external and binding.left_profile_available
@@ -581,7 +591,10 @@ def execute_match_decision_analysis_v1(
         options=prepared.application_options,
         external_documents=prepared.external_documents,
     )
-    execution = execute_application_invocation(
+    executor = (application_execution.execute_application_invocation
+                if options.recommendation_method == "whole_game_rollout"
+                else execute_application_invocation)
+    execution = executor(
         invocation,
         dependencies=dependencies,
     )

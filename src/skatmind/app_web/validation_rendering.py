@@ -347,7 +347,7 @@ def _render_summary(
         if state.status == "conflict"
         else "validation.summary.guidance"
     )
-    if state.form_key == "session.review_whole_game" and any(
+    if state.form_key in {"session.review_whole_game", "match.review_whole_game"} and any(
         issue.message_key in {
             "validation.rollout.missing_bid", "validation.rollout.missing_matadors",
             "validation.rollout.missing_bid_and_matadors"}
@@ -501,7 +501,8 @@ def apply_validation_feedback_to_html_v1(
         else ("player_handle",)
         if definition.form_key in {"profile.player_update", "profile.player_remove"}
         else ("decision_selection",)
-        if definition.form_key in {"session.review_decision", "session.review_whole_game"}
+        if definition.form_key in {"session.review_decision", "session.review_whole_game",
+                                   "match.review_whole_game"}
         else ("report_id",)
         if definition.form_key == "match.transfer_report"
         else ("recovery_selection",)
@@ -631,7 +632,7 @@ def apply_validation_feedback_to_html_v1(
         return html
     form_start, form_end = bounds
     block = _replace_values(html[form_start:form_end], state)
-    if (definition.form_key == "session.review_whole_game"
+    if (definition.form_key in {"session.review_whole_game", "match.review_whole_game"}
             and not state.safe_visible_values.contains("objective")):
         # A rejected missing/unsupported choice is not a fresh-form default.
         block = _replace_safe_values(block, FormValuesV1((FormValueV1("objective", ("",)),)))
@@ -697,7 +698,7 @@ def apply_validation_feedback_to_html_v1(
             block = _insert_field_messages(block, field, rendered_messages)
 
     form_anchor_id = f"validation-form-heading-{state.feedback_generation}"
-    if definition.form_key == "session.review_whole_game" and all(
+    if definition.form_key in {"session.review_whole_game", "match.review_whole_game"} and all(
         issue.field_key in {"analysis_bid_value", "analysis_matadors"}
         for issue in state.validation_issues
     ):
@@ -708,7 +709,9 @@ def apply_validation_feedback_to_html_v1(
                 lambda match: _set_attribute(match[0], "autofocus", "autofocus"), block, count=1)
         rendered = html[:form_start] + block + html[form_end:]
         if last_valid_result_retained:
-            marker = '<div id="session-rollout-result" tabindex="-1">'
+            marker = ('<div id="match-rollout-result" tabindex="-1">'
+                      if definition.form_key == "match.review_whole_game" else
+                      '<div id="session-rollout-result" tabindex="-1">')
             caption = escape(translate_frontend_message_v1(locale, "rollout.retained"))
             rendered = rendered.replace(marker, marker + f'<p>{caption}</p>', 1)
         return rendered

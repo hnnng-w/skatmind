@@ -213,6 +213,9 @@ def _construct(
 
 def _resume_options(value: object) -> MatchDecisionAnalysisOptionsV1:
     path = "/report/value/options"
+    if isinstance(value, Mapping) and value.get("recommendation_method") == "whole_game_rollout":
+        _raise_validation("Whole-game rollout is not supported by Strategy Teacher transfer.",
+                          path=path)
     data = _require_object(value, fields=_OPTIONS_FIELDS, path=path)
     return _construct(
         MatchDecisionAnalysisOptionsV1,
