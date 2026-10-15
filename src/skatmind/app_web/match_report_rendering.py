@@ -53,12 +53,7 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
         from .rollout_result_presentation import build_rollout_presentation
 
         content += '<div id="match-rollout-result" tabindex="-1">'
-        if rollout.result.document["whole_game_rollout_result"]["status"] == "complete":
-            from .debrief_rendering import link
-            from .stateful_localization import text
-
-            content += link(f'/learning/debrief/from/{report["report_id"]}',
-                            text(locale, "debrief.open"))
+        content += state.get("debrief_collection_actions", "")
         content += paragraph(locale, "match_rollout.source")
         presentation = localized_render(build_rollout_presentation)(
             rollout, rollout.result.to_dict()["document"], "match_decision", locale=locale)
@@ -68,6 +63,13 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
             result_download_route=f'/matches/api/v1/reports/{report["report_id"]}.json',
             recorded_context=state.get("decision_context"), recorded_context_locale=locale,
             identity_prefix="match-rollout-result")
+        if rollout.result.document["whole_game_rollout_result"]["status"] == "complete":
+            from .debrief_rendering import link
+            from .stateful_localization import text
+            from .task_first_rendering import disclosure
+
+            content += disclosure(locale, "debrief.direct_title", link(
+                f'/learning/debrief/from/{report["report_id"]}', text(locale, "debrief.open")))
         content += '</div>'
     elif report is not None:
         content += paragraph(locale, f"task.report.{report['report_kind']}")

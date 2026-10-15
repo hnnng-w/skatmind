@@ -7,17 +7,29 @@ Decision whole-game rollout Reports. The starting branch is
 exact-commit CI and the maintainer's installed Learning debrief retest. Issues
 #289 and #208 remain open.
 
+The current navigation/presentation correction starts from installed baseline
+`28b8e5a1f69ec2d38dc22bb597b1eb0d897dc02a`. See
+[Collection overview navigation](learning_overview_navigation.md) for the named
+incorporation action, compact rows, passive current-context entry, diagnostic
+limits and fresh before/after evidence. The earlier browser and validation
+measurements below remain evidence for the original implementation only.
+
 ## Two entries, one retained comparison
 
-* A completed Match Report offers **Open post-game review**. This captures a
-  read-only scope without creating a collection. The scope retains the original
-  immutable Report and Snapshot independently of subsequent Match navigation.
+* The detailed Match Report is the normal individual result. When a compatible
+  active collection is resolved it directly offers **Add to {collection}** and
+  **Open analysis overview**. Otherwise the user explicitly chooses a collection
+  through the existing collection list or resolves the selected-Snapshot mismatch.
+  **Summary of this Report only** remains an optional disclosure and supported
+  collection-free captured route, not a prerequisite for incorporation.
 * An opened collection offers currently available completed Reports from the
   active Match's bounded report store. Every offer names the Match, Game, Trick,
   Card position, acting Player, objective, requested worlds, seed, revision,
-  supplements when present, and target collection. **Incorporate this report**
+  supplements when present, and target collection. **Add to {collection}**
   performs the explicit source update. One valid option needs one button press;
-  several options remain separate. There is no file round trip or report scan.
+  several options remain separate. Acceptance redirects to that captured
+  collection overview and delivers the existing compact receipt. There is no
+  file round trip or report scan.
 
 The shared debrief shows recorded-decision, distinct included analyzed-decision,
 and exact Report counts. Native Player links select the view in the URL itself;
@@ -163,12 +175,15 @@ registry bound. Inclusion fields are `managed_handle`, `source_handle`,
 singular; unknown fields are rejected. Hidden source proofs are not restored as
 editable language state. Existing Host, Origin, cookie and CSP rules apply.
 
-Definition-derived totals: **72 POST routes, 124 forms, 2,012 paired catalog keys**.
+Initial implementation totals: **72 POST routes, 124 forms, 2,012 paired catalog keys**.
+The current correction keeps the POST/form totals, adds one scope-checked inputs
+GET shape, and has **2,025 paired keys**. Its inventories are detailed in the
+[correction contract](learning_overview_navigation.md).
 There are **72 authoritative and packaged Schemas**, **102 generated scenarios**,
 and the same **ten prepared Corpus downloads**. The two scoped download suffixes
 reuse exact Match serializers and do not extend that prepared-download set.
 
-## Synthetic browser evidence
+## Initial implementation synthetic browser evidence
 
 `scripts/verify_learning_debrief.py` uses only disposable synthetic fixtures and
 the existing dependency-free DevTools harness. The final observation is under

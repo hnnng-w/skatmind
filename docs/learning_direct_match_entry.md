@@ -394,3 +394,10 @@ Adding a recording still copies only the Workspace; it imports no Report and
 runs no analysis. Current selection and conflict policies remain unchanged.
 The dataset-only action is now **Prepare dataset**, with its technical results
 and ten exports collapsed separately from concrete decision comparisons.
+
+The subsequent [overview navigation correction](learning_overview_navigation.md)
+keeps the detailed individual Match result primary and offers named incorporation
+there. The active collection's list entry now primarily opens its captured analysis
+overview without reopening. Strict Reopen remains a separate disclosed action
+that explicitly explains the loss of process-local Report sources. The original
+Add, Current-selection and conflict policies above are unchanged.

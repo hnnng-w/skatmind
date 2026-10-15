@@ -37,15 +37,26 @@ from .cross_area_transfer import (
     transfer_active_match_report_to_corpus_v1,
     transfer_active_match_workspace_to_corpus_v1,
 )
-from .debrief_frontend import DEBRIEF_POST_ROUTES, available_reports, collection_scope
+from .debrief_frontend import (
+    DEBRIEF_POST_ROUTES,
+    DebriefUnavailable,
+    available_reports,
+    collection_scope,
+)
 from .debrief_http import (
     DEBRIEF_FROM_PATTERN,
+    DEBRIEF_INPUTS_PATTERN,
     DEBRIEF_PAGE_PATTERN,
     DEBRIEF_RESOURCE_PATTERN,
     handle_debrief_get,
     handle_debrief_post,
 )
-from .debrief_rendering import render_available_reports, render_debrief
+from .debrief_rendering import (
+    overview_title,
+    render_available_reports,
+    render_debrief,
+    render_report_collection_actions,
+)
 from .form_parsing import FormValuesV1
 from .form_registry import (
     FRONTEND_FORM_REGISTRY,
@@ -472,6 +483,7 @@ def _is_stateful_get_route(path: str) -> bool:
         or path in _MATCH_EXPORT_ROUTES
         or path in _LEARNING_DOWNLOAD_ROUTES
         or DEBRIEF_FROM_PATTERN.fullmatch(path) is not None
+        or DEBRIEF_INPUTS_PATTERN.fullmatch(path) is not None
         or DEBRIEF_PAGE_PATTERN.fullmatch(path) is not None
         or DEBRIEF_RESOURCE_PATTERN.fullmatch(path) is not None
         or _MATCH_POSITION_PATTERN.fullmatch(path) is not None
@@ -1942,6 +1954,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         }[family]
         with self.server.app_context.lock:
             profile_state = self.server.app_context.frontend_profile
+            learning = self.server.app_context.managed_stateful.active_learning
+        overview = (None if family != "corpora" or learning is None else
+                    collection_scope(self.server.app_context, learning))
         self._content_page(
             route,
             return_to=route,
@@ -1955,6 +1970,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 setup=(current_seat_setup_v1(
                     self.server.app_context, family, profile_state.document)
                        if family == "sessions" else None),
+                active_overview=(None if overview is None else
+                                 (overview.owner.handle,
+                                  f"/learning/debrief/{overview.scope_id}/all")),
             ),
             status=status,
             empty_state_key=(
@@ -2182,6 +2200,15 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         title = managed_name(locale, profile, "matches", state["match"]["match_id"],
                              state["match"]["title"])
         learning_state = None if learning is None else build_unified_learning_state_v1(learning)
+        if state.get("rollout_report") is not None and state["rollout_report"].result.document[
+                "whole_game_rollout_result"]["status"] == "complete":
+            selected_report_id = state["selected_report"]["report_id"]
+            scope = (None if learning is None else
+                     collection_scope(self.server.app_context, learning))
+            offers = (() if learning is None else available_reports(
+                self.server.app_context, learning, report_id=selected_report_id))
+            state["debrief_collection_actions"] = render_report_collection_actions(
+                scope, offers, selected_report_id, locale, profile)
         transfer = render_task_first_transfer_v1(
             learning_state,
             source_handle=active.handle,
@@ -2264,10 +2291,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         status: int = HTTPStatus.OK,
         error_notice: str | None = None,
         initialize_discovery: bool = False,
+        expected_active=None,
     ) -> None:
         from .learning_outcome_navigation import current_learning_entry_outcome
 
         active = self._active_learning()
+        if expected_active is not None and active is not expected_active:
+            raise DebriefUnavailable("changed")
         if initialize_discovery:
             with self.server.app_context.managed_stateful.learning_lifecycle_lock:
                 with self.server.app_context.lock:
@@ -2307,6 +2337,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if creation_notice:
             with active.corpus.lock:
                 active.operation_feedback.begin()
+        scope = collection_scope(self.server.app_context, active)
+        self._debrief_overview_route = f"/learning/debrief/{scope.scope_id}/all"
         body = creation_notice + render_task_first_learning_v1(
             state,
             managed_handle=active.handle,
@@ -2320,8 +2352,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             entry_outcome=entry_outcome,
             rejected_build=(feedback is not None
                 and feedback.form_key == "learning.operation.prepare_learning_artifacts"),
-            debrief=render_debrief(collection_scope(self.server.app_context, active),
-                                  locale, profile=profile)
+            debrief=render_debrief(scope, locale, profile=profile, heading=False)
                 + render_available_reports(available_reports(self.server.app_context, active),
                                            active, locale, profile),
         )
@@ -2334,7 +2365,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self._content_page(
             "/learning",
             return_to="/learning/current",
-            title=managed_name(locale, profile, "corpora", state["corpus"]["corpus_id"]),
+            title=overview_title(scope, locale, profile),
             content=body,
             status=status,
             feedback_family="learning",

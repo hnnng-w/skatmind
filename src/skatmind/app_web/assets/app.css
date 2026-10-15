@@ -401,6 +401,44 @@ footer a:focus-visible,
   overflow-wrap: anywhere;
 }
 
+.analysis-overview .debrief-decision {
+  padding-block: 0.75rem;
+}
+
+.analysis-overview .debrief-decision :is(h3, h4, p) {
+  margin-block: 0.3rem;
+}
+
+.analysis-overview .debrief-report {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.analysis-overview .debrief-decision > details {
+  margin-block: 0.4rem;
+  padding: 0.4rem 0.75rem;
+}
+
+.report-collection-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block: 0.75rem;
+}
+
+.report-collection-actions :is(form, p) {
+  margin: 0;
+}
+
+@media (max-width: 650px) {
+  .analysis-overview .debrief-report {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 #learning-debrief {
   scroll-margin-block: 1rem;
   overflow-wrap: anywhere;

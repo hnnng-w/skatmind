@@ -40,6 +40,7 @@ def render_managed_category_landing_v1(
     profile_generation: int = 0,
     locale: str = "en",
     setup=None,
+    active_overview=None,
 ) -> str:
     return render_friendly_managed_category_landing_v1(
         view,
@@ -47,6 +48,7 @@ def render_managed_category_landing_v1(
         profile_generation=profile_generation,
         locale=locale,
         setup=setup,
+        active_overview=active_overview,
     )
 
 

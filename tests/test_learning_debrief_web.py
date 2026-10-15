@@ -164,6 +164,7 @@ def test_report_expiry_copied_evidence_and_reload_reopen_lifetimes(localized_ser
     active.capture.report_store.clear()
     assert browser.request("GET", f"/learning/debrief/from/{report.report_id}")[0] == 409
     assert browser.request("GET", route)[0] == 200
+    page = browser.page(route.rsplit("/", 1)[0] + "/inputs")
     page = follow(browser, browser.submit(operation_form(page, "reload_corpus")))
     assert len(target.debrief_sources.sources) == 1
     assert browser.request("GET", route)[0] == 409

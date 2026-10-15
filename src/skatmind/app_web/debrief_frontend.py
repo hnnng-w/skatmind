@@ -16,6 +16,7 @@ from skatmind.match_debrief import MatchDebriefEvidenceV1, completed_rollout
 from skatmind.match_workspace_persistence_codec import build_match_workspace_persistence_document_v1
 
 from .match_frontend import get_unified_match_report_v1
+from .operation_feedback import feedback_source
 from .recorded_review_opening import require_recording_fresh_v1
 
 DEBRIEF_POST_ROUTES = ("/learning/debrief/include", "/learning/debrief/remove")
@@ -81,6 +82,13 @@ class DebriefScopeV1:
         if selector not in {str(index) for index in range(len(self.players))}:
             raise DebriefUnavailable()
         return self.players[int(selector)]
+
+
+@dataclass(frozen=True, slots=True)
+class DebriefIncorporationV1:
+    status: str
+    scope: DebriefScopeV1
+    evidence: MatchDebriefEvidenceV1
 
 
 def _lineage(target):
@@ -170,7 +178,7 @@ def _selection(target, stamp, report_id):
     return hmac.new(target.entry_key, material, hashlib.sha256).hexdigest()
 
 
-def available_reports(app, target):
+def available_reports(app, target, *, report_id=None):
     """Only the active bounded report store; no discovery, report files or evaluation."""
     with app.lock:
         active = app.managed_stateful.active_match
@@ -180,7 +188,8 @@ def available_reports(app, target):
         reports = active.capture.report_store.list()
     offers = []
     for report in reports:
-        if (report.report_kind != "decision_analysis"
+        if (report_id is not None and report.report_id != report_id
+                or report.report_kind != "decision_analysis"
                 or report.value.options.recommendation_method != "whole_game_rollout"):
             continue
         try:
@@ -220,6 +229,7 @@ def incorporate_report(app, values):
         if not hmac.compare_digest(_selection(target, stamp, values["report_id"]),
                                    values["selection"]):
             raise DebriefUnavailable("changed")
+        attempt = target.operation_feedback.begin()
         snapshots = resolve_learning_corpus_current_match_snapshots_v1(target.corpus.store)
         snapshot = next((item for item in snapshots
                          if item.match_id == evidence.report.match_id), None)
@@ -237,7 +247,12 @@ def incorporate_report(app, values):
                 raise DebriefUnavailable("changed")
         if _lineage(target) != lineage:
             raise DebriefUnavailable("changed")
-        return target.debrief_sources.add(evidence, source_handle=stamp[1])
+        status = target.debrief_sources.add(evidence, source_handle=stamp[1])
+        scope = collection_scope(app, target)
+        if status == "applied":
+            target.operation_feedback.publish(attempt, feedback_source(target),
+                ("debrief_added", (("binding", evidence.binding_id),)))
+        return DebriefIncorporationV1(status, scope, evidence)
 
 
 def remove_source(app, values):

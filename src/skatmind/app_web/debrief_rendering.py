@@ -1,7 +1,6 @@
 # ruff: noqa: E501 - Keep complete server-rendered elements legible.
 """One bilingual debrief view for captured Match and explicit collection evidence."""
 
-from dataclasses import replace
 from html import escape
 
 from skatmind.match_debrief import build_debrief_projection
@@ -15,6 +14,15 @@ from .task_first_rendering import disclosure, form, hidden, paragraph, technical
 
 def link(route, label):
     return f'<a class="button-link" href="{escape(route, quote=True)}">{escape(label)}</a>'
+
+
+def collection_name(target, locale, profile=None):
+    return managed_name(locale, profile, "corpora", target.corpus.store.document.catalog.corpus_id)
+
+
+def overview_title(scope, locale, profile=None):
+    return (text(locale, "debrief.overview_title", collection=collection_name(
+        scope.owner, locale, profile)) if scope.owner else text(locale, "debrief.direct_title"))
 
 
 def player_name(snapshots, player_id):
@@ -39,13 +47,14 @@ def report_presentation(evidence, locale):
         value, value.result.to_dict()["document"], "match_decision", locale=locale)
 
 
-def render_debrief(scope, locale, *, selector="all", profile=None):
+def render_debrief(scope, locale, *, selector="all", profile=None, heading=True):
     player = scope.player(selector)
     view = build_debrief_projection(scope.snapshots, scope.sources, player_id=player,
                                     tactical=scope.tactical, coaching=scope.coaching)
     base = f"/learning/debrief/{scope.scope_id}"
-    body = '<section id="learning-debrief" class="panel" tabindex="-1"><h2>'
-    body += translated(locale, "debrief.heading") + '</h2>'
+    body = '<section id="learning-debrief" class="panel analysis-overview" tabindex="-1">'
+    if heading:
+        body += '<h2>' + escape(overview_title(scope, locale, profile)) + '</h2>'
     body += paragraph(locale, "debrief.collection_scope" if scope.owner else "debrief.direct_scope")
     body += '<p>' + ' · '.join(escape(managed_name(locale, profile, "matches", item.match_id,
         item.workspace.match_definition.title)) + ' — ' + translated(locale,
@@ -79,27 +88,34 @@ def render_debrief(scope, locale, *, selector="all", profile=None):
             presentation = report_presentation(evidence, locale)
             settings = evidence.report.value.options.rollout_settings
             if len(decision.reports) > 1:
-                body += '<h4>' + translated(locale, "debrief.variant", number=number,
-                    seed=settings.random_seed, worlds=settings.requested_worlds) + '</h4>'
+                body += '<h4>' + translated(locale, "debrief.report_number", number=number) + '</h4>'
             summary, recommendation = presentation.sections[:2]
-            # Reuse the shared tied-best, decisive-metric and localized-number presentation.
-            body += localized_render(_section_body)(replace(summary,
-                paragraphs=(summary.paragraphs[-1],)), locale=locale)
+            forced = len(evidence.report.value.result.document["legal_cards"]) == 1
+            body += '<div class="debrief-report"><div class="debrief-meaning">'
+            # Use the shared authoritative Card labels and actual-card comparison.
+            actual = recommendation.details[-1].value
+            body += '<p><strong>' + translated(locale, "result.actual_card") + ': </strong>' + escape(actual) + '</p>'
+            body += '<p>' + escape(text(locale, "rollout.only_card") if forced else recommendation.items[0]) + '</p>'
+            if not forced:
+                best = recommendation.details[0]
+                body += '<p>' + translated(locale, "debrief.alternatives") + ': ' + escape(best.value) + '</p>'
+            body += '<p class="debrief-context">' + translated(locale, "rollout.objective." + settings.objective)
             supplements = evidence.report.value.options.settlement_supplements
             if supplements:
-                body += paragraph(locale, "debrief.supplements", values="; ".join(
+                body += ' · ' + translated(locale, "debrief.supplements", values="; ".join(
                     text(locale, "rollout.analysis_" + key) + ": " + str(value)
                     for key, value in supplements.items()))
+            body += '</p></div><div class="debrief-row-actions">'
+            route = base + "/" + selector + "/" + evidence.report.report_id
+            body += link(route, text(locale, "debrief.comparison")) + '</div></div>'
+            details = localized_render(_section_body)(summary, locale=locale)
+            details += paragraph(locale, "debrief.variant", number=number,
+                seed=settings.random_seed, worlds=settings.requested_worlds)
             bid = evidence.report.value.request.document["whole_game_rollout_derivation"][
                 "original_request"]["document"]["game_declaration"]["bid_value"]
             if bid is not None:
-                body += paragraph(locale, "debrief.known_bid", bid=bid)
-            concise = (text(locale, "rollout.only_card"),) if len(evidence.report.value.result.document[
-                "legal_cards"]) == 1 else recommendation.items[:1]
-            body += localized_render(_section_body)(replace(recommendation, items=concise),
-                                                   locale=locale)
-            route = base + "/" + selector + "/" + evidence.report.report_id
-            body += link(route, text(locale, "debrief.comparison"))
+                details += paragraph(locale, "debrief.known_bid", bid=bid)
+            body += disclosure(locale, "debrief.entry_details", details)
         body += '</article>'
     if view.topics:
         topics = paragraph(locale, "debrief.topic_limit")
@@ -170,19 +186,49 @@ def render_available_reports(offers, target, locale, profile=None):
                 else "/review/recorded")
             body += link(destination, text(locale, "debrief.remedy"))
         else:
-            body += paragraph(locale, "debrief.include_target", target=managed_name(
-                locale, profile, "corpora", target.corpus.store.document.catalog.corpus_id))
-            body += form(locale, "/learning/debrief/include", hidden("managed_handle", target.handle)
-                + hidden("source_handle", handle) + hidden("report_id", report.report_id)
-                + hidden("selection", proof), "debrief.include", primary=True)
+            body += incorporation_form(target, handle, report.report_id, proof, locale, profile)
     return body + '</section>'
+
+
+def incorporation_form(target, source_handle, report_id, proof, locale, profile=None):
+    name = collection_name(target, locale, profile)
+    fields = (hidden("managed_handle", target.handle) + hidden("source_handle", source_handle)
+        + hidden("report_id", report_id) + hidden("selection", proof))
+    return ('<form method="post" action="/learning/debrief/include" class="form-grid">'
+        + fields + '<button type="submit" class="primary">'
+        + translated(locale, "debrief.add_to", collection=name) + '</button></form>')
+
+
+def render_report_collection_actions(scope, offers, report_id, locale, profile=None):
+    body = '<div class="report-collection-actions">'
+    if scope is None:
+        return body + link("/learning", text(locale, "debrief.choose_collection")) + '</div>'
+    name = collection_name(scope.owner, locale, profile)
+    current = {item.match_snapshot_id for item in scope.snapshots}
+    included = next((item for item in scope.sources if item.report.report_id == report_id
+                     and item.snapshot.match_snapshot_id in current), None)
+    if included is not None:
+        body += paragraph(locale, "debrief.included", collection=name)
+    else:
+        for _evidence, report, reason, handle, proof in offers:
+            if report.report_id != report_id:
+                continue
+            if reason is None:
+                body += incorporation_form(scope.owner, handle, report_id, proof, locale, profile)
+            else:
+                body += paragraph(locale, "debrief." + reason)
+                body += link("/learning/current#learning-recorded-matches" if reason == "missing_snapshot"
+                    else "/learning/current#insight-versions", text(locale, "debrief.remedy"))
+    body += link(f"/learning/debrief/{scope.scope_id}/all", text(locale, "debrief.open_overview"))
+    return body + '</div>'
 
 
 def render_comparison(scope, evidence, selector, locale, profile=None):
     base = f"/learning/debrief/{scope.scope_id}/{selector}"
     route = base + "/" + evidence.report.report_id
     body = '<h2>' + escape(decision_caption(evidence, locale, profile)) + '</h2>'
-    body += '<nav class="debrief-actions">' + link(base, text(locale, "debrief.back"))
+    body += '<nav class="debrief-actions">' + link(base, text(locale,
+        "debrief.open_overview" if scope.owner else "debrief.back"))
     body += link(route + "/recording", text(locale, "debrief.recording")) + '</nav>'
     body += render_result_presentation_v1(report_presentation(evidence, locale), locale=locale,
         identity_prefix="debrief-comparison")

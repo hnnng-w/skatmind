@@ -143,6 +143,8 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
         if family is not None:
             references.append(managed.discoveries.get(family))
             values.append(managed.generations[family])
+            if family == "corpora":
+                references.append(learning)
         feedback_family = ("recordings" if route == "/review/recorded" else
             "sessions" if route.startswith("/sessions") else
             "matches" if route.startswith("/matches") else
@@ -212,7 +214,7 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
                 references.append(report)
         # Transfer forms also depend on the exact selected target collection.
         references.append(learning)
-    if route == "/learning/current" or (
+    if route == "/learning/current" or (route == "/learning" and learning is not None) or (
             learning is not None and route.startswith(
                 ("/matches/position/", "/matches/review/", "/matches/reports/"))):
         if learning is None:

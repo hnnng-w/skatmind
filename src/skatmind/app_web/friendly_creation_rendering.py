@@ -291,6 +291,7 @@ def _managed_item_card(
     profile: LocalFrontendProfileV1 | None,
     profile_generation: int,
     locale: str,
+    active_overview: tuple[str, str] | None = None,
 ) -> str:
     profile_label = next(
         (
@@ -304,7 +305,9 @@ def _managed_item_card(
     route_family = "learning" if item.family == "corpora" else item.family
     action = ""
     if item.status == "available":
-        action_key = "creation.managed.reopen" if item.active else "creation.managed.open"
+        active = (item.handle == active_overview[0]
+                  if item.family == "corpora" and active_overview is not None else item.active)
+        action_key = "creation.managed.reopen" if active else "creation.managed.open"
         action = (
             f'<form method="post" action="/{route_family}/open">'
             f'<input type="hidden" name="handle" value="{escape(item.handle, quote=True)}">'
@@ -312,6 +315,13 @@ def _managed_item_card(
             f'<button type="submit">{_t(locale, action_key)}</button>'
             "</form>"
         )
+        if item.family == "corpora" and active and active_overview is not None:
+            action = ('<a class="button-link" href="'
+                + escape(active_overview[1], quote=True) + '">'
+                + _t(locale, "debrief.open_overview") + '</a>'
+                + '<details class="secondary-action"><summary>'
+                + _t(locale, "creation.managed.reopen") + '</summary><p>'
+                + _t(locale, "debrief.reopen_help") + '</p>' + action + '</details>')
         from .recording_deletion_http import render_delete_action
         action += render_delete_action(item, locale, item.family)
     revision = (
@@ -368,6 +378,7 @@ def render_friendly_managed_category_landing_v1(
     profile_generation: int,
     locale: str,
     setup=None,
+    active_overview: tuple[str, str] | None = None,
 ) -> str:
     if type(view) is not ManagedCategoryViewV1:
         raise ValueError("view must be an exact managed category view.")
@@ -397,6 +408,7 @@ def render_friendly_managed_category_landing_v1(
             profile=profile,
             profile_generation=profile_generation,
             locale=locale,
+            active_overview=active_overview,
         )
         for item in view.items
     )
@@ -404,6 +416,8 @@ def render_friendly_managed_category_landing_v1(
     managed = (
         '<section aria-labelledby="managed-items-heading"><h2 id="managed-items-heading">'
         f"{_t(locale, f'creation.managed.heading.{view.family}')}</h2>"
+        + (f'<p>{_t(locale, "debrief.collection_choice_help")}</p>'
+           if view.family == "corpora" and active_overview is not None else '') +
         f'<div class="managed-item-grid">{cards or empty_items}</div>'
         "</section>"
     )

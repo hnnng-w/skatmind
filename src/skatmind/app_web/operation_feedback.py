@@ -18,7 +18,7 @@ ENTRY_FEEDBACK_MARKER = "<!-- entry-operation-feedback -->"
 METADATA_FEEDBACK_MARKER = "<!-- metadata-operation-feedback -->"
 RESULTS_FEEDBACK_MARKER = "<!-- results-operation-feedback -->"
 
-# Parameters are accepted roster ordinals, canonical Cards and bounded counts only.
+# Parameters are accepted roster ordinals, Cards, bounded counts or exact binding IDs.
 # Full accepted labels are resolved on the exact bound source, never copied/truncated.
 MESSAGE_PARAMETERS = {
     "session_created": (), "match_created": (), "learning_created": (),
@@ -28,6 +28,7 @@ MESSAGE_PARAMETERS = {
     "declarer": (), "declaration": (), "details": (), "ending": (),
     "game_started": ("number",), "game_passed": ("number",), "correction": (),
     "version_added": (), "version_selected": (), "prepared": (),
+    "debrief_added": ("binding",),
 }
 
 
@@ -60,7 +61,10 @@ class OperationReceipt:
                 or tuple(key for key, _ in self.parameters) != MESSAGE_PARAMETERS[name]):
             raise ValueError("Receipt requires an allowlisted message and exact parameters.")
         for key, value in self.parameters:
-            if key == "card":
+            if key == "binding":
+                valid = (type(value) is str and len(value) == 64
+                         and all(character in "0123456789abcdef" for character in value))
+            elif key == "card":
                 valid = type(value) is str and value in get_full_deck()
             else:
                 maximum = {"player": 3, "count": 30, "number": 36}[key]
@@ -148,7 +152,7 @@ def feedback_source(active) -> FeedbackSource:
         return FeedbackSource((active, corpus.store, corpus.prepared_artifacts,
             corpus.tactical_prepared_artifacts, corpus.tactical_coaching_prepared_artifacts), (
             corpus.generation, corpus.store.document.content_fingerprint,
-            corpus.strategy_source_store.revision))
+             corpus.strategy_source_store.revision, active.debrief_sources.revision))
     return FeedbackSource((active, active.document, active.execution), (
         active.generation, active.document.content_fingerprint, active.retired))
 
@@ -163,9 +167,13 @@ def player_ordinal(players, player_id):
 
 
 def render_operation_receipt(receipt, locale, players=(), *, remaining_ms=DISPLAY_BUDGET_MS,
-                             continuation=False):
+                             continuation=False, debrief_values=None, action=None):
     """Pure escaped presentation. Delivery is exclusively an HTTP responsibility."""
     values = dict(receipt.parameters)
+    if "binding" in values:
+        if debrief_values is None:
+            raise ValueError("Debrief receipt requires its accepted source labels.")
+        values = dict(debrief_values)
     if "player" in values:
         index = values["player"]
         values["player"] = (players[index - 1].player_label
@@ -178,7 +186,10 @@ def render_operation_receipt(receipt, locale, players=(), *, remaining_ms=DISPLA
             + f'data-feedback-remaining-ms="{remaining_ms}" data-dismiss-label="'
             + escape(text(locale, "feedback.dismiss"), quote=True) + '" data-dismissed-label="'
             + escape(text(locale, "feedback.dismissed"), quote=True) + '"><span>'
-            + escape(text(locale, receipt.message_key, **values), quote=True) + '</span></div>')
+            + escape(text(locale, receipt.message_key, **values), quote=True) + '</span>'
+            + ('' if action is None else '<a class="button-link secondary" href="'
+               + escape(action, quote=True) + '">'
+               + escape(text(locale, "debrief.open_overview")) + '</a>') + '</div>')
 
 
 def deliver_operation_feedback(handler, content, *, status):
@@ -215,9 +226,23 @@ def deliver_operation_feedback(handler, content, *, status):
             receipt = active.operation_feedback.take(source, suppressed=suppressed)
             presentation = None if receipt is None else FeedbackPresentation(receipt)
         handler._visible_operation_feedback = None if receipt is None else presentation
+        debrief_values = None
+        if receipt is not None and receipt.message_key == "feedback.debrief_added":
+            from .debrief_rendering import collection_name, decision_caption
+
+            evidence = next(item for item in active.debrief_sources.sources
+                            if item.binding_id == dict(receipt.parameters)["binding"])
+            with app.lock:
+                profile = app.frontend_profile.document
+            locale = handler._frontend_state().locale
+            debrief_values = {"decision": decision_caption(evidence, locale, profile),
+                "actual": card_name(locale, evidence.report.value.request.document[
+                    "actual_card_played"]), "collection": collection_name(active, locale, profile)}
         rendered = "" if receipt is None else render_operation_receipt(
             receipt, handler._frontend_state().locale, feedback_players(active),
-            remaining_ms=presentation.remaining_ms, continuation=continuation)
+            remaining_ms=presentation.remaining_ms, continuation=continuation,
+            debrief_values=debrief_values, action=(getattr(handler, "_debrief_overview_route", None)
+                if debrief_values is not None else None))
     marker = (METADATA_FEEDBACK_MARKER if receipt is not None and receipt.area == "metadata" else
               RESULTS_FEEDBACK_MARKER if receipt is not None
               and receipt.message_key == "feedback.prepared" else
