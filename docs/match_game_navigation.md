@@ -360,3 +360,13 @@ commit `check` and `v1-supported-platform-matrix` remain manual closure gates.
 #237 remains completed; #208/unresolved findings stay open, UAT-01 failed,
 UAT-02–12 paused, B-09/B-07 open and B-06 closed. No whole-UAT or release-readiness
 claim is made.
+
+## Rule-ended short Null games (Issue #290)
+
+[Rule-ended Null recording](null_recording_end.md) extends first-unfinished
+selection to skip `rule_ended` alongside passed deals and complete play traces.
+A decisive completed declarer Trick ends normal capture while retaining the
+selected Game. The next Game is only an explicit navigation suggestion. Actual
+Card/Trick counts and complete-trace metrics retain their existing meanings;
+short rule-ended Games have separate wording/counts. History, evidence and
+correction remain accessible, including after strict reopen.

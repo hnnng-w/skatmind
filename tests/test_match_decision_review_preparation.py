@@ -73,6 +73,7 @@ def test_versions_statuses_reasons_policies_and_fields_are_exact() -> None:
     assert MATCH_DECISION_REVIEW_SKIP_REASONS == (
         "acting_hand_unavailable",
         "required_public_hand_unavailable",
+        "after_rule_end",
     )
     assert MATCH_DECISION_REVIEW_INFORMATION_POLICY == (
         "reconstruct_decision_time_own_hand_without_future_opponent_information"

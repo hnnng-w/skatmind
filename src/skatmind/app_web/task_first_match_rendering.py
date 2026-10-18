@@ -312,6 +312,10 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     body = '<p><strong>' + translated(locale, "task.match.progress") + ':</strong> ' + translated(
         locale, "task.match.progress_value", observed=progress["observed_game_count"],
         complete=progress["complete_play_trace_count"], passed=progress["passed_deal_count"]) + '</p>'
+    short_ended = sum(position.recording_rule_end is not None and position.play_count < 30
+                      for position in view.positions)
+    if short_ended:
+        body += paragraph(locale, "recording.null_end.match_count", count=short_ended)
     game = state["game"]
     task = '<!-- operation-feedback --><h2 id="match-recording-heading">' + translated(
         locale, "task.match.game_heading", number=view.selected_position) + '</h2>'
@@ -323,7 +327,12 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     task += '<div id="match-recovery-feedback"></div>' + ("" if recovery is None else recovery[0])
     recorded = state.get("recorded_progress")
     task += '<div class="recording-progress-layout"><div>'
-    if view.workflow.primary_action == "start_game":
+    if recorded is not None and recorded.rule_end is not None:
+        task += '<h3>' + translated(locale, "recording.null_end.title") + '</h3>'
+        task += paragraph(locale, "recording.null_end.detail", player=_name(
+            state, locale, recorded.rule_end.declarer_player_id),
+            trick=recorded.rule_end.trick_number)
+    elif view.workflow.primary_action == "start_game":
         task += '<h3>' + translated(locale, "task.match.action.start_game") + '</h3>'
         task += form(locale, "/matches/api/v1/operation", _hidden(state, handle, "start_game"),
                      "task.match.action.start_game", primary=True)
@@ -404,7 +413,8 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
                 + translated(locale, "declaration.confirm_clear") + '</label>', "declaration.clear"))
         corrections += operation_form(state, handle, locale, "set_game_timecode", values={
             "game_timecode_start": game["game_timecode"]["start"], "game_timecode_end": game["game_timecode"]["end"]})
-        corrections += operation_form(state, handle, locale, "append_plays")
+        if view.selected.can_record_play:
+            corrections += operation_form(state, handle, locale, "append_plays")
         corrections += operation_form(state, handle, locale, "truncate_plays")
         corrections += operation_form(state, handle, locale, "mark_passed_deal", extra=(
             '<label><input type="checkbox" name="confirm_replace" required>'

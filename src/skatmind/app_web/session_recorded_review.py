@@ -10,6 +10,7 @@ import skatmind.api.v1.session.files as session_files
 from skatmind.api.v1 import ExecutionOptionsV1
 from skatmind.errors import SkatMindValidationError
 from skatmind.session_rollout_review import derive_session_rollout_review_request_v1
+from skatmind.session_transitions import replay_session_state_v1
 from skatmind.whole_game_rollout_contracts import WholeGameRolloutSettingsV1
 from skatmind.whole_game_rollout_workflow import rollout_declaration
 
@@ -91,11 +92,11 @@ def project_recorded_session_decisions_v1(
             ))
             selection = hmac.new(context.review_selection_key, material, hashlib.sha256).hexdigest()
             selected[revision] = (index, RecordedDecisionV1(checkpoint, observation, selection))
-        local_plays = sum(
-            record.command.kind == "record_play"
-            and record.command.player_id == state.local_player_id
-            for record in state.command_log
-        )
+        facts = replay_session_state_v1(state)
+        rule_end = facts.recording_rule_end
+        eligible_plays = (facts.plays if rule_end is None else
+                          facts.plays[:rule_end.decisive_play_count])
+        local_plays = sum(player == state.local_player_id for player, _ in eligible_plays)
         decisions = tuple(sorted(
             (value[1] for value in selected.values()),
             key=lambda value: value.checkpoint.decision_index,

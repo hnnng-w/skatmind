@@ -25,6 +25,7 @@ from skatmind.observed_game_trace import (
     validate_observed_game_trace_v1,
 )
 from skatmind.performance_rating import validate_stable_list_entry_identifier
+from skatmind.recording_rule_end import derive_recording_rule_end
 from skatmind.rules import get_trick_winner
 
 _RETAIN = object()
@@ -211,6 +212,8 @@ def append_match_capture_game_plays_v1(
         raise ValueError("Observed Plays require both Declarer and Declaration facts.")
 
     trace = _validated_trace(game)
+    if trace.recording_rule_end is not None:
+        raise ValueError("Null was lost at the first completed declarer trick; capture has ended.")
     seat_order = tuple(player.player_id for player in game.players)
     next_player_id = trace.next_player_id
     current_trick_plays = (
@@ -220,7 +223,7 @@ def append_match_capture_game_plays_v1(
     )
     candidate_plays = list(game.plays)
 
-    for entry in entries:
+    for entry_index, entry in enumerate(entries):
         play = ObservedPlayV1(
             decision_index=len(candidate_plays) + 1,
             player_id=next_player_id,
@@ -235,6 +238,9 @@ def append_match_capture_game_plays_v1(
                 game.declaration.game_type,
             )
             next_player_id = current_trick_plays[winner_index].player_id
+            if (entry_index + 1 < len(entries) and derive_recording_rule_end(
+                    game.declaration, game.declarer_player_id, (next_player_id,)) is not None):
+                raise ValueError("Normal capture cannot continue after the decisive Null trick.")
             current_trick_plays = []
         else:
             player_index = seat_order.index(next_player_id)

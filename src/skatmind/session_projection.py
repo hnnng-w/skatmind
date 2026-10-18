@@ -35,6 +35,7 @@ from skatmind.historical_play_prefix import (
     build_serializable_incomplete_trick,
 )
 from skatmind.public_hand_constraint import canonicalize_cards
+from skatmind.recording_rule_end import RecordingRuleEnd, derive_recording_rule_end
 from skatmind.session_contracts import (
     SESSION_CAPTURE_MODES,
     SESSION_PHASES,
@@ -269,6 +270,12 @@ class SessionProjectionV1:
         object.__setattr__(self, "plays", plays)
         object.__setattr__(self, "completed_tricks", tuple(self.completed_tricks))
         object.__setattr__(self, "exact_public_hands", exact_public_hands)
+
+    @property
+    def recording_rule_end(self) -> RecordingRuleEnd | None:
+        """Derived capture boundary; not a persisted explicit End or phase rewrite."""
+        return derive_recording_rule_end(self.declaration, self.declarer_player_id,
+                                        tuple(t.winner_player_id for t in self.completed_tricks))
 
     @property
     def player_ids(self) -> tuple[str, ...]:

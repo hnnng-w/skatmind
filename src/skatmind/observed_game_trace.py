@@ -11,6 +11,7 @@ from skatmind.observed_trace_diagnostics import (
     follow_suit_diagnostic,
 )
 from skatmind.performance_rating import validate_stable_list_entry_identifier
+from skatmind.recording_rule_end import RecordingRuleEnd, derive_recording_rule_end
 from skatmind.rules import get_legal_cards, get_trick_points, get_trick_winner
 
 OBSERVED_PLAY_VERSION = 1
@@ -160,6 +161,7 @@ class ObservedGameTraceSummaryV1:
     player_play_counts: tuple[tuple[str, int], ...]
     complete_play_trace: bool
     playable_hands: tuple[tuple[str, tuple[str, ...]], ...] | None
+    recording_rule_end: RecordingRuleEnd | None
 
     def __init__(self, *_args: object, **_kwargs: object) -> None:
         raise TypeError(
@@ -179,6 +181,7 @@ class ObservedGameTraceSummaryV1:
         player_play_counts: tuple[tuple[str, int], ...],
         complete_play_trace: bool,
         playable_hands: tuple[tuple[str, tuple[str, ...]], ...] | None,
+        recording_rule_end: RecordingRuleEnd | None,
     ) -> "ObservedGameTraceSummaryV1":
         value = object.__new__(cls)
         for field_name, field_value in (
@@ -191,6 +194,7 @@ class ObservedGameTraceSummaryV1:
             ("player_play_counts", player_play_counts),
             ("complete_play_trace", complete_play_trace),
             ("playable_hands", playable_hands),
+            ("recording_rule_end", recording_rule_end),
         ):
             object.__setattr__(value, field_name, field_value)
         return value
@@ -463,4 +467,6 @@ def validate_observed_game_trace_v1(
         ),
         complete_play_trace=complete_play_trace,
         playable_hands=playable_hands,
+        recording_rule_end=derive_recording_rule_end(
+            declaration, declarer_player_id, winner_player_ids),
     )

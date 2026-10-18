@@ -14,8 +14,10 @@ from .task_first_contracts import TaskFirstMatchV1, TaskFirstSessionV1, TaskFirs
 def project_task_first_session_v1(state: SessionStateV1) -> TaskFirstSessionV1:
     facts = replay_session_state_v1(state)
     allowed = tuple(kind for kind in SESSION_COMMAND_KINDS
-                    if state.phase in SESSION_COMMAND_ALLOWED_PHASES[kind])
-    player_id = facts.next_player_id
+                    if state.phase in SESSION_COMMAND_ALLOWED_PHASES[kind]
+                    and not (facts.recording_rule_end is not None and kind in {
+                        "record_play", "set_game_end", "set_game_event"}))
+    player_id = None if facts.recording_rule_end else facts.next_player_id
     destination = "player_hand"
     action = None
     task = "task.session.next.complete"
@@ -24,7 +26,9 @@ def project_task_first_session_v1(state: SessionStateV1) -> TaskFirstSessionV1:
         completed.append("task.command.set_declaration")
     if facts.played_card_count:
         completed.append("task.command.record_play")
-    if state.phase in {"setup", "deal"}:
+    if facts.recording_rule_end is not None:
+        pass
+    elif state.phase in {"setup", "deal"}:
         action = "record_dealt_card"
         player_id = next((player.player_id for player in facts.players
                           if (state.capture_mode == "retrospective"
@@ -51,7 +55,8 @@ def project_task_first_session_v1(state: SessionStateV1) -> TaskFirstSessionV1:
             action = "record_play"
     if action is not None:
         task = f"task.session.next.{action}"
-    position = state.validation.position_export.status == "available"
+    position = (facts.recording_rule_end is None
+                and state.validation.position_export.status == "available")
     historical = state.validation.historical_export.status == "available"
     blockers = () if position or historical else ("task.session.analysis_blocked",)
     return TaskFirstSessionV1(
@@ -73,7 +78,8 @@ def project_task_first_match_v1(
         raise ValueError("selected_position must be from 1 through 36.")
     selected = positions[selected_position - 1]
     next_position = next((view.match_position for view in positions
-                          if view.game_state not in {"passed_deal", "play_complete"}), None)
+                          if view.game_state not in {
+                              "passed_deal", "play_complete", "rule_ended"}), None)
     game = workspace.slots[selected_position - 1].observed_game
     completed = []
     if selected.slot_kind == "empty":

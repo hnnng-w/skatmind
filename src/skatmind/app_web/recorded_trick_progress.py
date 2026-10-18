@@ -10,6 +10,7 @@ from skatmind.observed_trace_diagnostics import (
     ObservedTraceDiagnostic,
     find_observed_trace_warning,
 )
+from skatmind.recording_rule_end import RecordingRuleEnd, derive_recording_rule_end
 from skatmind.session_projection import SessionProjectionV1
 
 
@@ -58,6 +59,7 @@ class RecordedTrickProgress:
     status: str
     tricks: tuple[RecordedTrick, ...]
     warning: ObservedTraceDiagnostic | None = None
+    rule_end: RecordingRuleEnd | None = None
 
     @property
     def completed_count(self) -> int:
@@ -104,6 +106,7 @@ def project_session_trick_progress(facts: SessionProjectionV1) -> RecordedTrickP
     players = tuple(RecordedPlayer(p.player_id, p.player_label, p.seat, index)
                     for index, p in enumerate(facts.players, 1))
     status = ("undeclared" if facts.declaration is None else "ended" if facts.game_end_reason
+              or facts.recording_rule_end
               else "complete" if facts.played_card_count == 30 else "active")
     return RecordedTrickProgress(
         players, None if facts.declaration is None else facts.declaration.game_type,
@@ -111,7 +114,8 @@ def project_session_trick_progress(facts: SessionProjectionV1) -> RecordedTrickP
         _accumulate(players, facts.declarer_player_id,
                     tuple((t.plays, t.winner_player_id, t.trick_points)
                           for t in facts.completed_tricks),
-                    () if facts.incomplete_trick is None else facts.incomplete_trick.plays))
+                    () if facts.incomplete_trick is None else facts.incomplete_trick.plays),
+        rule_end=facts.recording_rule_end)
 
 
 def project_match_trick_progress(
@@ -128,12 +132,15 @@ def project_match_trick_progress(
                                    names[p.player_id][1]) for p in game.players)
     completed = recovery_tricks(game)
     game_type = None if game.declaration is None else game.declaration.game_type
+    rule_end = derive_recording_rule_end(game.declaration, game.declarer_player_id,
+                                        tuple(t.winner_player_id for t in completed))
     return RecordedTrickProgress(
         players, game_type, game.declarer_player_id,
-        "undeclared" if game_type is None else "complete" if len(game.plays) == 30 else "active",
+        "undeclared" if game_type is None else "ended" if rule_end else
+        "complete" if len(game.plays) == 30 else "active",
         _accumulate(players, game.declarer_player_id,
                     tuple((tuple((p.player_id, p.card)
                                  for p in game.plays[(t.number - 1)*3:t.number*3]),
                            t.winner_player_id, t.points) for t in completed),
                     tuple((p.player_id, p.card) for p in game.plays[len(completed)*3:])),
-        None if game_type is None else find_observed_trace_warning(game.plays, game_type))
+        None if game_type is None else find_observed_trace_warning(game.plays, game_type), rule_end)

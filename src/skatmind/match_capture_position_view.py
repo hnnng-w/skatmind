@@ -154,6 +154,7 @@ def build_match_capture_position_view_v1(
     card_selection_scope = "unavailable"
     selectable_cards: tuple[str, ...] = ()
     evidence_summary: ObservedGameEvidenceSummaryV1 | None = None
+    rule_end = None
 
     if slot.slot_kind == "empty":
         game_state = "empty"
@@ -164,6 +165,7 @@ def build_match_capture_position_view_v1(
     else:
         assert game is not None
         trace, perspective_playable_hand = _build_trace(game)
+        rule_end = trace.recording_rule_end
         evidence_summary = build_observed_game_evidence_summary_v1(game)
         game_id = game.game_id
         declarer_player_id = game.declarer_player_id
@@ -180,6 +182,9 @@ def build_match_capture_position_view_v1(
         if game.declaration is None:
             game_state = "setup"
             blockers = ("missing_declaration",)
+        elif trace.recording_rule_end is not None:
+            game_state = "rule_ended"
+            blockers = ("rule_ended",)
         elif trace.complete_play_trace:
             game_state = "play_complete"
             blockers = ("complete_play_trace",)
@@ -224,4 +229,5 @@ def build_match_capture_position_view_v1(
         can_truncate_plays=play_count > 0,
         evidence_summary=evidence_summary,
         workspace_progress=progress,
+        recording_rule_end=rule_end,
     )

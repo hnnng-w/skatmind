@@ -109,6 +109,7 @@ def test_versions_tuples_policies_and_contract_fields_are_exact() -> None:
         "play_in_progress",
         "play_complete",
         "passed_deal",
+        "rule_ended",
     )
     assert MATCH_CAPTURE_CARD_SELECTION_SCOPES == (
         "unavailable",
@@ -120,6 +121,7 @@ def test_versions_tuples_policies_and_contract_fields_are_exact() -> None:
         "passed_deal",
         "missing_declaration",
         "complete_play_trace",
+        "rule_ended",
     )
     assert MATCH_CAPTURE_APPLICATION_POLICY == ("transport_free_workspace_observed_game_updates")
     assert MATCH_CAPTURE_GAME_ID_POLICY == "match_id_plus_zero_padded_position"
@@ -163,6 +165,7 @@ def test_versions_tuples_policies_and_contract_fields_are_exact() -> None:
         "can_truncate_plays",
         "evidence_summary",
         "workspace_progress",
+        "recording_rule_end",
     ]
     assert [field.name for field in fields(MatchCaptureApplicationResultV1)] == [
         "match_capture_application_result_version",

@@ -463,7 +463,18 @@ def _export_replayed_session_position_analysis_request_v1(
     state: SessionStateV1,
     projection: SessionProjectionV1,
     options: SessionPositionExportOptionsV1,
+    archival_checkpoint: bool = False,
 ) -> SessionRequestExportV1:
+    if not archival_checkpoint and projection.recording_rule_end is not None:
+        from skatmind.session_validation import SessionValidationDiagnosticV1
+        return SessionRequestExportV1(
+            session_id=state.session_id, source_revision=state.revision,
+            target=_POSITION_TARGET, status="unavailable", request=None,
+            diagnostics=(SessionValidationDiagnosticV1(
+                code="game_end_violation", path="/game_end_reason",
+                message="Current Position export is unavailable after the Null loss.",
+                severity="error", blocks_command=False, blocks_position_export=True,
+                blocks_historical_export=False),))
     readiness = state.validation.position_export
     blockers = tuple(
         diagnostic

@@ -468,3 +468,13 @@ own decision after the final Play, recognize its source-labelled comparison, and
 reopen/review the same saved decision. This does not request a complete UAT
 walkthrough now or claim acceptance of Issue #208's umbrella findings. Exact
 merged-commit `check` and `v1-supported-platform-matrix` remain required.
+
+## Access after a rule-ended Null game (Issue #290)
+
+[Rule-ended Null recording](null_recording_end.md) provides the same persistent
+history/recorded-decision action after the first completed declarer Trick, without
+an explicit End Command. Earlier frozen decisions remain before-Card states.
+Current analysis and post-terminal archival decisions are unavailable; retained
+archival Checkpoints are not deleted. Null whole-game rollout remains unsupported
+with the existing explicit feedback and no fallback. Opening this view runs no
+analysis and does not rewrite the source.

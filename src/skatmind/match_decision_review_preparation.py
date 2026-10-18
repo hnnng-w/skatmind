@@ -44,6 +44,7 @@ MATCH_DECISION_REVIEW_PREPARATION_STATUSES: Final[tuple[str, ...]] = (
 MATCH_DECISION_REVIEW_SKIP_REASONS: Final[tuple[str, ...]] = (
     "acting_hand_unavailable",
     "required_public_hand_unavailable",
+    "after_rule_end",
 )
 
 MATCH_DECISION_REVIEW_INFORMATION_POLICY = (
@@ -336,7 +337,10 @@ def _build_match_decision_states_from_reconstruction_v1(
             else remaining_hands.get(declarer_player_id)
         )
         skip_reason = None
-        if acting_hand is None:
+        if (trace.recording_rule_end is not None
+                and play.decision_index > trace.recording_rule_end.decisive_play_count):
+            skip_reason = "after_rule_end"
+        elif acting_hand is None:
             skip_reason = "acting_hand_unavailable"
         elif declaration is not None and declaration.ouvert and public_declarer_hand is None:
             skip_reason = "required_public_hand_unavailable"

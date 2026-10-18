@@ -80,6 +80,10 @@ def render_recorded_history(
     actions = actions or {}
     body = '<section class="recorded-history"><h3>'
     body += translated(locale, "trick_progress.title") + '</h3>'
+    if progress.rule_end is not None:
+        tail = sum(len(t.plays) for t in progress.tricks) - progress.rule_end.decisive_play_count
+        if tail:
+            body += paragraph(locale, "recording.null_end.archive", count=tail)
     for trick in progress.tricks:
         body += f'<section class="recorded-trick" data-trick-number="{trick.number}"><h4>'
         body += translated(locale, "recovery.trick", number=trick.number) + '</h4><ol>'

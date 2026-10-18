@@ -339,6 +339,8 @@ def _rollout_result(context, locale, game_label):
 
 
 def _task_heading(locale, view):
+    if view.facts.recording_rule_end is not None:
+        return translated(locale, "recording.null_end.title")
     action = view.workflow.primary_action
     set_entry = _set_entry_variant(view)
     if set_entry == "initial_hand":
@@ -369,7 +371,11 @@ def _task_heading(locale, view):
 
 def _completion_content(locale, view, progress, recorded):
     content = '<h2>' + _task_heading(locale, view) + '</h2>'
-    if view.facts.game_end_reason != "normal_completion":
+    if progress.rule_end is not None:
+        content += paragraph(locale, "recording.null_end.detail", player=player_name(
+            locale, view.facts.players, progress.rule_end.declarer_player_id),
+            trick=progress.rule_end.trick_number)
+    if view.facts.game_end_reason not in {None, "normal_completion"}:
         content += paragraph(locale, "task.value." + view.facts.game_end_reason)
     content += paragraph(locale, "trick_progress.completed", count=progress.completed_count)
     content += render_recorded_summary(progress, locale)
@@ -397,7 +403,7 @@ def render_task_first_session_v1(
         progress = project_session_trick_progress(facts)
         unplayed = project_unplayed_cards(progress, facts.declaration)
         set_entry = _set_entry_variant(view)
-        ended = facts.phase == "ended"
+        ended = facts.phase == "ended" or facts.recording_rule_end is not None
         mode = "perspective" if facts.capture_mode == "live" else "reconstruction"
         current = ""
         if not set_entry and not ended:

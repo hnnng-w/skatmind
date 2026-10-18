@@ -232,10 +232,20 @@ def test_real_corrected_match_cancel_apply_noop_rewind_hand_pass_reopen(
     (2, "none_completed"), (3, "one"), (4, "one"), (6, "many")))
 @pytest.mark.parametrize("ended", (False, True))
 def test_null_recorded_facts_not_outcome(locale, count, key, ended):
-    view = project_match_trick_progress(match_trace("CA C7 C8 SA S7 S8".split()[:count],
-        game_type="null"), 3)
+    from skatmind.match_capture_game_updates import rebuild_match_capture_game_v1
+    from skatmind.match_workspace_operations import set_match_workspace_observed_game_v1
+    from skatmind.observed_game_trace import ObservedPlayV1
+    # Archived tails remain inspectable; new normal capture stops after Trick 1.
+    workspace = match_trace(game_type="null")
+    game = rebuild_match_capture_game_v1(workspace, workspace.slots[2].observed_game,
+        plays=tuple(ObservedPlayV1(decision_index=i + 1,
+            player_id=("player-a", "player-b", "player-c")[i % 3], card=card,
+            decision_timecode=None) for i, card in enumerate("CA C7 C8 SA S7 S8".split()[:count])))
+    workspace = set_match_workspace_observed_game_v1(workspace, game,
+        expected_revision=workspace.revision).workspace
+    view = project_match_trick_progress(workspace, 3)
     if ended:
-        # Scalar status fixture: no new Null ending rule is inferred from the trace.
+        # Summary accounting also works for an independently ended partial record.
         view = replace(view, status="ended")
     rendered = render_recorded_summary(view, locale) + render_recorded_history(view, locale)
     assert text(locale, "trick_progress.null." + key,

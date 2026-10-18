@@ -21,6 +21,7 @@ from skatmind.cli import (
 )
 from skatmind.errors import CLI_EXIT_CODE_FAILURE, CLI_EXIT_CODE_SUCCESS, SkatMindError
 from skatmind.session_commands import SESSION_COMMAND_ALLOWED_PHASES
+from skatmind.session_transitions import replay_session_state_v1
 
 InputFunction = Callable[[str], str]
 OutputFunction = Callable[[str], None]
@@ -177,8 +178,11 @@ def _prompt_creation(input_fn: InputFunction) -> dict[str, object]:
 
 def _available_actions(context: session_context.SessionContext) -> tuple[str, ...]:
     state = context.state
+    rule_end = replay_session_state_v1(state).recording_rule_end
     available = []
     for action in _ACTION_ORDER:
+        if rule_end is not None and action in {"play", "event", "end", "checkpoint", "analyze"}:
+            continue
         command_kind = _ACTION_COMMAND_KIND.get(action)
         if command_kind is not None:
             if state.phase not in SESSION_COMMAND_ALLOWED_PHASES[command_kind]:
@@ -206,6 +210,10 @@ def _show_status(
     output_fn: OutputFunction,
 ) -> None:
     state = context.state
+    rule_end = replay_session_state_v1(state).recording_rule_end
+    if rule_end is not None:
+        _emit(output_fn, "Null game lost:", rule_end.declarer_player_id,
+              f"won trick {rule_end.trick_number}. Normal capture has ended.")
     _emit(
         output_fn,
         f"Session {state.session_id}: revision {state.revision},",
@@ -213,7 +221,7 @@ def _show_status(
     )
     _emit(
         output_fn,
-        f"Position {state.validation.position_export.status};",
+        f"Position {'unavailable' if rule_end else state.validation.position_export.status};",
         f"Historical {state.validation.historical_export.status};",
         f"Checkpoints {len(context.decision_checkpoints)}.",
     )

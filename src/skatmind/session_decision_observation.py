@@ -213,6 +213,12 @@ def observe_session_decision_checkpoint_v1(
             status="diverged",
         )
 
+    from skatmind.session_transitions import replay_session_state_v1
+    rule_end = replay_session_state_v1(state).recording_rule_end
+    if rule_end is not None and checkpoint.decision_index > rule_end.decisive_play_count:
+        return _build_observation(state=state, checkpoint=checkpoint, lineage=lineage,
+                                  status="ended_without_play")
+
     for record in state.command_log[checkpoint.source_revision :]:
         command = record.command
         if isinstance(command, SetSessionGameEndCommandV1):

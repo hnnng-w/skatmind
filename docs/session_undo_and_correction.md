@@ -520,3 +520,12 @@ authoritative and packaged Schemas, 85 generated outputs, and Package version
 publication. Automatic Redo, branching/merge, arbitrary Log surgery,
 GUI/platform/cloud/encryption, and unrelated pre-v1 gaps remain open. See
 [Session CLI and end-to-end capture](session_cli_and_end_to_end_capture.md).
+
+## Derived Null-end recomputation (Issue #290)
+
+Undo and accepted correction also recompute the non-persisted
+[Null recording end](null_recording_end.md). Removing its decisive completed
+declarer Trick can restore normal capture; an independently valid explicit End
+is preserved. Existing suffix validation and removal consent remain authoritative.
+Inspection replay retains older post-terminal Cards, while new normal append and
+post-terminal decision preparation are blocked.

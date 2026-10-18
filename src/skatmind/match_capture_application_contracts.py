@@ -14,6 +14,7 @@ from skatmind.match_workspace_progress import MatchWorkspaceProgressV1
 from skatmind.observed_game_evidence import ObservedGameEvidenceSummaryV1
 from skatmind.observed_game_trace import copy_observed_timecode_v1
 from skatmind.performance_rating import validate_stable_list_entry_identifier
+from skatmind.recording_rule_end import RecordingRuleEnd
 
 MATCH_CAPTURE_APPLICATION_VERSION = 1
 MATCH_CAPTURE_POSITION_VIEW_VERSION = 1
@@ -47,6 +48,7 @@ MATCH_CAPTURE_GAME_STATES: Final[tuple[str, ...]] = (
     "play_in_progress",
     "play_complete",
     "passed_deal",
+    "rule_ended",
 )
 MATCH_CAPTURE_CARD_SELECTION_SCOPES: Final[tuple[str, ...]] = (
     "unavailable",
@@ -58,6 +60,7 @@ MATCH_CAPTURE_RECORD_PLAY_BLOCKERS: Final[tuple[str, ...]] = (
     "passed_deal",
     "missing_declaration",
     "complete_play_trace",
+    "rule_ended",
 )
 
 MATCH_CAPTURE_APPLICATION_POLICY = "transport_free_workspace_observed_game_updates"
@@ -166,6 +169,7 @@ class MatchCapturePositionViewV1:
     can_truncate_plays: bool
     evidence_summary: ObservedGameEvidenceSummaryV1 | None
     workspace_progress: MatchWorkspaceProgressV1
+    recording_rule_end: RecordingRuleEnd | None
 
     def __init__(self, *_args: object, **_kwargs: object) -> None:
         raise TypeError("MatchCapturePositionViewV1 must be constructed by its focused builder.")
@@ -202,6 +206,7 @@ class MatchCapturePositionViewV1:
         can_truncate_plays: bool,
         evidence_summary: ObservedGameEvidenceSummaryV1 | None,
         workspace_progress: MatchWorkspaceProgressV1,
+        recording_rule_end: RecordingRuleEnd | None = None,
     ) -> MatchCapturePositionViewV1:
         value = object.__new__(cls)
         fields = {
@@ -234,6 +239,7 @@ class MatchCapturePositionViewV1:
             "can_truncate_plays": can_truncate_plays,
             "evidence_summary": evidence_summary,
             "workspace_progress": workspace_progress,
+            "recording_rule_end": recording_rule_end,
         }
         for field_name, field_value in fields.items():
             object.__setattr__(value, field_name, field_value)
@@ -361,6 +367,12 @@ class MatchCapturePositionViewV1:
         elif not self.can_record_play or not self.selectable_cards:
             raise ValueError("Available Card selection requires selectable Cards and next Player.")
 
+        if self.recording_rule_end is not None and (
+            type(self.recording_rule_end) is not RecordingRuleEnd
+            or self.recording_rule_end.declarer_player_id != self.declarer_player_id
+            or not 1 <= self.recording_rule_end.trick_number <= self.completed_trick_count
+        ):
+            raise ValueError("Rule end must identify one completed declarer Trick.")
         expected_state = (
             "empty"
             if self.slot_kind == "empty"
@@ -370,6 +382,8 @@ class MatchCapturePositionViewV1:
             if self.declarer_player_id is None
             else "ready_for_play"
             if self.play_count == 0
+            else "rule_ended"
+            if self.recording_rule_end is not None
             else "play_complete"
             if self.play_count == 30
             else "play_in_progress"
@@ -387,6 +401,8 @@ class MatchCapturePositionViewV1:
             if self.game_state == "setup"
             else ("complete_play_trace",)
             if self.game_state == "play_complete"
+            else ("rule_ended",)
+            if self.game_state == "rule_ended"
             else ()
         )
         if self.record_play_blockers != expected_blockers:

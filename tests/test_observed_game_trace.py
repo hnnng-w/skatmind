@@ -589,7 +589,9 @@ def test_derived_trace_summary_is_immutable_ordered_and_defensively_serialized()
         "player_play_counts",
         "complete_play_trace",
         "playable_hands",
+        "recording_rule_end",
     ]
+    assert "recording_rule_end" not in second
     assert summary.completed_trick_count == 1
     assert summary.current_trick_play_count == 1
     assert not hasattr(summary, "__dict__")

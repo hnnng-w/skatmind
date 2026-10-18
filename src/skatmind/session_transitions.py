@@ -216,6 +216,17 @@ def apply_session_command_v1(
             diagnostics=(diagnostic,),
         )
 
+    # Accepted-log replay remains compatible with older extended Null archives.
+    # Only new normal continuation crosses this guard, after revision validation.
+    if command.kind == "record_play" and projection.recording_rule_end is not None:
+        return SessionTransitionResultV1(
+            status="rejected", expected_revision=command.expected_revision,
+            previous_revision=previous_revision, current_revision=previous_revision,
+            command=command, state=state, diagnostics=(SessionValidationDiagnosticV1(
+                code="game_end_violation", path="/command/card",
+                message="Null was lost at the first completed declarer trick; capture has ended.",
+                severity="error", blocks_command=True, blocks_position_export=False,
+                blocks_historical_export=False),))
     application = apply_session_command_to_projection_v1(projection, command)
     if application.projection is None:
         return SessionTransitionResultV1(

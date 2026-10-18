@@ -543,6 +543,7 @@ def classify_session_decision_checkpoint_v1(
             state=prefix_state,
             projection=prefix_projection,
             options=options,
+            archival_checkpoint=True,
         )
     except SkatMindInvariantError:
         raise

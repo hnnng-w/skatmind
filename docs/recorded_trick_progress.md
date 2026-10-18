@@ -376,3 +376,11 @@ open and B-06 closed. Remaining knowledge-mode, declaration, Home, timezone and
 Learning findings are not resolved here. Both `check` and
 `v1-supported-platform-matrix` must pass on the exact merged commit before #227
 closure. No whole-frontend pass or release readiness is claimed.
+
+## Rule-ended Null capture (Issue #290)
+
+[Rule-ended Null recording](null_recording_end.md) supersedes the earlier statement
+that a completed declarer Trick never ends capture. The shared typed derivation
+now ends normal Session/Match capture and identifies the decisive Trick. Actual
+observed Trick/Card accounting remains separate from rule completion; archived
+tails remain inspectable and are not prepared as further legal decisions.

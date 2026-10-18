@@ -387,3 +387,12 @@ management, or automatic backup policy. Issue #158 completed Package version
 `0.14.0` and Release-documentation preparation without changing persistence
 behavior before manual maintainer publication. See
 [Session CLI and end-to-end capture](session_cli_and_end_to_end_capture.md).
+
+## Derived Null loss (Issue #290)
+
+[Rule-ended Null recording](null_recording_end.md) adds a non-persisted interpretation
+of accepted completed Tricks. Strict loading preserves the original State,
+Validation, fingerprints, Checkpoints and file bytes, including older nine-Card
+prefixes and longer archives. Capture/current-export guards consume the derived
+end separately. No duplicated terminal flag, migration Save or invented End
+Command is required. Existing atomic Save and correction consent remain unchanged.
