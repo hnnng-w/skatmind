@@ -96,8 +96,8 @@ def test_real_match_report_recovery_and_imported_corpus_survive_source_removal(
     data = build_historical_input(game_type="grand")
     plays = [play for trick in data["tricks"] for play in trick["plays"]]
     for play in plays[6:]:
-        page = follow(browser, browser.submit(operation_form(page, "append_plays"),
-                                             cards=play["card"]))
+        play_form = operation_form(page, "append_plays")
+        page = follow(browser, browser.submit(play_form, cards=play["card"]))
     workspace = localized_server.app_context.managed_stateful.active_match.workspace
     assert len(workspace.slots[2].observed_game.plays) == 30
     assert [slot.slot_kind for slot in workspace.slots[:3]] == [
@@ -113,7 +113,9 @@ def test_real_match_report_recovery_and_imported_corpus_survive_source_removal(
     exported = app.managed_home.root.parent / "independent-result.json"
     exported.write_bytes(download)
     page = browser.page("/matches/position/3")
-    play_form = operation_form(page, "append_plays")
+    # Retain the real pre-completion form for the later stale-submission check.
+    assert not any(form["values"].get("operation") == "append_plays"
+                   for form in Forms(page).forms)
     page = follow(browser, browser.submit(entry_action(page, 2, rewind=True)))
     recovery = (active.recovery.selected, active.recovery.preview)
     correction = Forms(page).find("/matches/recovery/apply")

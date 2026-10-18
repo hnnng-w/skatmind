@@ -169,5 +169,96 @@ harness setup issues (test import path, then the browser's initial German locale
 they are not counted as successful evidence. Narrow viewport evidence is not
 browser zoom, physical-device testing, or maintainer UAT.
 
+## Hosted regression correction
+
+Run [39124490526](https://github.com/hnnng-w/skatmind/actions/runs/39124490526),
+attempt 1, was the `push` of `be54aad2164f12b37672394c55bc68f340c2338f` on
+`bug/290-null-game-end`. Its exact Ubuntu job `117666723361` and Windows job
+`117666723373` both failed these three tests in the **call** phase:
+
+| Test ID | Exact failing boundary | Classification and correction |
+| --- | --- | --- |
+| `tests/test_learning_dataset_v2_cross_game_summary.py::test_complete_match_behavior_context_and_readiness_counts` | Line 515: actual skip counts contain the additional `("after_rule_end", 0)` | New-contract expectation: retain exact ordered counts, including the new zero-count category |
+| `tests/test_learning_dataset_v2_cross_game_summary.py::test_partial_summary_reports_skipped_and_unjoined_evidence` | Line 701: actual skip counts contain the additional `("after_rule_end", 0)` | Same new-contract expectation; existing counts remain 4 and 0 |
+| `tests/test_recording_deletion_lifecycle.py::test_real_match_report_recovery_and_imported_corpus_survive_source_removal` | Line 116 calls `operation_form(page, "append_plays")`; `test_match_recording_recovery_web.py:35` raises `StopIteration` | Obsolete form expectation after 30 Grand Plays: retain the actual pre-completion form for the later stale submission and explicitly assert no append form after completion |
+
+The Summary builder already includes every canonical skip reason, including
+zero counts, and its contract requires that complete ordered category set.
+`after_rule_end` therefore propagates to private Dataset-v2 readiness summaries
+even for unaffected Grand sources with no such skipped Decisions. Updating both
+exact expected lists preserves that contract. No public or persisted format is
+introduced by this correction.
+
+The lifecycle failure occurs after all 30 Grand Plays and an executed Report,
+not while constructing a Null archive. The normal-capture eligibility guard
+correctly suppresses the specialist append form on a complete Game. Capturing
+the real last offered form before completion preserves the stale-submission
+test. The existing failed/cancelled/inactive/active deletion, Report, correction,
+independent download, and imported Corpus assertions all still execute. These
+three failures require test corrections only; Product code is unchanged.
+
+### Hosted execution accounting
+
+The discovered `regression-ubuntu` artifact `12136412995` and
+`regression-windows` artifact `12136971641` each contain collection and parallel
+reports plus stage summaries. Both collected **11,058** tests. Both workers
+agreed on the **10,963** parallel test IDs; every selected test has the expected
+setup/call/teardown reports, except one Ubuntu setup skip which has no call.
+
+| Hosted environment | Parallel outcome | Parallel stage wall time |
+| --- | --- | ---: |
+| Ubuntu 24.04.5, CPython 3.13.15 | 10,958 passed, 3 failed, 2 skipped | 2704.794 s |
+| Windows Server 2025, CPython 3.13.15 | 10,960 passed, 3 failed, 0 skipped | 2936.259 s |
+
+The two Ubuntu skips are the Windows-junction cases
+`test_learning_direct_entry.py::test_actual_file_boundaries_fail_before_import[junction]`
+(call) and `test_recording_deletion_files.py::test_real_junction_root_is_not_followed`
+(setup). No setup, teardown, collection, worker, or accounting failure is reported.
+Both installations use editable development dependencies, pytest 9.1.1,
+pytest-xdist 3.8.0, jsonschema 4.26.0, and two `--dist=loadfile` workers with
+`--max-worker-restart=0`. Both jobs run the validation command in Bash, including
+the Windows Server job.
+
+The runner returns immediately on parallel failure. Thus the exclusive phase
+and final accounting **did not run** on either OS. The exact unexecuted group is
+95 tests: `test_early_rejection_observer.py` (6),
+`test_local_learning_corpus_web.py` (27),
+`test_match_analysis_action_placement.py` (25), and
+`test_unified_rejection_transport.py` (37). Their absence is not a passing or
+failing test result. Final `check` job `117676965353` rejects
+`gate_prerequisites_invalid`: regression is the sole failed prerequisite; the
+other prerequisite groups succeeded. The separate platform-matrix gate passed.
+
+### Reproduction and limited prior coverage
+
+On the unchanged published commit, explicitly running the three IDs above with
+`python -m pytest -o addopts= -p no:cacheprovider --color=no -vv` reproduced all
+three identical failures (8.34 s) on CPython 3.13.7 / Windows 11. The same command
+passes after correction (3 passed, 9.03 s). The complete two failing modules pass
+with the hosted worker options (36 passed, 34.22 s). The related Dataset,
+deletion/navigation/recovery, Null domain/HTTP, archival party presentation,
+Decision preparation, Assistant, strict rename, and executable packaging modules
+pass (273 passed, 174.12 s). All these local selections have zero skips.
+The related exclusive Match analysis-action module also passed unchanged
+(25 passed, 16.86 s); this is local evidence, not hosted exclusive coverage.
+
+The original successful local evidence remains valid within its selection:
+`opencode/null-290-focused-final.xml` records 2,014 passing cases across 82
+modules, zero failures/errors/skips. Neither hosted-failing module appears in
+that executed-case inventory. Importing their dependencies or fixture helpers
+does not execute these tests. The published handoff records the count, reported
+747.61-second pytest duration, and explicit Quick command, but not the full
+pytest argument list; the retained XML's suite time is 747.511 s. No unretained
+command, ordering, or worker configuration is inferred. This was a selection
+gap, not evidence of platform-only behavior or a transient race.
+
+Diagnostic downloads and local logs are under the disposable
+`opencode/null-290-hosted-39124490526` directory. Rename locators, hashes and
+classifications need no changes. The executable packaging registry assertion
+is run as a test, not merely imported. This test/documentation-only correction
+does not require repeating Edge, an installation matrix, or maintainer UAT.
+Final explicit Quick and exact working-tree status are reported in the handoff;
+corrected hosted CI and the installed Null-end retest remain pending.
+
 Issue #290 and #208 remain open pending their respective acceptance. #289 stays
 closed. All implementation changes are left uncommitted for the maintainer.

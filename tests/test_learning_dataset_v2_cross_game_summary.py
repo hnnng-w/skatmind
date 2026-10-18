@@ -515,6 +515,7 @@ def test_complete_match_behavior_context_and_readiness_counts(
     assert [(item.category, item.count) for item in readiness.skipped_reason_counts] == [
         ("acting_hand_unavailable", 0),
         ("required_public_hand_unavailable", 0),
+        ("after_rule_end", 0),
     ]
     assert [
         (item.category, item.count) for item in readiness.player_context_unavailable_reason_counts
@@ -703,6 +704,7 @@ def test_partial_summary_reports_skipped_and_unjoined_evidence() -> None:
     ] == [
         ("acting_hand_unavailable", 4),
         ("required_public_hand_unavailable", 0),
+        ("after_rule_end", 0),
     ]
 
 
