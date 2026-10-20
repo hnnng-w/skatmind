@@ -29,6 +29,7 @@ from .json_transfer import FRONTEND_JSON_MAX_FILE_BYTES
 from .learning_direct_entry import LEARNING_ADD_ROUTE, LEARNING_ENTRY_BODY_LIMIT
 from .local_time_forms import LOCAL_TIME_VISIBLE_FIELDS
 from .managed_item_contracts import MANAGED_ITEM_MAX_IMPORT_BYTES
+from .match_declaration_drafts import DRAFT_FIELDS, EVIDENCE_FIELDS, MATCH_RECORDING_INPUT_ROUTE
 from .match_recovery import RECOVERY_ROUTES
 from .position_form import (
     POSITION_ANALYSIS_METHODS_V1,
@@ -1499,6 +1500,19 @@ for route in DEBRIEF_POST_ROUTES:
         "learning.debrief." + route.rsplit("/", 1)[1], route,
         page="/learning/current", active="learning", success="contextual",
         body_limit=8192, value_free=True))
+_FORMS.append(_definition(
+    "match.recording_input", MATCH_RECORDING_INPUT_ROUTE,
+    ("declaration_selection", "recording_action", *DRAFT_FIELDS, *EVIDENCE_FIELDS),
+    page="/matches/current", active="matches", body_limit=8192, success="contextual",
+    discriminator=("declaration_form", "match-declaration"),
+    control_overrides={"declarer_player_id": "select",
+                       **{name: "card" for name in EVIDENCE_FIELDS}},
+    cardinality_overrides={name: "repeated" for name in EVIDENCE_FIELDS},
+    choice_overrides={name: ("true",) for name in (
+        "hand_game", "ouvert", "schneider_announced", "schwarz_announced")},
+    label_overrides={"declarer_player_id": "validation.field.declaration_declarer",
+        **{name: "validation.field.cards" for name in EVIDENCE_FIELDS}},
+))
 FRONTEND_FORM_REGISTRY = tuple(_FORMS)
 UNIFIED_FRONTEND_POST_ROUTES = tuple(
     dict.fromkeys(
@@ -1506,6 +1520,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             *GUIDED_ACTION_ROUTE_PATHS,
             *FRONTEND_PROFILE_ACTION_ROUTES,
             *CARD_ENTRY_ROUTES,
+            MATCH_RECORDING_INPUT_ROUTE,
             *CORRECTION_ROUTES,
             OPEN_RECORDING_ROUTE,
             *DELETION_POST_ROUTES,

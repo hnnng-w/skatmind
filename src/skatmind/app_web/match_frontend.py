@@ -89,6 +89,7 @@ class UnifiedMatchContextV1:
     review_selection_native_ready: bool = False
     rollout_attempt: object | None = field(default=None, repr=False)
     rollout_notice: tuple[MatchAnalysisReportV1, int] | None = field(default=None, repr=False)
+    declaration_draft_return: object | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.category_root, Path) or not isinstance(self.path, Path):

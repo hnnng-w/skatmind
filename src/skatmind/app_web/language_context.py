@@ -35,6 +35,9 @@ class LanguagePageV1:
     manifest: LanguagePageManifestV1
     created_at: float
     feedback: FeedbackPresentation | None = None
+    native_match_draft: LanguagePageValuesV1 | None = field(default=None, repr=False)
+    native_match_draft_deadline: float | None = None
+    native_match_draft_consumed: bool = False
 
 
 @dataclass(slots=True)
@@ -51,7 +54,8 @@ class LanguageContextV1:
     serial: int = 0
 
     def retain(self, source: LanguageSourceV1, manifest: LanguagePageManifestV1,
-               feedback: FeedbackPresentation | None = None) -> str:
+               feedback: FeedbackPresentation | None = None, *, native_match_draft=None,
+               native_match_draft_deadline=None) -> str:
         now = time.monotonic()
         self.pages = {token: page for token, page in self.pages.items()
                       if now - page.created_at < 1800}
@@ -59,7 +63,8 @@ class LanguageContextV1:
             self.pages.pop(next(iter(self.pages)))
         self.serial += 1
         token = hmac.new(self.key, str(self.serial).encode(), hashlib.sha256).hexdigest()
-        self.pages[token] = LanguagePageV1(source, manifest, now, feedback)
+        self.pages[token] = LanguagePageV1(source, manifest, now, feedback,
+            native_match_draft, native_match_draft_deadline)
         return token
 
     def resolve(self, token: str, route: str) -> LanguagePageV1:
@@ -80,7 +85,15 @@ class LanguageContextV1:
         from a later GET or another page's binding. Caller owns the app lock.
         """
         page = self.resolve(token, route)
-        self.pages[token] = replace(page, feedback=None)
+        if page.native_match_draft_consumed or (
+                page.native_match_draft_deadline is not None
+                and time.monotonic() >= page.native_match_draft_deadline):
+            from .match_declaration_drafts import DeclarationDraftConflict
+
+            raise DeclarationDraftConflict()
+        self.pages[token] = replace(page, feedback=None, native_match_draft=None,
+            native_match_draft_deadline=None,
+            native_match_draft_consumed=page.native_match_draft is not None)
         return page
 
 

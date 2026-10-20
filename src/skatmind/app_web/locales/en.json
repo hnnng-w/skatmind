@@ -1835,6 +1835,7 @@
   "validation.declaration.count_mismatch": "The supplied count contradicts exact known ownership. Check the count or leave it blank; no declaration was saved.",
   "validation.declaration.count_unverifiable": "This count cannot be verified from the permitted evidence. Live defenders cannot supply concrete Matadors. Leave the optional count blank.",
   "validation.declaration.declarer": "Select a named declarer before saving the declaration.",
+  "validation.declaration.draft_conflict": "The declaration draft could not be restored because this recording changed or the return expired. Check the current saved facts before entering it again.",
   "validation.declaration.duplicate": "This field was sent more than once. Use each declaration control only once.",
   "validation.declaration.fields": "The declaration form is incomplete or has unsupported fields. Use the current controls and submit each field only once.",
   "validation.declaration.file_changed": "The saved recording changed or could not be verified. No declaration was saved. Use the explicit Reload control before continuing.",

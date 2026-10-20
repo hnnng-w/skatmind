@@ -13,6 +13,7 @@ from .form_registry import FrontendFormDefinitionV1
 from .frontend_profile_operations import FrontendProfilePersistenceConflictError
 from .local_time_conversion import LocalTimeError
 from .local_time_http import LocalTimeConflict
+from .match_declaration_drafts import DeclarationDraftConflict
 from .match_recovery import MatchRecoveryConflict
 from .player_seat_setup import SeatSetupError
 from .profile_driven_creation import ProfileDrivenCreationFieldError
@@ -104,6 +105,8 @@ def map_frontend_exception_v1(
     *,
     status: int,
 ) -> tuple[FrontendValidationIssueV1, ...]:
+    if isinstance(error, DeclarationDraftConflict):
+        return (_issue(None, "validation.declaration.draft_conflict"),)
     if isinstance(error, LocalTimeError):
         return (_issue(_known_field(definition, error.field_key),
                        "validation.local_time." + error.reason),)

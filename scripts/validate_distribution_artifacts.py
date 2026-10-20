@@ -1183,8 +1183,16 @@ assert FRONTEND_TRANSLATION_CATALOG_VERSION == 1
 assert LOCAL_FRONTEND_PROFILE_VERSION == 1
 assert FRONTEND_INFORMATION_ARCHITECTURE_VERSION == 1
 assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-assert len(UNIFIED_FRONTEND_POST_ROUTES) == 72
-assert len(FRONTEND_FORM_REGISTRY) == 124
+assert len(UNIFIED_FRONTEND_POST_ROUTES) == 73
+assert len(FRONTEND_FORM_REGISTRY) == 125
+recording_input, = (form for form in FRONTEND_FORM_REGISTRY
+                   if form.form_key == "match.recording_input")
+assert recording_input.action_route == "/matches/recording-input"
+assert recording_input.body_limit == 8192
+assert {field.field_key for field in recording_input.safe_fields} == {
+    "declaration_selection", "recording_action", "declarer_player_id", "game_type", "bid_value",
+    "hand_game", "ouvert", "schneider_announced", "schwarz_announced", "matadors",
+    "evidence_perspective_hand", "evidence_original_skat", "evidence_discarded_cards"}
 rollout, = (form for form in FRONTEND_FORM_REGISTRY
             if form.form_key == "session.review_whole_game")
 assert rollout.action_route == "/sessions/review-whole-game"

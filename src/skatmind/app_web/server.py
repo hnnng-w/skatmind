@@ -176,6 +176,16 @@ from .match_decision_selection import (
     require_bound_match_decision,
     select_match_decision,
 )
+from .match_declaration_drafts import (
+    MATCH_RECORDING_INPUT_ROUTE,
+    DeclarationDraftConflict,
+    assemble_recording_input,
+    bridge_independent_evidence_feedback,
+    continue_native_match_draft,
+    dispatch_recording_input,
+    distribute_recording_input,
+    take_recording_draft,
+)
 from .match_frontend import (
     apply_unified_match_operation_v1,
     build_unified_match_export_download_v1,
@@ -401,6 +411,7 @@ _SESSION_DOWNLOAD_ROUTES = {
     "/sessions/downloads/rollout-result.json",
 }
 _STATEFUL_POST_ROUTES = {
+    MATCH_RECORDING_INPUT_ROUTE,
     *DEBRIEF_POST_ROUTES,
     *CORRECTION_ROUTES,
     *DELETION_POST_ROUTES,
@@ -655,18 +666,41 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 if pending is not None:
                     page, overlay = pending
                     validate_language_page_v1(self.server.app_context, page)
+                    if (page.native_match_draft_deadline is not None
+                            and monotonic() >= page.native_match_draft_deadline):
+                        self._declaration_draft_conflict_page(source.route)
+                        return
                     if overlay is not None:
                         if manifest != page.manifest:
                             raise LanguageContextConflict
                         content = apply_language_page_values_v1(content, overlay)
             except LanguageContextConflict:
                 self._rendered_language_source = None
+                if (getattr(self, "_native_declaration_values", None) is not None
+                        or pending is not None and pending[0].native_match_draft is not None):
+                    self._declaration_draft_conflict_page(source.route)
+                    return
                 self._language_conflict_page(source.route)
                 return
             content = deliver_operation_feedback(self, content, status=status)
+            native_draft = None
+            native_deadline = getattr(self, "_native_draft_deadline", None)
+            values = getattr(self, "_native_declaration_values", None)
+            if values is not None:
+                from .language_form_preservation import LanguagePageValuesV1
+
+                target = next(form for form in manifest.forms
+                    if any(field.field_key == "evidence_original_skat" for field in form.fields))
+                native_draft = LanguagePageValuesV1(((target.identity, values),), tuple(
+                    bool(re.search(r'\sopen(?:[\s=>])', tag))
+                    for tag in re.findall(r'<details\b[^>]*>', content)))
+            elif pending is not None:
+                native_draft = continue_native_match_draft(*pending)
+                native_deadline = pending[0].native_match_draft_deadline
             with self.server.app_context.lock:
                 token = self.server.app_context.language_context.retain(source, manifest,
-                    getattr(self, "_visible_operation_feedback", None))
+                    getattr(self, "_visible_operation_feedback", None),
+                    native_match_draft=native_draft, native_match_draft_deadline=native_deadline)
             content = content.replace(
                 '<span class="language-buttons">',
                 f'<input type="hidden" name="_frontend_language_context" value="{token}">'
@@ -675,6 +709,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 view = None if pending is None or pending[1] is None else pending[1].view
                 content = render_language_return_v1(content,
                     token=getattr(self, "_language_return_token", None), view=view)
+        if content_type == "text/html; charset=utf-8":
+            content = distribute_recording_input(content)
         self._send_bytes(
             status,
             content.encode("utf-8"),
@@ -750,6 +786,11 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             self._send_authorization_failure()
             return False
         language_return = re.fullmatch(r"_language_return=([0-9a-f]{64})", query)
+        declaration_return = re.fullmatch(r"_declaration_return=([0-9a-f]{64})", query)
+        if (declaration_return is not None and self._cookie_is_valid()
+                and _MATCH_POSITION_PATTERN.fullmatch(path)):
+            self._declaration_return_token = declaration_return[1]
+            return True
         if (language_return is not None and self._cookie_is_valid()
                 and is_safe_frontend_return_path_v1(path)):
             # A server-issued single-use delivery address, not a new return route.
@@ -1008,6 +1049,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             if feedback_family is not None
             else ("local_settings", "profile")
         )
+        rendered = assemble_recording_input(rendered)
         rendered = self._apply_retained_feedback(
             rendered,
             families=families,
@@ -1023,6 +1065,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             rendered,
             content_type="text/html; charset=utf-8",
         )
+
+    def _declaration_draft_conflict_page(self, route: str) -> None:
+        self._rendered_language_source = None
+        self._send_text(HTTPStatus.CONFLICT, render_app_error_page_v1(
+            self.server.app_context.browser_state, title_key="error.conflict.title",
+            message_key="validation.declaration.draft_conflict", frontend=self._frontend_state(),
+            return_to=route), content_type="text/html; charset=utf-8")
 
     def _language_conflict_page(self, route: str) -> None:
         self._rendered_language_source = None
@@ -1296,6 +1345,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             if state is None:
                 continue
             definition = get_frontend_form_by_key_v1(state.form_key)
+            definition, state = bridge_independent_evidence_feedback(
+                active_identity, definition, state)
             card_details = None
             if definition.action_route in {"/sessions/cards", "/sessions/play"}:
                 from .card_entry_http import resolve_session_card_feedback
@@ -1674,6 +1725,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                         and language_values.view.focus != values.get("language")):
                     raise ValueError("Language view must match the intended language.")
             if language_page is not None:
+                if language_values is None and language_page.native_match_draft is not None:
+                    if monotonic() >= language_page.native_match_draft_deadline:
+                        raise DeclarationDraftConflict()
+                    language_values = language_page.native_match_draft
                 language_page = replace(language_page, feedback=continue_operation_feedback(
                     language_page.feedback,
                     None if language_values is None else language_values.feedback_remaining_ms))
@@ -2157,6 +2212,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                              for operation in MATCH_CARD_OPERATIONS}
             state["declaration_bindings"] = {marker: declaration_binding(active, marker)
                 for marker in ("match-declaration", "match-clear")}
+            draft = None
+            draft_conflict = False
+            if not review:
+                try:
+                    draft = take_recording_draft(self, active)
+                except DeclarationDraftConflict:
+                    draft_conflict = True
+                    status = HTTPStatus.CONFLICT
             state["local_time_context"] = local_time_context(
                 self.server.app_context, active, "match-metadata")
             result = active.last_result
@@ -2240,6 +2303,17 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             recovery=recovery,
             card_bindings=card_bindings,
         ))
+        if draft is not None:
+            self._native_declaration_values = draft
+            from .validation_rendering import _FORM_BLOCK, _replace_safe_values
+
+            body = _FORM_BLOCK.sub(lambda match: _replace_safe_values(match[0], draft)
+                if 'id="match-recording-input"' in match[1] else match[0], body)
+        if draft_conflict:
+            body = body.replace('<!-- operation-feedback -->', '<p role="alert">'
+                + escape(translate_frontend_message_v1(
+                    locale, "validation.declaration.draft_conflict"))
+                + '</p><!-- operation-feedback -->', 1)
         if notice is not None:
             key = ("task.operation.conflict" if notice_kind in {"warning", "error"}
                    else "task.operation.reloaded" if result is not None
@@ -3288,6 +3362,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         body: bytes,
         content_type: str,
     ) -> None:
+        if path == MATCH_RECORDING_INPUT_ROUTE:
+            dispatch_recording_input(self, self._urlencoded_form(body, content_type))
+            return
         if path == LEARNING_ADD_ROUTE:
             dispatch_learning_direct_entry(self, self._text_form(body, content_type))
             return
@@ -3382,6 +3459,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             raise RuntimeError("Stateful POST route dispatch is incomplete.")
 
     def do_GET(self) -> None:
+        self._declaration_return_token = None
+        self._declaration_draft_return = None
+        self._native_declaration_values = None
+        self._native_draft_deadline = None
         self._request_frontend = None
         self._operation_feedback_delivery = None
         self._visible_operation_feedback = None
@@ -3470,6 +3551,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             self._send_common_error(HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def do_POST(self) -> None:
+        self._declaration_return_token = None
+        self._declaration_draft_return = None
+        self._native_declaration_values = None
+        self._native_draft_deadline = None
         self._request_frontend = None
         self._rollout_execution_started = False
         self._operation_feedback_delivery = None
@@ -3517,6 +3602,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     max_bytes = LEARNING_ENTRY_BODY_LIMIT
                 elif parsed.path in CORRECTION_ROUTES:
                     max_bytes = CORRECTION_BODY_LIMIT
+                elif parsed.path == MATCH_RECORDING_INPUT_ROUTE:
+                    max_bytes = get_frontend_form_by_key_v1("match.recording_input").body_limit
                 elif parsed.path in {"/sessions/import", "/matches/import"}:
                     max_bytes = _MANAGED_IMPORT_MAX_REQUEST_BYTES
                 elif parsed.path in CARD_ENTRY_ROUTES:

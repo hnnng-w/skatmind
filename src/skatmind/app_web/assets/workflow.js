@@ -53,7 +53,7 @@ function captureLanguageView(focus) {
 
 // Presentation-only count; native controls and the explicit submit work without this.
 function updateCardSelection(fieldset) {
-  const cards = Array.from(fieldset.querySelectorAll('input[name="cards"]:checked'),
+  const cards = Array.from(fieldset.querySelectorAll('input[type="checkbox"]:checked'),
     input => input.value);
   const summary = fieldset.querySelector(".compact-selection");
   if (!summary) return;

@@ -36,6 +36,24 @@ class Forms(HTMLParser):
         self.current = None
         self.select = None
         self.feed(html)
+        if 'id="match-recording-input"' in html:
+            from test_match_declaration_drafts import NativePage
+
+            native = NativePage(html)
+            actions = [c["value"] for c in native.controls
+                       if c.get("name") == "recording_action"]
+            actions.sort(key=lambda action: action != "set_declaration")
+            # Submitter-specific views of the actual common owner. Every value
+            # comes from successful emitted controls, including external fields.
+            views = []
+            for action in actions:
+                route, values = native.submission(action)
+                views.append({"action": route, "values": values,
+                    "card_field": None if action == "set_declaration" else
+                    "evidence_" + action.rsplit("_", 1)[0]})
+            index = next(i for i, form in enumerate(self.forms)
+                         if form["action"] == "/matches/recording-input")
+            self.forms[index:index + 1] = views
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
@@ -101,6 +119,8 @@ class Browser:
         return content.decode()
 
     def submit(self, form, **overrides):
+        if form.get("card_field") and "cards" in overrides:
+            overrides[form["card_field"]] = overrides.pop("cards")
         return self.request("POST", form["action"], {**form["values"], **overrides})
 
     def command(self, kind, **values):

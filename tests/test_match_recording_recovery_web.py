@@ -32,6 +32,17 @@ def follow(browser, response):
 
 
 def operation_form(page, operation):
+    if operation in {"set_declaration", "set_perspective_hand",
+                     "set_original_skat", "set_discarded_cards"}:
+        action = (operation if operation == "set_declaration"
+                  else operation.removeprefix("set_") + "_selected")
+        selected = next((form for form in Forms(page).forms
+                         if form["values"].get("recording_action") == action), None)
+        if selected is not None:
+            return selected
+        if operation == "set_discarded_cards":
+            return next(form for form in Forms(page).forms
+                        if form["values"].get("recording_action") == "discarded_cards_empty")
     return next(form for form in Forms(page).forms
                 if form["values"].get("operation") == operation)
 

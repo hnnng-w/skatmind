@@ -11,6 +11,7 @@ from .form_registry import (
     FrontendFormFieldV1,
     get_frontend_form_by_key_v1,
 )
+from .match_declaration_drafts import EVIDENCE_FIELDS
 from .translation_catalog import translate_frontend_message_v1
 from .validation_contracts import FrontendSubmittedFormStateV1
 
@@ -150,6 +151,9 @@ def _open_field_details(block: str, field: str) -> str:
 
 
 def _insert_field_messages(block: str, field: str, messages: str) -> str:
+    if field in EVIDENCE_FIELDS:
+        return re.sub(r'<fieldset\b[^>]*>.*?</fieldset>', lambda match:
+            match[0] + messages if f'name="{field}"' in match[0] else match[0], block, flags=re.S)
     boundary = f'<!-- validation-messages:{field} -->'
     if boundary in block:
         return block.replace(boundary, messages + boundary, 1)
@@ -175,6 +179,16 @@ def _replace_values(block: str, state: FrontendSubmittedFormStateV1) -> str:
 
 
 def _replace_safe_values(block: str, values_state: FormValuesV1) -> str:
+    for name in EVIDENCE_FIELDS:
+        if values_state.all(name):
+            def replace_evidence(match, name=name):
+                if f'name="{name}"' not in match[0]:
+                    return match[0]
+                values = FormValuesV1((FormValueV1(field="cards", values=values_state.all(name)),))
+                return _replace_safe_values(
+                    match[0].replace(f'name="{name}"', 'name="cards"'), values).replace(
+                        'name="cards"', f'name="{name}"')
+            block = re.sub(r'<fieldset\b[^>]*>.*?</fieldset>', replace_evidence, block, flags=re.S)
     for entry in values_state.entries:
         field = re.escape(entry.field)
         values = entry.values
@@ -280,6 +294,17 @@ def _add_control_accessibility(
     described_by: str,
     control_id: str,
 ) -> tuple[str, str | None]:
+    if field in EVIDENCE_FIELDS:
+        def mark(match):
+            if f'name="{field}"' not in match[0]:
+                return match[0]
+            opening, rest = match[0].split('>', 1)
+            opening = _set_attribute(opening + '>', "aria-invalid", "true")
+            opening = _set_attribute(opening, "tabindex", "-1")
+            opening = _set_attribute(opening, "aria-describedby", described_by)
+            return _set_attribute(opening, "id", control_id) + rest
+        marked = re.sub(r'<fieldset\b[^>]*>.*?</fieldset>', mark, block, flags=re.S)
+        return marked, control_id if marked != block else None
     field_pattern = re.escape(field)
     patterns = (
         re.compile(rf'<input\b(?=[^>]*\bname="{field_pattern}")[^>]*>', re.IGNORECASE),
@@ -340,7 +365,10 @@ def _render_summary(
         if state.status == "conflict"
         else "validation.summary.heading"
     )
-    guidance_key = "validation.match_evidence.no_save" if (
+    shared_action = state.safe_visible_values.singular("recording_action")
+    shared_evidence = (state.form_key == "match.recording_input"
+                       and shared_action in MATCH_EVIDENCE_FORMS)
+    guidance_key = "validation.match_evidence.no_save" if shared_evidence or (
         state.originating_route == "/matches/cards" and not state.form_key.endswith("append_plays")
     ) else "validation.session_card.no_save" if session_card else (
         "validation.summary.conflict_guidance"
@@ -389,7 +417,10 @@ def _render_summary(
     )
     locale_attribute = escape(locale, quote=True)
     evidence_action = ""
-    if state.form_key.startswith("match.evidence.") and not state.form_key.endswith("_selected"):
+    if shared_evidence and not shared_action.endswith("_selected"):
+        evidence_action = '<p><strong>' + escape(translate_frontend_message_v1(
+            locale, "compact.evidence." + shared_action)) + '</strong></p>'
+    elif state.form_key.startswith("match.evidence.") and not state.form_key.endswith("_selected"):
         evidence_action = '<p><strong>' + escape(translate_frontend_message_v1(
             locale, "compact.evidence." + state.form_key.removeprefix("match.evidence.")))
         evidence_action += '</strong></p>'
@@ -528,7 +559,8 @@ def apply_validation_feedback_to_html_v1(
     # today's actor merely because its old form happened to have the same ordinal.
     correction_entry = definition.form_key.startswith("session.correction.")
     source_bound = card_entry or declaration_entry or time_entry or correction_entry
-    changed_evidence_source = (definition.action_route == "/matches/cards" and any(
+    changed_evidence_source = (definition.action_route in {
+        "/matches/cards", "/matches/recording-input"} and any(
         issue.message_key == "validation.card_entry.file_changed"
         for issue in state.validation_issues))
     unresolved_legacy = (definition.form_key.startswith("match.cards.")
@@ -626,7 +658,11 @@ def apply_validation_feedback_to_html_v1(
             ),
         )
     form_start, form_end = bounds
-    html = _open_containing_details(html, form_start, form_end)
+    shared_action = state.safe_visible_values.singular("recording_action")
+    shared_evidence = (definition.form_key == "match.recording_input"
+                       and shared_action in MATCH_EVIDENCE_FORMS)
+    if not shared_evidence:
+        html = _open_containing_details(html, form_start, form_end)
     bounds = _find_form_bounds(html, definition, form_instance, form_identity)
     if bounds is None:
         return html
@@ -726,5 +762,10 @@ def apply_validation_feedback_to_html_v1(
         evidence_anchor=evidence_anchor,
     )
     form_anchor = f'<span class="validation-anchor" id="{form_anchor_id}"></span>'
+    if shared_evidence:
+        marker = '<!-- match-input:' + shared_action + ':start -->'
+        if marker in block:
+            block = block.replace(marker, marker + summary + form_anchor, 1)
+            return html[:form_start] + block + html[form_end:]
     block = form_anchor + block
     return html[:form_start] + summary + block + html[form_end:]

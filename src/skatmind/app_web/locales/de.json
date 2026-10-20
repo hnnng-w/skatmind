@@ -1835,6 +1835,7 @@
   "validation.declaration.count_mismatch": "Die eingegebene Zahl widerspricht der exakt bekannten Kartenzugehörigkeit. Zahl prüfen oder leer lassen; keine Spielansage wurde gespeichert.",
   "validation.declaration.count_unverifiable": "Diese Zahl ist anhand der zulässigen Informationen nicht überprüfbar. Live-Gegenspieler dürfen keine konkrete Spitzenzahl angeben. Die optionale Zahl leer lassen.",
   "validation.declaration.declarer": "Vor dem Speichern einen namentlich aufgeführten Alleinspieler auswählen.",
+  "validation.declaration.draft_conflict": "Der Entwurf der Spielansage konnte nicht wiederhergestellt werden, weil sich die Aufnahme geändert hat oder die Rückkehr abgelaufen ist. Vor der erneuten Eingabe die aktuell gespeicherten Angaben prüfen.",
   "validation.declaration.duplicate": "Dieses Feld wurde mehrfach gesendet. Jedes Ansagefeld nur einmal verwenden.",
   "validation.declaration.fields": "Das Ansageformular ist unvollständig oder enthält nicht unterstützte Felder. Die aktuellen Felder verwenden und jedes Feld nur einmal senden.",
   "validation.declaration.file_changed": "Die gespeicherte Aufnahme wurde geändert oder konnte nicht überprüft werden. Keine Spielansage wurde gespeichert. Vor dem Fortfahren ausdrücklich neu laden.",

@@ -11,8 +11,10 @@ from test_recorded_decision_context import MATCH_HAND
 from test_recorded_decision_context_web import record_context_match
 from test_session_recorded_review_web import Browser, Forms
 
+from skatmind.app_web.card_entry_http import match_card_binding
 from skatmind.app_web.form_registry import FRONTEND_FORM_REGISTRY, resolve_frontend_form_v1
 from skatmind.app_web.language_form_preservation import instrument_language_forms_v1
+from skatmind.app_web.match_declaration_drafts import assemble_recording_input
 from skatmind.match_capture_application import set_match_capture_original_skat_v1
 from skatmind.match_workspace_contracts import _build_match_workspace_v1
 from skatmind.match_workspace_persistence import (
@@ -39,8 +41,20 @@ def localized_server(tmp_path):
 
 def evidence_form(page, marker):
     return next(form for form in Forms(page).forms
-                if form["action"] == "/matches/cards"
-                and form["values"].get("card_evidence_form") == marker)
+                if form["values"].get("recording_action") == marker)
+
+
+def independent_form(browser, operation, marker):
+    """Explicit compatibility client for the unchanged independent Card route."""
+    active = browser.server.app_context.managed_stateful.active_match
+    return {"action": "/matches/cards", "values": {
+        "managed_handle": active.handle, "operation": operation,
+        "card_selection": match_card_binding(active, operation), "card_evidence_form": marker}}
+
+
+def shared_block(page):
+    return next(block for block in re.findall(r'<form\b.*?</form>', page, re.S)
+                if 'id="match-recording-input"' in block)
 
 
 def test_emitted_direct_save_has_no_mode_prerequisite(localized_server):
@@ -48,10 +62,11 @@ def test_emitted_direct_save_has_no_mode_prerequisite(localized_server):
     page = record_context_match(browser, with_hand=False)
     form = operation_form(page, "set_perspective_hand")
     assert "card_evidence_mode" not in form["values"]
-    assert form["values"]["card_evidence_form"] == "perspective_hand_selected"
+    assert form["values"]["recording_action"] == "perspective_hand_selected"
     assert set(form["values"]) == {
-        "managed_handle", "card_selection", "operation", "card_evidence_form",
-        "_frontend_form_instance"}
+        "managed_handle", "operation", "recording_action", "declaration_selection",
+        "declaration_form", "match_position", "expected_revision", "declarer_player_id",
+        "game_type", "bid_value", "matadors", "_frontend_form_instance"}
     active = localized_server.app_context.managed_stateful.active_match
     before = active.workspace.revision
     follow(browser, browser.submit(form, cards=MATCH_HAND))
@@ -61,9 +76,10 @@ def test_emitted_direct_save_has_no_mode_prerequisite(localized_server):
 
 def test_legacy_selected_unknown_deliberately_disregards_valid_cards(localized_server):
     browser = Browser(localized_server)
-    page = record_context_match(browser, with_hand=False)
+    record_context_match(browser, with_hand=False)
     # Explicit legacy transport fixture, not a helper that repairs emitted fields.
-    emitted = operation_form(page, "set_perspective_hand")["values"]
+    emitted = independent_form(
+        browser, "set_perspective_hand", "perspective_hand_selected")["values"]
     legacy = {key: emitted[key] for key in ("managed_handle", "card_selection", "operation")}
     legacy.update(card_evidence_mode="unknown", cards=list(MATCH_HAND))
     active = localized_server.app_context.managed_stateful.active_match
@@ -86,8 +102,8 @@ def started(browser, context="undeclared", locale="en"):
 
 
 def block_for(page, marker):
-    return next(block for block in re.findall(r'<form\b.*?</form>', page, re.S)
-                if f'name="card_evidence_form" value="{marker}"' in block)
+    return re.search(r'<!-- match-input:' + marker + r':start -->(.*?)<!-- match-input:'
+                     + marker + r':end -->', page, re.S)[1]
 
 
 @pytest.mark.parametrize("context", ("undeclared", "hand", "non_hand"))
@@ -102,8 +118,8 @@ def test_native_shapes_eligibility_and_independent_literal_captions(
 ):
     browser = Browser(localized_server)
     page = started(browser, context, locale)
-    markers = {form["values"]["card_evidence_form"] for form in Forms(page).forms
-               if "card_evidence_form" in form["values"]}
+    markers = {form["values"]["recording_action"] for form in Forms(page).forms
+               if "recording_action" in form["values"]} - {"set_declaration"}
     expected = {"perspective_hand_selected", "original_skat_selected"}
     if context != "hand":
         expected.add("discarded_cards_selected")
@@ -113,8 +129,8 @@ def test_native_shapes_eligibility_and_independent_literal_captions(
     assert 'name="card_evidence_mode"' not in page
     for marker in expected:
         form = evidence_form(page, marker)
-        assert set(form["values"]) == {"managed_handle", "operation", "card_selection",
-                                        "card_evidence_form", "_frontend_form_instance"}
+        assert form["action"] == "/matches/recording-input"
+        assert form["values"]["recording_action"] == marker
         block = block_for(page, marker)
         assert block.count('<button') == 1
         assert ('<fieldset' in block) == marker.endswith("_selected")
@@ -123,10 +139,11 @@ def test_native_shapes_eligibility_and_independent_literal_captions(
         else:
             assert empty in block
             assert not re.search(r'<(?:select|textarea)|<input(?![^>]*type="hidden")', block)
+        assert 'form="match-recording-input"' in block and 'formnovalidate' in block
     page = follow(browser, browser.submit(evidence_form(page, "perspective_hand_selected"),
                                           cards=MATCH_HAND))
     assert withdraw in block_for(page, "perspective_hand_unknown")
-    _, manifest = instrument_language_forms_v1(page)
+    _, manifest = instrument_language_forms_v1(assemble_recording_input(page))
     assert all(field.field_key not in {"card_selection", "card_evidence_form", "operation"}
                for form in manifest.forms for field in form.fields)
 
@@ -142,7 +159,7 @@ def test_exact_new_and_legacy_registry_identity(operation, marker, mode):
     legacy = resolve_frontend_form_v1("/matches/cards", {
         "operation": operation, "card_evidence_mode": mode})
     assert legacy.form_key == "match.cards." + operation
-    assert len(FRONTEND_FORM_REGISTRY) == 124
+    assert len(FRONTEND_FORM_REGISTRY) == 125
     rollout = resolve_frontend_form_v1("/sessions/review-whole-game")
     assert rollout.form_key == "session.review_whole_game"
 
@@ -184,8 +201,9 @@ def test_unknown_known_empty_selection_and_withdrawal_transitions(
     assert active.path.read_bytes() == before
     withdrawal = evidence_form(page, prefix + "_unknown")
     assert "cards" not in withdrawal["values"]
+    independent = independent_form(browser, "set_" + prefix, prefix + "_unknown")
     for extra in ("", cards[0], list(cards)):
-        assert browser.submit(withdrawal, cards=extra)[0] == 400
+        assert browser.submit(independent, cards=extra)[0] == 400
         assert active.path.read_bytes() == before and len(saves) == 1
     page = follow(browser, browser.submit(withdrawal))
     assert len(saves) == 2 and active.workspace.revision == revision + 2
@@ -194,8 +212,8 @@ def test_unknown_known_empty_selection_and_withdrawal_transitions(
     assert field in game_json and game_json[field] is None
     # Supported transport no-op without a redundant unknown-to-unknown button.
     current = evidence_form(page, prefix + "_selected")
-    values = {**current["values"], "card_evidence_form": prefix + "_unknown"}
-    follow(browser, browser.request("POST", "/matches/cards", values))
+    values = {**current["values"], "recording_action": prefix + "_unknown"}
+    follow(browser, browser.request("POST", current["action"], values))
     assert len(saves) == 2
     assert load_match_workspace_file_v1(active.path).document.workspace == active.workspace
 
@@ -208,8 +226,8 @@ def test_explicit_empty_legality_noop_and_no_nonempty_hand_grid(localized_server
     before, revision = active.path.read_bytes(), active.workspace.revision
     if context == "non_hand":
         values = {**evidence_form(page, "discarded_cards_selected")["values"],
-                  "card_evidence_form": "discarded_cards_empty"}
-        assert browser.request("POST", "/matches/cards", values)[0] == 400
+                  "recording_action": "discarded_cards_empty"}
+        assert browser.request("POST", "/matches/recording-input", values)[0] == 400
         assert active.path.read_bytes() == before
         return
     page = follow(browser, browser.submit(evidence_form(page, "discarded_cards_empty")))
@@ -228,16 +246,17 @@ def test_explicit_empty_legality_noop_and_no_nonempty_hand_grid(localized_server
     else:
         assert 'value="discarded_cards_selected"' not in page
         values = {**evidence_form(page, "discarded_cards_empty")["values"],
-                  "card_evidence_form": "discarded_cards_selected", "cards": ["SA", "S7"]}
-        assert browser.request("POST", "/matches/cards", values)[0] == 400
+                  "recording_action": "discarded_cards_selected",
+                  "evidence_discarded_cards": ["SA", "S7"]}
+        assert browser.request("POST", "/matches/recording-input", values)[0] == 400
     page = follow(browser, browser.submit(evidence_form(page, "discarded_cards_unknown")))
     assert active.workspace.slots[0].observed_game.discarded_cards is None
 
 
 def test_strict_multimaps_authorization_and_legacy_preliminary_validation(localized_server):
     browser = Browser(localized_server)
-    page = started(browser)
-    form = evidence_form(page, "original_skat_selected")
+    started(browser)
+    form = independent_form(browser, "set_original_skat", "original_skat_selected")
     active = localized_server.app_context.managed_stateful.active_match
     before = active.path.read_bytes()
     base = form["values"]
@@ -266,7 +285,7 @@ def test_strict_multimaps_authorization_and_legacy_preliminary_validation(locali
             {**legacy, "card_evidence_mode": "unknown", "cards": cards}))
     assert active.path.read_bytes() == before
     # Legacy empty mode intentionally ignores valid within-capacity Cards as before.
-    empty = evidence_form(page, "discarded_cards_empty")["values"]
+    empty = independent_form(browser, "set_discarded_cards", "discarded_cards_empty")["values"]
     legacy = {key: value for key, value in empty.items() if key != "card_evidence_form"}
     follow(browser, browser.request("POST", "/matches/cards",
         {**legacy, "card_evidence_mode": "known_empty", "cards": ["SA", "S7"]}))
@@ -276,20 +295,23 @@ def test_strict_multimaps_authorization_and_legacy_preliminary_validation(locali
 def test_legacy_rejection_bridges_only_current_source_to_new_visible_editor(localized_server):
     browser = Browser(localized_server)
     page = record_context_match(browser, with_hand=False)
-    selected = evidence_form(page, "perspective_hand_selected")["values"]
+    selected = independent_form(
+        browser, "set_perspective_hand", "perspective_hand_selected")["values"]
     legacy = {key: value for key, value in selected.items() if key != "card_evidence_form"}
     legacy.update(card_evidence_mode="exact", cards=["C7"])
     status, _, raw = browser.request("POST", "/matches/cards", legacy)
     assert status == 400
     page = raw.decode()
-    assert evidence_form(page, "perspective_hand_selected")["values"]["cards"] == "C7"
+    assert evidence_form(page, "perspective_hand_selected")["values"][
+        "evidence_perspective_hand"] == "C7"
     assert re.search(r'<fieldset[^>]*aria-invalid="true"', page)
     assert 'name="card_evidence_mode"' not in page
     browser.page("/matches/position/2")
     browser.page("/matches/position/1")
     status, _, raw = browser.request("POST", "/matches/cards", legacy)
     assert status == 409 and 'href="#match-recording"' in raw.decode()
-    assert "cards" not in evidence_form(raw.decode(), "perspective_hand_selected")["values"]
+    assert "evidence_perspective_hand" not in evidence_form(
+        raw.decode(), "perspective_hand_selected")["values"]
 
 
 @pytest.mark.parametrize("fault", ("save", "cas", "equal_revision"))
@@ -329,7 +351,8 @@ def test_real_candidate_failure_and_external_source_are_not_published(
         assert active.path.read_bytes() == raw
     else:
         assert load_match_workspace_file_v1(active.path).document == other
-        assert "cards" not in evidence_form(body.decode(), "perspective_hand_selected")["values"]
+        assert "evidence_perspective_hand" not in evidence_form(
+            body.decode(), "perspective_hand_selected")["values"]
         assert 'href="#match-recording"' in body.decode()
 
 
@@ -338,7 +361,7 @@ def test_real_candidate_failure_and_external_source_are_not_published(
 def test_language_overlay_cannot_supply_evidence_authority(localized_server, injected):
     browser = Browser(localized_server)
     page = started(browser)
-    block = block_for(page, "original_skat_selected")
+    block = shared_block(page)
     identity = re.search(r'data-language-form="([^"]+)"', block)[1]
     raw = json.dumps({"forms": [{"form": identity, "values": {injected: ["forged"]}}],
                       "disclosures": [False] * page.count('<details')})
@@ -380,19 +403,20 @@ def test_exact_source_language_selection_and_native_rejection_return(localized_s
                                           cards=["SA", "S7"]))
     active = localized_server.app_context.managed_stateful.active_match
     saved = active.path.read_bytes()
-    block = block_for(page, "original_skat_selected")
+    block = shared_block(page)
     identity = re.search(r'data-language-form="([^"]+)"', block)[1]
-    raw = json.dumps({"forms": [{"form": identity, "values": {"cards": cards}}],
+    raw = json.dumps({"forms": [{"form": identity, "values": {"evidence_original_skat": cards}}],
                       "disclosures": [False] * page.count('<details')})
     page = follow(browser, browser.submit(Forms(page).find("/actions/profile/language"),
         language="de", _frontend_language_values=raw))
-    assert evidence_form(page, "original_skat_selected")["values"].get("cards", []) == cards
+    assert evidence_form(page, "original_skat_selected")["values"].get(
+        "evidence_original_skat", []) == cards
     assert active.path.read_bytes() == saved
     status, _, raw = browser.submit(evidence_form(page, "original_skat_selected"), cards=["SA"])
     assert status == 400
     page = follow(browser, browser.submit(Forms(raw.decode()).find("/actions/profile/language"),
                                           language="en"))
-    assert evidence_form(page, "original_skat_selected")["values"]["cards"] == "SA"
+    assert evidence_form(page, "original_skat_selected")["values"]["evidence_original_skat"] == "SA"
     assert active.path.read_bytes() == saved
     assert 'value="original_skat_unknown"' in page
 
@@ -435,11 +459,11 @@ def test_trace_error_keeps_visible_fieldset_and_legacy_secondary_has_action_feed
     assert active.recovery.diagnostic is not None
     assert re.search(r'<fieldset[^>]*aria-invalid="true"', raw.decode())
     assert 'href="#validation-field-' in raw.decode()
-    assert set(evidence_form(raw.decode(), "original_skat_selected")["values"]["cards"]) == {
-        "C7", "SA"}
+    assert set(evidence_form(raw.decode(), "original_skat_selected")["values"][
+        "evidence_original_skat"]) == {"C7", "SA"}
     page = follow(browser, browser.submit(evidence_form(page, "original_skat_selected"),
                                           cards=["SA", "S7"]))
-    emitted = evidence_form(page, "original_skat_unknown")["values"]
+    emitted = independent_form(browser, "set_original_skat", "original_skat_unknown")["values"]
     legacy = {key: value for key, value in emitted.items() if key != "card_evidence_form"}
     status, _, raw = browser.request("POST", "/matches/cards",
         {**legacy, "card_evidence_mode": "unknown", "cards": ["bad"]})
@@ -448,8 +472,9 @@ def test_trace_error_keeps_visible_fieldset_and_legacy_secondary_has_action_feed
     summary, = re.findall(r'<section class="error-summary".*?</section>', raw.decode(), re.S)
     assert 'Remove recorded original Skat' in summary
     assert 'href="#validation-form-heading-' in summary and 'aria-invalid="true"' not in block
-    between = raw.decode().split(summary, 1)[1].split(block, 1)[0]
-    assert re.fullmatch(r'<span class="validation-anchor" id="[^"]+"></span>', between)
+    assert block.startswith(summary)
+    assert re.match(r'<span class="validation-anchor" id="[^"]+"></span>'
+                    r'<div class="form-grid"><button', block[len(summary):])
 
 
 def test_actual_body_and_field_bounds_remain_on_existing_route(localized_server):

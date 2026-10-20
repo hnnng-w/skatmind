@@ -10,6 +10,11 @@ from .compact_declaration_rendering import accepted_declaration_summary, compact
 from .form_registry import get_frontend_form_by_key_v1
 from .friendly_creation_rendering import render_fixed_match_format_v1
 from .local_time_rendering import render_local_time_editor
+from .match_declaration_drafts import (
+    MATCH_RECORDING_FORM_ID,
+    MATCH_RECORDING_INPUT_ROUTE,
+    fragment,
+)
 from .match_report_rendering import render_match_reports_v1
 from .recorded_trick_rendering import (
     render_current_trick,
@@ -88,7 +93,9 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
                 (player["player_id"], _named_seat(state, locale, player["player_id"]))
                 for player in state["participants"])), values.get("declarer_player_id"), required=True)
         fields += compact_declaration_fields(locale, values, count_id="match-declaration-matadors")
-        return form(locale, "/matches/api/v1/operation", fields, "declaration.save", primary=primary)
+        markup = form(locale, MATCH_RECORDING_INPUT_ROUTE, fields, "declaration.save", primary=primary,
+                      submitter=("recording_action", "set_declaration"))
+        return markup.replace('<form ', f'<form id="{MATCH_RECORDING_FORM_ID}" ', 1)
     definition = get_frontend_form_by_key_v1(
         f"match.{'analysis' if analysis else 'operation'}.{operation}")
     fields = _hidden(state, handle, operation) + extra
@@ -151,25 +158,30 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
 
 
 def _card_form(state, handle, locale, operation, binding, *, cards=(), play=False):
+    if not play:
+        prefix = operation.removeprefix("set_")
+        game = state["game"]
+        fields = paragraph(locale, "compact.evidence.replace")
+        fields += compact_card_selector(locale, mode="set", selected=cards,
+            game_type=None if game["declaration"] is None else game["declaration"]["game_type"],
+            capacity=10 if operation == "set_perspective_hand" else 2).replace(
+                'name="cards"', f'name="evidence_{prefix}"')
+        fields += '<button type="submit" class="primary" name="recording_action" value="' + prefix
+        fields += '_selected" formnovalidate>' + translated(locale, "compact.save") + '</button>'
+        return fragment(prefix + "_selected", '<div class="form-grid">' + fields + '</div>')
     fields = hidden("managed_handle", handle) + hidden("operation", operation)
     fields += hidden("card_selection", binding)
-    if not play:
-        fields += hidden("card_evidence_form", operation.removeprefix("set_") + "_selected")
-        fields += paragraph(locale, "compact.evidence.replace")
     game = state["game"]
-    fields += compact_card_selector(locale, mode="play" if play else "set",
-        cards=cards if play else None, selected=() if play else cards,
+    fields += compact_card_selector(locale, mode="play", cards=cards,
         game_type=None if not game or game["declaration"] is None else game["declaration"]["game_type"],
-        capacity=1 if play else 10 if operation == "set_perspective_hand" else 2)
-    return form(locale, "/matches/cards", fields, "compact.record" if play else "compact.save",
-                primary=True)
+        capacity=1)
+    return form(locale, "/matches/cards", fields, "compact.record", primary=True)
 
 
 def _evidence_action(handle, locale, operation, binding, intent):
     marker = operation.removeprefix("set_") + "_" + intent
-    fields = (hidden("managed_handle", handle) + hidden("operation", operation)
-              + hidden("card_selection", binding) + hidden("card_evidence_form", marker))
-    return form(locale, "/matches/cards", fields, "compact.evidence." + marker)
+    return fragment(marker, '<div class="form-grid"><button type="submit" class="secondary" name="recording_action" value="' + marker
+        + '" formnovalidate>' + translated(locale, "compact.evidence." + marker) + '</button></div>')
 
 
 def _evidence(state, handle, locale, bindings, *, hand=False):

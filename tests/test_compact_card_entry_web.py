@@ -292,9 +292,9 @@ def test_match_evidence_after_play_noop_modes_stale_position_and_real_recovery(l
     assert card in active.workspace.slots[0].observed_game.perspective_initial_hand
     saved, revision = active.path.read_bytes(), active.workspace.revision
     form = operation_form(page, "set_perspective_hand")
-    assert set(form["values"]["cards"]) == set(hand)
-    assert form["values"]["card_evidence_form"] == "perspective_hand_selected"
-    assert card in form["values"]["cards"]  # INITIAL evidence still includes the played Card.
+    assert set(form["values"]["evidence_perspective_hand"]) == set(hand)
+    assert form["values"]["recording_action"] == "perspective_hand_selected"
+    assert card in form["values"]["evidence_perspective_hand"]  # INITIAL includes played Cards.
     page = follow(browser, browser.submit(form, cards=list(reversed(hand))))
     assert active.path.read_bytes() == saved and active.workspace.revision == revision
     status, _, body = browser.submit(operation_form(page, "append_plays"), cards=card)
@@ -305,12 +305,13 @@ def test_match_evidence_after_play_noop_modes_stale_position_and_real_recovery(l
                                           confirm_apply="on"))
     page = follow(browser, browser.submit(operation_form(page, "append_plays"), cards=card))
     assert len(active.workspace.slots[0].observed_game.plays) == 1
-    assert set(operation_form(page, "set_perspective_hand")["values"]["cards"]) == set(hand)
+    assert set(operation_form(page, "set_perspective_hand")["values"][
+        "evidence_perspective_hand"]) == set(hand)
     # Evidence clear is explicit; merely unchecking an Exact hand fails.
     form = operation_form(page, "set_perspective_hand")
     assert browser.submit(form, cards=[])[0] == 400
     withdrawal = next(form for form in Forms(page).forms
-                      if form["values"].get("card_evidence_form") == "perspective_hand_unknown")
+                      if form["values"].get("recording_action") == "perspective_hand_unknown")
     page = follow(browser, browser.submit(withdrawal))
     assert active.workspace.slots[0].observed_game.perspective_initial_hand is None
     page = follow(browser, browser.submit(operation_form(page, "set_discarded_cards")))

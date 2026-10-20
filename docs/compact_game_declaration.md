@@ -100,6 +100,12 @@ Result value. It calculates no Game value or final-score readiness.
 
 ## Exact private HTML transport
 
+Issue #292 adds a private unified-Match shared native owner for declaration Save
+and neighboring evidence actions. See [Match declaration drafts](match_declaration_drafts.md)
+for the exact submitter routing, evidence-only source transition, temporary
+restoration and unchanged independent-client compatibility boundary. The legacy
+independent transports below remain supported.
+
 All forms are URL-encoded and retain their existing route/body/security limits.
 Common fields are singular `managed_handle`, `expected_revision`,
 `declaration_form`, and `declaration_selection`. Existing optional
