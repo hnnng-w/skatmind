@@ -15,6 +15,42 @@ below remain. See [Local time entry](local_time_entry.md) for compatibility and 
 
 ## Normal flow
 
+### Match person choice (Issue #294)
+
+Without a configured own Player, Match creation now submits the internal manual
+mode through hidden controls. There is no one-option assistance question or
+unavailable own-seat control. Enter the three game-1 Players, then **Update setup**.
+A valid roster update returns named perspective choices without a validation error
+or an automatic selection. Choose the person, Update to review, then explicitly
+Create. Saved, new and mixed rosters use this same native, no-JavaScript lifecycle.
+
+The optional setup-assistance selector remains for a configured own Player. Own
+placement derives perspective and submits it as hidden transport; it does not ask
+for a second person. Changing to manual assistance requires Update before the
+named person picker is presented. The own-seat control remains the correction
+target for inconsistent own-placement submissions.
+
+Manual Match choices in the existing private `perspective_seat` field now identify
+a person: a saved-Player handle or a digest of the explicitly entered new name.
+These are presentation values, not generated Product/Player IDs or a token registry.
+Reordering preserves the person; replacement or renaming a new entry invalidates
+the choice and requires explicit reselection. Rejected values and language returns
+cannot reinterpret an old position as another person. Low-level explicit seat
+clients remain compatible: Update binds them to the previously presented person
+(or their first supplied roster), and final Create still compares the entire
+reviewed roster. Own placement retains its existing seat binding.
+
+All roster/metadata validation still runs before review. Only Update permits a
+missing manual perspective as an incomplete next step; Create requires complete
+reviewed values. Setup generation, original expiry, single-use consumption,
+profile generation and exact reviewed-state comparison remain in force. Setup
+and review create no IDs and write no Product or profile. The compatible hidden
+preferred perspective remains unused as a default. Persisted perspective remains
+the actual stable Player ID, with the existing game-1-to-table-place conversion.
+
+See [Issue #294 verification](match_setup_and_card_layout.md) for current evidence.
+The numbered own-Player flow below remains applicable.
+
 1. Open **Settings** from the shared navigation. Viewing it creates no profile.
 2. Use **Add player** to enter a name and, optionally, one complete account
    platform/ID pair. Only the selected Add/Edit view expands.

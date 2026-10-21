@@ -5,10 +5,14 @@ from __future__ import annotations
 
 from html import escape
 
-from skatmind.game_declaration import BOOLEAN_DECLARATION_FIELDS, VALID_DECLARATION_GAME_TYPES
+from skatmind.game_declaration import VALID_DECLARATION_GAME_TYPES
 
 from .stateful_localization import text, translated
 from .task_first_rendering import input_field, paragraph, select_field
+
+_ANNOUNCEMENT_PRESENTATION_ORDER = (
+    "hand_game", "schneider_announced", "schwarz_announced", "ouvert",
+)
 
 
 def compact_declaration_fields(locale, values=None, *, count_id, session=False):
@@ -22,7 +26,7 @@ def compact_declaration_fields(locale, values=None, *, count_id, session=False):
         '<label><input type="checkbox" name="' + name + '" value="true"'
         + (' checked' if values.get(name) is True else '') + '><span>'
         + translated(locale, "declaration." + name) + '</span></label>'
-        for name in BOOLEAN_DECLARATION_FIELDS)
+        for name in _ANNOUNCEMENT_PRESENTATION_ORDER)
     count_id = escape(count_id, quote=True)
     help_id = count_id + "-help"
     session_id = count_id + "-evidence"
@@ -61,7 +65,7 @@ def accepted_declaration_summary(locale, values, declarer, *, actions=None):
         rows.append(("declaration." + name, rendered))
     flags = [("declaration." + name, translated(locale,
         "common.answer.yes" if values[name] else "common.answer.no"))
-        for name in ("hand_game", "schneider_announced", "schwarz_announced", "ouvert")]
+        for name in _ANNOUNCEMENT_PRESENTATION_ORDER]
     return ('<section class="accepted-declaration"><h3>' + translated(locale, "declaration.accepted")
         + '</h3>' + ''.join('<dl>' + ''.join('<div><dt>' + translated(locale, key) + '</dt><dd>'
             + value + '</dd></div>' for key, value in group) + '</dl>' for group in (rows, flags))

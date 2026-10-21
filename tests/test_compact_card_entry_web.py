@@ -45,7 +45,7 @@ def selected(page, route="/sessions/cards"):
 
 
 def choice_codes(page, *, mode="play"):
-    block = re.search(r'<fieldset class="compact-cards" data-card-mode="' + mode
+    block = re.search(r'<fieldset class="compact-cards"[^>]* data-card-mode="' + mode
                       + r'".*?</fieldset>', page, re.S)[0]
     return re.findall(r'<input[^>]+name="cards" value="([^"]+)"', block)
 

@@ -123,10 +123,15 @@ def test_bad_time_input_generates_no_id_product_or_profile(localized_server, met
 
 @pytest.mark.parametrize("which,expected", (("earlier", "+02:00"), ("later", "+01:00")))
 def test_returned_fold_choices_language_and_single_creation(localized_server, which, expected):
+    from test_match_setup_and_card_layout import person
+
     browser = Browser(localized_server)
-    form = local_form(browser.page("/matches/new"), "match-create")
+    page = follow(browser, browser.submit(local_form(browser.page("/matches/new"), "match-create"),
+        match_title="Fold", forehand_name="A", middlehand_name="B", rearhand_name="C",
+        setup_action="update"))
+    form = local_form(page, "match-create")
     response = browser.submit(form, match_title="Fold", forehand_name="A", middlehand_name="B",
-        rearhand_name="C", perspective_seat="forehand", setup_action="update",
+        rearhand_name="C", perspective_seat=person(page, "A"), setup_action="update",
         local_date="2026-10-25", local_time="02:30")
     assert response[0] == 400
     page = response[2].decode()

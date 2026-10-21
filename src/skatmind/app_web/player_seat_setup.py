@@ -161,6 +161,27 @@ def roster_names_v1(values, profile):
     return tuple(names)
 
 
+def roster_person_value_v1(values, seat):
+    """Presentation identity only: no Player ID generation or saved default."""
+    handle = values.get(f"{seat}_handle", "").strip()
+    name = values.get(f"{seat}_name", "").strip()
+    mode = values.get(f"{seat}_mode")
+    if mode == "saved" and handle and not name:
+        return "saved:" + handle
+    if mode == "new" and name and not handle:
+        return "new:" + hashlib.sha256(name.encode("utf-8")).hexdigest()
+    return ""
+
+
+def match_perspective_seat_v1(values):
+    choice = values.get("perspective_seat", "")
+    # Own placement and the low-level seat adapter retain their existing semantics.
+    if choice in SEATS:
+        return choice
+    matches = [seat for seat in SEATS if choice and roster_person_value_v1(values, seat) == choice]
+    return matches[0] if len(matches) == 1 else ""
+
+
 def submit_seat_setup_v1(context, family, profile, values, *, generation, local_timestamp=None):
     """Return True only for an unchanged, explicitly reviewed final roster."""
     from .profile_driven_creation import (
@@ -181,6 +202,11 @@ def submit_seat_setup_v1(context, family, profile, values, *, generation, local_
         if values.get(name, "") not in {"", "on"}:
             raise SeatSetupError("choice", name)
     if action == "create":
+        if (family == "matches" and values.get("perspective_mode") == "manual"
+                and values.get("perspective_seat") in SEATS):
+            # Explicit legacy clients may resend the seat they reviewed. The full
+            # roster comparison below still prevents reinterpreting that seat.
+            values["perspective_seat"] = roster_person_value_v1(values, values["perspective_seat"])
         compared = {name: value for name, value in values.items() if name != "local_occurrence"}
         previous = {name: value for name, value in current.values if name != "local_occurrence"}
         if not current.reviewed or previous != compared:
@@ -193,7 +219,27 @@ def submit_seat_setup_v1(context, family, profile, values, *, generation, local_
             # A final submission is single-use even if Product/profile persistence fails.
             del context.creation_setups[family]
         return True
-    projected, auto = project_own_seat_v1(values, profile, auto_seat=current.auto_seat)
+    if (family == "matches" and values.get("perspective_mode") == "own"
+            and dict(current.values).get("perspective_mode") == "manual"):
+        # Changing assistance mode derives the own person; it is not a second choice.
+        values["perspective_seat"] = ""
+    try:
+        projected, auto = project_own_seat_v1(values, profile, auto_seat=current.auto_seat)
+    except SeatSetupError as error:
+        if family == "matches" and error.field_key == "perspective_seat":
+            raise SeatSetupError(error.reason, "own_seat") from error
+        raise
+    if family == "matches" and projected.get("perspective_mode") == "manual":
+        choice = projected.get("perspective_seat", "")
+        if choice in SEATS:
+            previous = dict(current.values)
+            # Legacy seat clients are bound to the previously presented person.
+            # Only a first explicit legacy submission has no prior roster to bind.
+            source = previous if any(roster_names_v1(previous, profile)) else projected
+            choice = roster_person_value_v1(source, choice)
+        projected["perspective_seat"] = choice
+        if not match_perspective_seat_v1(projected):
+            projected["perspective_seat"] = ""
     values.clear()
     values.update(projected)
     with context.lock:
@@ -215,7 +261,8 @@ def submit_seat_setup_v1(context, family, profile, values, *, generation, local_
                         if values.get("time_form") == "match-create" else values)
             prepare_profile_driven_match_creation_v1(metadata, profile=profile,
                 expected_profile_generation=generation, existing_match_ids=(),
-                entropy_source=None, validation_only=True)
+                entropy_source=None, validation_only=True, allow_missing_perspective=True)
+            complete = bool(match_perspective_seat_v1(values))
     with context.lock:
         if (context.creation_setups.get(family) is not current
                 or context.frontend_profile.generation != generation):

@@ -595,7 +595,7 @@ _FORMS: list[FrontendFormDefinitionV1] = [
             **{f"{seat}_handle": "select" for seat in ("forehand", "middlehand", "rearhand")},
             "perspective_seat": "select", "save_players": "checkbox", "save_platform": "checkbox"},
         choice_overrides={"time_mode": ("enter", "keep", "replace", "remove"),
-            "perspective_seat": ("", "forehand", "middlehand", "rearhand"),
+            "perspective_seat": (),
             "source_kind": ("", "youtube_video", "other_video", "manual_observation")},
         label_overrides={name: "validation.field.local_" + label for name, label in (
             ("time_mode", "mode"), ("local_date", "date"), ("local_time", "time"),
@@ -1129,7 +1129,7 @@ _FORMS: list[FrontendFormDefinitionV1] = [
         },
         choice_overrides={
             "platform_choice": FRIENDLY_GAME_PLATFORM_VALUES,
-            "perspective_seat": ("", "forehand", "middlehand", "rearhand"),
+            "perspective_seat": (),
             "source_kind": ("", "youtube_video", "other_video", "manual_observation"),
         },
     ),

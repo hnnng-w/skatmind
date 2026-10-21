@@ -106,7 +106,10 @@ def test_match_creation_is_bilingual_friendly_and_keeps_technical_fields_advance
         assert 'name="perspective_player_id"' not in html
         assert 'name="player_1_id"' not in html
         assert html.count('<fieldset class="seat-entry"') == 3
-        assert '<select name="perspective_seat"' in html
+        # Configured own placement derives perspective without a contradictory picker.
+        assert '<select name="perspective_seat"' not in html
+        assert '<input type="hidden" name="perspective_seat" value="">' in html
+        assert '<select name="own_seat"' in html
         assert html.index(
             "Advanced Match details" if html is english else "Erweiterte Match-Angaben"
         ) > html.index("Source URL" if html is english else "Quellen-URL")

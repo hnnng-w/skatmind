@@ -6,7 +6,7 @@ import re
 import pytest
 from test_frontend_language_switching import localized_server as _localized_server
 from test_match_game_navigation_web import create_empty
-from test_match_recording_recovery_web import entry_action, follow, operation_form
+from test_match_recording_recovery_web import declarer_choice, entry_action, follow, operation_form
 from test_recorded_decision_context import MATCH_HAND
 from test_recorded_decision_context_web import record_context_match
 from test_session_recorded_review_web import Browser, Forms
@@ -93,8 +93,7 @@ def started(browser, context="undeclared", locale="en"):
     page = follow(browser, browser.submit(operation_form(
         create_empty(browser, locale), "start_game")))
     if context != "undeclared":
-        options = re.search(r'<select name="declarer_player_id"[^>]*>(.*?)</select>', page, re.S)[1]
-        declarer = re.findall(r'<option value="([^"]+)"', options)[0]
+        declarer = declarer_choice(page, "Clara")
         page = follow(browser, browser.submit(operation_form(page, "set_declaration"),
             declarer_player_id=declarer, game_type="grand",
             **({"hand_game": "true"} if context == "hand" else {})))

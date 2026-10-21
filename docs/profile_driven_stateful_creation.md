@@ -143,7 +143,13 @@ evidence; the stored ID/provider/name, registry and template are unchanged.
 
 The form asks for a Match title, an optional date-only
 display value, a friendly platform, three named Players, and a perspective
-seat. Friendly platform values are `euroskat`, `in_person`, `other_online`,
+person. Issue #294 presents the actual roster's names, with game-1 seats as
+supplementary labels. Without own-player assistance, the first native Update
+returns those choices; explicit person selection and review precede Create.
+Changing the roster preserves the person or clears the choice, including validation
+and language restoration. Configured own placement derives the person without a
+second picker. See [the setup lifecycle](settings_and_player_seat_setup.md#match-person-choice-issue-294).
+Friendly platform values are `euroskat`, `in_person`, `other_online`,
 `unknown`, and `custom`. An optional Source URL is a normal field; source kind,
 title, channel, timecodes, and other exact Product metadata remain inside
 Advanced settings. A date-only value is private display metadata and does not

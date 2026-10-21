@@ -35,8 +35,10 @@ class NativePage(HTMLParser):
             if tag == "select":
                 self.select = control
                 control["options"] = []
+                control["labels"] = {}
         if tag == "option" and self.select is not None:
             self.select["options"].append(attrs.get("value", ""))
+            self.option = attrs.get("value", "")
             if "value" not in self.select or "selected" in attrs:
                 self.select["value"] = attrs.get("value", "")
 
@@ -45,6 +47,15 @@ class NativePage(HTMLParser):
             self.current = None
         if tag == "select":
             self.select = None
+
+    def handle_data(self, data):
+        if self.select is not None and hasattr(self, "option"):
+            labels = self.select["labels"]
+            labels[self.option] = labels.get(self.option, "") + data
+
+    def declarer(self, name):
+        return next(value for value, label in self.field("declarer_player_id")["labels"].items()
+                    if label.startswith(name + " — "))
 
     def owner(self, control):
         if "form" in control:
@@ -118,7 +129,7 @@ class NativePage(HTMLParser):
 def test_native_evidence_preserves_unsaved_declaration(localized_server):
     browser = Browser(localized_server)
     page = NativePage(started(browser))
-    declarer = page.field("declarer_player_id")["options"][2]
+    declarer = page.declarer("Anna")
     page.enter(declarer_player_id=declarer, game_type="grand", bid_value="18")
     page.choose("discarded_cards", {"H7", "D7"})
     assert len([c for c in page.controls if c.get("name") == "declarer_player_id"]) == 1
@@ -152,7 +163,7 @@ def test_evidence_error_noop_explicit_save_and_language(localized_server, monkey
         calls.append(args)
         return real(*args, **kwargs)
     monkeypatch.setattr(capture, "save_match_workspace_file_v1", save)
-    declarer = page.field("declarer_player_id")["options"][2]
+    declarer = page.declarer("Anna")
     page.enter(declarer_player_id=declarer, game_type="grand", bid_value="18")
     page.choose("discarded_cards", {"H7", "D7"})
     html = follow(browser, page.submit(browser, "discarded_cards_selected"))
@@ -244,7 +255,7 @@ def test_successor_handoff_never_overwrites_changed_source(localized_server, cha
                                        game_timecode_start="1"))
     else:
         current = NativePage(browser.page("/matches/position/1"))
-        current.enter(declarer_player_id=current.field("declarer_player_id")["options"][1],
+        current.enter(declarer_player_id=current.declarer("Clara"),
                       game_type="null", bid_value="23")
         follow(browser, current.submit(browser, "set_declaration"))
     before = active.path.read_bytes()
@@ -556,7 +567,7 @@ def test_pending_return_checks_actual_successor_not_revision_alone(localized_ser
             build_match_workspace_persistence_document_v1(workspace),
             expected_content_fingerprint=active.capture.content_fingerprint)
     elif kind == "declaration":
-        other_tab.enter(declarer_player_id=other_tab.field("declarer_player_id")["options"][1],
+        other_tab.enter(declarer_player_id=other_tab.declarer("Clara"),
                         game_type="null", bid_value="23")
         assert other_tab.submit(browser, "set_declaration")[0] == 303
         assert active.declaration_draft_return is returned
@@ -579,7 +590,7 @@ def test_competing_native_save_and_evidence_are_serialized(localized_server):
 
     browser = Browser(localized_server)
     page = NativePage(started(browser))
-    page.enter(declarer_player_id=page.field("declarer_player_id")["options"][1],
+    page.enter(declarer_player_id=page.declarer("Clara"),
                game_type="grand", bid_value="18")
     page.choose("discarded_cards", {"H7", "D7"})
     active = localized_server.app_context.managed_stateful.active_match

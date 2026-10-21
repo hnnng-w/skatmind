@@ -90,8 +90,9 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
         fields += hidden("declaration_selection", state.get("declaration_bindings", {}).get("match-declaration", ""))
         fields += select_field(locale, "declarer_player_id", "task.field.declarer_player_id",
             (("", text(locale, "declaration.choose_declarer")), *(
-                (player["player_id"], _named_seat(state, locale, player["player_id"]))
-                for player in state["participants"])), values.get("declarer_player_id"), required=True)
+                (state["position_view"][f"{seat}_player_id"], _named_seat(
+                    state, locale, state["position_view"][f"{seat}_player_id"]))
+                for seat in ("forehand", "middlehand", "rearhand"))), values.get("declarer_player_id"), required=True)
         fields += compact_declaration_fields(locale, values, count_id="match-declaration-matadors")
         markup = form(locale, MATCH_RECORDING_INPUT_ROUTE, fields, "declaration.save", primary=primary,
                       submitter=("recording_action", "set_declaration"))
@@ -162,7 +163,7 @@ def _card_form(state, handle, locale, operation, binding, *, cards=(), play=Fals
         prefix = operation.removeprefix("set_")
         game = state["game"]
         fields = paragraph(locale, "compact.evidence.replace")
-        fields += compact_card_selector(locale, mode="set", selected=cards,
+        fields += compact_card_selector(locale, mode="set", selected=cards, balanced_grid=True,
             game_type=None if game["declaration"] is None else game["declaration"]["game_type"],
             capacity=10 if operation == "set_perspective_hand" else 2).replace(
                 'name="cards"', f'name="evidence_{prefix}"')
@@ -172,7 +173,7 @@ def _card_form(state, handle, locale, operation, binding, *, cards=(), play=Fals
     fields = hidden("managed_handle", handle) + hidden("operation", operation)
     fields += hidden("card_selection", binding)
     game = state["game"]
-    fields += compact_card_selector(locale, mode="play", cards=cards,
+    fields += compact_card_selector(locale, mode="play", cards=cards, balanced_grid=True,
         game_type=None if not game or game["declaration"] is None else game["declaration"]["game_type"],
         capacity=1)
     return form(locale, "/matches/cards", fields, "compact.record", primary=True)

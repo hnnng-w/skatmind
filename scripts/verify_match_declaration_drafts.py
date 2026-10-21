@@ -234,7 +234,7 @@ def main():
                     for card in ("H8", "D8"):
                         click(cdp, f'input[name="evidence_original_skat"][value="{card}"]')
                     cdp.activate('button[value="original_skat_selected"]')
-                    assert snapshot(active)["visible"] == invalid_draft
+                    assert snapshot(active)["visible"] == invalid_draft, (snapshot(active), invalid_draft, dict(counts))
                     assert active.workspace.slots[0].observed_game.declaration.bid_value == 18
                     assert counts["set_declaration"] == 1 and counts["recording_replace"] == 3
                     cdp.activate('.language-selector button[value="' + ("de" if locale == "en" else "en") + '"]')

@@ -143,10 +143,15 @@ def test_manual_to_own_pending_perspective_error_keeps_resolution_control(locali
         "middlehand_handle": handles[2], "setup_action": "update"})
     assert response[0] == 400
     page = switch(browser, response[2].decode(), "de")
-    assert '<select name="perspective_seat" aria-invalid="true"' in page
+    if family == "matches":
+        assert '<select name="perspective_seat"' not in page
+        assert '<select name="own_seat" aria-invalid="true"' in page
+    else:
+        assert '<select name="perspective_seat" aria-invalid="true"' in page
     assert text("de", "validation.message.setup_own_binding") in page
+    correction = {} if family == "matches" else {"perspective_seat": "rearhand"}
     page = follow(browser, browser.submit(Forms(page).find(action),
-        perspective_seat="rearhand", setup_action="update"))
+        **correction, setup_action="update"))
     assert Forms(page).find(action)["values"]["perspective_seat"] == "rearhand"
 
 

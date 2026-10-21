@@ -70,6 +70,22 @@ decision to put bid input under Advanced is superseded. Both begin blank for a
 new declaration; corrections start from their accepted source values. Four native
 checkboxes share one compact labelled group. No selection submits the form.
 
+Issue #294 renders the controls themselves in **Hand game, Schneider announced,
+Schwarz announced, Ouvert** order, matching the accepted summary. One private
+presentation tuple serves both renderers. The domain Boolean-field constant,
+canonical serialization, parsing, normalization and diagnostics retain their
+existing order and meaning. Shared Session initial/correction editors receive
+the same presentation, preserving explicit false flags and blank numbers.
+
+The Match declarer picker keeps its blank required placeholder first and orders
+the three stable-ID choices by the selected **current** Game's projected Forehand,
+Middlehand and Rearhand identities. For game-1 Anna/Bea/Clara this yields
+Anna/Bea/Clara, Bea/Clara/Anna, then Clara/Anna/Bea in Games 1–3. Accepted, rejected
+and restored selections follow identity. Participants, table places, rotation and
+commentator options retain their existing order. Native ownership, evidence
+`formnovalidate`, default Enter routing and all #292 draft lifetimes remain intact.
+See [Issue #294 verification](match_setup_and_card_layout.md).
+
 The group distinguishes announced Schneider/Schwarz from achieved levels, and
 declared Ouvert from later exposure. Short Suit/Grand dependency guidance is
 replaced by the Null applicability explanation when Null is selected, using CSS

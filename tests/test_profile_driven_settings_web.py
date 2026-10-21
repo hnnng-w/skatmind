@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import http.client
+import re
 from collections.abc import Iterator
 from pathlib import Path
 from urllib.parse import urlencode
@@ -747,7 +748,7 @@ def test_language_switch_preserves_match_creation_and_field_local_feedback(
     assert '<option value="custom" selected>' in german
     assert 'value="Local table"' in german
     assert all(f'value="{name}"' in german for name in ("Anna", "Peter", "Mira"))
-    assert '<option value="middlehand" selected>' in german
+    assert re.search(r'<option value="new:[0-9a-f]{64}" selected>Peter — [^<]+</option>', german)
     assert 'value="https://youtube.com/watch?v=retained"' in german
     assert 'value="external-retained"' in german
     assert '<option value="manual_observation" selected>' in german

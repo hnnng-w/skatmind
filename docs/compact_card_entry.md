@@ -21,7 +21,8 @@ Canonical deck order, trump/Null strengths and legal membership are independent.
 
 The default shared **5em** interactive width accommodates the native control, suit and
 two-digit rank; tiles wrap without stretching per suit. Normal Session set entry
-(Issues #275/#278) and Play (Issue #281) instead share explicit grid tracks as described below. The shared read-only face
+(Issues #275/#278) and Play (Issue #281), plus normal Match entry (Issue #294),
+instead share explicit grid tracks as described below. The shared read-only face
 has no input or checkbox-sized padding. Validated suit markers color Heart/Diamond
 symbols **and ranks** red, Club/Spade dark. Full localized accessible names, optional
 raw codes, native checked states and existing focus remain. Forced colors use system
@@ -362,6 +363,29 @@ for the brief installed-build maintainer retest: the existing headless harness h
 no verified real-zoom control, and viewport emulation is not zoom. Focused tests and
 Quick are local validation only; keep #281 open for exact-commit branch CI,
 identical-commit main integration and the installed retest. Wider UAT remains open.
+
+## Normal Match grid (Issue #294)
+
+Only `task_first_match_rendering._card_form` opts into the shared helper's private
+`balanced_grid` presentation option. Its `data-balanced-grid` marker applies to
+perspective initial-hand, original-Skat and discarded-Card checkboxes, and normal
+next-Play radios. It shares the existing Session **8/4/2/1** tracks at **48/24/12em**
+available suit-container widths and the tile-width override. It does not borrow
+`session-set-entry`, change headings/spacing, remove the progress column, or reach
+the separate replacement/recovery selector. Sparse offered groups remain sparse.
+
+The externally owned evidence-action wrappers also receive a shrinkable single
+grid track, selected by their actual `form="match-recording-input"` submitters.
+This prevents the long no-discards action from widening the page at 320px. Native
+owner/action routing, checkbox/radio semantics, selected/required state, focus,
+printed suits C/S/H/D and ranks J/A/10/K/Q/9/8/7 remain unchanged.
+
+New Match evidence is recorded separately in
+[Issue #294 verification](match_setup_and_card_layout.md). The earlier #275/#278/
+#281 measurements above remain historical Session-only evidence. Source-tree
+Match measurements include 8-wide palettes, 4+4 beside progress, and 2/1-column
+narrow palettes with unchanged 16px text, 20px native inputs and 44px tiles.
+Actual 200% browser zoom and the installed maintainer retest remain pending.
 
 ## Match replacement and truthful Play scope
 

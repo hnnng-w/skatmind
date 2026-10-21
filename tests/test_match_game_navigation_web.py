@@ -1,11 +1,16 @@
 import os
-import re
 from pathlib import Path
 from urllib.parse import urlsplit
 
 import pytest
 from test_frontend_language_switching import localized_server as _localized_server
-from test_match_recording_recovery_web import entry_action, follow, operation_form, synthetic_cards
+from test_match_recording_recovery_web import (
+    declarer_choice,
+    entry_action,
+    follow,
+    operation_form,
+    synthetic_cards,
+)
 from test_session_recorded_review_web import Browser, Forms
 
 from skatmind.app_web.task_first_projections import project_task_first_match_v1
@@ -53,8 +58,7 @@ def link(browser, page, href):
 
 
 def declare(browser, page):
-    options = re.search(r'<select name="declarer_player_id"[^>]*>(.*?)</select>', page, re.S)[1]
-    player = re.findall(r'<option value="([^"]+)"', options)[0]
+    player = declarer_choice(page, "Clara")
     return follow(browser, browser.submit(primary(page, "set_declaration"),
         declarer_player_id=player, game_type="grand", hand_game="true"))
 

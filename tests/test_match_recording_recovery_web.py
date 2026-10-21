@@ -52,6 +52,12 @@ def entry_action(page, index, *, rewind=False):
     return Forms(block).find("/matches/recovery/select", index=int(rewind))
 
 
+def declarer_choice(page, label):
+    options = re.search(r'<select name="declarer_player_id"[^>]*>(.*?)</select>', page, re.S)[1]
+    return re.search(r'<option value="([^"]+)"[^>]*>' + re.escape(label) + r' — [^<]*</option>',
+                     options)[1]
+
+
 def start_match(browser, locale="en", name="Alexandra Long-Synthetic-Player-Name"):
     page = browser.page("/matches/new")
     if locale == "de":
@@ -66,8 +72,7 @@ def start_match(browser, locale="en", name="Alexandra Long-Synthetic-Player-Name
         setup_action="create"))
     page = follow(browser, browser.submit(operation_form(page, "start_game")))
     # Resolve the named Declarer choice from returned HTML, not internal IDs.
-    options = re.search(r'<select name="declarer_player_id"[^>]*>(.*?)</select>', page, re.S)[1]
-    declarer = re.findall(r'<option value="([^"]+)"', options)[0]
+    declarer = declarer_choice(page, "Clara")
     return follow(browser, browser.submit(operation_form(page, "set_declaration"),
         declarer_player_id=declarer, game_type="grand", hand_game="true"))
 

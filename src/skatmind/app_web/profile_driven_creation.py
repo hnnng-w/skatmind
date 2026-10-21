@@ -18,7 +18,11 @@ from .frontend_identifier_generation import (
 from .frontend_profile_codec import build_local_frontend_profile_v1
 from .frontend_profile_contracts import LocalFrontendProfileV1
 from .local_time_forms import LOCAL_TIME_FIELDS
-from .player_seat_setup import SEAT_SETUP_FIELDS, require_own_binding_v1
+from .player_seat_setup import (
+    SEAT_SETUP_FIELDS,
+    match_perspective_seat_v1,
+    require_own_binding_v1,
+)
 from .profile_player_contracts import (
     MAX_KNOWN_PLAYERS,
     MAX_MANAGED_ITEM_DISPLAY_LABELS,
@@ -538,6 +542,7 @@ def prepare_profile_driven_match_creation_v1(
     existing_match_ids: tuple[str, ...],
     entropy_source: Callable[[int], bytes],
     validation_only: bool = False,
+    allow_missing_perspective: bool = False,
 ) -> PreparedProfileDrivenMatchCreationV1:
     generation = _require_generation(expected_profile_generation)
     title = _trimmed(values, "match_title")
@@ -550,13 +555,16 @@ def prepare_profile_driven_match_creation_v1(
     )
     platform = _friendly_platform(values)
     selected = _select_players(values, profile)
-    perspective_seat = _trimmed(values, "perspective_seat")
-    if perspective_seat not in _SEATS:
+    perspective_seat = match_perspective_seat_v1(values)
+    incomplete = (validation_only and allow_missing_perspective
+                  and not values.get("perspective_seat"))
+    if not perspective_seat and not incomplete:
         raise ProfileDrivenCreationFieldError(
             "perspective_seat",
             "Perspective must identify one visible Match Player.",
         )
-    perspective_index = _SEATS.index(perspective_seat)
+    # Validation uses placeholder identities only; incomplete setup cannot materialize.
+    perspective_index = _SEATS.index(perspective_seat) if perspective_seat else 0
     source_kind, source_url, source_title, source_channel = _source_values(values, title)
     timecode_start = _trimmed(values, "match_timecode_start")
     timecode_end = _trimmed(values, "match_timecode_end")

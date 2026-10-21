@@ -47,7 +47,8 @@ def card_set_display_order(cards):
 
 
 def compact_card_selector(locale, *, mode, cards=None, selected=(), game_type=None, capacity=1,
-                          name="cards", legend_key=None, guidance_key=None, guidance_values=None):
+                          name="cards", legend_key=None, guidance_key=None, guidance_values=None,
+                          balanced_grid=False):
     if mode not in {"set", "play"}:
         raise ValueError("Card selector mode must be set or play.")
     cards = tuple(get_full_deck() if cards is None else cards)
@@ -76,7 +77,8 @@ def compact_card_selector(locale, *, mode, cards=None, selected=(), game_type=No
             '<span class="compact-count">' + translated(locale, "compact.snapshot") + '</span> '
             '<span class="compact-selected">' + codes + '</span></p>')
     return (
-        f'<fieldset class="compact-cards" data-card-mode="{mode}" data-card-locale="{locale}">'
+        '<fieldset class="compact-cards"' + (' data-balanced-grid' if balanced_grid else '')
+        + f' data-card-mode="{mode}" data-card-locale="{locale}">'
         '<legend>' + translated(locale, legend_key or "compact.choose_" + mode) + '</legend>'
         '<p class="compact-guidance">' + translated(
             locale, guidance_key or "compact.capacity_" + mode,

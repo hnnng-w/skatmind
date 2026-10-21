@@ -70,6 +70,7 @@ def assert_palette(page, locale, selected):
     assert text(locale, "recovery.choose_card") in recovery_text(page)
     assert not any(n["attrs"].get("class") == "compact-selection" for n in nodes)
     assert not any(n["tag"] == "select" for n in nodes)
+    assert not any("data-balanced-grid" in n["attrs"] for n in nodes)
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))
