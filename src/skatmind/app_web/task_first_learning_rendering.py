@@ -168,7 +168,7 @@ def _report_sources(state, handle, locale, profile, recorded):
     return sources
 
 
-def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile=None, recorded=(), rejected_build=False, active_recorded=None, learning_selection=None, source_generation=0, candidate_limit_reached=False, entry_outcome=None, debrief=""):
+def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile=None, recorded=(), rejected_build=False, active_recorded=None, learning_selection=None, source_generation=0, candidate_limit_reached=False, entry_outcome=None, debrief="", prepared_location=None, show_prepared=False):
     view = project_task_first_learning_v1(state)
     handle = managed_handle
     revision = state["corpus"]["catalog_revision"]
@@ -292,17 +292,20 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
                 + disclosure(locale, "task.learning.settings", fields),
                 "task.learning.build", disabled=True)
     technical = '<div id="learning-build" tabindex="-1">' + section(locale, build_key, build) + '</div>'
-    if view.status == "results":
-        body += '<p><a class="button-link" href="#learning-results">' + translated(
+    if view.status == "results" and prepared_location is not None:
+        body += '<p><a class="button-link" href="' + escape(prepared_location, quote=True) + '">' + translated(
             locale, "task.learning.view_results") + '</a></p>'
     prepared = state["prepared"]
     results = paragraph(locale, "task.learning.no_results")
     if prepared is not None:
         results = render_learning_result(prepared, locale)
-    technical += '<div id="learning-prepared-result">' + section(
-        locale, "task.learning.results", results) + '</div>'
-    body += '<div id="learning-results" tabindex="-1"><!-- results-operation-feedback -->'
-    body += disclosure(locale, "debrief.preparation", technical) + '</div>'
+    focus = ' data-learning-result-focus autofocus' if show_prepared else ''
+    receipt = '<!-- results-operation-feedback -->'
+    result_section = section(locale, "task.learning.results", (receipt if show_prepared else '') + results)
+    result_section = result_section.replace('<h2>', '<h2 id="learning-results" tabindex="-1"' + focus + '>', 1)
+    technical += '<div id="learning-prepared-result">' + result_section + '</div>'
+    preparation = disclosure(locale, "debrief.preparation", technical)
+    body += preparation.replace('<details ', '<details open ', 1) if show_prepared else receipt + preparation
     advanced = ''
     upload = ('<label>' + translated(locale, "creation.import.file")
               + '<input type="file" name="workspace_file" accept="application/json,.json" required></label>')

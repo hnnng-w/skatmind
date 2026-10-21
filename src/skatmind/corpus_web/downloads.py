@@ -231,16 +231,13 @@ def _download_value(
     raise ValueError("kind must identify one prepared artifact.")
 
 
-def build_learning_corpus_prepared_download_v1(
+def require_learning_corpus_prepared_bundle_v1(
     context: LearningCorpusWebContextV1,
-    *,
-    kind: str,
-) -> LearningCorpusPreparedDownloadV1:
-    """Serializes one cached artifact without rebuilding any source artifact."""
+) -> tuple[LearningCorpusPreparedArtifactsV1, LearningCorpusTacticalPreparedArtifactsV1,
+           LearningCorpusTacticalCoachingPreparedArtifactsV1]:
+    """Read-only availability checks shared by presentation and canonical downloads."""
     if type(context) is not LearningCorpusWebContextV1:
         raise ValueError("context must be an exact LearningCorpusWebContextV1.")
-    if kind not in LEARNING_CORPUS_ALL_PREPARED_DOWNLOAD_KINDS:
-        raise ValueError("kind must identify one prepared artifact.")
     with context.lock:
         prepared = context.prepared_artifacts
         tactical = context.tactical_prepared_artifacts
@@ -277,6 +274,21 @@ def build_learning_corpus_prepared_download_v1(
         )
         if mismatch:
             raise LearningCorpusPreparedDownloadUnavailableError("source_mismatch")
+        return prepared, tactical, coaching
+
+
+def build_learning_corpus_prepared_download_v1(
+    context: LearningCorpusWebContextV1,
+    *,
+    kind: str,
+) -> LearningCorpusPreparedDownloadV1:
+    """Serializes one cached artifact without rebuilding any source artifact."""
+    if type(context) is not LearningCorpusWebContextV1:
+        raise ValueError("context must be an exact LearningCorpusWebContextV1.")
+    if kind not in LEARNING_CORPUS_ALL_PREPARED_DOWNLOAD_KINDS:
+        raise ValueError("kind must identify one prepared artifact.")
+    with context.lock:
+        prepared, tactical, coaching = require_learning_corpus_prepared_bundle_v1(context)
         source_id, identity, content = _download_value(
             prepared,
             tactical,

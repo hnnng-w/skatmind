@@ -15,6 +15,7 @@ from test_learning_direct_entry_web import (
     saved_bytes,
     source_handle,
 )
+from test_learning_prepared_navigation import result_node, view_link
 from test_match_recording_recovery_web import follow, operation_form
 from test_operation_feedback_web import notice, notices
 from test_recorded_review_navigation import external_pass, saved_partial_match
@@ -70,11 +71,10 @@ def test_preparation_returns_to_existing_results_and_owns_receipt(localized_serv
     page = follow(browser, browser.submit(add_form(browser), source_handle=source_handle(path)))
     response = browser.submit(operation_form(page, "prepare_learning_artifacts"))
     assert response[0] == 303
-    assert response[1]["location"] == "/learning/current#learning-results"
     page = follow(browser, response)
-    row = node(page, "learning-results")
-    assert row["attrs"]["tabindex"] == "-1" and "autofocus" not in row["attrs"]
-    assert any(p["attrs"].get("id") == "learning-results"
+    assert response[1]["location"] == view_link(page)
+    result_node(page)
+    assert any(p["attrs"].get("id") == "learning-prepared-result"
                for p in notice(page, "prepared")["parents"])
 
 
@@ -164,8 +164,8 @@ def test_multiple_equal_titles_affected_not_current_and_exact_passive_exports(
     page = follow(browser, response)
     assert active.corpus.store.document.catalog.current_matches != current
     response = browser.submit(operation_form(page, "prepare_learning_artifacts"))
-    assert response[1]["location"] == "/learning/current#learning-results"
-    follow(browser, response)
+    page = follow(browser, response)
+    assert response[1]["location"] == view_link(page)
     downloads(browser)
     assert calls == Counter(imports=4, preparations=2, selections=1, catalog_saves=4)
 
@@ -227,11 +227,15 @@ def test_receipt_delivery_is_separate_from_content_lifetime(localized_server, op
         active.operation_feedback.pending = replace(receipt, expires_at=0)
     page = follow(browser, response)
     assert len(notices(page)) == (0 if expire else 1)
-    target = response[1]["location"].split("#")[1]
+    target = ("learning-results" if operation == "prepare"
+              else response[1]["location"].split("#")[1])
     node(page, target)
     page = browser.page("/learning/current")
     assert not notices(page)
-    node(page, target)
+    if operation == "prepare":
+        result_node(page, visible=False, autofocus=False)
+    else:
+        node(page, target)
     if operation == "prepare":
         assert downloads(browser) == retained
 
@@ -250,7 +254,8 @@ def test_post_to_get_supersession_never_replays_add_or_attributes_old_notice(
     if operation == "prepare":
         page = follow(browser, response)
         response = browser.submit(operation_form(page, "prepare_learning_artifacts"))
-    old_target = response[1]["location"].split("#")[1]
+    old_target = ("learning-results" if operation == "prepare"
+                  else response[1]["location"].split("#")[1])
     if change == "other_collection":
         create_collection(browser, "Other collection")
     elif change == "reload":
@@ -262,6 +267,12 @@ def test_post_to_get_supersession_never_replays_add_or_attributes_old_notice(
             validation_weight=15, test_weight=15)
     current = localized_server.app_context.managed_stateful.active_learning
     before = saved_bytes(current.path)
+    if operation == "prepare":
+        status, _, body = browser.request("GET", response[1]["location"])
+        assert status == 409 and b'id="learning-prepared-result"' not in body
+        assert not notices(body.decode())
+        assert saved_bytes(current.path) == before
+        return
     page = follow(browser, response)
     assert text("en", "feedback.version_added") not in page
     if change == "other_collection":
@@ -273,8 +284,12 @@ def test_post_to_get_supersession_never_replays_add_or_attributes_old_notice(
         node(page, old_target)
         assert "Affected saved version:" not in page
     if change == "prepare":
-        row = notice(page, "prepared")
-        assert any(p["attrs"].get("id") == "learning-results" for p in row["parents"])
+        # The intervening preparation's receipt is still visible on an ordinary page.
+        notice(page, "prepared")
+        page = browser.page(view_link(page))
+        assert not notices(page)  # Ordinary GET already consumed the one-use receipt.
+        row = result_node(page)
+        assert "Prepared datasets" in row["text"]
     assert saved_bytes(current.path) == before
 
 
@@ -313,9 +328,9 @@ def test_successful_limited_and_empty_results_keep_qualifications_before_counts(
     create_collection(browser)
     page = follow(browser, browser.submit(add_form(browser), source_handle=source_handle(path)))
     response = browser.submit(operation_form(page, "prepare_learning_artifacts"))
-    assert response[1]["location"] == "/learning/current#learning-results"
     page = follow(browser, response)
-    result = node(page, "learning-results")
+    assert response[1]["location"] == view_link(page)
+    result = node(page, "learning-prepared-result")
     status = ("No recorded decisions in this Dataset." if empty else
               "Some recorded decisions lack a safe Dataset Record.")
     assert status in result["text"]

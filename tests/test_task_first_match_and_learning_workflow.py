@@ -104,11 +104,14 @@ def test_explicit_transfer_selection_build_and_ten_downloads(tmp_path, locale):
         unseen_player_seed=0, train_weight=70, validation_weight=15, test_weight=15)
     assert result.status == "prepared"
     state = build_unified_learning_state_v1(target)
-    html = render_task_first_learning_v1(state, managed_handle=target.handle, locale=locale)
+    # Raw renderer receives the destination; HTTP ownership/availability is tested separately.
+    destination = "/learning/prepared/" + "a" * 64
+    html = render_task_first_learning_v1(state, managed_handle=target.handle, locale=locale,
+                                       prepared_location=destination)
     assert t(locale, "task.learning.current_results") in html
     assert t(locale, "debrief.preparation") in html
     assert t(locale, "task.learning.rebuild") in html
-    assert 'href="#learning-results"' in html
+    assert f'href="{destination}"' in html
     assert html.count('value="prepare_learning_artifacts"') == 1
     assert 'class="primary"' not in html
     for kind in LEARNING_CORPUS_ALL_PREPARED_DOWNLOAD_KINDS:

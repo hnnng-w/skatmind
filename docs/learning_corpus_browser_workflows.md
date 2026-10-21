@@ -87,8 +87,8 @@ not enter `corpus_web` Teacher sources, Dataset-v2 preparation or the ten prepar
 downloads. Direct captured report scopes also work without a collection. Both
 entries share the existing rollout comparison renderer and exact Match serializers.
 The standalone Corpus contracts described above remain unchanged. The historical
-expanded-result presentation is superseded in the unified app by collapsed dataset
-preparation/exports, visible action feedback, and concrete source-bound entries.
+expanded-result presentation is superseded by compact ordinary entry and an explicit
+[guarded prepared-result view](learning_prepared_result_navigation.md) under Issue #293.
 
 ## One explicit root
 

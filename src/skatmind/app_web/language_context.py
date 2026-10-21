@@ -119,6 +119,10 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
     """
     if not is_safe_frontend_return_path_v1(route):
         raise ValueError("Language origin must be a safe HTML route.")
+    from .learning_outcome_navigation import LEARNING_PREPARED_PATTERN, resolve_prepared_scope
+
+    prepared_view = LEARNING_PREPARED_PATTERN.fullmatch(route)
+    learning_page = route == "/learning/current" or prepared_view is not None
     if route.startswith("/learning/debrief/"):
         from .debrief_frontend import DebriefUnavailable, resolve_scope
 
@@ -147,6 +151,13 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
                                 (label, binding, outcome))
     references: list[object] = []
     values: list[object] = []
+    if prepared_view is not None:
+        from .debrief_frontend import DebriefUnavailable
+
+        try:
+            references.append(resolve_prepared_scope(context, prepared_view[1]))
+        except DebriefUnavailable as error:
+            raise LanguageContextConflict from error
     with context.lock:
         managed = context.managed_stateful
         session = managed.active_session
@@ -188,7 +199,7 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
         expected_identity = (session if route == "/sessions/current" else
             match if route == "/matches/current" or route.startswith(
                 ("/matches/position/", "/matches/review/", "/matches/reports/")) else
-            learning if route == "/learning/current" else None)
+            learning if learning_page else None)
         if feedback is not None and feedback[0] is not expected_identity:
             feedback = None
         references.append(None if feedback is None else feedback[1])
@@ -240,7 +251,7 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
                 references.append(report)
         # Transfer forms also depend on the exact selected target collection.
         references.append(learning)
-    if route == "/learning/current" or (route == "/learning" and learning is not None) or (
+    if learning_page or (route == "/learning" and learning is not None) or (
             learning is not None and route.startswith(
                 ("/matches/position/", "/matches/review/", "/matches/reports/"))):
         if learning is None:
@@ -252,7 +263,7 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
             values.extend((learning.corpus.generation,
                            learning.corpus.strategy_source_store.revision,
                            learning.debrief_sources.revision))
-        if route == "/learning/current":
+        if learning_page:
             with context.lock:
                 references.append(managed.discoveries.get("matches"))
                 values.append(managed.generations["matches"])
@@ -306,6 +317,7 @@ def _require_files(context: AppWebContextV1, route: str) -> None:
     from skatmind.learning_corpus_persistence import load_learning_corpus_directory_v1
     from skatmind.match_workspace_persistence import load_match_workspace_file_v1
 
+    from .learning_outcome_navigation import LEARNING_PREPARED_PATTERN
     from .managed_item_storage import validate_managed_direct_child_path_v1
 
     with context.lock:
@@ -330,7 +342,9 @@ def _require_files(context: AppWebContextV1, route: str) -> None:
                 loaded = load_match_workspace_file_v1(match.path).document
                 if loaded.content_fingerprint != match.capture.content_fingerprint:
                     raise LanguageContextConflict
-        if route == "/learning/current" and learning is not None:
+        if (route == "/learning/current" or LEARNING_PREPARED_PATTERN.fullmatch(route)):
+            if learning is None:
+                raise LanguageContextConflict
             with learning.corpus.lock:
                 validate_managed_direct_child_path_v1(learning.category_root, learning.path,
                                                      expected_kind="directory")

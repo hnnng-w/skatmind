@@ -47,10 +47,16 @@ _CONCEPT_KEYS_BY_ROUTE = {
 }
 
 
+def suppress_learning_result_autofocus_v1(content: str) -> str:
+    """Only the explicit prepared-result target, never unrelated native focus."""
+    return re.sub(r'(<h2\b[^>]*\bdata-learning-result-focus)\sautofocus\b', r'\1', content)
+
+
 def render_language_return_v1(content: str, *, token: str | None, view=None) -> str:
     """Only a verified successful language return suppresses retained autofocus."""
     content = re.sub(r'(<section\b[^>]*class="error-summary"[^>]*)\sautofocus\b',
                      r'\1', content)
+    content = suppress_learning_result_autofocus_v1(content)
     data = json.dumps({"token": token, "view": None if view is None else asdict(view)},
                       separators=(",", ":"), allow_nan=False)
     if view is not None:

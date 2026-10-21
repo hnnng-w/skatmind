@@ -77,24 +77,25 @@ def rendered(state, locale="en"):
     page = render_task_first_learning_v1(state, managed_handle="a" * 64, locale=locale)
     assert state == before
     tree = Hierarchy(page)
-    return tree, tree.by_id("learning-results")["text"]
+    return tree, tree.by_id("learning-prepared-result")["text"]
 
 
-def assert_downloads(tree, locale="en"):
-    links = tree.within("learning-results", "a")
+def assert_downloads(tree, locale="en", *, visible=False):
+    links = tree.within("learning-prepared-result", "a")
     expected = [kind for _, kinds in GROUPS for kind in kinds]
     assert [n["attrs"]["href"] for n in links] == [
         f'/learning/downloads/{kind.replace("_", "-")}.json' for kind in expected]
     assert LEARNING_CORPUS_ALL_PREPARED_DOWNLOAD_KINDS == CANONICAL
     for link in links:
         assert "download" in link["attrs"] and "autofocus" not in link["attrs"]
-        assert not Hierarchy.visible(link)  # Dataset exports are secondary to #289 debriefs.
+        assert Hierarchy.visible(link) is visible
         assert len(link["text"]) > 10 and "JSON" in link["text"]
-        assert any(p["tag"] == "details" and "open" not in p["attrs"] for p in link["parents"])
+        disclosure = next(p for p in reversed(link["parents"]) if p["tag"] == "details")
+        assert ("open" in disclosure["attrs"]) is visible
         item = next(p for p in reversed(link["parents"]) if p["tag"] == "li")
         assert len(item["text"]) > len(link["text"]) + 25
     if locale == "en":
-        assert [n["text"] for n in tree.within("learning-results", "h4")] == [
+        assert [n["text"] for n in tree.within("learning-prepared-result", "h4")] == [
             title for title, _ in GROUPS]
 
 
@@ -104,21 +105,22 @@ def test_genuine_partial_preparation_explains_units_and_preserves_downloads(loca
     create_collection(browser)
     page = follow(browser, browser.submit(add_form(browser), source_handle=source_handle(path)))
     response = browser.submit(operation_form(page, "prepare_learning_artifacts"))
-    assert response[1]["location"] == "/learning/current#learning-results"
     page = follow(browser, response)
+    from test_learning_prepared_navigation import view_link
+    assert response[1]["location"] == view_link(page)
     active = localized_server.app_context.managed_stateful.active_learning
     state = build_unified_learning_state_v1(active)
     assert set(state["prepared"]) == NORMAL_COUNTS | TECHNICAL
     assert (state["prepared"]["observed_decision_count"], state["prepared"]["record_count"],
             state["prepared"]["skipped_decision_count"]) == (6, 2, 4)
-    text = Hierarchy(page).by_id("learning-results")["text"]
+    text = Hierarchy(page).by_id("learning-prepared-result")["text"]
     assert "Recorded decisions: 6." in text
     assert "Included with a reconstructed before-Card state: 2." in text
     assert "Without such a state (skipped): 4." in text
     assert "Strategy Teacher evidence included in this Dataset: 0." in text
     assert "does not automatically include every previously executed Report" in text
     assert "No qualifying review focus" in text
-    assert_downloads(Hierarchy(page))
+    assert_downloads(Hierarchy(page), visible=True)
     retained = downloads(browser)
     for locale in ("en", "de"):
         tree, _ = rendered(state, locale)
@@ -166,9 +168,9 @@ def test_genuine_empty_all_skipped_and_complete_coverage_partial_match(
     assert tuple(state[k] for k in (
         "observed_decision_count", "record_count", "skipped_decision_count")) == counts
     assert state["known_player"]["status"] == state["unseen_player"]["status"] == "unavailable"
-    text = Hierarchy(page).by_id("learning-results")["text"]
+    text = Hierarchy(page).by_id("learning-prepared-result")["text"]
     assert sentence in text
-    assert_downloads(Hierarchy(page))
+    assert_downloads(Hierarchy(page), visible=True)
     downloads(browser)
 
 
@@ -237,7 +239,7 @@ def test_unprepared_has_no_fabricated_summary_or_downloads():
     state = specimen()
     state["prepared"] = None
     tree, text = rendered(state)
-    assert not tree.within("learning-results", "a")
+    assert not tree.within("learning-prepared-result", "a")
     assert "Recorded decisions:" not in text
 
 
@@ -285,7 +287,8 @@ def test_german_literal_coverage_and_groups_with_optional_evidence():
     assert ("In diesem Datensatz enthaltene Kommentare: 2; "
             "enthaltene verknüpfte Reaktionen: 1.") in text
     assert "In diesem Datensatz enthaltene Analysebelege (Strategy Teacher): 4." in text
-    assert [n["text"].replace("\u00ad", "") for n in tree.within("learning-results", "h4")] == [
+    assert [n["text"].replace("\u00ad", "") for n in tree.within(
+        "learning-prepared-result", "h4")] == [
         "Zusammenfassungen und Prüfschwerpunkte", "Zugrunde liegende Belege",
         "Datensatz und Aufteilungen"]
     assert_downloads(tree, "de")

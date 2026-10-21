@@ -3,11 +3,11 @@
 Issue #289 adds a private player-facing post-game review from completed selected-
 Decision whole-game rollout Reports. The starting branch is
 `feature/289-learning-debrief`, at
-`dede3606eb6e7ee64b042b06f4b6f6fd0bb757f9`. This implementation remains subject to
-exact-commit CI and the maintainer's installed Learning debrief retest. Issues
-#289 and #208 remain open.
+`dede3606eb6e7ee64b042b06f4b6f6fd0bb757f9`. Issue #289 and its follow-ups #290 and
+#291 are now closed. Issue #293 separately corrects prepared-result navigation;
+#208 remains open pending maintainer UAT acceptance.
 
-The current navigation/presentation correction starts from installed baseline
+The completed navigation/presentation correction starts from installed baseline
 `28b8e5a1f69ec2d38dc22bb597b1eb0d897dc02a`. See
 [Collection overview navigation](learning_overview_navigation.md) for the named
 incorporation action, compact rows, passive current-context entry, diagnostic
@@ -59,9 +59,10 @@ remedy imports a version, switches Current or discards a Report automatically.
 Dataset preparation remains the existing separate operation, now named
 **Prepare dataset** / **Recreate dataset preparation**. Its settings, coverage,
 ten downloads and diagnostics are under **Dataset preparation and exports**.
-The existing `learning-results` destination and preparation receipt stay outside
-the closed disclosure and remain visible native navigation targets. Validation
-feedback still precedes the retained dataset content and opens its affected form.
+Issue #293 adds a [source-bound prepared-result view](learning_prepared_result_navigation.md).
+Explicit View and successful preparation open the disclosure and focus the actual
+`learning-results` heading. Ordinary collection entry stays compact. Validation
+feedback retains focus priority and opens its affected form.
 
 ## Narrow evidence and reconciliation
 

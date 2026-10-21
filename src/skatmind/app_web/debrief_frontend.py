@@ -95,6 +95,7 @@ def _lineage(target):
     corpus = target.corpus
     return (id(corpus.store), corpus.store.document.content_fingerprint, corpus.generation,
             corpus.strategy_source_store.revision, target.debrief_sources.revision,
+            id(corpus.prepared_artifacts),
             id(corpus.tactical_prepared_artifacts), id(corpus.tactical_coaching_prepared_artifacts))
 
 

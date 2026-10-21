@@ -151,6 +151,11 @@ from .learning_frontend import (
     remove_unified_learning_report_source_v1,
     select_unified_learning_current_snapshot_v1,
 )
+from .learning_outcome_navigation import (
+    LEARNING_PREPARED_PATTERN,
+    prepared_result_location,
+    resolve_prepared_scope,
+)
 from .local_time_forms import canonical_time_payload
 from .local_time_http import (
     dispatch_local_metadata,
@@ -255,6 +260,7 @@ from .rendering import (
     render_authorization_failure_v1,
     render_language_context_conflict_v1,
     render_language_return_v1,
+    suppress_learning_result_autofocus_v1,
 )
 from .security import (
     APP_WEB_BIND_HOST,
@@ -493,6 +499,7 @@ def _is_stateful_get_route(path: str) -> bool:
         or path in _SESSION_DOWNLOAD_ROUTES
         or path in _MATCH_EXPORT_ROUTES
         or path in _LEARNING_DOWNLOAD_ROUTES
+        or LEARNING_PREPARED_PATTERN.fullmatch(path) is not None
         or DEBRIEF_FROM_PATTERN.fullmatch(path) is not None
         or DEBRIEF_INPUTS_PATTERN.fullmatch(path) is not None
         or DEBRIEF_PAGE_PATTERN.fullmatch(path) is not None
@@ -657,7 +664,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             content, manifest = instrument_language_forms_v1(content)
             pending = getattr(self, "_language_return", None)
             try:
-                validate_language_source_v1(self.server.app_context, source)
+                validate_language_source_v1(self.server.app_context, source,
+                    check_files=LEARNING_PREPARED_PATTERN.fullmatch(source.route) is not None)
                 if getattr(self, "_language_only_return", False):
                     with self.server.app_context.lock:
                         if (self.server.app_context.frontend_profile.generation
@@ -716,6 +724,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 content = render_language_return_v1(content,
                     token=getattr(self, "_language_return_token", None), view=view)
         if content_type == "text/html; charset=utf-8":
+            # Retained validation may be inserted even into an otherwise successful GET.
+            if 'class="error-summary"' in content:
+                content = suppress_learning_result_autofocus_v1(content)
             content = distribute_recording_input(content)
         self._send_bytes(
             status,
@@ -2372,6 +2383,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         error_notice: str | None = None,
         initialize_discovery: bool = False,
         expected_active=None,
+        prepared_scope=None,
     ) -> None:
         from .learning_outcome_navigation import current_learning_entry_outcome
 
@@ -2384,8 +2396,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     missing = "matches" not in self.server.app_context.managed_stateful.discoveries
                 if missing:
                     self._refresh_category("matches")
+        route = ("/learning/current" if prepared_scope is None else
+                 f"/learning/prepared/{prepared_scope.scope_id}")
         self._rendered_language_source = capture_language_source_v1(
-            self.server.app_context, "/learning/current")
+            self.server.app_context, route)
+        if prepared_scope is not None:
+            validate_language_source_v1(self.server.app_context,
+                self._rendered_language_source, check_files=True)
         state = build_unified_learning_state_v1(active)
         result = active.last_result
         notice = error_notice or (result.message if result is not None and result.status in {
@@ -2418,6 +2435,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             with active.corpus.lock:
                 active.operation_feedback.begin()
         scope = collection_scope(self.server.app_context, active)
+        try:
+            prepared_location = prepared_result_location(self.server.app_context, active)
+        except DebriefUnavailable:
+            prepared_location = None
         self._debrief_overview_route = f"/learning/debrief/{scope.scope_id}/all"
         body = creation_notice + render_task_first_learning_v1(
             state,
@@ -2430,6 +2451,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             candidate_limit_reached=(discovery is not None
                                      and discovery.view.candidate_limit_reached),
             entry_outcome=entry_outcome,
+            prepared_location=prepared_location,
+            show_prepared=prepared_scope is not None,
             rejected_build=(feedback is not None
                 and feedback.form_key == "learning.operation.prepare_learning_artifacts"),
             debrief=render_debrief(scope, locale, profile=profile, heading=False)
@@ -2444,7 +2467,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     + '</p>') + body
         self._content_page(
             "/learning",
-            return_to="/learning/current",
+            return_to=route,
             title=overview_title(scope, locale, profile),
             content=body,
             status=status,
@@ -2525,6 +2548,16 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         return False
 
     def _stateful_get(self, path: str) -> bool:
+        prepared = LEARNING_PREPARED_PATTERN.fullmatch(path)
+        if prepared is not None:
+            try:
+                scope = resolve_prepared_scope(self.server.app_context, prepared[1])
+                self._learning_page(expected_active=scope.owner, prepared_scope=scope)
+            except DebriefUnavailable:
+                self._rendered_language_source = None
+                self._error_page(HTTPStatus.CONFLICT, "Artifact unavailable",
+                                 "Prepared sources changed.")
+            return True
         if handle_debrief_get(self, path):
             return True
         if path == DELETION_PAGE:
@@ -3346,9 +3379,16 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         result = preparation_result if preparation_result is not None else active.last_result
         status = HTTPStatus.OK if result is None else result.http_status
         if status == HTTPStatus.OK:
-            self._redirect("/learning/current" + (
-                "#learning-results" if preparation_result is not None
-                and preparation_result.status == "prepared" else ""))
+            location = "/learning/current"
+            if preparation_result is not None and preparation_result.status == "prepared":
+                with active.corpus.lock:
+                    if active.last_result is not preparation_result:
+                        raise LanguageContextConflict
+                    try:
+                        location = prepared_result_location(self.server.app_context, active)
+                    except DebriefUnavailable as error:
+                        raise LanguageContextConflict from error
+            self._redirect(location)
             return
         definition = self._current_form_definition
         self._retain_form_feedback(

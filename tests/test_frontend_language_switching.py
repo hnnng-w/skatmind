@@ -141,6 +141,7 @@ def test_return_path_allowlist_accepts_only_rendered_html_routes() -> None:
         f"/matches/reports/{report}",
         "/learning",
         "/learning/current",
+        f"/learning/prepared/{report}",
         "/about",
     ):
         assert is_safe_frontend_return_path_v1(allowed)
@@ -158,6 +159,8 @@ def test_return_path_allowlist_accepts_only_rendered_html_routes() -> None:
         "/missing",
         "/matches/position/0",
         f"/matches/reports/{'A' * 64}",
+        f"/learning/prepared/{report}/inputs",
+        f"/learning/prepared/{report}#learning-results",
     ):
         assert not is_safe_frontend_return_path_v1(rejected)
 

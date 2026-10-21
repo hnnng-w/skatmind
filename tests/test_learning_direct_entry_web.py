@@ -147,7 +147,8 @@ def test_returned_partial_add_build_versions_downloads_and_independent_recording
     assert (state["prepared"]["observed_decision_count"], state["prepared"]["record_count"],
             state["prepared"]["skipped_decision_count"]) == (6, 2, 4)
     assert state["prepared"]["strategy_teacher_evidence_count"] == 0
-    assert 'href="#learning-results"' in page and len(builds) == 1
+    from test_learning_prepared_navigation import view_link
+    assert view_link(page) and len(builds) == 1
     assert 'Recreate dataset preparation' in page and 'View prepared datasets' in page
     artifacts = target.corpus.prepared_artifacts
     actual_downloads = downloads(browser)

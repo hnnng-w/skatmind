@@ -271,8 +271,9 @@ def test_retained_evaluation_survives_navigation_refresh_language_duplicate_and_
     assert active.corpus.store.match_snapshots[0].workspace == workspace
     assert calls == Counter(imports=1, catalog_saves=1)
     response = browser.submit(operation_form(page, "prepare_learning_artifacts"))
-    assert response[1]["location"] == "/learning/current#learning-results"
+    from test_learning_prepared_navigation import view_link
     page = follow(browser, response)
+    assert response[1]["location"] == view_link(page)
     retained, files = downloads(browser), saved_bytes(active.path)
     artifacts = active.corpus.prepared_artifacts
     current = active.corpus.store.document.catalog.current_matches

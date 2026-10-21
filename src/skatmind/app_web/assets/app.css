@@ -130,13 +130,13 @@ body:has(#task-first-learning) .language-buttons {
   hyphens: auto;
 }
 
-#learning-results .learning-downloads ul {
+#learning-prepared-result .learning-downloads ul {
   list-style: none;
   padding: 0;
 }
 
-#learning-results .learning-downloads li { margin-block: 1rem; }
-#learning-results .learning-downloads li p { margin-block: 0.25rem; }
+#learning-prepared-result .learning-downloads li { margin-block: 1rem; }
+#learning-prepared-result .learning-downloads li p { margin-block: 0.25rem; }
 
 /* Native Report selects keep full, wrapping captions in their associated description. */
 #learning-sources p,
