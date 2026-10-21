@@ -92,6 +92,7 @@ class NativePage(HTMLParser):
     def submission(self, action):
         button = self.button(action)
         owner = self.owner(button)
+        assert owner is not None, "Submission requires final emitted native form ownership"
         values = {}
         for control in self.controls:
             name = control.get("name")
@@ -327,6 +328,85 @@ def test_native_language_draft_lifetime_is_not_renewed(localized_server, failure
         follow(browser, response)
     assert browser.submit(form, language="en")[0] == 409
     assert localized_server.app_context.managed_stateful.active_match.path.read_bytes() == saved
+
+
+@pytest.mark.parametrize("locale", ("en", "de"))
+@pytest.mark.parametrize("change", ("ordinary", "explicit_reload", "reopen", "movement"))
+def test_delivered_native_language_draft_cannot_survive_navigation(
+    localized_server, locale, change,
+):
+    from test_session_recorded_review_web import Forms
+
+    browser = Browser(localized_server)
+    page = NativePage(started(browser, locale=locale))
+    page.enter(game_type="grand", bid_value="18")
+    page.choose("discarded_cards", {"H7", "D7"})
+    html = follow(browser, page.submit(browser, "discarded_cards_selected"))
+    stale_language = Forms(html).find("/actions/profile/language")
+    active = localized_server.app_context.managed_stateful.active_match
+    saved, workspace = active.path.read_bytes(), active.workspace
+    generation = active.position_generation
+    if change == "ordinary":
+        current = NativePage(browser.page("/matches/position/1"))
+        assert current.field("bid_value")["value"] == ""
+        assert active.position_generation == generation
+    elif change == "explicit_reload":
+        assert browser.submit(Forms(html).find("/matches/api/v1/reload"))[0] == 303
+    elif change == "reopen":
+        assert browser.submit(Forms(browser.page("/matches")).find("/matches/open"))[0] == 303
+    else:
+        browser.page("/matches/position/2")
+        browser.page("/matches/position/1")
+    response = browser.submit(stale_language, language="de" if locale == "en" else "en")
+    assert response[0] == 409
+    assert all(control.get("value") != "18" for control in NativePage(response[2].decode()).controls
+               if control.get("name") == "bid_value")
+    assert active.workspace == workspace and active.path.read_bytes() == saved
+    assert workspace.slots[0].observed_game.declaration is None
+
+
+def test_ordinary_get_revokes_already_prepared_language_return(localized_server):
+    from test_session_recorded_review_web import Forms
+
+    browser = Browser(localized_server)
+    page = NativePage(started(browser))
+    page.enter(game_type="grand", bid_value="18")
+    page.choose("discarded_cards", {"H7", "D7"})
+    html = follow(browser, page.submit(browser, "discarded_cards_selected"))
+    form = Forms(html).find("/actions/profile/language")
+    context = localized_server.app_context.language_context
+    original = context.pages[form["values"]["_frontend_language_context"]]
+    response = browser.submit(form, language="de")
+    assert response[0] == 303
+    pending, _ = context.pending
+    assert pending.native_match_draft_deadline == original.native_match_draft_deadline
+    assert pending.native_match_draft_authorization is original.native_match_draft_authorization
+    active = localized_server.app_context.managed_stateful.active_match
+    saved = active.path.read_bytes()
+    browser.page("/matches/position/1")
+    status, _, raw = browser.request("GET", response[1]["location"])
+    assert status == 409 and "Entwurf" in raw.decode()
+    assert not any(control.get("value") == "18" for control in NativePage(raw.decode()).controls)
+    assert active.path.read_bytes() == saved
+
+
+@pytest.mark.parametrize("context", ("undeclared", "hand", "non_hand"))
+def test_first_native_submitter_is_declaration_even_when_editor_follows_evidence(
+    localized_server, context,
+):
+    browser = Browser(localized_server)
+    page = NativePage(started(browser, context=context))
+    owner = page.owner(page.field("bid_value"))
+    buttons = [control for control in page.controls
+               if control["tag"] == "button" and page.owner(control) is owner]
+    assert buttons[0]["name"] == "recording_action"
+    assert buttons[0]["value"] == "set_declaration"
+    assert "disabled" not in buttons[0] and "formnovalidate" not in buttons[0]
+    visible_save, = [button for button in buttons
+                     if button["value"] == "set_declaration" and "hidden" not in button]
+    assert "formnovalidate" not in visible_save
+    assert all("formnovalidate" in button for button in buttons
+               if button["value"] != "set_declaration")
 
 
 def test_enhanced_language_submission_becomes_current_native_draft(localized_server):

@@ -40,8 +40,8 @@ class Forms(HTMLParser):
             from test_match_declaration_drafts import NativePage
 
             native = NativePage(html)
-            actions = [c["value"] for c in native.controls
-                       if c.get("name") == "recording_action"]
+            actions = list(dict.fromkeys(c["value"] for c in native.controls
+                           if c.get("name") == "recording_action"))
             actions.sort(key=lambda action: action != "set_declaration")
             # Submitter-specific views of the actual common owner. Every value
             # comes from successful emitted controls, including external fields.

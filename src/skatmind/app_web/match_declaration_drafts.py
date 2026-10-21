@@ -74,6 +74,19 @@ def distribute_recording_input(html):
     return html
 
 
+@dataclass(frozen=True, slots=True)
+class DeclarationDraftAuthorization:
+    """Revocable presentation identity shared by the direct and language returns."""
+
+    active: object = field(repr=False)
+
+    def require_current(self):
+        # Identity reads only: language submission may hold the app lock here.
+        # The normal source/file checks and final render recheck remain separate.
+        if self.active.retired or self.active.declaration_draft_authorization is not self:
+            raise DeclarationDraftConflict()
+
+
 @dataclass(slots=True)
 class DeclarationDraftReturn:
     """At most one bounded successor handoff per active Match, never persisted."""
@@ -81,6 +94,7 @@ class DeclarationDraftReturn:
     active: object = field(repr=False)
     selection: str = field(repr=False)
     values: FormValuesV1 = field(repr=False)
+    authorization: DeclarationDraftAuthorization = field(repr=False)
     created: float = field(default_factory=time.monotonic)
     token: str = field(default_factory=lambda: secrets.token_hex(32), repr=False)
     consumed: bool = False
@@ -88,6 +102,7 @@ class DeclarationDraftReturn:
     def take(self, active):
         used = self.consumed
         self.consumed = True
+        self.authorization.require_current()
         if (used or time.monotonic() - self.created >= RETURN_SECONDS
                 or active is not self.active or active.retired
                 or not hmac.compare_digest(self.selection,
@@ -217,8 +232,10 @@ def dispatch_recording_input(handler, parsed):
                 error = failure
             _verify_successor(before, predecessor, active, operation)
             _fresh(active, session=False)
+            authorization = DeclarationDraftAuthorization(active)
+            active.declaration_draft_authorization = authorization
             returned = DeclarationDraftReturn(active,
-                declaration_binding(active, "match-declaration"), draft)
+                declaration_binding(active, "match-declaration"), draft, authorization)
             if error is not None:
                 handler._declaration_draft_return = returned
                 from .validation_contracts import FrontendValidationIssueV1
@@ -244,8 +261,14 @@ def take_recording_draft(handler, active):
             raise DeclarationDraftConflict()
     if pending is None:
         active.declaration_draft_return = None
+        language_return = getattr(handler, "_language_return", None)
+        if handler.command == "GET" and (language_return is None or
+                language_return[0].native_match_draft_authorization
+                is not active.declaration_draft_authorization):
+            active.declaration_draft_authorization = None
         return None
     handler._native_draft_deadline = pending.created + RETURN_SECONDS
+    handler._native_draft_authorization = pending.authorization
     return pending.take(active)
 
 

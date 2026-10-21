@@ -674,6 +674,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                         if manifest != page.manifest:
                             raise LanguageContextConflict
                         content = apply_language_page_values_v1(content, overlay)
+            except DeclarationDraftConflict:
+                self._declaration_draft_conflict_page(source.route)
+                return
             except LanguageContextConflict:
                 self._rendered_language_source = None
                 if (getattr(self, "_native_declaration_values", None) is not None
@@ -685,6 +688,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             content = deliver_operation_feedback(self, content, status=status)
             native_draft = None
             native_deadline = getattr(self, "_native_draft_deadline", None)
+            native_authorization = getattr(self, "_native_draft_authorization", None)
             values = getattr(self, "_native_declaration_values", None)
             if values is not None:
                 from .language_form_preservation import LanguagePageValuesV1
@@ -697,10 +701,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             elif pending is not None:
                 native_draft = continue_native_match_draft(*pending)
                 native_deadline = pending[0].native_match_draft_deadline
+                native_authorization = pending[0].native_match_draft_authorization
             with self.server.app_context.lock:
                 token = self.server.app_context.language_context.retain(source, manifest,
                     getattr(self, "_visible_operation_feedback", None),
-                    native_match_draft=native_draft, native_match_draft_deadline=native_deadline)
+                    native_match_draft=native_draft, native_match_draft_deadline=native_deadline,
+                    native_match_draft_authorization=native_authorization)
             content = content.replace(
                 '<span class="language-buttons">',
                 f'<input type="hidden" name="_frontend_language_context" value="{token}">'
@@ -3463,6 +3469,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self._declaration_draft_return = None
         self._native_declaration_values = None
         self._native_draft_deadline = None
+        self._native_draft_authorization = None
         self._request_frontend = None
         self._operation_feedback_delivery = None
         self._visible_operation_feedback = None
@@ -3516,6 +3523,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 self._error_page(HTTPStatus.NOT_FOUND, "Page not found", "Not found.")
                 return
             self._page(parsed.path)
+        except DeclarationDraftConflict:
+            self._declaration_draft_conflict_page(parsed.path)
         except LanguageContextConflict:
             self._language_conflict_page(parsed.path)
         except KeyError:
@@ -3555,6 +3564,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self._declaration_draft_return = None
         self._native_declaration_values = None
         self._native_draft_deadline = None
+        self._native_draft_authorization = None
         self._request_frontend = None
         self._rollout_execution_started = False
         self._operation_feedback_delivery = None

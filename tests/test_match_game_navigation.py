@@ -54,6 +54,7 @@ def workspace_for(states):
 
 
 def rendered(workspace, selected, locale):
+    """Intermediate renderer output for projection assertions, not browser submission."""
     view = project_task_first_match_v1(workspace, selected_position=selected)
     context = SimpleNamespace(workspace=workspace,
                               capture=SimpleNamespace(report_store=MatchAnalysisReportStoreV1()))
@@ -106,7 +107,7 @@ def test_selected_identity_controls_seats_and_single_overview(mixed, selected, a
     current_task = recording
     if hand_editor:
         assert hand_editor[0].count('class="primary"') == 1
-        assert 'name="card_evidence_form" value="perspective_hand_selected"' in hand_editor[0]
+        assert 'name="recording_action" value="perspective_hand_selected"' in hand_editor[0]
         current_task = recording.replace(hand_editor[0], "")
     if action:
         assert f'value="{action}"' in current_task and current_task.count('class="primary"') == 1
@@ -126,6 +127,16 @@ def test_selected_identity_controls_seats_and_single_overview(mixed, selected, a
         f"Zur Erfassung: Spiel {selected}" if locale == "de" else f"Recording: Game {selected}")
     assert text(locale, "task.match.position", number=selected) in review
     assert "Position " not in review
+
+
+def test_intermediate_evidence_fragments_are_not_native_submission_documents(mixed):
+    from test_match_declaration_drafts import NativePage
+
+    _, _, html = rendered(mixed, 3, "en")
+    page = NativePage(html)
+    assert page.owner(page.button("perspective_hand_selected")) is None
+    with pytest.raises(AssertionError, match="final emitted native form ownership"):
+        page.submission("perspective_hand_selected")
 
 
 @pytest.mark.parametrize("kind,next_position,observed,complete,passed", (

@@ -7,9 +7,11 @@ from html import escape
 from urllib.parse import urlsplit
 
 import pytest
+from test_direct_match_evidence import started
 from test_frontend_language_switching import localized_server as _localized_server
+from test_match_declaration_drafts import NativePage
 from test_match_game_navigation import rendered, workspace_for
-from test_match_recording_recovery_web import entry_action, follow, operation_form
+from test_match_recording_recovery_web import entry_action, follow, operation_form, synthetic_cards
 from test_match_workspace_contracts import _definition, _observed_game, _set_game
 from test_recorded_decision_context import MATCH_HAND, assert_context
 from test_recorded_decision_context_web import record_context_match, record_second_context_game
@@ -55,25 +57,36 @@ def test_missing_hand_review_has_one_named_visible_destination(localized_server)
     assert f'href="{href}">Enter known initial hand for C</a>' in review
     page = browser.page(urlsplit(href).path)
     assert '<summary id="match-initial-hand">Initial hand for C</summary>' in page
-    assert len(re.findall(r'name="operation" value="set_perspective_hand"', page)) == 1
+    assert len(re.findall(r'name="recording_action" value="perspective_hand_selected"', page)) == 1
+    native = NativePage(page)
+    assert native.owner(native.button("perspective_hand_selected"))["id"] == "match-recording-input"
 
 
 @pytest.mark.parametrize("kind", ("started", "declaration", 3, "complete"))
-def test_unknown_editors_do_not_depend_on_cards_or_prepared_count(kind):
-    view, state, page = rendered(workspace_for((kind,)), 1, "en")
+def test_unknown_editors_do_not_depend_on_cards_or_prepared_count(localized_server, kind):
+    browser = Browser(localized_server)
+    page = started(browser, context="undeclared" if kind == "started" else "hand")
+    for card in synthetic_cards()[:30 if kind == "complete" else 3 if kind == 3 else 0]:
+        page = follow(browser, browser.submit(operation_form(page, "append_plays"), cards=card))
+    active = localized_server.app_context.managed_stateful.active_match
+    view = project_task_first_match_v1(active.workspace, selected_position=1)
+    state = build_task_first_match_page_state_v1(active, view)
+    native = NativePage(page)
     assert state["game"]["perspective_initial_hand"] is None
     assert 'id="match-evidence"' in page and 'id="match-initial-hand"' in page
     for operation in ("set_perspective_hand", "set_original_skat", "set_discarded_cards"):
         form = operation_form(page, operation)
-        assert form["action"] == "/matches/cards"
-        marker = form["values"]["card_evidence_form"]
+        assert form["action"] == "/matches/recording-input"
+        marker = form["values"]["recording_action"]
         expected = ("discarded_cards_empty" if operation == "set_discarded_cards"
                     and state["game"]["declaration"] is not None
                     and state["game"]["declaration"]["hand_game"] else
                     operation.removeprefix("set_") + "_selected")
         assert marker == expected
+        assert native.owner(native.button(marker)) is native.owner(native.field("game_type"))
+        assert "formnovalidate" in native.button(marker)
         assert "card_evidence_mode" not in form["values"]
-        assert not form["values"].get("cards")
+        assert not form["values"].get("evidence_" + operation.removeprefix("set_"))
     review = render_match_analysis_v1(state, view, "a" * 64, "en")
     if kind == "complete":
         assert state["decision_preparation"]["prepared_decision_count"] == 30
@@ -214,8 +227,10 @@ def test_returned_remedy_retry_save_review_lifecycle_and_frozen_session(
     page = browser.page(urlsplit(href).path)
     form = operation_form(page, "set_perspective_hand")
     assert set(form["values"]) == {
-        "managed_handle", "operation", "card_selection", "card_evidence_form",
-        "_frontend_form_instance"}
+        "managed_handle", "operation", "recording_action", "declaration_selection",
+        "declaration_form", "match_position", "expected_revision", "declarer_player_id",
+        "game_type", "bid_value", "matadors", "_frontend_form_instance"}
+    assert form["values"]["recording_action"] == "perspective_hand_selected"
     status, _, body = browser.submit(form, cards=["C7"])
     assert status == 400
     page = body.decode()
@@ -225,10 +240,12 @@ def test_returned_remedy_retry_save_review_lifecycle_and_frozen_session(
                                           language="de"))
     assert "Anfangshand von C" in page
     retry = operation_form(page, "set_perspective_hand")
-    assert retry["values"]["cards"] == "C7"
+    assert retry["values"]["evidence_perspective_hand"] == "C7"
     assert active.path.read_bytes() == original and not saves and not executions
     response = browser.submit(retry, cards=MATCH_HAND)
-    assert response[1]["location"] == "/matches/position/1#match-recording"
+    target = urlsplit(response[1]["location"])
+    assert (target.path, target.fragment) == ("/matches/position/1", "match-recording")
+    assert re.fullmatch(r"_declaration_return=[0-9a-f]{64}", target.query)
     page = follow(browser, response)
     assert len(saves) == 1 and not executions
     saved = active.path.read_bytes()
@@ -282,4 +299,5 @@ def test_returned_remedy_retry_save_review_lifecycle_and_frozen_session(
     page = browser.page("/matches/position/1")
     page = follow(browser, browser.submit(Forms(page).find("/matches/api/v1/reload")))
     assert active.path.read_bytes() == saved and not active.capture.report_store.list()
-    assert set(operation_form(page, "set_perspective_hand")["values"]["cards"]) == set(MATCH_HAND)
+    assert set(operation_form(page, "set_perspective_hand")["values"][
+        "evidence_perspective_hand"]) == set(MATCH_HAND)

@@ -240,7 +240,12 @@ def test_match_declaration_edit_null_and_faulted_apply_keep_accepted_progress(
     assert html_totals(summary_html(page)) == ()
     assert text("en", "trick_progress.null.one") in summary_html(page)
     assert 'data-trick-metric="points"' not in summary_html(page)
-    assert "/matches/cards" in page  # No automatic Null capture stop.
+    # #290 derives the Null loss from this accepted trick; evidence and correction
+    # remain available, but their controls do not authorize another normal Play.
+    assert "Null game lost" in page
+    assert not any(f["values"].get("operation") == "append_plays" for f in Forms(page).forms)
+    assert operation_form(page, "set_perspective_hand")["values"][
+        "recording_action"] == "perspective_hand_selected"
     page = follow(browser, browser.submit(entry_action(page, 3)))
     page = follow(browser, browser.submit(Forms(page).find("/matches/recovery/preview"), card="CK"))
     source, before = active.workspace, active.path.read_bytes()

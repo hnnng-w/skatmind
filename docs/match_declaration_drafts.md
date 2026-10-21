@@ -28,6 +28,15 @@ All three evidence selections can travel with the form, but only the selected
 operation's selection is translated into canonical `cards`. Withdrawal and
 known-empty ignore the still-visible selection, as their labels promise.
 
+An enabled hidden declaration submitter precedes all associated evidence buttons
+in document order. HTML's [implicit submission rule](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#implicit-submission)
+therefore routes Enter inside `bid_value` or `matadors` to declaration Save even
+when the visible editor is later in Corrections. This submitter has the same
+`set_declaration` intent and normal constraint validation, is hidden from the
+visible/accessibility layout and Tab order, and duplicates no editable controls.
+Explicit evidence buttons still supply only their own intent and retain
+`formnovalidate`. No input/change/blur event triggers a save.
+
 Evidence submitters use `formnovalidate`: incomplete required declaration selects
 cannot block evidence entry. Declaration Save retains native required controls
 and the existing compact server parser. There are no new numeric browser
@@ -113,6 +122,19 @@ apply. The enhanced language envelope continues to capture current unsent visibl
 values; native language switching can preserve only the already submitted draft,
 not later unsent changes. Language submission is an explicit profile operation;
 evidence/draft transport itself performs no profile write.
+
+The direct return and every language-page copy also share one revocable private
+`DeclarationDraftAuthorization` identity. The active Match holds only its current
+identity. An ordinary recording GET revokes it, even for the same position and
+unchanged Workspace revision/generation. An older unused language form can no
+longer resurrect a delivered draft. The identity is checked at language submission
+and again when a prepared language return is consumed/rendered, so an intervening
+ordinary GET also invalidates an already prepared return. Only a language return
+carrying that same current authorization preserves it. New evidence submissions
+replace the authorization; retirement/reopen also invalidates it. These identity
+checks perform no I/O or nested Product-lock acquisition under the app lock.
+Existing source, file, manifest, one-use and absolute-deadline checks still apply.
+Unrelated language pages are not cleared and Product generation is not changed.
 
 ## Compatibility and derived inventories
 
@@ -220,7 +242,9 @@ py -3.13 -m pytest `
   tests/test_session_recorded_review_web.py tests/test_match_game_navigation_web.py `
   tests/test_recorded_decision_context_web.py tests/test_session_declaration_correction_web.py `
   tests/test_session_declaration_correction.py tests/test_frontend_localization_foundation.py `
-  tests/test_complete_frontend_localization.py -q --tb=short
+  tests/test_complete_frontend_localization.py tests/test_match_evidence_navigation.py `
+  tests/test_match_game_navigation.py tests/test_recorded_trick_progress_web.py `
+  tests/test_unplayed_card_summary_web.py tests/test_match_analysis_action_placement.py -q --tb=short
 ```
 
 The same command includes strict rename-inventory and executable packaging-registry
@@ -236,3 +260,121 @@ The final local gate is explicitly:
 Full exact-commit hosted CI and the installed declaration-draft retest remain
 maintainer gates. Keep #292 and #208 open; #289, #290 and #291 remain closed.
 UAT-02–12 remain paused. Finding B remains separately pending.
+
+## Follow-up after CI run 39503115230
+
+The correction starts from clean branch `bug/292-match-declaration-drafts` at
+`27431d03df7e4ee0e157ed4e0b3e191e68e5db4e`. Authenticated read-only access retrieved
+the actual logs with:
+
+```powershell
+gh run view 39503115230 --repo hnnng-w/skatmind --log-failed
+```
+
+Both regression jobs reported the same 16 failed IDs:
+
+```text
+tests/test_match_game_navigation.py::test_selected_identity_controls_seats_and_single_overview[1-None-de]
+tests/test_match_game_navigation.py::test_selected_identity_controls_seats_and_single_overview[1-None-en]
+tests/test_match_game_navigation.py::test_selected_identity_controls_seats_and_single_overview[3-set_declaration-de]
+tests/test_match_game_navigation.py::test_selected_identity_controls_seats_and_single_overview[3-set_declaration-en]
+tests/test_match_game_navigation.py::test_selected_identity_controls_seats_and_single_overview[4-append_plays-de]
+tests/test_match_game_navigation.py::test_selected_identity_controls_seats_and_single_overview[4-append_plays-en]
+tests/test_match_game_navigation.py::test_selected_identity_controls_seats_and_single_overview[5-append_plays-de]
+tests/test_match_game_navigation.py::test_selected_identity_controls_seats_and_single_overview[5-append_plays-en]
+tests/test_match_evidence_navigation.py::test_missing_hand_review_has_one_named_visible_destination
+tests/test_match_evidence_navigation.py::test_unknown_editors_do_not_depend_on_cards_or_prepared_count[started]
+tests/test_match_evidence_navigation.py::test_unknown_editors_do_not_depend_on_cards_or_prepared_count[declaration]
+tests/test_match_evidence_navigation.py::test_unknown_editors_do_not_depend_on_cards_or_prepared_count[3]
+tests/test_match_evidence_navigation.py::test_unknown_editors_do_not_depend_on_cards_or_prepared_count[complete]
+tests/test_match_evidence_navigation.py::test_returned_remedy_retry_save_review_lifecycle_and_frozen_session
+tests/test_recorded_trick_progress_web.py::test_match_declaration_edit_null_and_faulted_apply_keep_accepted_progress
+tests/test_unplayed_card_summary_web.py::test_match_real_completion_report_preview_correction_rewind_and_selection
+```
+
+The first eight expected the obsolete `card_evidence_form` hidden marker. The
+missing-hand test expected one hidden `operation=set_perspective_hand` but found
+zero. Four unknown-editor cases tried to submit unassociated intermediate
+renderer fragments and raised `TypeError: 'NoneType' object is not subscriptable`
+at `owner["action"]`. The remedy test expected the old five-field independent
+payload instead of the new shared payload. The trick-progress test expected
+`/matches/cards` on a rule-ended Null page; it had also retained a stale pre-#290
+"no automatic stop" comment. The unplayed-summary test raised
+`KeyError: 'card_evidence_form'`.
+
+Windows job `118905409959` reported 16 failed / 10,980 passed. Ubuntu job
+`118905410023` reported 16 failed / 10,978 passed / 2 skipped. The dependent
+`check` job `118925929059` rejected with `gate_prerequisites_invalid` because
+regression failed; it did not expose an additional test defect. The other 20
+jobs succeeded. The workflow used CPython 3.13.15. This local reproduction on
+CPython 3.13.7 produced the same 16 failures and 75 passes in 157.20 seconds:
+
+```powershell
+py -3.13 -m pytest tests/test_match_evidence_navigation.py tests/test_match_game_navigation.py tests/test_recorded_trick_progress_web.py tests/test_unplayed_card_summary_web.py -q --tb=short
+```
+
+These deterministic failures reproduce serially; no parallel-only failure or
+Python-patch-version cause was established. New exact-commit hosted parallel CI
+remains pending. No local Full or validation-architecture change is part of this
+repair.
+
+Submission tests now obtain real HTTP-rendered forms, including unknown/empty
+evidence availability, named destinations, exact payloads and native ownership.
+Projection tests continue inspecting intermediate renderer output as such. A
+regression explicitly rejects using its unassociated fragments for submission;
+the parser does not invent ownership. Equivalent explicit/implicit declaration
+submitters yield one helper action view from genuine successful controls.
+Independent Card-route compatibility remains covered separately. The Null test
+now verifies the already implemented #290 stop while retaining evidence and
+correction access; no Null behavior is changed here.
+
+### Separate lifecycle and keyboard reproductions
+
+Before correction, emitted-form regressions in both locales returned 303 instead
+of the expected 409 when an old unused native language form was submitted after
+an ordinary same-position GET. The browser probe confirmed the draft actually
+reappeared. This is distinct from explicit recording Reload, strict reopen,
+movement, and the earlier undelivered-return test. Regressions now cover each
+boundary and an ordinary GET between language POST and its prepared GET return.
+Legitimate immediate language switches preserve the submitted draft and original
+absolute deadline.
+
+Before correction, Enter in the bid field of an existing declaration selected
+`perspective_hand_selected` and persisted a waiting ten-Card selection: one hand
+operation/write, zero declaration operations. Enter in Matadors selected the same
+evidence action again (a no-op). After correction both fields submit
+`set_declaration`: one declaration operation/write each, no evidence write. A
+semantically invalid Matador submission produces declaration validation feedback
+with no mutation; incomplete required declaration controls block implicit Enter
+without a POST. Explicit evidence actions still work with that incomplete draft.
+
+`scripts/verify_match_draft_lifecycle.py` verifies these paths with real emitted
+controls, native pointer/Tab/Enter events and disposable first/second browser
+profiles. The second browser performs the ordinary recording GET while the first
+retains its genuine older language form. The old form is never reconstructed or
+injected. Each action records actual submitted fields, accepted state,
+revision/fingerprint, Product calls, recording replacements and profile writes.
+
+```powershell
+py -3.13 scripts/verify_match_draft_lifecycle.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "<fresh-temporary-output>" --phase before
+py -3.13 scripts/verify_match_draft_lifecycle.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "<different-fresh-temporary-output>" --phase after
+```
+
+The before phase was executed before Product edits. Evidence under the approved
+temporary `opencode` root is in `declaration-292-followup-before` and
+`declaration-292-followup-complete`. Both completed all four de/en × script-on/off
+cases on headless Edge 155.0.4283.62. The after probe additionally exercises all
+three evidence Save/withdrawal pairs and known-empty buttons with both pointer
+and Tab/Enter activation, retaining the incomplete draft and validating no-op
+behavior. Each changed evidence action writes once; no-op saves write zero times;
+declaration/profile writes stay zero during those evidence actions. Stale language
+submission now returns 409 with zero recording or profile writes, compared with
+one explicit language-profile write and draft resurrection before correction.
+The legitimate immediate language change writes only its profile preference.
+
+The original central Bea / Grand / 18 → H7/D7 → explicit declaration Save browser
+sequence was rerun unchanged in `declaration-292-followup-central`; all four cases
+passed, including incomplete declaration/evidence and language handling. These
+are source-tree checks, not installed UAT. The route/form/catalog inventories
+remain 73 / 125 / 2,034 per locale; no new private endpoint or message is needed
+for this follow-up.

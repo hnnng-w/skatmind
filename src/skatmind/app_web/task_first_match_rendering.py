@@ -440,4 +440,9 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     body += technical_details(locale, {"match_id": state["match"]["match_id"],
         "workspace_revision": state["workspace_revision"], "position_view": state["position_view"]},
         caption_key="result.match_recording_details") + '</section>'
-    return '<div id="task-first-match">' + body + '</div>'
+    # HTML implicit submission uses the first associated submit button in tree
+    # order, even when the visible correction editor follows the evidence panels.
+    default_submitter = ('' if game is None else
+        f'<button type="submit" form="{MATCH_RECORDING_FORM_ID}" name="recording_action" '
+        'value="set_declaration" hidden tabindex="-1" aria-hidden="true"></button>')
+    return '<div id="task-first-match">' + default_submitter + body + '</div>'
