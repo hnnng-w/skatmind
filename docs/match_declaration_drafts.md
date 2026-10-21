@@ -136,6 +136,16 @@ checks perform no I/O or nested Product-lock acquisition under the app lock.
 Existing source, file, manifest, one-use and absolute-deadline checks still apply.
 Unrelated language pages are not cleared and Product generation is not changed.
 
+A missing or mismatched `_declaration_return` token also revokes that Match's
+current authorization **before** raising the direct-return conflict. In
+particular, requesting the exact already consumed URL again (including browser
+Refresh) invalidates both an older unused draft-bearing language form and an
+already prepared language return. Clearing only the pending direct-return slot
+is insufficient because those language copies retain the shared authorization.
+The existing source lock covers this revocation; it performs no recording/profile
+write and does not roll back a language preference already saved by a legitimate
+earlier POST. A matching first delivery keeps its authorization and deadline.
+
 ## Compatibility and derived inventories
 
 Independent `/matches/cards` and compact `/matches/api/v1/operation` callers remain
@@ -378,3 +388,106 @@ passed, including incomplete declaration/evidence and language handling. These
 are source-tree checks, not installed UAT. The route/form/catalog inventories
 remain 73 / 125 / 2,034 per locale; no new private endpoint or message is needed
 for this follow-up.
+
+## Consumed-return replay correction at b1b4bd2
+
+The next bounded Finding A correction starts at
+`b1b4bd2f0e7d14fd9c8af9fd328a62dec450a23b` on the same branch. The maintainer reports
+successful baseline CI run `39563815651` with all 23 jobs passing. This additional
+correction still requires new exact-commit hosted CI and the installed targeted
+retest after manual publication.
+
+### Reproduction and correction
+
+The emitted-form regressions and source-tree browser probe reproduce this precise
+sequence before the production edit:
+
+1. Create a disposable Game with Bea at the table. Enter Bea / Grand / bid 18 in
+   the visible declaration controls without saving the declaration.
+2. Select H7/D7 and save the evidence. Follow the actual 303 Location containing
+   `_declaration_return`, retaining the delivered page's original unused language
+   form. Accepted declarer/declaration remain absent.
+3. Request that exact consumed Location again, with its token. The direct request
+   returns 409 and shows accepted-state controls, but previously left the shared
+   authorization live.
+4. Submit the older language form within the original deadline. Previously this
+   returned 303 and restored the draft; after correction it returns localized 409
+   with no restoration and no recording/profile write.
+
+A second case submits the legitimate language form before step 3 but delays its
+prepared GET delivery. Previously that GET returned 200 and restored the draft
+after the replay. It now returns localized 409. Its earlier successful language
+POST's one profile write is retained; replay and delivery add no writes.
+
+The initial focused command failed in all four native HTTP cases (de/en, unused
+form/prepared return), with actual 303/200 instead of the required 409:
+
+```powershell
+py -3.13 -m pytest tests/test_match_declaration_drafts.py -k consumed_declaration_return_replay -q --tb=short
+```
+
+The production change is the authorization reset in `take_recording_draft()`'s
+existing missing/mismatched-token branch. It leaves successful first delivery,
+immediate native/enhanced continuation, absolute lifetime, source/manifest/file
+checks, explicit operation routing and native default-submit behavior intact.
+
+### Browser evidence and writes
+
+`scripts/verify_match_declaration_return_replay.py` runs 12 cases: unused form,
+prepared return and legitimate immediate continuation, each in de/en with
+JavaScript enabled and disabled. All use actual native controls and HTTP requests.
+The replay browser both navigates to the captured Location and performs browser
+Refresh; the observed response sequence for that exact path/query is 200, 409,
+409. The original browser keeps its genuine older form. No draft fields or return
+tokens are synthesized into its requests.
+
+For the prepared case, a bounded test-only ingress barrier delays the browser's
+real language-return GET before `_consume_profile_redirect_return()`. After the
+other browser replays and refreshes the consumed evidence URL, the original handler
+runs unchanged. The barrier changes scheduling only, not requests, source
+validation or results. Every case asserts it finishes before the original
+deadline, and successful continuations retain that exact deadline.
+
+Recording replacements, Product operations and profile saves are counted
+separately after fixture creation:
+
+| Case | Evidence save | Legitimate profile write before replay | Additional writes after replay |
+| --- | --- | --- | --- |
+| Unused language form, corrected | 1 recording write | 0 | 0 recording, 0 profile |
+| Prepared language return, corrected | 1 recording write | 1 | 0 recording, 0 profile |
+| Immediate continuation, positive control | 1 recording write | Not replayed | 0 recording, 1 explicit profile write |
+
+All cases retain absent accepted declarer/declaration and identical recording
+bytes after the evidence save. There is no declaration operation. Before the
+correction, the unused stale language submission wrote the language preference
+once and restored the draft; the prepared return restored it without an
+additional write beyond its already accepted language POST.
+
+```powershell
+py -3.13 scripts/verify_match_declaration_return_replay.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "<fresh-temporary-output>" --phase before
+py -3.13 scripts/verify_match_declaration_return_replay.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "<different-fresh-temporary-output>" --phase after
+```
+
+The before run preceded the production edit. Both runs completed all 12 cases.
+The approved temporary `opencode` root contains
+`declaration-292-return-replay-before` and `declaration-292-return-replay-after`,
+including `evidence.json`, actual request/response traces, source fingerprints,
+returned controls, remaining lifetime, write counters and screenshots. These are
+CPython 3.13.7 / headless Edge 155.0.4283.62 source-tree checks, not installed UAT.
+
+The complete affected-module command, including unchanged strict inventory and
+packaging assertions, is:
+
+```powershell
+py -3.13 -m pytest `
+  tests/test_match_declaration_drafts.py tests/test_task_first_language_preservation.py `
+  tests/test_frontend_language_switching.py tests/test_language_switch_context.py `
+  tests/test_language_view_continuity.py tests/test_operation_feedback_language.py `
+  tests/test_frontend_validation_preservation.py tests/test_skatmind_rename.py `
+  tests/test_packaging_and_distribution.py -q --tb=short
+```
+
+After the final edit and diff review, finish local validation with
+`.\scripts\check.ps1 -Mode Quick` using the process-locally selected interpreter.
+No local Full is run for this correction. Keep #292/#208 open and #289/#290/#291
+closed; Finding B remains separate and UAT-02–12 remain paused.

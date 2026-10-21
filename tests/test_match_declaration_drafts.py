@@ -390,6 +390,98 @@ def test_ordinary_get_revokes_already_prepared_language_return(localized_server)
     assert active.path.read_bytes() == saved
 
 
+def create_replay_match(browser, locale):
+    """Fresh synthetic Bea fixture using the actual creation and start controls."""
+    from test_match_recording_recovery_web import operation_form
+    from test_session_recorded_review_web import Forms
+
+    page = browser.page("/matches/new")
+    page = follow(browser, browser.submit(Forms(page).find("/actions/profile/language"),
+                                         language=locale))
+    page = follow(browser, browser.submit(Forms(page).find("/matches/api/v1/create"),
+        match_title="Synthetic return replay", forehand_name="Anna", middlehand_name="Bea",
+        rearhand_name="Clara", perspective_seat="middlehand", setup_action="update"))
+    page = follow(browser, browser.submit(Forms(page).find("/matches/api/v1/create"),
+                                         setup_action="create"))
+    return follow(browser, browser.submit(operation_form(page, "start_game")))
+
+
+@pytest.mark.parametrize("locale", ("en", "de"))
+@pytest.mark.parametrize("prepared", (False, True))
+def test_consumed_declaration_return_replay_revokes_language_draft(
+    localized_server, monkeypatch, locale, prepared,
+):
+    import os
+    import re
+    import time
+    from collections import Counter
+    from pathlib import Path
+
+    from test_session_recorded_review_web import Forms
+
+    import skatmind.app_web.frontend_profile_operations as profile
+    from skatmind.app_web.translation_catalog import translate_frontend_message_v1 as text
+
+    browser = Browser(localized_server)
+    html = create_replay_match(browser, locale)
+    page = NativePage(html)
+    bea, = re.findall(r'<option value="([^"]+)"[^>]*>Bea[^<]*</option>', html)
+    page.enter(declarer_player_id=bea, game_type="grand", bid_value="18")
+    page.choose("discarded_cards", {"H7", "D7"})
+    active = localized_server.app_context.managed_stateful.active_match
+    counts = Counter()
+    real_replace, real_profile = os.replace, profile.save_frontend_profile_file_v1
+    def replace(source, destination):
+        if Path(destination) == active.path:
+            counts["recording"] += 1
+        return real_replace(source, destination)
+    def save_profile(*args, **kwargs):
+        counts["profile"] += 1
+        return real_profile(*args, **kwargs)
+    monkeypatch.setattr(os, "replace", replace)
+    monkeypatch.setattr(profile, "save_frontend_profile_file_v1", save_profile)
+    response = page.submit(browser, "discarded_cards_selected")
+    assert response[0] == 303
+    location = response[1]["location"].split("#", 1)[0]
+    assert "?_declaration_return=" in location
+    delivered = browser.page(location)
+    assert NativePage(delivered).field("bid_value")["value"] == "18"
+    form = Forms(delivered).find("/actions/profile/language")
+    context = localized_server.app_context.language_context
+    retained = context.pages[form["values"]["_frontend_language_context"]]
+    deadline = retained.native_match_draft_deadline
+    saved, workspace = active.path.read_bytes(), active.workspace
+    game = workspace.slots[0].observed_game
+    assert game.declaration is game.declarer_player_id is None
+    assert set(game.discarded_cards) == {"H7", "D7"}
+    assert counts == {"recording": 1}
+    target = "de" if locale == "en" else "en"
+    if prepared:
+        language = browser.submit(form, language=target)
+        assert language[0] == 303
+        pending, _ = context.pending
+        assert pending.native_match_draft_authorization is retained.native_match_draft_authorization
+        assert pending.native_match_draft_deadline == deadline
+        assert counts == {"recording": 1, "profile": 1}
+    prior = counts.copy()
+    status, _, raw = browser.request("GET", location)
+    assert status == 409
+    conflict = text(target if prepared else locale, "validation.declaration.draft_conflict")
+    assert conflict in raw.decode()
+    assert NativePage(raw.decode()).field("bid_value")["value"] == ""
+    assert counts == prior
+    assert time.monotonic() < deadline, "Expiry must not explain rejection"
+    result = (browser.request("GET", language[1]["location"]) if prepared
+              else browser.submit(form, language=target))
+    assert result[0] == 409
+    assert conflict in result[2].decode()
+    assert all(control.get("value") != "18" for control in NativePage(result[2].decode()).controls
+               if control.get("name") == "bid_value")
+    assert counts == prior
+    assert active.workspace is workspace and active.path.read_bytes() == saved
+    assert time.monotonic() < deadline
+
+
 @pytest.mark.parametrize("context", ("undeclared", "hand", "non_hand"))
 def test_first_native_submitter_is_declaration_even_when_editor_follows_evidence(
     localized_server, context,

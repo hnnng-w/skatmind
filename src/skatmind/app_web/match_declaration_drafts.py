@@ -258,6 +258,9 @@ def take_recording_draft(handler, active):
         pending = active.declaration_draft_return
         active.declaration_draft_return = None
         if pending is None or not hmac.compare_digest(token, pending.token):
+            # Consuming the direct slot alone does not retire delivered or
+            # already prepared language copies of this Match's draft.
+            active.declaration_draft_authorization = None
             raise DeclarationDraftConflict()
     if pending is None:
         active.declaration_draft_return = None
