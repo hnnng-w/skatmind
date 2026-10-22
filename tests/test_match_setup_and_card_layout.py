@@ -131,11 +131,18 @@ def test_unsent_roster_language_return_keeps_person_until_update(localized_serve
                                                     if p.player_label == 'Bea')
 
 
+@pytest.mark.parametrize('clock_origin', (10.0, 10000.0))
 def test_setup_review_does_not_generate_ids_or_write_and_expiry_stays_original(
-    localized_server, monkeypatch,
+    localized_server, monkeypatch, clock_origin,
 ):
+    from types import SimpleNamespace
+
+    import skatmind.app_web.player_seat_setup as seat_setup
     import skatmind.app_web.profile_driven_creation as creation
 
+    clock = SimpleNamespace(now=clock_origin)
+    # Only the setup clock is controlled; other HTTP/language clocks remain real.
+    monkeypatch.setattr(seat_setup, 'time', SimpleNamespace(monotonic=lambda: clock.now))
     browser = Browser(localized_server)
     def forbidden(*_args, **_kwargs):
         pytest.fail('Setup attempted Product identity generation.')
@@ -144,19 +151,28 @@ def test_setup_review_does_not_generate_ids_or_write_and_expiry_stays_original(
     page = browser.page('/matches/new')
     context = localized_server.app_context
     setup = context.creation_setups['matches']
+    assert setup.created_at == clock_origin
     old = Forms(page).find('/matches/api/v1/create')
+    clock.now += 600
     page = follow(browser, browser.submit(old, match_title='No writes', forehand_name='Anna',
         middlehand_name='Bea', rearhand_name='Clara', setup_action='update'))
+    clock.now += 600
     page = follow(browser, browser.submit(Forms(page).find('/matches/api/v1/create'),
         perspective_seat=person(page, 'Bea'), setup_action='update'))
     assert context.creation_setups['matches'].created_at == setup.created_at
     assert not context.frontend_profile.profile_path.exists()
     assert not tuple(context.managed_stateful.root('matches').iterdir())
-    from dataclasses import replace
-    context.creation_setups['matches'] = replace(context.creation_setups['matches'], created_at=0)
+    reviewed = context.creation_setups['matches']
+    clock.now = setup.created_at + 1799
+    page = browser.page('/matches/new')
+    assert context.creation_setups['matches'] is reviewed
+    assert 'name="setup_action" value="create"' in page
+    clock.now += 1
     response = browser.submit(Forms(page).find('/matches/api/v1/create'), setup_action='create')
     assert response[0] == 409
     assert context.managed_stateful.active_match is None
+    assert not context.frontend_profile.profile_path.exists()
+    assert not tuple(context.managed_stateful.root('matches').iterdir())
 
 
 @pytest.mark.parametrize('locale', ('de', 'en'))

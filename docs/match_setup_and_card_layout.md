@@ -198,3 +198,83 @@ Full is not run under the approved routine. Exact-commit hosted CI and the
 installed targeted maintainer retest remain pending. **Keep #294 open** for those
 gates. #292/#293 remain complete, #208 remains open, UAT-01 is not globally
 accepted, and UAT-02–12 remain paused. No UAT or release-readiness claim is made.
+
+## Follow-up: Ubuntu regression in run 39691749809
+
+This correction starts clean at `5aeb5ac880ea5c30267dad17e4c358efe496d726` on
+`bug/294-match-setup-and-card-layout`. Authenticated read-only retrieval succeeded:
+
+```powershell
+gh run view 39691749809 --repo hnnng-w/skatmind --log-failed
+gh run download 39691749809 --repo hnnng-w/skatmind --name regression-ubuntu --dir "$scratch\issue-294-ci-39691749809-ubuntu"
+```
+
+The only failed test was
+`tests/test_match_setup_and_card_layout.py::test_setup_review_does_not_generate_ids_or_write_and_expiry_stays_original`.
+Its call failed with `http.client.RemoteDisconnected`. The accompanying
+`PytestUnhandledThreadExceptionWarning` contains the actual handler traceback:
+Create reached `_materialize_players`, whose test-only guard raised
+`Failed: Setup attempted Product identity generation.`
+
+The fixture set `created_at=0` to simulate expiry. Zero is not a portable expired
+monotonic timestamp: when the current clock is below 1,800 seconds, that setup is
+still eligible. The unchanged production rule correctly compares elapsed time.
+The test's unintended final Create therefore reached its forbidden-ID guard,
+terminating the request thread before an HTTP response. This is a deterministic
+fixture error dependent on clock origin, not a demonstrated Product or external
+infrastructure failure.
+
+Evidence from job **119539468661**: Ubuntu **24.04.5**, image **ubuntu-24.04** /
+`ubuntu24` version **20261012.334.1**, kernel **6.17.0-1022-azure**, CPython
+**3.13.15**, pytest **9.1.1**, xdist **3.8.0**. The command was
+`python scripts/run_validation.py --stage pytest --workers 2 --log-directory "$RUNNER_TEMP/regression"`.
+Collection passed; the two-worker, file-grouped parallel phase failed on **gw0**:
+**1 failed, 11,106 passed, 2 skipped, 1 warning in 1,660.31s**. The runner returned
+before its exclusive serial phase. Artifact `summary.json` records total stage
+wall time **1,675.887s**. Job **119558465166** rejected with
+`gate_prerequisites_invalid` because `NEEDS_JSON.regression.result` was `failure`;
+the other prerequisites succeeded. Its failure is solely downstream propagation.
+Node-action and image-migration annotations do not establish another cause.
+
+Before editing, the unchanged HTTP test was reproduced serially on Windows with
+only the setup module's clock replaced by a constant. The disposable helper is
+retained alongside the downloaded evidence in the approved temporary area:
+
+```powershell
+py -3.13 "$scratch\reproduce_294_setup_clock.py" 10
+py -3.13 "$scratch\reproduce_294_setup_clock.py" 10000
+```
+
+At 10: **1 failed, 1 warning in 2.16s**, with the same disconnect and guard
+traceback. At 10,000: **1 passed in 2.13s**. Thus neither parallel execution nor
+Linux alone is required to reproduce it. Available WSL Ubuntu-24.04 independently
+reported `time.monotonic() = 60.304522914`, making `now - 0 >= 1800` false.
+Its available interpreter is Python **3.12.3**, with no pytest, so no supported
+Python-3.13 Linux suite was run locally. Hosted Linux validation remains pending.
+
+Only this test and this follow-up documentation change. The test now controls
+the setup clock at both 10 and 10,000, advances through two Updates, verifies the
+original timestamp is retained and the reviewed setup is usable at age 1,799,
+then requires HTTP **409 at age 1,800**. The original forbidden-ID guards remain;
+no-Product/no-profile-write assertions also run after rejection. Other clocks,
+production code, browser behavior, #292/#293 safeguards and CI policy are unchanged.
+
+Verification on Windows / CPython **3.13.7** / pytest **9.0.3**:
+
+```powershell
+py -3.13 -m pytest tests/test_match_setup_and_card_layout.py -k test_setup_review_does_not_generate_ids_or_write_and_expiry_stays_original -q --tb=short
+py -3.13 -m pytest tests/test_match_setup_and_card_layout.py tests/test_player_seat_setup.py tests/test_settings_seat_setup_web.py tests/test_own_player_assignment_web.py tests/test_profile_driven_match_creation.py tests/test_profile_driven_session_creation.py -n 2 --dist=loadfile --max-worker-restart=0 -q --tb=short
+py -3.13 -m pytest tests/test_skatmind_rename.py -q --tb=short
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+```
+
+The focused regression passed **2 cases in 3.04s** (17 deselected). All six complete
+affected/shared setup modules passed **139 tests in 56.36s**, with no skips or
+warnings, using two file-grouped workers and no worker restart. The strict rename
+module also passes; its final duration is recorded in the handoff. Final Quick
+results/log location are recorded in the handoff. No local Full or browser rerun
+is required by this test-clock-only correction. New exact-commit hosted CI and
+the installed targeted retest, including genuine **200% browser zoom**, remain
+pending. Keep **#294 and #208 open**; #292/#293 remain complete, UAT-01 is not
+globally accepted, and UAT-02–12 remain paused.
