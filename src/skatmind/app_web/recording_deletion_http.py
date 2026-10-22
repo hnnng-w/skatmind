@@ -52,7 +52,7 @@ def render_deletion_page(handler, *, status=200):
     with app.lock:
         profile = app.frontend_profile.document
         outcome = app.recording_deletion.outcome
-    body = '<section class="panel recording-deletion" id="recording-deletion">'
+    body = '<section class="panel recording-deletion content-stack" id="recording-deletion">'
     if preview is None:
         body += paragraph(locale, "deletion." + (outcome or "missing"))
         body += '<nav aria-label="' + translated(locale, "deletion.return") + '">'
@@ -77,12 +77,12 @@ def render_deletion_page(handler, *, status=200):
         body += ' ' + translated(locale, "deletion.permanent") + '</p>'
         if preview.active is not None:
             body += paragraph(locale, "deletion.active")
-        body += paragraph(locale, "deletion.retained") + paragraph(locale, "deletion.download")
         body += (f'<form method="post" action="{DELETION_PAGE}/apply" autocomplete="off">'
                  + hidden("deletion_selection", preview.selection)
                  + '<label><input type="checkbox" name="confirm_delete" value="on" required> '
                  + translated(locale, "deletion.consent") + '</label>'
-                 + '<button type="submit">' + translated(locale, f"deletion.apply.{preview.family}")
+                 + '<button type="submit" class="destructive">'
+                 + translated(locale, f"deletion.apply.{preview.family}")
                  + '</button></form>'
                  + f'<form method="post" action="{DELETION_PAGE}/cancel">'
                  + hidden("deletion_selection", preview.selection)

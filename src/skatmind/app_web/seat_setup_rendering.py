@@ -73,7 +73,8 @@ def render_seat_setup_v1(profile, locale, *, family, setup=None):
             + f'<label class="new-player-entry">{_t(locale, "creation.common.new_player_name")}'
             f'<input name="{seat}_name" maxlength="120" placeholder=" " '
             f'value="{escape(values.get(f"{seat}_name", ""), quote=True)}"></label>'
-            + (f'<button class="manual-perspective-action" type="submit" name="setup_action" '
+            + ('<button class="manual-perspective-action secondary" type="submit" '
+               'name="setup_action" '
                f'value="choose_{seat}" formnovalidate>'
                + _t(locale, "creation.match.use_perspective") + '</button>'
                if family == "matches" else '') + '</div></fieldset>')
@@ -117,8 +118,10 @@ def render_seat_setup_v1(profile, locale, *, family, setup=None):
 def render_setup_actions_v1(locale, *, family, setup=None):
     action = "creation.session.action" if family == "sessions" else "creation.match.action"
     return (
-        f'<button type="submit" name="setup_action" value="update" formnovalidate>'
+        '<button type="submit" class="secondary" name="setup_action" '
+        'value="update" formnovalidate>'
         f'{_t(locale, "creation.setup.update")}</button>'
-        + (f'<button type="submit" name="setup_action" value="create">{_t(locale, action)}</button>'
+        + (f'<button type="submit" class="primary" name="setup_action" value="create">'
+           f'{_t(locale, action)}</button>'
            if setup is not None and setup.reviewed else '')
     )

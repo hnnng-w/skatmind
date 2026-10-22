@@ -160,11 +160,12 @@ def _report_sources(state, handle, locale, profile, recorded):
             if state["matches"]:
                 sources += '<p><a href="#insight-versions">' + translated(locale, "task.learning.choose_version") + '</a></p>'
         sources += form(locale, "/learning/api/v1/operations", _hidden(handle, "remove_strategy_teacher_report")
-            + hidden("source_binding_id", source["source_binding_id"]), "task.learning.remove_source") + '</div>'
+            + hidden("source_binding_id", source["source_binding_id"]), "task.learning.remove_source",
+            destructive=True) + '</div>'
     if state["strategy_sources"]:
         sources += paragraph(locale, "task.learning.report_changes")
     sources += form(locale, "/learning/api/v1/operations", _hidden(handle, "clear_strategy_teacher_reports"),
-                    "task.learning.clear_sources", disabled=not state["strategy_sources"])
+                    "task.learning.clear_sources", disabled=not state["strategy_sources"], destructive=True)
     return sources
 
 

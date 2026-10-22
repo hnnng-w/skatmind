@@ -471,7 +471,7 @@ def render_analyze_workflow_v1(state: ProcessLocalFrontendWorkflowStateV1) -> st
             run_action=ANALYZE_RUN_IMPORTED_ACTION_ROUTE_PATH,
             page="analyze",
         ),
-        f'<form class="reset-form" method="post" action="{ANALYZE_RESET_ACTION_ROUTE_PATH}">{_revision(state)}<label><input type="checkbox" name="confirm_reset" required> {_t("guided.reset_confirm")}</label><button type="submit">{_t("common.action.reset")}</button></form>',
+        f'<form class="reset-form" method="post" action="{ANALYZE_RESET_ACTION_ROUTE_PATH}">{_revision(state)}<label><input type="checkbox" name="confirm_reset" required> {_t("guided.reset_confirm")}</label><button type="submit" class="destructive">{_t("common.action.reset")}</button></form>',
     ]
     return "".join(content)
 
@@ -486,7 +486,7 @@ def _review_back_and_reset(state: ProcessLocalFrontendWorkflowStateV1, draft: Hi
     reset = (
         f'<form class="reset-form" method="post" action="{REVIEW_RESET_ACTION_ROUTE_PATH}">{_revision(state)}'
         f'<label><input type="checkbox" name="confirm_reset" required> {_t("guided.reset_confirm")}</label>'
-        f'<button type="submit">{_t("common.action.reset")}</button></form>'
+        f'<button type="submit" class="destructive">{_t("common.action.reset")}</button></form>'
     )
     return f'<div class="wizard-actions">{back}{reset}</div>'
 

@@ -103,7 +103,7 @@ def _preferences(
         + _platform_fields(profile, locale=locale)
         + '<input type="hidden" name="advanced_settings_expanded" '
         f'value="{"on" if advanced else ""}">'
-        f'<button type="submit">{_t(locale, "settings.preferences.save")}</button>'
+        f'<button type="submit" class="primary">{_t(locale, "settings.preferences.save")}</button>'
         "</form></section>"
     )
 
@@ -115,7 +115,7 @@ def _action(action, label, *, handle, generation, locale, selection=None):
         + f'<input type="hidden" name="player_handle" value="{handle}">'
         + (f'<input type="hidden" name="editor_selection" value="{selection}">'
            if selection is not None else '')
-        + f'<button type="submit">{_t(locale, label)}</button></form>'
+        + f'<button type="submit" class="secondary">{_t(locale, label)}</button></form>'
     )
 
 
@@ -188,7 +188,8 @@ def _editor(profile, player, editor, *, generation, locale):
             f'<input type="hidden" name="confirmation_selection" value="{editor.confirmation}">'
             f'<label><input type="checkbox" name="confirm_replace" value="on" required> '
             f'{_t(locale, "settings.players.confirm_change")}</label>'
-            f'<button type="submit">{_t(locale, "settings.players.confirm_action")}</button></form>'
+            f'<button type="submit" class="destructive">'
+            f'{_t(locale, "settings.players.confirm_action")}</button></form>'
             if current else f'<p>{_t(locale, "settings.players.preview_expired")}</p>'
         )
         heading = _t(locale, f"settings.players.preview_{editor.kind}", name=player.display_name)
@@ -219,7 +220,8 @@ def _editor(profile, player, editor, *, generation, locale):
             f'<details><summary>{_t(locale, "settings.players.replace_accounts")}</summary>'
             '<form method="post" action="/actions/profile/players/accounts-preview">'
             + transport + _account_fields(locale)
-            + f'<button type="submit">{_t(locale, "settings.players.preview_action")}</button>'
+            + f'<button type="submit" class="secondary">'
+            f'{_t(locale, "settings.players.preview_action")}</button>'
             '</form></details>'
         )
     return (
@@ -228,7 +230,8 @@ def _editor(profile, player, editor, *, generation, locale):
         f'<label>{_t(locale, "settings.players.display_name")}'
         f'<input name="display_name" maxlength="120" required '
         f'value="{escape(name, quote=True)}"></label>'
-        f'{account_controls}<button type="submit">{_t(locale, "settings.players.save")}</button>'
+        f'{account_controls}<button type="submit" class="primary">'
+        f'{_t(locale, "settings.players.save")}</button>'
         f'</form>{replacement}{cancel}</div>'
     )
 
@@ -269,35 +272,44 @@ def _players(
 
 def _recommended_reset(*, generation: int, locale: str) -> str:
     return (
-        '<section class="settings-panel" aria-labelledby="recommended-reset-heading">'
+        '<section class="reset-choice" aria-labelledby="recommended-reset-heading">'
+        '<div class="content-stack">'
         f'<h3 id="recommended-reset-heading">'
         f"{_t(locale, 'settings.recommended_reset.heading')}</h3>"
-        f"<p>{_t(locale, 'settings.recommended_reset.help')}</p>"
-        f'<form method="post" action="{FRONTEND_PROFILE_RECOMMENDED_RESET_ACTION_ROUTE}">'
+        f'<p id="recommended-reset-description">'
+        f"{_t(locale, 'settings.recommended_reset.help')}</p></div>"
+        f'<form class="content-stack reset-controls" method="post" '
+        f'action="{FRONTEND_PROFILE_RECOMMENDED_RESET_ACTION_ROUTE}" '
+        'aria-labelledby="recommended-reset-heading" '
+        'aria-describedby="recommended-reset-description">'
         + _generation(generation)
         + '<label><input type="checkbox" name="confirm_recommended_reset" '
         'value="on" required> '
         f"{_t(locale, 'settings.recommended_reset.confirm')}</label>"
-        f'<button type="submit">{_t(locale, "settings.recommended_reset.action")}</button>'
+        f'<button type="submit" class="destructive">'
+        f'{_t(locale, "settings.recommended_reset.action")}</button>'
         "</form></section>"
     )
 
 
 def render_settings_resets_v1(*, generation: int, profile_valid: bool, locale: str) -> str:
     return (
-        '<section class="local-settings" aria-labelledby="settings-reset-heading">'
+        '<section class="local-settings settings-resets" aria-labelledby="settings-reset-heading">'
         f'<h2 id="settings-reset-heading">{_t(locale, "common.action.reset")}</h2>'
         + (_recommended_reset(generation=generation, locale=locale) if profile_valid else "")
-        + f'<form class="reset-form" method="post" '
-        f'action="{FRONTEND_PROFILE_RESET_ACTION_ROUTE}">'
+        + f'<form class="reset-form reset-choice" method="post" '
+        f'action="{FRONTEND_PROFILE_RESET_ACTION_ROUTE}" aria-labelledby="profile-reset-heading" '
+        'aria-describedby="profile-reset-description">'
         + _generation(generation)
         + '<input type="hidden" name="return_to" value="/settings">'
-        f'<h3>{_t(locale, "profile.reset.submit")}</h3>'
-        f"<p>{_t(locale, 'profile.reset.description')}</p>"
+        '<div class="content-stack">'
+        f'<h3 id="profile-reset-heading">{_t(locale, "profile.reset.submit")}</h3>'
+        f'<p id="profile-reset-description">{_t(locale, "profile.reset.description")}</p></div>'
+        '<div class="content-stack reset-controls">'
         f'<label><input type="checkbox" name="confirm_reset" value="on" required> '
         f"{_t(locale, 'profile.reset.confirm')}</label>"
-        f'<button type="submit">{_t(locale, "profile.reset.submit")}</button>'
-        "</form></section>"
+        f'<button type="submit" class="destructive">{_t(locale, "profile.reset.submit")}</button>'
+        "</div></form></section>"
     )
 
 

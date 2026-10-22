@@ -1,5 +1,13 @@
 # Unified Match and Learning visual contract
 
+## Current shared foundation (Issue #295)
+
+The [shared frontend visual foundation](frontend_visual_foundation.md) is normative
+for typography, spacing, surfaces, explicit action roles, Settings resets and concise
+recording deletion. It supersedes the historical visual scales and decorative
+surface rules below, while retaining their accepted workflow and feedback behavior.
+It also records the 76rem/card-width boundary and exact local verification commands.
+
 ## Success-feedback overlay (Issue #276)
 
 The repair starts on clean `bug/276-success-feedback-overlay` at
@@ -826,10 +834,10 @@ colors, with the applicable exceptions. Keyboard focus stays visible, and select
 is textual/programmatic as well as colored. Ordinary content must reflow at
 320 CSS pixels and remain usable with 200% text enlargement.
 
-The workflow main, panels, nested disclosures, controls, warnings and errors use
-solid surfaces. The shell's existing decorative body background is outside the
-opaque workflow main. No workflow root palette, color-scheme override, CSS build
-pipeline, remote asset or broad `!important` patch is introduced.
+The current shared foundation uses a neutral page and solid light content surfaces;
+the old decorative body background and offset surface shadows are removed. Nested
+sections share a containing region. No workflow root palette, color-scheme override,
+CSS build pipeline, remote asset or broad `!important` patch is introduced.
 
 The historical #224 candidate strategy allowed horizontal scrolling inside its
 labelled `role="region"`, `tabindex="0"` wrapper, with a 32em table minimum. Issue #251

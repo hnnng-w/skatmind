@@ -27,23 +27,24 @@ CONSENT = {RECOMMENDED: "confirm_recommended_reset", FULL: "confirm_reset"}
 
 # Independent visible-scope expectations, not a Product reset-map helper.
 CAPTIONS = {
-    "en": ("Reset", "Restore recommended defaults", "Reset entire local profile"),
-    "de": ("Zurücksetzen", "Empfohlene Voreinstellungen wiederherstellen",
-           "Lokales Profil vollständig zurücksetzen"),
+    "en": ("Reset", "Reset preferences", "Reset local profile"),
+    "de": ("Zurücksetzen", "Voreinstellungen zurücksetzen", "Lokales Profil zurücksetzen"),
 }
 SCOPE = {
     "en": (
-        "Keeps language, time zone, saved players, your player and recording names/dates.",
-        "Recording files, independent Learning copies and exports remain; displayed names/dates "
-        "may fall back.",
-        "Language follows the browser or application default.",
+        "Clears the preferred perspective and platform.",
+        "I confirm resetting these preferences.",
+        "Resets language, time zone, perspective and platform preferences. Removes saved Players, "
+        "your Player selection, and recording names and dates stored in the profile.",
+        "I confirm resetting the entire local profile.",
     ),
     "de": (
-        "Sprache, Zeitzone, gespeicherte Spieler, eigener Spieler und Namen/Datumsangaben "
-        "der Aufzeichnungen bleiben erhalten.",
-        "Aufzeichnungsdateien, unabhängige Lernen-Kopien und Exporte bleiben erhalten; "
-        "angezeigte Namen/Datumsangaben können auf Ersatzwerte zurückfallen.",
-        "Die Sprache folgt dem Browser oder der Anwendungsvorgabe.",
+        "Löscht die bevorzugte Perspektive und Plattform.",
+        "Ich bestätige das Zurücksetzen der Voreinstellungen.",
+        "Setzt Sprache, Zeitzone, Perspektiv- und Plattformvorgaben zurück. Entfernt gespeicherte "
+        "Spieler, die Auswahl des eigenen Spielers sowie im Profil gespeicherte Namen und "
+        "Datumsangaben zu Aufzeichnungen.",
+        "Ich bestätige das vollständige Zurücksetzen des lokalen Profils.",
     ),
 }
 
@@ -105,7 +106,7 @@ def test_one_lower_reset_area_after_all_ordinary_settings(localized_server, loca
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))
-def test_literal_copy_distinguishes_profile_labels_from_recordings(localized_server, locale):
+def test_literal_copy_states_reset_effects_concisely(localized_server, locale):
     page = Browser(localized_server).request(
         "GET", "/settings", headers={"Accept-Language": locale})[2].decode()
     for statement in SCOPE[locale]:
@@ -115,6 +116,24 @@ def test_literal_copy_distinguishes_profile_labels_from_recordings(localized_ser
     assert "collapses optional Match details" not in page
     assert "Match-Details beginnen wieder eingeklappt" not in page
     assert "display preferences" not in page and "Anzeigevorgaben" not in page
+    assert "Advanced display choice" not in page and "erweiterte Anzeigeauswahl" not in page
+    assert "may fall back" not in page and "Ersatzwerte" not in page
+    assert "Pending setup" not in page and "erneut eingegeben" not in page
+
+
+def test_reset_forms_have_explicit_roles_and_associated_descriptions(localized_server):
+    from test_unified_workflow_visual_contract import Markup
+
+    page = Browser(localized_server).page("/settings")
+    for route, heading, description in (
+        (RECOMMENDED, "recommended-reset-heading", "recommended-reset-description"),
+        (FULL, "profile-reset-heading", "profile-reset-description"),
+    ):
+        form = re.search(r'<form\b[^>]*action="' + route + r'".*?</form>', page, re.S)[0]
+        assert f'aria-labelledby="{heading}"' in form
+        assert f'aria-describedby="{description}"' in form
+        assert Markup(form).buttons == [{"type": "submit", "class": "destructive"}]
+        assert heading in Markup(page).targets and description in Markup(page).targets
 
 
 def saved_sources(browser):
@@ -332,7 +351,7 @@ def test_invalid_profile_recovery_emitted_full_form_only(tmp_path):
         browser = Browser(server)
         page = browser.request("GET", "/settings", headers={"Accept-Language": "de"})[2].decode()
         assert '<html lang="en">' in page and 'class="profile-warning"' in page
-        assert RECOMMENDED not in page and 'class="local-settings"' in page
+        assert RECOMMENDED not in page and 'class="local-settings settings-resets"' in page
         assert '/actions/profile/preferences' not in page
         assert page.index('class="profile-warning"') < page.index('settings-reset-heading')
         assert path.read_bytes() == invalid

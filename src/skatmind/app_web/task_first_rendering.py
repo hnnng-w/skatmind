@@ -95,14 +95,15 @@ def form(
     locale: str, action: str, fields: str, label_key: str, *, primary: bool = False,
     disabled: bool = False, multipart: bool = False, confirm_key: str | None = None,
     submitter: tuple[str, str] | None = None,
-    trailing_content: str = "",
+    trailing_content: str = "", destructive: bool = False,
 ) -> str:
     """Wrap internally rendered fields and optional post-button content in one form."""
+    role = "destructive" if destructive else "primary" if primary else "secondary"
     return (f'<form method="post" action="{action}" class="form-grid"'
             + (f' data-confirm="{translated(locale, confirm_key)}"' if confirm_key else "")
             +
             f'{" enctype=\"multipart/form-data\"" if multipart else ""}>{fields}'
-             f'<button type="submit" class="{"primary" if primary else "secondary"}"'
+             f'<button type="submit" class="{role}"'
             + (f' name="{escape(submitter[0], quote=True)}" value="{escape(submitter[1], quote=True)}"'
                if submitter else '') +
             f'{" disabled" if disabled else ""}>{translated(locale, label_key)}</button>{trailing_content}</form>')

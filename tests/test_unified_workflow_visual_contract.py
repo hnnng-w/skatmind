@@ -88,6 +88,22 @@ def assert_app_assets(browser, page):
     assert "access-control-allow-origin" not in headers
 
 
+@pytest.mark.parametrize("primary,destructive,role", (
+    (True, False, "primary"), (False, False, "secondary"), (False, True, "destructive"),
+))
+def test_shared_form_renders_explicit_action_role_inside_and_outside_disclosure(
+    primary, destructive, role,
+):
+    from skatmind.app_web.task_first_rendering import disclosure, form
+
+    html = form("en", "/learning/api/v1/operations", '<input type="hidden" name="operation" '
+        'value="clear_strategy_teacher_reports">', "task.learning.clear_sources",
+        primary=primary, destructive=destructive, disabled=True)
+    expected = [{"type": "submit", "class": role, "disabled": None}]
+    assert Markup(html).buttons == expected
+    assert Markup(disclosure("en", "task.technical", html)).buttons == expected
+
+
 def test_about_intrinsic_sizing_contract_is_local_to_its_panels():
     """Source regression only; installed native layout is measured separately."""
     css = files("skatmind.app_web").joinpath("assets/app.css").read_text(encoding="utf-8")

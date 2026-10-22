@@ -297,14 +297,28 @@ capacity limit or storage failure after
 successful Product creation retains the valid Product and reports unsaved enrichment.
 There is no retry, merge, automatic reload, deletion rollback or analysis side effect.
 
-### Grouped reset presentation (Issue #266)
+<a id="grouped-reset-presentation-issue-266"></a>
+
+### Current reset presentation (Issues #266 and #295)
 
 Normal Settings now ends with one visible **Reset** section after Players, Creation
-defaults, Time zone and local-profile information, before the footer. **Restore
-recommended defaults** comes first; **Reset entire local profile** comes second.
+defaults, Time zone and local-profile information, before the footer. **Reset
+preferences** comes first; **Reset local profile** comes second.
 Each retains its own form, initially unchecked required consent and distinct action.
-The full reset keeps its destructive border/button. Existing headings, grid spacing
-and panel styles suffice; there is no additional disclosure or stylesheet change.
+Issue #295 gives the section intentional shared insets, compact heading/description
+stacks and explicit destructive buttons. Description and consent/action groups share
+a row on wide layouts and stack in DOM order when narrow. There is no extra approval
+step or nested reset panel. All ordinary Settings areas and metadata remain.
+
+The approved paired copy states only the effects. Routine unaffected-copy lists,
+fallback display/language explanations and unfinished-setup caveats are omitted from
+the action descriptions. The legacy `advanced_settings_expanded` Boolean remains a
+hidden compatibility field, preserved on preferences round-trip and cleared by both
+resets. Its internal terminology is absent from ordinary consent copy. The operation
+matrix below remains developer-facing authority. See the
+[shared visual foundation](frontend_visual_foundation.md) for type/spacing, semantic
+roles and verification commands. No manual reset execution or new comprehension
+checkpoint is claimed.
 
 The verified current operations, rather than the older #219 inventory, determine
 the copy:

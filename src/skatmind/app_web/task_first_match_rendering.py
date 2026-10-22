@@ -155,6 +155,8 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
     return form(locale, f"/matches/api/v1/{'analysis' if analysis else 'operation'}", fields,
                 f"task.match.action.{operation}", primary=primary, disabled=disabled,
                 trailing_content=trailing_content,
+                destructive=operation in {"clear_position", "truncate_plays", "remove_commentary",
+                    "remove_response_link", "clear_player_statistics_snapshot"},
                 confirm_key="task.match.remove_note_help" if operation == "remove_commentary" else None)
 
 

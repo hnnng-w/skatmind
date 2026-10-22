@@ -1,5 +1,24 @@
 # Delete a saved Session or entire Match
 
+## Current concise presentation (Issue #295)
+
+The confirmation is headed **Delete recording** and retains the exact named target,
+participants/progress, explicit whole-Game or all-36-position Match scope and
+irreversibility. The active-target message says the recording closes and its in-app
+results/correction previews are discarded. It does not claim that in-flight work is
+forcibly terminated. Required consent starts unchecked; destructive Apply and
+secondary Cancel remain separate native forms with their original fields and guards.
+
+Routine retained-copy and download advice is no longer rendered; the two unused
+paired catalog keys are removed. Non-actionable/error return links remain. The
+success message is concise, while successful deletion followed by failed list
+refresh explicitly reports both facts and the list-reopening remedy. No optional
+profile-label retention choice is added. Persistence effects, source/ownership
+checks, original expiry, one-use selection and cancellation behavior are unchanged.
+The [shared visual foundation](frontend_visual_foundation.md) owns the surface,
+insets, readable controls, focus and action roles. The earlier #261 presentation
+description below is historical where it specifies longer copy.
+
 ## Confirmation presentation (Issue #261)
 
 Starting clean `bug/261-recording-deletion-presentation` HEAD:

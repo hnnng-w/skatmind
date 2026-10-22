@@ -213,7 +213,8 @@ def test_failure_ordering_before_and_after_real_unlink(localized_server, monkeyp
         status, headers, _ = browser.submit(form, confirm_delete="on")
         assert status == 303 and headers["location"] == "/recordings/delete"
         body = browser.page(headers["location"]).encode()
-        assert b"permanently deleted, but refreshing the list failed" in body
+        assert (b"The recording was deleted. The list could not be refreshed. "
+                b"Open the recordings list again.") in body
         assert not active.path.exists() and active.retired
     assert b"private synthetic" not in body
     assert browser.submit(form, confirm_delete="on")[0] == 409
@@ -337,16 +338,13 @@ def test_compact_confirmation_names_exact_scope_and_keeps_native_consent(
     assert pending.product_id not in body and str(target.path) not in body
     assert '<nav' in page  # Global shell navigation remains.
     scope = {
-        ("de", "matches"): "Das gesamte Match einschließlich aller 36 Spielpositionen "
-            "(auch leer oder eingepasst) wird gelöscht.",
-        ("en", "matches"): "The entire saved Match, including all 36 positions "
-            "(empty or passed too), will be deleted.",
-        ("de", "sessions"): "Die gesamte gespeicherte Aufzeichnung dieses einzelnen "
-            "Spiels wird gelöscht.",
-        ("en", "sessions"): "The whole saved recording of this single Game will be deleted.",
+        ("de", "matches"): "Löscht dieses Match mit allen 36 Spielpositionen.",
+        ("en", "matches"): "Deletes this Match and all 36 game positions.",
+        ("de", "sessions"): "Löscht die vollständige Aufzeichnung dieses Spiels.",
+        ("en", "sessions"): "Deletes the complete recording of this Game.",
     }[locale, family]
     undo = ("Das lässt sich in SkatMind nicht rückgängig machen." if locale == "de"
-            else "There is no Undo within SkatMind.")
+            else "This cannot be undone in SkatMind.")
     action = {
         ("de", "matches"): "Match endgültig löschen",
         ("en", "matches"): "Permanently delete Match",
@@ -354,11 +352,14 @@ def test_compact_confirmation_names_exact_scope_and_keeps_native_consent(
         ("en", "sessions"): "Permanently delete Game recording",
     }[locale, family]
     assert scope in body and undo in body and action in body
-    active_caption = ("Diese Aufzeichnung ist geöffnet." if locale == "de"
-                      else "This recording is open.")
+    active_caption = ("Die geöffnete Aufzeichnung wird geschlossen. Zugehörige Auswertungen und "
+                      "Korrekturvorschauen werden verworfen." if locale == "de" else
+                      "The open recording will close. Its in-app results and correction previews "
+                      "will be discarded.")
     assert (active_caption in body) is active_target
-    assert ("Unabhängige Exporte und Kopien im Lernen bleiben erhalten." if locale == "de"
-            else "Independent exports and Learning copies remain.") in body
+    assert "Independent exports" not in body and "Unabhängige Exporte" not in body
+    assert "Need a copy first?" not in body and "Noch eine Kopie nötig?" not in body
+    assert '<button type="submit" class="destructive">' in body
     assert body.index(scope) < body.index('name="confirm_delete"')
     assert body.index(undo) < body.index('name="confirm_delete"')
     apply, cancel = (Forms(page).find("/recordings/delete/" + operation)

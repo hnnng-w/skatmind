@@ -338,8 +338,8 @@ def test_mixed_partial_passed_empty_match_confirmation_removes_whole_workspace(
     profile_bytes = profile.read_bytes()
     assert ("Spielaufzeichnungen: 1 · eingepasst: 1 · leere Positionen: 34" if locale == "de"
             else "Game recordings: 1 · passed: 1 · empty positions: 34") in page
-    assert ("aller 36 Spielpositionen (auch leer oder eingepasst)" if locale == "de"
-            else "all 36 positions (empty or passed too)") in page
+    assert ("Löscht dieses Match mit allen 36 Spielpositionen." if locale == "de"
+            else "Deletes this Match and all 36 game positions.") in page
     apply = Forms(page).find("/recordings/delete/apply")
     attempts = []
     real_unlink = Path.unlink

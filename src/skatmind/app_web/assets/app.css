@@ -2,14 +2,24 @@
   color-scheme: light;
   --ink: #18231d;
   --muted: #58655e;
-  --paper: #f4f0e7;
-  --surface: #fffdf8;
+  --paper: #f3f5f4;
+  --surface: #fff;
   --green: #145c43;
   --green-dark: #0b3f2d;
   --gold: #ba7a16;
-  --line: #d4cdbf;
+  --line: #c9d2cd;
   --focus: #005fcc;
-  font-family: Georgia, "Times New Roman", serif;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --section-inset: clamp(1rem, 2vw, 1.5rem);
+  --radius: 0.5rem;
+  --ui-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--ui-font);
+  font-size: 100%;
 }
 
 .operation-feedback {
@@ -59,21 +69,11 @@
   .operation-feedback { border-color: CanvasText; }
 }
 
-#session-app > .panel,
-#task-first-match > .panel,
-#task-first-learning > div > .panel,
-#task-first-learning > .panel {
-  padding: clamp(1rem, 3vw, 1.8rem);
-  margin-block: 1rem;
-  border: 1px solid var(--line);
-  background: var(--surface);
-}
-
 #session-app .form-grid,
 #task-first-match .form-grid,
 #task-first-learning .form-grid {
   display: grid;
-  gap: 0.8rem;
+  gap: var(--space-3);
   max-width: 65rem;
 }
 
@@ -178,8 +178,7 @@ body:has(#task-first-learning) .language-buttons {
 #task-first-match > #match-metadata > details,
 #task-first-learning > details {
   margin-block: 1rem;
-  padding: 0.8rem;
-  border: 1px solid var(--line);
+  padding: var(--space-4);
 }
 
 .technical-details pre {
@@ -207,7 +206,7 @@ body:has(#task-first-learning) .language-buttons {
 }
 
 .recording-deletion,
-.recording-deletion :where(form, label, button, h2, p),
+.recording-deletion :where(form, label, button, h2),
 .delete-recording button {
   min-width: 0;
   max-width: 100%;
@@ -222,10 +221,6 @@ body:has(#task-first-learning) .language-buttons {
 
 .recording-deletion form {
   grid-template-columns: minmax(0, 1fr);
-}
-
-.recording-deletion h2 {
-  font-size: 1.5rem;
 }
 
 .recording-choice h3,
@@ -258,11 +253,6 @@ main[data-workflow="review"] button,
 #recorded-review-chooser:focus-visible {
   outline: 0.2rem solid var(--focus);
   outline-offset: 0.2rem;
-}
-
-main:has(#match-review) > h1 {
-  max-width: none;
-  font-size: clamp(2rem, 4vw, 3rem);
 }
 
 footer a {
@@ -491,12 +481,6 @@ form:is([action="/sessions/review-whole-game"], [action="/matches/review-whole-g
   overflow-wrap: anywhere;
 }
 
-#match-recording.panel {
-  padding: clamp(1rem, 3vw, 1.8rem);
-  border: 1px solid var(--line);
-  background: var(--surface);
-}
-
 .match-game-seats {
   display: flex;
   flex-wrap: wrap;
@@ -619,13 +603,12 @@ form:is([action="/sessions/review-whole-game"], [action="/matches/review-whole-g
 }
 
 body {
-  min-width: 18rem;
+  min-width: 0;
   margin: 0;
   color: var(--ink);
-  background:
-    linear-gradient(135deg, rgb(20 92 67 / 7%) 0 20%, transparent 20% 80%, rgb(186 122 22 / 6%) 80%),
-    var(--paper);
-  line-height: 1.55;
+  background: var(--paper);
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 a {
@@ -683,16 +666,16 @@ label:has(select[name="source_kind"] option:is([value="youtube_video"], [value="
 .site-header {
   display: grid;
   gap: 1rem;
-  padding: 1.1rem clamp(1rem, 4vw, 4rem);
+  padding: var(--space-4) clamp(1rem, 4vw, 4rem);
   color: white;
   background: var(--green-dark);
-  border-bottom: 0.3rem solid var(--gold);
+  border-bottom: 1px solid var(--green);
 }
 
 .brand {
   width: max-content;
   color: white;
-  font-size: clamp(1.65rem, 3vw, 2.35rem);
+  font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: 0.035em;
   text-decoration: none;
@@ -717,7 +700,6 @@ label:has(select[name="source_kind"] option:is([value="youtube_video"], [value="
   min-width: 0;
   max-width: 100%;
   color: #fff;
-  font-family: Arial, Helvetica, sans-serif;
 }
 
 .site-header .language-buttons {
@@ -741,7 +723,7 @@ label:has(select[name="source_kind"] option:is([value="youtube_video"], [value="
   border-radius: 0.2rem;
   background: #173b2c;
   color: #fff;
-  font: 600 0.9rem/1.25 Arial, Helvetica, sans-serif;
+  font: 600 1rem/1.25 var(--ui-font);
   cursor: pointer;
 }
 
@@ -787,26 +769,32 @@ main {
   width: min(76rem, calc(100% - 2rem));
   min-height: 64vh;
   margin: 0 auto;
-  padding: clamp(2rem, 6vw, 5rem) 0;
+  padding: var(--space-6) 0;
 }
 
 h1,
-h2 {
-  line-height: 1.15;
+h2,
+h3,
+h4 {
+  line-height: 1.3;
   overflow-wrap: anywhere;
+  font-weight: 700;
+  margin-block: 0 var(--space-3);
 }
 
 h1 {
-  max-width: 18ch;
-  margin: 0 0 1rem;
-  font-size: clamp(2.2rem, 7vw, 5rem);
-  letter-spacing: -0.035em;
+  font-size: 1.75rem;
+  margin-bottom: var(--space-4);
 }
 
+h2 { font-size: 1.25rem; }
+h3, h4 { font-size: 1.0625rem; }
+main p { max-width: 72ch; }
+
 .lede {
-  max-width: 42rem;
+  max-width: 72ch;
   margin: 0;
-  font-size: clamp(1.2rem, 2.5vw, 1.65rem);
+  font-size: 1rem;
 }
 
 .supporting {
@@ -821,6 +809,10 @@ h1 {
   margin-top: 1rem;
 }
 
+/* A region owns one surface; nested sections inside it keep the same inset. */
+.panel:where(:not(.panel .panel, .advanced-settings .panel)),
+.settings-panel,
+.friendly-create,
 .task-card,
 .placeholder,
 .about-grid > section,
@@ -832,12 +824,22 @@ h1 {
 .secondary-action,
 .result-presentation > section,
 .error-summary {
-  padding: clamp(1.1rem, 3vw, 1.8rem);
+  padding: var(--section-inset);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 0.25rem;
-  box-shadow: 0.3rem 0.35rem 0 rgb(11 63 45 / 9%);
+  border-radius: var(--radius);
 }
+
+.panel { margin-block: var(--space-4); }
+
+/* Deliberate stacks normalize their own text; native form/fieldset gaps remain. */
+.content-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  align-content: start;
+}
+.content-stack > :is(h2, h3, h4, p, form) { margin: 0; }
 
 .error-summary {
   margin-bottom: 1.5rem;
@@ -870,10 +872,10 @@ h1 {
 .related-areas {
   max-width: 64rem;
   margin-top: 1.5rem;
-  padding: clamp(1.1rem, 3vw, 1.8rem);
+  padding: var(--section-inset);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 0.25rem;
+  border-radius: var(--radius);
 }
 
 .scope-guide {
@@ -911,7 +913,7 @@ h1 {
 }
 
 .home-group {
-  margin-top: clamp(2rem, 5vw, 3.5rem);
+  margin-top: var(--space-6);
   overflow-wrap: anywhere;
 }
 
@@ -929,7 +931,7 @@ h1 {
 .task-card h3 {
   margin: 0;
   overflow-wrap: anywhere;
-  font-size: 1.35rem;
+  font-size: 1.0625rem;
   line-height: 1.2;
 }
 
@@ -941,12 +943,12 @@ h1 {
   margin: 0.4rem 0 1rem;
   padding-top: 0.8rem;
   border-top: 1px solid var(--line);
-  font-size: 0.94rem;
+  font-size: 0.875rem;
 }
 
 .task-disclosure {
   padding: 0.75rem;
-  background: #fbf8f0;
+  background: var(--surface);
   border: 1px solid var(--line);
 }
 
@@ -959,10 +961,11 @@ h1 {
   max-width: 100%;
   overflow-wrap: anywhere;
   padding: 0.55rem 0.8rem;
+  min-height: 2.75rem;
   color: white;
   background: var(--green);
   border: 1px solid var(--green-dark);
-  border-radius: 0.18rem;
+  border-radius: var(--radius);
   font-weight: 700;
   text-decoration: none;
 }
@@ -1010,7 +1013,7 @@ h1 {
 .import-summary,
 .result-presentation {
   display: grid;
-  gap: 1.25rem;
+  gap: var(--space-3);
   margin-top: 1.5rem;
 }
 
@@ -1025,7 +1028,7 @@ h1 {
 form,
 fieldset {
   display: grid;
-  gap: 0.85rem;
+  gap: var(--space-3);
 }
 
 fieldset {
@@ -1033,6 +1036,7 @@ fieldset {
   margin: 0;
   padding: 1rem;
   border: 1px solid var(--line);
+  border-radius: var(--radius);
 }
 
 legend,
@@ -1055,27 +1059,30 @@ label:has(input[type="radio"]) {
   gap: 0.55rem;
 }
 
-input,
+input:not([type="hidden"]),
 select,
 textarea,
-button {
-  min-height: 2.65rem;
+button:not([hidden]) {
+  min-height: 2.75rem;
   padding: 0.55rem 0.65rem;
   color: var(--ink);
   background: white;
   border: 1px solid #847d70;
-  border-radius: 0.18rem;
+  border-radius: var(--radius);
   font: inherit;
 }
 
 input[type="checkbox"],
 input[type="radio"] {
   min-height: 1.25rem;
+  height: 1.25rem;
   width: 1.25rem;
+  flex: 0 0 1.25rem;
+  padding: 0;
   margin: 0.1rem 0 0;
 }
 
-button {
+button:not([hidden]) {
   --action-ink: #fff;
   --action-surface: var(--green);
   --action-border: var(--green-dark);
@@ -1087,17 +1094,19 @@ button {
   background: var(--action-surface);
   border-color: var(--action-border);
   cursor: pointer;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-weight: 600;
 }
 
-/* Variants own complete pairs; native details must not change primary semantics. */
-button.secondary,
-:where(details) button:not(.primary),
-:where(main:is([data-workflow="matches"], [data-workflow="learning"])) button:not(.primary) {
-  --action-ink: var(--green-dark);
+/* Explicit roles never depend on a disclosure or workflow ancestor. Unclassified
+   legacy submit buttons retain their primary appearance. */
+button.secondary {
+  --action-ink: var(--ink);
   --action-surface: var(--surface);
-  --action-border: var(--green);
-  --action-hover-ink: var(--green-dark);
-  --action-hover-surface: #dcebe3;
+  --action-border: #68776e;
+  --action-hover-ink: var(--ink);
+  --action-hover-surface: #e6ece8;
 }
 
 button:where(:enabled):is(:hover, :active) {
@@ -1107,7 +1116,7 @@ button:where(:enabled):is(:hover, :active) {
 
 button:disabled {
   color: var(--muted);
-  background: #eee9dd;
+  background: #e8ece9;
   border-color: #847d70;
   cursor: not-allowed;
 }
@@ -1115,6 +1124,9 @@ button:disabled {
 textarea {
   width: 100%;
   resize: vertical;
+}
+
+pre, code {
   font-family: Consolas, "Courier New", monospace;
 }
 
@@ -1127,7 +1139,7 @@ textarea {
 .secondary-action,
 .result-presentation details {
   padding: 0.85rem;
-  background: #fbf8f0;
+  background: var(--surface);
   border: 1px solid var(--line);
 }
 
@@ -1202,9 +1214,7 @@ details[open] > summary {
 }
 
 #session-recording > .panel {
-  padding: clamp(0.75rem, 3vw, 1.8rem);
-  border: 1px solid var(--line);
-  background: var(--surface);
+  padding: var(--section-inset);
 }
 
 #session-recording:focus {
@@ -1217,14 +1227,8 @@ main:has(#session-recording.session-completion) {
   padding-block-start: 1.5rem;
 }
 
-main:has(#session-recording.session-completion) > h1 {
-  max-width: none;
-  font-size: clamp(1.75rem, 3vw, 2.25rem);
-  margin-bottom: 0.75rem;
-}
-
 #session-recording.session-completion > .panel { padding: 0.75rem; }
-.session-completion h2 { margin-block: 0 0.5rem; font-size: 1.5rem; }
+.session-completion h2 { margin-block: 0 0.5rem; }
 .session-completion p { margin-block: 0.5rem; }
 .session-completion .recorded-summary { border: 0; padding: 0; }
 .session-completion .recorded-summary h3 { margin-block: 0.5rem; }
@@ -1279,7 +1283,7 @@ main:has(#session-recording.session-completion) > h1 {
   color: var(--ink);
   background: white;
   cursor: pointer;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--ui-font);
   line-height: 1.4;
 }
 
@@ -1290,7 +1294,7 @@ main:has(#session-recording.session-completion) > h1 {
   align-items: baseline;
   white-space: nowrap;
   color: #18231d;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--ui-font);
 }
 
 .card-face:is([data-card-suit="H"], [data-card-suit="D"]) {
@@ -1339,20 +1343,12 @@ main:has(#session-recording.session-completion) > h1 {
   max-width: 100%;
 }
 
-/* Only normal projected Session set entry opts in; the outer title is a sibling. */
-main:has(#session-recording.session-set-entry) > h1 {
-  max-width: none;
-  font-size: clamp(1.75rem, 3vw, 2.25rem);
-  margin-bottom: 0.75rem;
-}
-
 #session-recording.session-set-entry > .panel {
   padding: 0.75rem;
 }
 
 .session-set-entry > .panel > h2 {
   margin-block: 0 0.75rem;
-  font-size: 1.5rem;
 }
 
 #session-app .session-set-entry .form-grid {
@@ -1541,7 +1537,7 @@ form:has(> input[name="declaration_form"]) > p { margin-block: 0.25em; }
 .recorded-summary .recorded-party dd { margin: 0; font-variant-numeric: tabular-nums; }
 .recorded-summary .recorded-party dl > div:first-child { font-weight: bold; }
 .trick-warning { border-inline-start: 0.25rem solid var(--gold); padding-inline-start: 0.6em; }
-.recorded-card { display: inline-block; font-family: Arial, Helvetica, sans-serif; }
+.recorded-card { display: inline-block; font-family: var(--ui-font); }
 
 .recorded-decision-context { min-width: 0; overflow-wrap: anywhere; }
 .recorded-decision-context h3 { margin-top: 0; }
@@ -1570,7 +1566,6 @@ form:has(> input[name="declaration_form"]) > p { margin-block: 0.25em; }
 
 .wizard-progress,
 .execution-status {
-  font-family: Arial, Helvetica, sans-serif;
   font-weight: 700;
 }
 
@@ -1584,10 +1579,11 @@ form:has(> input[name="declaration_form"]) > p { margin-block: 0.25em; }
   margin-top: 1.5rem;
   padding: 1rem;
   border: 1px solid #9f392b;
+  border-radius: var(--radius);
 }
 
 .result-presentation > section {
-  overflow: hidden;
+  min-width: 0;
 }
 
 .result-presentation h2 {
@@ -1696,8 +1692,7 @@ thead {
 .task-status {
   margin: 0;
   color: var(--muted);
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 0.77rem;
+  font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.065em;
   text-transform: uppercase;
@@ -1717,7 +1712,7 @@ thead {
   grid-template-columns: max-content 1fr;
   gap: 0.3rem 0.8rem;
   margin: 1.2rem 0 0;
-  font-size: 0.94rem;
+  font-size: 0.875rem;
 }
 
 .task-details dt,
@@ -1762,11 +1757,6 @@ thead {
 
 .friendly-create {
   margin-top: 1.5rem;
-  padding: clamp(1.1rem, 3vw, 1.8rem);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-top: 0.35rem solid var(--green);
-  border-radius: 0.25rem;
 }
 
 .friendly-create h2,
@@ -1783,14 +1773,18 @@ thead {
 }
 
 .managed-item,
-.known-player-card,
-.settings-panel {
+.known-player-card {
   min-width: 0;
   padding: 1rem;
-  background: #fbf8f0;
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 0.2rem;
+  border-radius: var(--radius);
 }
+
+.settings-panel { min-width: 0; }
+.settings-panel > h3 { font-size: 1.25rem; }
+.settings-panel > :is(h3, p) { margin: 0 0 var(--space-3); }
+.settings-panel > :last-child { margin-bottom: 0; }
 
 .managed-item h3,
 .known-player-card h4 {
@@ -1808,25 +1802,50 @@ thead {
 
 .local-settings {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-5);
   margin-top: 1.5rem;
-}
-
-.settings-panel textarea {
-  font-family: Arial, Helvetica, sans-serif;
 }
 
 /* Settings and seat setup reuse the app-owned light component boundary. */
 main[data-workflow="settings"], .friendly-create {
   color: var(--ink);
-  background: var(--surface);
   overflow-wrap: anywhere;
+}
+
+main[data-workflow="settings"] > .secondary-action { margin-block: var(--space-5); }
+
+/* One padded reset section, two independent native forms. No nested panels or
+   stretched heading row; description precedes consent/actions at every width. */
+.settings-resets {
+  padding: var(--section-inset);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  container: settings-resets / inline-size;
+}
+.settings-resets > h2 { margin: 0; }
+.settings-resets .reset-choice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-4);
+  padding-block-start: var(--space-5);
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 0;
+}
+.settings-resets .reset-form { padding-inline: 0; padding-bottom: 0; border-radius: 0; }
+.reset-choice label, .recording-deletion label { font-weight: 400; }
+.reset-choice .content-stack { gap: var(--space-2); }
+.reset-choice .reset-controls { gap: var(--space-3); }
+@container settings-resets (min-width: 54rem) {
+  .settings-resets .reset-choice { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--space-6); }
 }
 
 main[data-workflow="sessions"] { overflow-wrap: anywhere; }
 
 :is(main[data-workflow="settings"], .managed-landing, .friendly-create) :where(
-  section, article, div, form, fieldset, label, details, summary, p, dl, dt, dd
+  section, article, div, form, fieldset, label, details, summary, dl, dt, dd
 ) {
   min-width: 0;
   max-width: 100%;
@@ -1928,14 +1947,7 @@ main[data-workflow="sessions"] { overflow-wrap: anywhere; }
   border-top: 1px solid var(--line);
 }
 
-.remove-player-form button,
-.reset-form button,
-.recording-deletion form[action="/recordings/delete/apply"] button,
-main:is([data-workflow="matches"], [data-workflow="learning"]) form:has(
-  [name="operation"]:is([value="clear_position"], [value="truncate_plays"], [value="remove_commentary"],
-    [value="remove_response_link"], [value="clear_player_statistics_snapshot"],
-    [value="remove_strategy_teacher_report"], [value="clear_strategy_teacher_reports"])
-) button {
+button.destructive {
   --action-ink: #fff;
   --action-surface: #7e2119;
   --action-border: #5f1711;
@@ -1967,8 +1979,7 @@ footer {
   padding: 1.5rem clamp(1rem, 4vw, 4rem);
   color: #f9f4e8;
   background: var(--green-dark);
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 footer p {
@@ -2033,13 +2044,13 @@ main:is([data-workflow="matches"], [data-workflow="learning"]) [aria-invalid="tr
   border-color: #9f392b;
 }
 
-main:is([data-workflow="matches"], [data-workflow="learning"]) :where(.panel, .advanced-settings, .technical-details) {
+main:is([data-workflow="matches"], [data-workflow="learning"]) :where(.advanced-settings, .technical-details) {
   margin-block: 1rem;
-  padding: clamp(0.65rem, 2vw, 1.25rem);
+  padding: var(--space-4);
   color: var(--ink);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 0.25rem;
+  border-radius: var(--radius);
 }
 
 main:is([data-workflow="matches"], [data-workflow="learning"]) :where(h2, h3, h4) {

@@ -789,7 +789,19 @@ def verify_overlay(cdp, server, client, evidence, requests, calls, capture, acti
     capture("overlay-forced-colors")
     assert cdp.evaluate("getComputedStyle(document.querySelector('[data-operation-feedback]')).animationName") == "none"
     cdp.call("Emulation.setEmulatedMedia", features=[])
-    cdp.evaluate("(()=>{const e=document.querySelector('#session-recording select');window.scrollBy(0,e.getBoundingClientRect().top-20);e.focus({preventScroll:true})})()")
+    # Overlap the notice's trailing padding, below its dismiss button. A fixed
+    # control top of 20px can correctly choose the alternate placement with the
+    # shared system font and 44px dismiss target. Keep the pointer off controls.
+    cdp.call("Input.dispatchMouseEvent", type="mouseMoved", x=1, y=1)
+    cdp.evaluate("""(()=>{const e=document.querySelector('#session-recording select'),
+        n=document.querySelector('[data-operation-feedback]');
+        window.scrollBy(0,e.getBoundingClientRect().top-(12+n.getBoundingClientRect().height-4))})()""")
+    time.sleep(.2)
+    evidence["active_overlap"] = cdp.evaluate("""(()=>{const e=document.querySelector('#session-recording select'),
+        a=e.getBoundingClientRect(),b=document.querySelector('[data-operation-feedback]').getBoundingClientRect();
+        return {control:a.toJSON(),notice:b.toJSON(),overlaps:a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top}})()""")
+    assert evidence["active_overlap"]["overlaps"]
+    cdp.evaluate("document.querySelector('#session-recording select').focus({preventScroll:true})")
     assert not visible()
     assert cdp.evaluate("document.activeElement.tagName") == "SELECT"
     capture("overlay-active-control-withdrawal", success=False)
@@ -859,6 +871,11 @@ def verify_overlay(cdp, server, client, evidence, requests, calls, capture, acti
     key("ArrowDown", 40)
     action('form[action="/learning/add-recorded-match"] button', "/learning/add-recorded-match")
     capture("overlay-learning-added", success=True)
+    # Current Learning keeps preparation in its native disclosure (#293).
+    summaries = cdp.evaluate("""(()=>{let e=document.querySelector('form:has(input[value="prepare_learning_artifacts"])'),a=[];
+        while(e){if(e.tagName==='DETAILS'&&!e.open){const s=e.querySelector('summary');s.id='probe-feedback-build-'+a.length;a.push('#'+s.id)}e=e.parentElement}return a.reverse()})()""")
+    for summary in summaries:
+        click(summary)
     action('form:has(input[value="prepare_learning_artifacts"]) button', "/learning/api/v1/operations")
     capture("overlay-learning-outcome", success=True)
     geometry = cdp.evaluate(GEOMETRY)
