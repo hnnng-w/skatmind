@@ -371,8 +371,18 @@ Only `task_first_match_rendering._card_form` opts into the shared helper's priva
 perspective initial-hand, original-Skat and discarded-Card checkboxes, and normal
 next-Play radios. It shares the existing Session **8/4/2/1** tracks at **48/24/12em**
 available suit-container widths and the tile-width override. It does not borrow
-`session-set-entry`, change headings/spacing, remove the progress column, or reach
-the separate replacement/recovery selector. Sparse offered groups remain sparse.
+`session-set-entry` or reach the separate replacement/recovery selector. Sparse
+offered groups remain sparse.
+
+The installed-retest follow-up fixes a separate parent constraint. The shared
+76rem main cap and 65rem viewport-triggered 3fr/2fr split left normal Match Play
+with only about 663px for suits, below the 48em eight-track threshold even on an
+ultrawide monitor. Normal Match Play now stacks its secondary score context until
+the recording container itself reaches 69em. Above that width it uses a 3fr/1fr
+split with an 18em minimum context column, leaving enough room for eight readable
+Cards. The existing Session layout is unchanged. The three evidence palettes have
+different ancestors; each is measured independently rather than attributed to
+the Play split.
 
 The externally owned evidence-action wrappers also receive a shrinkable single
 grid track, selected by their actual `form="match-recording-input"` submitters.
@@ -382,10 +392,16 @@ printed suits C/S/H/D and ranks J/A/10/K/Q/9/8/7 remain unchanged.
 
 New Match evidence is recorded separately in
 [Issue #294 verification](match_setup_and_card_layout.md). The earlier #275/#278/
-#281 measurements above remain historical Session-only evidence. Source-tree
-Match measurements include 8-wide palettes, 4+4 beside progress, and 2/1-column
-narrow palettes with unchanged 16px text, 20px native inputs and 44px tiles.
-Actual 200% browser zoom and the installed maintainer retest remain pending.
+#281 measurements above remain historical Session-only evidence.
+Current source-tree Match measurements require eight-card rows at 1365, 1920 and 2560 CSS
+pixels for every complete offered suit in all four normal palettes. The verifier
+also covers both sides of the old 65rem viewport and new container transition,
+520/320px reflow, exact sparse membership, unchanged 16px text, 20px native inputs,
+44px tiles, open panels and visible focus. It records actual 100% browser zoom.
+The maintainer accepted zoom behavior in the starting build; that evidence does
+not automatically certify these parent-layout changes. A headless Ctrl-plus
+probe remained at zoom 1, so genuine 200% zoom for the changed CSS remains part
+of the pending installed targeted retest.
 
 ## Match replacement and truthful Play scope
 

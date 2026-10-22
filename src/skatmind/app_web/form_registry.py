@@ -446,7 +446,8 @@ _SESSION_COMMAND_FIELDS = {
     "promote_to_retrospective": ("target_revision",),
 }
 _MATCH_CREATE_FIELDS = tuple(name for name in PROFILE_DRIVEN_MATCH_CREATE_FIELDS
-    if name not in {"profile_generation", "setup_context", "setup_action", "own_player_handle"})
+    if name not in {"profile_generation", "setup_context", "setup_action", "own_player_handle",
+                    "perspective_seat"})
 _MATCH_METADATA_FIELDS = (
     "title",
     "game_platform",
@@ -593,9 +594,8 @@ _FORMS: list[FrontendFormDefinitionV1] = [
         control_overrides={
             "time_mode": "select", "local_zone": "select", "local_occurrence": "select",
             **{f"{seat}_handle": "select" for seat in ("forehand", "middlehand", "rearhand")},
-            "perspective_seat": "select", "save_players": "checkbox", "save_platform": "checkbox"},
+            "save_players": "checkbox", "save_platform": "checkbox"},
         choice_overrides={"time_mode": ("enter", "keep", "replace", "remove"),
-            "perspective_seat": (),
             "source_kind": ("", "youtube_video", "other_video", "manual_observation")},
         label_overrides={name: "validation.field.local_" + label for name, label in (
             ("time_mode", "mode"), ("local_date", "date"), ("local_time", "time"),
@@ -1122,14 +1122,12 @@ _FORMS: list[FrontendFormDefinitionV1] = [
         control_overrides={
             "platform_choice": "select",
             **{f"{seat}_handle": "select" for seat in ("forehand", "middlehand", "rearhand")},
-            "perspective_seat": "select",
             "source_kind": "select",
             "save_players": "checkbox",
             "save_platform": "checkbox",
         },
         choice_overrides={
             "platform_choice": FRIENDLY_GAME_PLATFORM_VALUES,
-            "perspective_seat": (),
             "source_kind": ("", "youtube_video", "other_video", "manual_observation"),
         },
     ),

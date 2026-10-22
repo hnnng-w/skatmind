@@ -138,6 +138,8 @@ def render_profile_driven_match_creation_v1(
         '<section class="panel friendly-create" aria-labelledby="match-create-heading">'
         f'<h2 id="match-create-heading">{_t(locale, "creation.match.heading")}</h2>'
         '<form method="post" action="/matches/api/v1/create" class="form-grid">'
+        '<button type="submit" name="setup_action" value="update" formnovalidate '
+        'hidden tabindex="-1" aria-hidden="true"></button>'
         + _profile_generation(profile_generation)
         + f"<label>{_t(locale, 'creation.match.title')} "
         '<input name="match_title" maxlength="160" required></label>'

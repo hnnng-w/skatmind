@@ -162,9 +162,8 @@ def test_returned_forms_error_setup_correction_create_and_strict_reopen(localize
                 middlehand_name="Peter", setup_action="update"))
             # Replacing the selected person must not transfer the old seat choice.
             assert Forms(page).find(CREATE)["values"]["perspective_seat"] == ""
-            peter = re.search(r'<option value="([^"]+)"[^>]*>Peter — [^<]+</option>', page)[1]
             page = follow(browser, browser.submit(Forms(page).find(CREATE),
-                perspective_seat=peter, setup_action="update"))
+                setup_action="choose_middlehand"))
             assert_scope(page, locale)
             assert app.frontend_profile.profile_path.read_bytes() == profile_before
             assert app.managed_stateful.active_match is active_before

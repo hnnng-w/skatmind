@@ -2,9 +2,11 @@
 
 ## Scope and implementation
 
-Preflight found a clean `bug/294-match-setup-and-card-layout` at
-`27164c80ae5b4ce13220767eb47ff087beda7f84`. The branch and HEAD are retained.
-Product changes are private browser setup/presentation changes:
+The original implementation preflight found a clean
+`bug/294-match-setup-and-card-layout` at
+`27164c80ae5b4ce13220767eb47ff087beda7f84`. The following original-build evidence
+is supplemented and superseded where stated by the follow-ups below.
+Original Product changes were private browser setup/presentation changes:
 
 * `player_seat_setup.py`, `profile_driven_creation.py`, `seat_setup_rendering.py`
   and the Match creation form metadata implement person-bound manual choices,
@@ -24,7 +26,7 @@ The directly affected contracts are documented in
 [declaration](compact_game_declaration.md#shared-fields-and-accepted-summary),
 and [Card entry](compact_card_entry.md#normal-match-grid-issue-294).
 
-Changed-file inventory (30 files):
+Original-build changed-file inventory (30 files):
 
 * `src/skatmind/app_web/`: `player_seat_setup.py`, `profile_driven_creation.py`,
   `seat_setup_rendering.py`, `form_registry.py`, `compact_declaration_rendering.py`,
@@ -43,7 +45,7 @@ Changed-file inventory (30 files):
   `profile_driven_stateful_creation.md`, `compact_game_declaration.md`,
   `compact_card_entry.md`.
 
-Current derived inventories are **73 POST routes, 125 registered forms and 2,037
+Original-build derived inventories were **73 POST routes, 125 registered forms and 2,037
 keys per locale**. The two Match creation definitions use actual dynamic person
 choices rather than a static seat-only reflection inventory. No route or form
 definition is added. Domain/persisted contracts, dependencies, Package 0.17.0,
@@ -278,3 +280,164 @@ is required by this test-clock-only correction. New exact-commit hosted CI and
 the installed targeted retest, including genuine **200% browser zoom**, remain
 pending. Keep **#294 and #208 open**; #292/#293 remain complete, UAT-01 is not
 globally accepted, and UAT-02–12 remain paused.
+
+## Installed-retest follow-up: direct person review and reachable wide rows
+
+Starting HEAD is `5ed0a0f4b870f157ea85e5c52744fbb2967c61b6`, on the same branch.
+The maintainer reports passing exact-commit branch CI **39732043279** and main
+CI **39741977325**, and accepts announcement order, declarer order, native
+JavaScript-disabled operation and the starting build's browser-zoom check.
+Those findings remain accepted. The two remaining corrections are implemented
+below; this does not accept UAT-01 globally or close #294/#208.
+
+### Native operation and binding
+
+The prior dropdown contained only server-retained roster choices, requiring an
+unwanted roster-only submission. Three native row buttons now submit exactly one
+`setup_action=choose_forehand|choose_middlehand|choose_rearhand` through the same
+complete creation form. The allowlisted row selects the person in the submitted
+roster and becomes the existing saved-handle/new-name presentation binding before
+review. It is never retained as a row/seat-only perspective. One setup POST from
+the fresh page returns a named valid review; explicit Create persists afterward.
+
+The duplicate editable dropdown is replaced by hidden canonical transport and
+read-only perspective context. Neutral Update retains an existing person through
+reordering and clears a removed/replaced person. Explicit row activation may
+choose another person. A first enabled hidden neutral submitter keeps implicit
+Enter in title/name inputs neutral. All three person actions work by pointer or
+native Tab/Enter without script-generated names or choice values.
+
+Only Match's two creation definitions remove `perspective_seat` from editable
+validation/language metadata. Hidden bindings are regenerated, not restored from
+client overlays. Explicit person actions check the local-time source before
+retaining state, and resolve time after retaining the canonical selected person,
+so genuine date/time errors and language returns preserve that selection.
+Own mode rejects manual actions; existing own placement, occupied/account checks,
+profile/context generation, full-form comparison, absolute expiry and single-use
+Create remain. Both clock-origin cases still test validity at 1799 and rejection
+at 1800 seconds. Setup/review generates no Product/Player IDs and writes no data.
+
+Current inventories derive **73 POST routes / 125 forms / 2,038 keys per locale**.
+One paired row-action message is added and three setup messages are revised.
+Product code changes are confined to the private setup adapter/renderers, Match
+creation dispatch, scoped form metadata, catalogs and CSS. Tests, the existing
+browser verifier and these setup/Card-entry documents are updated. Public and
+persisted contracts, saved Match/Learning data and dependencies are unchanged.
+
+### Actual parent layout and browser acceptance
+
+The prior 76rem main cap plus viewport-triggered 3fr/2fr progress split constrained
+Play's suit container to **663.05px**, below the 48em eight-column threshold.
+The new Match-only container rule stacks context below Play until **69em** is
+available, then uses **3fr / minmax(18em, 1fr)**. At normal text sizes Play now has
+**831.22px** for suits on wide pages. Evidence palettes are independently measured:
+their wide containers already offered **1018.81px** in the source-tree baseline;
+the Play split is not claimed as their cause. No text/control shrinking or fake
+Card placeholders is used, and Session retains its accepted layout.
+
+Before Product edits, 19 fresh-GET native-form regressions failed for the missing
+row actions/dropdown flow. The tightened real-browser wide assertion failed on
+normal Play at 1365px: `CJ/CA/C10/CK` then `CQ/C9/C8/C7`, width 663.05px. It had
+already measured the three evidence palettes separately at the wide references.
+The failed baseline is retained in `match-294-native-width-before` under the
+approved temporary OpenCode directory.
+
+The verifier now requires a literal **single row of eight** at CSS viewports
+**1365, 1920 and 2560px**, not a permissive set of whatever balanced rows fit.
+It also covers **1030/1050px** around the old 65rem breakpoint, **1180/1220px**
+around the new parent transition, and **520/320px**. Every palette is measured
+on real normal Match pages, including Play with accepted recorded-summary context
+and the genuine sparse remainder after CA. German/English and JavaScript on/off
+use actual opened panels, controls, row membership, inherited font sizes, ancestor
+and suit widths, tile/control dimensions, native focus and overflow checks.
+
+Representative English rows (the same assertions pass all four locale/script cells):
+
+| CSS viewport | Play suit width / rows | Initial-hand width / rows | Original Skat and discards, each |
+| --- | --- | --- | --- |
+| 1365 / 1920 / 2560 | 831.22px / 8 | 1018.81px / 8 | 1018.81px / 8 |
+| 1030 | 902.22px / 8 | 818.22px / 8 | 892.22px / 8 |
+| 1050 | 922.22px / 8 | 838.22px / 8 | 912.22px / 8 |
+| 1180 | 1018.81px / 8 | 968.22px / 8 | 1018.81px / 8 |
+| 1220 | 788.22px / 8 | 1008.22px / 8 | 1018.81px / 8 |
+| 520 | 417.81px / 4+4 | 372.25px / 2+2+2+2 | 401.44px / 4+4 |
+| 320 | 217.81px / 2+2+2+2 | 172.25px / eight single Cards | 201.44px / 2+2+2+2 |
+
+All measured document/client widths agree. The fresh browser's **100% zoom** is
+verified with `cssVisualViewport.zoom=1`, alongside DPR 1 and visual scale 1.
+Card text remains 16px, native inputs 20px and tiles at least 44px. Resizing is
+not zoom. A genuine Ctrl-plus shortcut probe requested 200% but still reported
+zoom 1 in headless Edge; changed-CSS 200% evidence therefore remains pending for
+the installed targeted retest, rather than inheriting the baseline's acceptance.
+
+### Verification and remaining gates
+
+Developer evidence uses disposable source-tree fixtures, Windows 11, CPython
+3.13.7, pytest 9.0.3 and Edge 155.0.4283.62. It does not touch installed UAT data.
+The layout run covers four locale/script cells and **108 measurements**. The
+supplement covers eight saved/new/mixed/own/manual-with-own creation cases and
+**36 Session measurements**, plus neutral Enter in title/name fields in all four
+cells, a genuine two-browser stale Create rejection, occupied own placement,
+real validation/language return, reordering, replacement and explicit new choices.
+Every ordinary direct manual review requires exactly one setup POST from the
+fresh page. Selection/review counters show zero recording/profile writes and
+zero generated IDs. Create generates one Match ID and writes one recording;
+explicit language changes and creation profile enrichment are counted separately.
+Stale Create returns 400 with zero writes/IDs. Complete #292 draft and Enter
+routing probes are rerun separately, and #293 regressions remain included.
+
+Exact browser commands (`$scratch` is the approved existing temporary directory):
+
+```powershell
+py -3.13 scripts/verify_match_setup_and_card_layout.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "$scratch\match-294-person-actions-layout-verified" --phase after --scope layout
+py -3.13 scripts/verify_match_setup_and_card_layout.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "$scratch\match-294-person-actions-supplement-verified" --phase after --scope supplement
+py -3.13 scripts/verify_match_declaration_drafts.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "$scratch\match-294-person-actions-drafts" --phase after
+py -3.13 scripts/verify_match_draft_lifecycle.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "$scratch\match-294-person-actions-enter" --phase after
+```
+
+The complete affected-module command is:
+
+```powershell
+py -3.13 -m pytest `
+  tests/test_match_person_review_actions.py tests/test_match_setup_and_card_layout.py `
+  tests/test_player_seat_setup.py tests/test_settings_seat_setup_web.py `
+  tests/test_own_player_assignment_web.py tests/test_profile_driven_match_creation.py `
+  tests/test_profile_driven_session_creation.py tests/test_profile_driven_learning_creation.py `
+  tests/test_profile_driven_creation_web.py tests/test_profile_driven_creation_packaging.py `
+  tests/test_profile_driven_form_contracts.py tests/test_profile_driven_settings_web.py `
+  tests/test_match_creation_details.py tests/test_match_format_presentation.py `
+  tests/test_local_time_entry_web.py tests/test_local_time_form_bindings.py `
+  tests/test_local_time_conversion.py tests/test_compact_declaration_form.py `
+  tests/test_compact_declaration_web.py tests/test_session_declaration_correction_web.py `
+  tests/test_session_declaration_correction.py tests/test_match_game_navigation.py `
+  tests/test_match_game_navigation_web.py tests/test_match_declaration_drafts.py `
+  tests/test_direct_match_evidence.py tests/test_match_evidence_navigation.py `
+  tests/test_compact_card_entry_web.py tests/test_consistent_card_presentation.py `
+  tests/test_compact_initial_hand_web.py tests/test_compact_skat_discard_web.py `
+  tests/test_compact_play_grid_web.py tests/test_compact_session_cards.py `
+  tests/test_recorded_trick_progress_web.py tests/test_match_card_correction_ui.py `
+  tests/test_optional_matador_entry.py tests/test_task_first_language_preservation.py `
+  tests/test_task_first_stateful_rendering.py tests/test_task_first_stateful_projections.py `
+  tests/test_task_first_match_and_learning_workflow.py tests/test_frontend_validation_preservation.py `
+  tests/test_frontend_language_switching.py tests/test_language_switch_context.py `
+  tests/test_language_view_continuity.py tests/test_language_view_script.py `
+  tests/test_operation_feedback_language.py tests/test_operation_feedback_web.py `
+  tests/test_operation_feedback_script.py tests/test_operation_feedback.py `
+  tests/test_frontend_localization_foundation.py tests/test_complete_frontend_localization.py `
+  tests/test_packaging_and_distribution.py tests/test_skatmind_rename.py `
+  tests/test_match_recording_recovery_web.py tests/test_match_recording_recovery.py `
+  tests/test_match_recording_diagnostics.py tests/test_unplayed_card_summary_web.py `
+  tests/test_match_analysis_action_placement.py tests/test_null_recording_end_web.py `
+  tests/test_learning_prepared_navigation.py tests/test_learning_debrief_web.py `
+  tests/test_unified_rejection_transport.py `
+  -n 2 --dist=loadfile --max-worker-restart=0 -q --tb=short `
+  --junitxml="$scratch\match-294-person-actions-tests.xml"
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+```
+
+Counts, durations and final Quick results are recorded in the implementation
+handoff; browser `summary.json` files retain exact timings. No local Full is run.
+New exact-commit hosted CI and the installed targeted retest remain pending.
+Keep #294 and #208 open; #292/#293 remain complete, UAT-01 is not globally accepted,
+and UAT-02–12 remain paused.

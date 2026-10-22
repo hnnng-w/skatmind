@@ -8,7 +8,6 @@ from .player_seat_setup import (
     initial_seat_values_v1,
     match_perspective_seat_v1,
     roster_names_v1,
-    roster_person_value_v1,
 )
 from .profile_player_operations import resolve_known_player_handle_v1
 from .translation_catalog import translate_frontend_message_v1
@@ -74,21 +73,21 @@ def render_seat_setup_v1(profile, locale, *, family, setup=None):
             + f'<label class="new-player-entry">{_t(locale, "creation.common.new_player_name")}'
             f'<input name="{seat}_name" maxlength="120" placeholder=" " '
             f'value="{escape(values.get(f"{seat}_name", ""), quote=True)}"></label>'
-            '</div></fieldset>')
+            + (f'<button class="manual-perspective-action" type="submit" name="setup_action" '
+               f'value="choose_{seat}" formnovalidate>'
+               + _t(locale, "creation.match.use_perspective") + '</button>'
+               if family == "matches" else '') + '</div></fieldset>')
     names = roster_names_v1(values, profile)
     perspective = values.get("perspective_seat", "")
     perspective_seat = match_perspective_seat_v1(values) if family == "matches" else perspective
     perspective_name = names[SEATS.index(perspective_seat)] if perspective_seat in SEATS else ""
-    if family == "matches" and values.get("perspective_mode") == "own":
+    if family == "matches":
         perspective_control = (f'<input type="hidden" name="perspective_seat" '
                                f'value="{escape(perspective, quote=True)}">')
-    elif family == "matches":
-        choices = tuple((roster_person_value_v1(values, seat), escape(name) + " — " + label)
-                        for (seat, label), name in zip(seats, names, strict=True)
-                        if name and roster_person_value_v1(values, seat))
-        perspective_control = _select("perspective_seat", _t(locale, "creation.match.perspective"),
-            (("", _t(locale, "creation.match.choose_perspective")), *choices), perspective,
-            required=True)
+        if setup is None or not setup.reviewed:
+            perspective_control += ('<p>' + _t(locale, "creation.match.perspective") + ': '
+                + (escape(perspective_name) if perspective_name else
+                   _t(locale, "creation.match.choose_perspective")) + '</p>')
         perspective_control += f'<p>{_t(locale, "creation.match.perspective_help")}</p>'
     else:
         perspective_control = _select(

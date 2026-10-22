@@ -32,21 +32,14 @@ def saved_players(browser):
     return dict((label, value) for value, label in options(page, 'own_player_handle') if value)
 
 
-def person(page, name):
-    return next(value for value, label in options(page, 'perspective_seat')
-                if label.startswith(name + ' — '))
-
-
 def reviewed_roster(browser, *, saved=False):
     handles = saved_players(browser) if saved else {}
     page = browser.page('/matches/new')
-    fields = {'match_title': 'Identity binding', 'setup_action': 'update'}
+    fields = {'match_title': 'Identity binding', 'setup_action': 'choose_middlehand'}
     for seat, name in zip(('forehand', 'middlehand', 'rearhand'),
                           ('Anna', 'Bea', 'Clara'), strict=True):
         fields[seat + ('_handle' if saved else '_name')] = handles[name] if saved else name
     page = follow(browser, browser.submit(Forms(page).find('/matches/api/v1/create'), **fields))
-    page = follow(browser, browser.submit(Forms(page).find('/matches/api/v1/create'),
-        perspective_seat=person(page, 'Bea'), setup_action='update'))
     return page, handles
 
 
@@ -68,10 +61,8 @@ def test_reorder_replace_rejection_and_language_never_reassign_person(
     assert response[0] == (400 if invalid else 303)
     page = response[2].decode() if invalid else follow(browser, response)
     assert Forms(page).find('/matches/api/v1/create')['values']['perspective_seat'] == choice
-    assert person(page, 'Bea') == choice
     page = follow(browser, browser.submit(
         Forms(page).find('/actions/profile/language'), language='de'))
-    assert person(page, 'Bea') == choice
     current = Forms(page).find('/matches/api/v1/create')
     assert current['values']['perspective_seat'] == choice
     # A reviewed old Create must not overwrite a newer setup, even at the same generation.
@@ -81,7 +72,7 @@ def test_reorder_replace_rejection_and_language_never_reassign_person(
         forehand_name='Dora', source_url='', setup_action='update'))
     current = Forms(page).find('/matches/api/v1/create')
     assert current['values']['perspective_seat'] == ''
-    assert choice not in dict(options(page, 'perspective_seat'))
+    assert NativePage(page).field('perspective_seat')['type'] == 'hidden'
     assert 'name="setup_action" value="create"' not in page
     assert browser.submit(current, setup_action='create')[0] == 400
     assert localized_server.app_context.managed_stateful.active_match is None
@@ -90,7 +81,7 @@ def test_reorder_replace_rejection_and_language_never_reassign_person(
         Forms(page).find('/actions/profile/language'), language='en'))
     assert Forms(page).find('/matches/api/v1/create')['values']['perspective_seat'] == ''
     page = follow(browser, browser.submit(Forms(page).find('/matches/api/v1/create'),
-        perspective_seat=person(page, 'Clara'), setup_action='update'))
+        setup_action='choose_rearhand'))
     follow(browser, browser.submit(
         Forms(page).find('/matches/api/v1/create'), setup_action='create'))
     active = localized_server.app_context.managed_stateful.active_match
@@ -114,15 +105,15 @@ def test_stale_reviewed_create_cannot_revert_same_generation_roster(localized_se
 def test_unsent_roster_language_return_keeps_person_until_update(localized_server):
     browser = Browser(localized_server)
     page, _ = reviewed_roster(browser)
-    choice = person(page, 'Bea')
+    choice = Forms(page).find('/matches/api/v1/create')['values']['perspective_seat']
     pending = envelope(page, '/matches/api/v1/create', {
-        'forehand_name': ['Bea'], 'middlehand_name': ['Anna'], 'perspective_seat': [choice]})
+        'forehand_name': ['Bea'], 'middlehand_name': ['Anna']})
     page = follow(browser, enhanced_switch(browser, page, pending))
     form = Forms(page).find('/matches/api/v1/create')
     assert form['values']['forehand_name'] == 'Bea'
     assert form['values']['perspective_seat'] == choice
     page = follow(browser, browser.submit(form, setup_action='update'))
-    assert person(page, 'Bea') == choice
+    assert Forms(page).find('/matches/api/v1/create')['values']['perspective_seat'] == choice
     follow(browser, browser.submit(
         Forms(page).find('/matches/api/v1/create'), setup_action='create'))
     active = localized_server.app_context.managed_stateful.active_match
@@ -158,7 +149,7 @@ def test_setup_review_does_not_generate_ids_or_write_and_expiry_stays_original(
         middlehand_name='Bea', rearhand_name='Clara', setup_action='update'))
     clock.now += 600
     page = follow(browser, browser.submit(Forms(page).find('/matches/api/v1/create'),
-        perspective_seat=person(page, 'Bea'), setup_action='update'))
+        setup_action='choose_middlehand'))
     assert context.creation_setups['matches'].created_at == setup.created_at
     assert not context.frontend_profile.profile_path.exists()
     assert not tuple(context.managed_stateful.root('matches').iterdir())
@@ -177,7 +168,7 @@ def test_setup_review_does_not_generate_ids_or_write_and_expiry_stays_original(
 
 @pytest.mark.parametrize('locale', ('de', 'en'))
 @pytest.mark.parametrize('roster', ('saved', 'new', 'mixed'))
-def test_native_roster_then_person_review_and_create(localized_server, locale, roster):
+def test_native_person_review_then_create(localized_server, locale, roster):
     browser = Browser(localized_server)
     handles = saved_players(browser) if roster != 'new' else {}
     page = browser.page('/matches/new')
@@ -187,8 +178,8 @@ def test_native_roster_then_person_review_and_create(localized_server, locale, r
     before = context.frontend_profile.profile_path.read_bytes()
     assert not re.search(r'<select[^>]*name="perspective_mode"', page)
     assert not re.search(r'<select[^>]*name="own_seat"', page)
-    assert len(options(page, 'perspective_seat')) == 1
-    fields = {'match_title': 'Named perspective', 'setup_action': 'update'}
+    assert NativePage(page).field('perspective_seat')['type'] == 'hidden'
+    fields = {'match_title': 'Named perspective', 'setup_action': 'choose_middlehand'}
     for seat, name in zip(('forehand', 'middlehand', 'rearhand'),
                           ('Anna', 'Bea', 'Clara'), strict=True):
         saved = roster == 'saved' or (roster == 'mixed' and name != 'Clara')
@@ -199,14 +190,10 @@ def test_native_roster_then_person_review_and_create(localized_server, locale, r
     assert response[0] == 303, response[2].decode()
     page = follow(browser, response)
     assert 'class="error-summary"' not in page
-    assert len(options(page, 'perspective_seat')) == 4
     form = Forms(page).find('/matches/api/v1/create')
-    assert form['values']['perspective_seat'] == ''
-    assert 'name="setup_action" value="create"' not in page
+    assert form['values']['perspective_seat'].startswith(('saved:', 'new:'))
     assert context.frontend_profile.profile_path.read_bytes() == before
     assert context.managed_stateful.active_match is None
-    page = follow(browser, browser.submit(form, perspective_seat=person(page, 'Bea'),
-                                         setup_action='update'))
     assert 'name="setup_action" value="create"' in page
     assert context.frontend_profile.profile_path.read_bytes() == before
     form = Forms(page).find('/matches/api/v1/create')

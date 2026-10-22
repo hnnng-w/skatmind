@@ -1486,6 +1486,19 @@ form:has(> input[name="declaration_form"]) > p { margin-block: 0.25em; }
   }
 }
 
+/* Match Play needs eight readable tracks before sharing space with context. */
+#match-recording { container: match-recording / inline-size; }
+
+#match-recording .recording-progress-layout:has([data-balanced-grid][data-card-mode="play"]) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@container match-recording (min-width: 69em) {
+  #match-recording .recording-progress-layout:has([data-balanced-grid][data-card-mode="play"]) {
+    grid-template-columns: minmax(0, 3fr) minmax(18em, 1fr);
+  }
+}
+
 .recorded-summary,
 .recorded-history,
 .recorded-current,
@@ -1855,6 +1868,7 @@ main[data-workflow="sessions"] { overflow-wrap: anywhere; }
 .local-settings .own-player { font-size: 0.9em; }
 .seat-setup { display: grid; gap: 0.65rem; }
 .seat-setup .seat-entry { margin: 0; }
+.manual-perspective-action { margin-block-start: 0.5rem; }
 .seat-setup .derived-own, .seat-setup .own-release { display: none; }
 
 /* Presentation follows live native values, including restored rejected input.
@@ -1898,6 +1912,7 @@ main[data-workflow="sessions"] { overflow-wrap: anywhere; }
 .seat-entry:has(select[name$="_mode"] option[value="saved"]:checked) .new-player-entry:has(input:placeholder-shown),
 .seat-entry:has(select[name$="_mode"] option[value="new"]:checked) .saved-player-entry:has(option[value=""]:checked),
 .seat-setup:has(select[name="perspective_mode"] option[value="own"]:checked) .manual-perspective:not(:has([aria-invalid="true"])),
+.seat-setup:has(select[name="perspective_mode"] option[value="own"]:checked) .manual-perspective-action,
 .seat-setup:has(select[name="perspective_mode"] option[value="manual"]:checked) .own-seat-choice:not(:has([aria-invalid="true"])),
 .player-editor form:has(select[name="account_action"] option[value="keep"]:checked) .account-edit-fields {
   display: none;

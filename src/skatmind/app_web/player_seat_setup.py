@@ -12,6 +12,7 @@ from .frontend_profile_operations import StaleFrontendProfileGenerationError
 from .profile_player_operations import resolve_known_player_handle_v1
 
 SEATS = ("forehand", "middlehand", "rearhand")
+MATCH_PERSON_SETUP_ACTIONS = {f"choose_{seat}": seat for seat in SEATS}
 SEAT_SETUP_FIELDS = (
     "perspective_mode", "own_seat", "own_player_handle", "perspective_seat",
     *(f"{seat}_{suffix}" for seat in SEATS for suffix in ("mode", "handle", "name")),
@@ -194,8 +195,16 @@ def submit_seat_setup_v1(context, family, profile, values, *, generation, local_
     current = current_seat_setup_v1(context, family, profile)
     if current.token != token:
         raise StaleFrontendProfileGenerationError
-    if action not in {"update", "create"}:
+    chosen_seat = MATCH_PERSON_SETUP_ACTIONS.get(action) if family == "matches" else None
+    if action not in {"update", "create"} and chosen_seat is None:
         raise SeatSetupError("review_required")
+    if chosen_seat is not None:
+        if values.get("perspective_mode") != "manual":
+            raise SeatSetupError("choice", "perspective_mode")
+        if values.get("time_form") == "match-create":
+            from .local_time_http import local_time_context, require_local_source
+            require_local_source({**values, "profile_generation": str(generation)},
+                local_time_context(context, None, "match-create"))
     if any(len(value) > 8192 for value in values.values()):
         raise SeatSetupError("choice")
     for name in ("save_players", "save_platform"):
@@ -231,7 +240,14 @@ def submit_seat_setup_v1(context, family, profile, values, *, generation, local_
         raise
     if family == "matches" and projected.get("perspective_mode") == "manual":
         choice = projected.get("perspective_seat", "")
-        if choice in SEATS:
+        if chosen_seat is not None:
+            # The activated row action chooses from this submitted roster, never
+            # from the old occupant of a seat or a second editable person control.
+            choice = roster_person_value_v1(projected, chosen_seat)
+            if not choice:
+                field = "name" if projected.get(f"{chosen_seat}_mode") == "new" else "handle"
+                raise SeatSetupError("choice", f"{chosen_seat}_{field}")
+        elif choice in SEATS:
             previous = dict(current.values)
             # Legacy seat clients are bound to the previously presented person.
             # Only a first explicit legacy submission has no prior roster to bind.
@@ -250,13 +266,17 @@ def submit_seat_setup_v1(context, family, profile, values, *, generation, local_
             tuple(values.items()), auto, False, current.created_at)
         context.creation_setups[family] = current
     complete = all(roster_names_v1(values, profile))
-    if complete:
+    if complete or chosen_seat is not None:
         if family == "sessions":
             prepare_profile_driven_session_creation_v1(values, profile=profile,
                 expected_profile_generation=generation, existing_session_ids=(),
                 entropy_source=None, validation_only=True)
         else:
             from .local_time_forms import canonical_time_payload
+            if chosen_seat is not None and values.get("time_form") == "match-create":
+                from .local_time_http import prepare_match_creation_time
+                local_timestamp = prepare_match_creation_time(context,
+                    {**values, "profile_generation": str(generation)})
             metadata = (canonical_time_payload(values, local_timestamp)
                         if values.get("time_form") == "match-create" else values)
             prepare_profile_driven_match_creation_v1(metadata, profile=profile,

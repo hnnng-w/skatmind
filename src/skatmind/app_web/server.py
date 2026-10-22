@@ -217,7 +217,11 @@ from .operation_feedback import (
     feedback_lock,
     feedback_source,
 )
-from .player_seat_setup import current_seat_setup_v1, submit_seat_setup_v1
+from .player_seat_setup import (
+    MATCH_PERSON_SETUP_ACTIONS,
+    current_seat_setup_v1,
+    submit_seat_setup_v1,
+)
 from .profile_driven_creation import (
     PROFILE_DRIVEN_LEARNING_CREATE_FIELDS,
     PROFILE_DRIVEN_MATCH_CREATE_FIELDS,
@@ -2963,7 +2967,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         from .profile_driven_creation import PROFILE_DRIVEN_LOCAL_MATCH_CREATE_FIELDS
         local = "time_form" in text_values
         timestamp = (prepare_match_creation_time(self.server.app_context, text_values)
-                     if local else None)
+                     if local and text_values.get("setup_action") not in MATCH_PERSON_SETUP_ACTIONS
+                     else None)
         profile, generation = self._profile_creation_snapshot(
             text_values,
             (PROFILE_DRIVEN_LOCAL_MATCH_CREATE_FIELDS

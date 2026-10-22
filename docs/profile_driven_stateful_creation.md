@@ -143,12 +143,17 @@ evidence; the stored ID/provider/name, registry and template are unchanged.
 
 The form asks for a Match title, an optional date-only
 display value, a friendly platform, three named Players, and a perspective
-person. Issue #294 presents the actual roster's names, with game-1 seats as
-supplementary labels. Without own-player assistance, the first native Update
-returns those choices; explicit person selection and review precede Create.
+person. Issue #294's installed-retest follow-up places a native **Use this
+perspective and review** submitter inside each manual player row. The complete
+submitted roster supplies the chosen person, so one setup POST from the fresh
+page returns the named review before explicit Create. There is no separate
+editable perspective dropdown or prerequisite roster-only submission.
 Changing the roster preserves the person or clears the choice, including validation
 and language restoration. Configured own placement derives the person without a
-second picker. See [the setup lifecycle](settings_and_player_seat_setup.md#match-person-choice-issue-294).
+second picker. Neutral Update/implicit Enter does not choose a person. The hidden
+person binding is regenerated rather than captured as editable language state;
+source-checked time-validation failures retain the explicit selected person.
+See [the setup lifecycle](settings_and_player_seat_setup.md#match-person-choice-issue-294).
 Friendly platform values are `euroskat`, `in_person`, `other_online`,
 `unknown`, and `custom`. An optional Source URL is a normal field; source kind,
 title, channel, timecodes, and other exact Product metadata remain inside

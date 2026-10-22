@@ -19,19 +19,33 @@ below remain. See [Local time entry](local_time_entry.md) for compatibility and 
 
 Without a configured own Player, Match creation now submits the internal manual
 mode through hidden controls. There is no one-option assistance question or
-unavailable own-seat control. Enter the three game-1 Players, then **Update setup**.
-A valid roster update returns named perspective choices without a validation error
-or an automatic selection. Choose the person, Update to review, then explicitly
-Create. Saved, new and mixed rosters use this same native, no-JavaScript lifecycle.
+unavailable own-seat control. Fill the three game-1 Players and Match metadata,
+then activate **Use this perspective and review** inside the desired person's
+row. That one setup POST validates the submitted roster and returns its named
+review; explicitly Create afterward. Saved, new and mixed rosters use this native
+flow with or without JavaScript. The installed-retest follow-up supersedes the
+earlier roster-only Update followed by a separate perspective dropdown.
 
 The optional setup-assistance selector remains for a configured own Player. Own
 placement derives perspective and submits it as hidden transport; it does not ask
-for a second person. Changing to manual assistance requires Update before the
-named person picker is presented. The own-seat control remains the correction
-target for inconsistent own-placement submissions.
+for a second person. Native manual-mode selection exposes the row actions, while
+own mode hides them and rejects forged manual actions. Existing automatic-source
+release, occupied-target, account and duplicate-Player checks still apply. The
+own-seat control remains the correction target for inconsistent own placement.
 
 Manual Match choices in the existing private `perspective_seat` field now identify
 a person: a saved-Player handle or a digest of the explicitly entered new name.
+The normal form carries that binding as regenerated hidden transport, not an
+editable dropdown. Its submitter is exactly one of `choose_forehand`,
+`choose_middlehand`, or `choose_rearhand` in the existing `setup_action` field.
+The allowlisted row is resolved against the complete submitted roster before
+review; the row action itself is never retained as a seat-only perspective.
+Choosing another row is an explicit new person choice. Neutral `update` retains
+the existing person across reordering, or clears a removed/replaced person.
+An enabled hidden neutral Update button precedes the row buttons, so Enter in
+title/name inputs cannot implicitly choose the first person. Explicit pointer
+or keyboard activation of a row button supplies that row's action. Editing
+controls alone sends no request.
 These are presentation values, not generated Product/Player IDs or a token registry.
 Reordering preserves the person; replacement or renaming a new entry invalidates
 the choice and requires explicit reselection. Rejected values and language returns
@@ -41,7 +55,7 @@ clients remain compatible: Update binds them to the previously presented person
 reviewed roster. Own placement retains its existing seat binding.
 
 All roster/metadata validation still runs before review. Only Update permits a
-missing manual perspective as an incomplete next step; Create requires complete
+missing manual perspective as an incomplete draft; Create requires complete
 reviewed values. Setup generation, original expiry, single-use consumption,
 profile generation and exact reviewed-state comparison remain in force. Setup
 and review create no IDs and write no Product or profile. The compatible hidden
