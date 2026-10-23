@@ -50,6 +50,17 @@ def session_batch_message(active, task, commands):
 
 def match_operation_message(active, operation, previous_game):
     game = active.workspace.slots[active.selected_position - 1].observed_game
+    evidence_field = {"set_perspective_hand": "perspective_initial_hand",
+                      "set_original_skat": "original_skat",
+                      "set_discarded_cards": "discarded_cards"}.get(operation)
+    if evidence_field is not None and game is not None:
+        cards = getattr(game, evidence_field)
+        if previous_game is not None and cards == getattr(previous_game, evidence_field):
+            return "unchanged", ()
+        if cards is None:
+            return "evidence_removed", ()
+        if not cards:
+            return "evidence_empty", ()
     if operation in {"start_game", "mark_passed_deal"}:
         return ("game_started" if operation == "start_game" else "game_passed",
                 (("number", active.selected_position),))

@@ -274,6 +274,9 @@ def apply_unified_match_operation_v1(
         if result.status == "applied":
             context.recovery.clear()
             context.transfer_notice = None
+        evidence_noop = result.status == "unchanged" and values.get("operation") in {
+            "set_perspective_hand", "set_original_skat", "set_discarded_cards"}
+        if result.status == "applied" or evidence_noop:
             context.operation_feedback.publish(attempt, feedback_source(context),
                 match_operation_message(context, values.get("operation"), previous_game))
     selected = result.state.get("selected_position")

@@ -1369,6 +1369,17 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             definition, state = bridge_independent_evidence_feedback(
                 active_identity, definition, state)
             card_details = None
+            match_evidence_details = None
+            match_feedback = state.validation_issues[0].match_evidence_feedback
+            if match_feedback is not None and active_identity is not None:
+                from .match_evidence_feedback import resolve_match_evidence_feedback
+
+                with active_identity.capture.lock:
+                    with self.server.app_context.lock:
+                        current = self.server.app_context.managed_stateful.active_match
+                    if current is active_identity:
+                        match_evidence_details = resolve_match_evidence_feedback(
+                            active_identity, match_feedback, locale)
             if definition.action_route in {"/sessions/cards", "/sessions/play"}:
                 from .card_entry_http import resolve_session_card_feedback
                 feedback = state.validation_issues[0].session_card_feedback
@@ -1390,6 +1401,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 locale=locale,
                 last_valid_result_retained=last_valid_result_retained,
                 session_card_details=card_details,
+                match_evidence_details=match_evidence_details,
             )
         return rendered
 

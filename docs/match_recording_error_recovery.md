@@ -105,10 +105,14 @@ their exact source-safe value through rejection and language return. Enhanced un
 choices additionally require JavaScript; no obsolete overlay can recreate a palette
 beside a different verified preview.
 
-Rewind preview shows
-retained/removed counts, the first removed Trick/Card position, inspectable exact
-Play lists, and removed commentary and response links. Metadata and evidence
-retention are explicit. Rewind preparation is separated below the main action row
+Issue #296 makes the verified rewind chronology directly visible in the initial
+server-delivered preview: retained and removed Cards, named Players and exact
+Trick/Card positions, using the bound source and candidate without rendering-time
+replay. Rewind from the first Card explicitly explains zero retained Plays.
+Zero commentary/link inventories and the broad unchanged-metadata paragraph are
+omitted. Actual removed commentaries and response links have positive consequence
+counts and inspectable escaped text/references. The short irreversibility warning
+and fresh required unchecked confirmation remain. Rewind preparation is separated below the main action row
 and explains that it opens a removal preview. It removes the **selected Play and
 its continuation**, including undo-last-Card.
 
@@ -220,6 +224,139 @@ request bounds, and packaged-only assets remain unchanged. Standalone Capture
 routes and behavior remain supported. No dependency or Node toolchain is added.
 
 ## Verification and compatibility
+
+### Issue #296 developer verification
+
+Starting branch: `bug/296-match-correction-and-evidence`; exact starting HEAD:
+`38ca126ccf739c2d29ca14ed04c2b4c62030f093`. The initial worktree was clean. The
+historical maintainer evidence remains: SA → S10 retained SK/S7 and changed
+15 → 14; rewind from Bea's SK removed SK/S7 and retained S10; original Skat
+**CJ/D7**, not CA/D7, conflicted with Alex's initial hand; HA/D7 then worked.
+Those functional paths were already working. Their presentation, evidence status,
+count/overlap explanation and operation acknowledgements are this issue's repair.
+
+New real-HTTP regressions in `tests/test_match_evidence_presentation.py` first
+failed on missing direct chronology/accepted summaries, generic counts/overlap
+and missing no-op receipts. The first Hand test fixture used the wrong checkbox
+wire value and was corrected to the actual `true` value before reproducing its
+presentation failure. It is not counted as a Product defect. The complete-module
+run also identified two old assertions expecting no receipt for unchanged
+replacement; they now require the truthful **Nothing changed** message.
+
+The exact final parallel module set is the prescribed 42 modules plus the new
+presentation module and four directly adjacent declaration modules, since private
+validation contracts/rendering are touched. Run each complete module, without a
+final filter:
+
+```powershell
+py -3.13 -m pytest `
+  tests/test_match_card_correction_ui.py tests/test_match_recording_recovery.py `
+  tests/test_match_recording_recovery_web.py tests/test_match_recording_diagnostics.py `
+  tests/test_recorded_party_presentation.py tests/test_recorded_trick_progress.py `
+  tests/test_recorded_trick_progress_web.py tests/test_direct_match_evidence.py `
+  tests/test_match_evidence_navigation.py tests/test_compact_card_entry_web.py `
+  tests/test_match_declaration_drafts.py tests/test_observed_game_contracts.py `
+  tests/test_observed_game_evidence.py tests/test_match_historical_materialization.py `
+  tests/test_match_workspace_persistence.py tests/test_null_recording_end.py `
+  tests/test_null_recording_end_web.py tests/test_task_first_stateful_projections.py `
+  tests/test_task_first_stateful_rendering.py tests/test_task_first_match_and_learning_workflow.py `
+  tests/test_match_game_navigation.py tests/test_match_game_navigation_web.py `
+  tests/test_operation_feedback.py tests/test_operation_feedback_web.py `
+  tests/test_operation_feedback_language.py tests/test_operation_feedback_script.py `
+  tests/test_frontend_validation_preservation.py tests/test_task_first_language_preservation.py `
+  tests/test_frontend_language_switching.py tests/test_language_switch_context.py `
+  tests/test_language_view_continuity.py tests/test_unified_workflow_visual_contract.py `
+  tests/test_frontend_localization_foundation.py tests/test_complete_frontend_localization.py `
+  tests/test_skatmind_rename.py tests/test_packaging_and_distribution.py `
+  tests/test_unplayed_card_summary.py tests/test_unplayed_card_summary_web.py `
+  tests/test_match_capture_game_updates.py tests/test_match_workspace_materialization.py `
+  tests/test_session_card_feedback.py tests/test_session_card_feedback_web.py `
+  tests/test_match_evidence_presentation.py tests/test_compact_declaration_form.py `
+  tests/test_compact_declaration_web.py tests/test_session_declaration_correction.py `
+  tests/test_session_declaration_correction_web.py `
+  -q --tb=short -n 2 --dist=loadfile --max-worker-restart=0
+```
+
+Only after those workers exit, run the exclusive module:
+
+```powershell
+py -3.13 -m pytest tests/test_match_analysis_action_placement.py -q --tb=short -n 0
+```
+
+The final runs additionally use `--junitxml` paths outside the checkout to retain
+exact distinct test IDs, counts and timing. Finish with the explicitly approved
+routine, using the existing CPython 3.13 development interpreter process-locally:
+
+```powershell
+$env:Path = "C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313;" + $env:Path
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+```
+
+Local Full was not run under the approved routine. Quick is partial validation;
+exact-commit hosted CI and the installed targeted retest remain maintainer gates.
+
+#### Browser commands and evidence boundary
+
+```powershell
+py -3.13 scripts/verify_match_evidence_presentation.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "<fresh-temporary-output>" --phase before
+py -3.13 scripts/verify_match_evidence_presentation.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "<different-fresh-temporary-output>" --phase after
+py -3.13 scripts/verify_match_declaration_drafts.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "<fresh-sentinel-output>" --phase after
+py -3.13 scripts/verify_match_draft_lifecycle.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "<fresh-enter-sentinel-output>" --phase after
+```
+
+The before command was executed before Product edits. Evidence stays under the
+approved temporary `opencode` root. Completed baseline authority is
+`issue-296-before-complete/evidence.json`; completed repaired authorities are
+`issue-296-browser-verified/evidence.json`, `issue-296-draft-sentinel/evidence.json`
+and `issue-296-enter-sentinel/evidence.json`. Each directory contains screenshots
+and actual request/source/counter records. Earlier probes include an import-path
+setup failure and a baseline pointer probe that missed withdrawal; that incomplete
+run is not the completed baseline. The completed baseline uses native Tab/Enter
+for withdrawal, and the repaired runs use real pointer and native keyboard
+submitters without synthesizing evidence owner/action fields.
+
+Environment: CPython **3.13.7**, pytest **9.0.3**, pytest-xdist **3.8.0**, Windows
+**11 Pro 10.0.26300 (64-bit)**, Windows PowerShell **5.1.26100.9711**, headless
+Microsoft Edge **155.0.4283.62**. These are disposable source-tree developer checks,
+not installed maintainer UAT. Alex/Bea/Chris evidence fixtures are separate from
+the Anna/Bea/Clara #292 sentinel fixtures and from all maintainer files.
+
+All four de/en × JavaScript-on/off cases exercise actual replacement/rewind forms,
+unchecked confirmation, Cancel, native Apply, accepted/pending evidence, CJ
+rejection, nine-card initial-hand and empty/one-card Skat rejection, save, no-op,
+withdrawal and authorized receipt language return. The repair also switches
+language with checked rewind consent and verifies that consent is cleared. A
+complete Hand fixture includes original Skat, all 30 legal Plays, known bid and
+exact Match time, with discards `null`: the native review remedy saves `[]` once
+and enables precisely the retained-evidence capability; withdrawal saves once
+and restores the prior readiness. Declaration and analysis calls remain zero
+through these evidence steps. Existing complete modules cover first/last rewind,
+annotations/escaping, tokens, expiry, stale/equal-revision sources, failed Save,
+CAS, report retention and Hand-to-non-Hand reachability.
+
+The main repaired sequence records five recording saves/replacements per cell:
+one replacement, one rewind, initial hand, original Skat and withdrawal. Selection,
+preview, Cancel, no-op and rejection add none. Two real language changes clear
+rewind consent and a third checks receipt continuation; those three profile
+writes are identified separately. The subsequent complete-Hand phase has two
+evidence saves and zero profile/declaration/analysis calls. Long-name passive
+status/first-card-rewind/keyboard-focus probes have zero writes or analysis.
+The independent #292 sentinels retain their own phase-specific counters.
+
+Initial landings are captured before test-only disclosure activation, scrolling
+or focus changes. Measurements and inspected screenshots cover **1365×900** and
+**390×844**, long names, accepted status, direct chronology, rejected-input focus,
+the server-open native remedy and visible confirmation focus. Existing control
+sizes and balanced Card tracks are retained; no palette CSS changes are made.
+The viewports are emulated and measured browser zoom is **1 (100%)**. Neither
+resizing nor these headless runs claim genuine 200% zoom, assistive-technology or
+physical-device coverage. #295's accepted typography/zoom/native-operation
+evidence is preserved.
+
+Keep **#296 open** for new exact-commit hosted CI and the installed changed-path
+retest. #292–#295 remain complete. #208 remains open, UAT-01 is not globally
+accepted, UAT-02–12 remain paused, and release preparation is not authorized.
 
 ### Issue #249 current evidence
 

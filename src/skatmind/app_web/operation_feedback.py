@@ -29,6 +29,7 @@ MESSAGE_PARAMETERS = {
     "game_started": ("number",), "game_passed": ("number",), "correction": (),
     "version_added": (), "version_selected": (), "prepared": (),
     "debrief_added": ("binding",),
+    "evidence_removed": (), "evidence_empty": (), "unchanged": (), "rewind": (),
 }
 
 

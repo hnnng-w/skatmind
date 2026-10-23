@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 
 from .form_parsing import FormValuesV1
+from .match_evidence_feedback import MatchEvidenceFeedback
 from .position_form_feedback import PositionFormFeedbackV1
 from .session_card_feedback import SessionCardFeedback
 
@@ -35,8 +36,17 @@ class FrontendValidationIssueV1:
     interpolation_arguments: tuple[tuple[str, str], ...] = ()
     session_card_feedback: SessionCardFeedback | None = None
     position_feedback: PositionFormFeedbackV1 | None = None
+    match_evidence_feedback: MatchEvidenceFeedback | None = None
 
     def __post_init__(self) -> None:
+        if self.match_evidence_feedback is not None and (
+                type(self.match_evidence_feedback) is not MatchEvidenceFeedback
+                or self.field_key not in {"cards", "evidence_original_skat",
+                                          "evidence_perspective_hand"}
+                or self.message_key != "validation.card_entry.evidence_conflict"
+                or self.interpolation_arguments or self.session_card_feedback is not None
+                or self.position_feedback is not None):
+            raise ValueError("Match evidence feedback requires one exact bounded witness.")
         if self.position_feedback is not None and (
                 type(self.position_feedback) is not PositionFormFeedbackV1
                 or self.field_key != self.position_feedback.fields[0]

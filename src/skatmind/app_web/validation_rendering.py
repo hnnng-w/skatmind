@@ -465,6 +465,7 @@ def apply_validation_feedback_to_html_v1(
     locale: str,
     last_valid_result_retained: bool = False,
     session_card_details: tuple[str, str | None] | None = None,
+    match_evidence_details: str | None = None,
 ) -> str:
     """Applies locale-at-render-time feedback to one exact registered form."""
 
@@ -511,6 +512,8 @@ def apply_validation_feedback_to_html_v1(
             **arguments,
         )
         feedback = issue.session_card_feedback
+        if match_evidence_details is not None and issue.match_evidence_feedback is not None:
+            message = match_evidence_details
         if (session_card_details is not None and feedback is not None
                 and feedback.route == definition.action_route
                 and feedback.selection == state.safe_visible_values.singular("card_selection")

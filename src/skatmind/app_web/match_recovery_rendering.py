@@ -68,6 +68,13 @@ def _play_list(context, locale, plays):
         + escape(card_name(locale, play.card)) + '</li>' for play in plays) + '</ol>'
 
 
+def _rewind_plays(context, locale, kind, plays):
+    return ('<div id="match-rewind-' + kind + '"><h4>'
+        + translated(locale, f"recovery.{kind}_plays") + '</h4>'
+        + (_play_list(context, locale, plays) if plays else
+           paragraph(locale, "recovery.no_retained_plays")) + '</div>')
+
+
 def _removed_annotations(context, locale, game, candidate):
     retained_notes = {note.commentary_id for note in candidate.commentaries}
     retained_links = {link.link_id for link in candidate.response_links}
@@ -162,18 +169,18 @@ def render_match_recovery(context, locale, selections, *, progress=None):
             else:
                 feedback += paragraph(locale, "recovery.removal",
                     retained=candidate.retained_play_count, removed=candidate.removed_play_count,
-                    location=_location(locale, old.decision_index),
-                    notes=candidate.removed_commentary_count,
-                    responses=candidate.removed_response_count)
-                feedback += disclosure(locale, "recovery.retained_plays", _play_list(
-                    context, locale, game.plays[:selection.play_index - 1]))
-                feedback += disclosure(locale, "recovery.removed_plays", _play_list(
-                    context, locale, game.plays[selection.play_index - 1:]))
+                    location=_location(locale, old.decision_index))
+                feedback += _rewind_plays(context, locale, "retained", candidate.game.plays)
+                feedback += _rewind_plays(context, locale, "removed",
+                    game.plays[candidate.retained_play_count:])
                 if candidate.removed_commentary_count or candidate.removed_response_count:
+                    for key, count in (("commentaries", candidate.removed_commentary_count),
+                                       ("responses", candidate.removed_response_count)):
+                        if count:
+                            feedback += paragraph(locale, "recovery.removed_" + key, count=count)
                     feedback += disclosure(locale, "recovery.removed_annotations",
                         _removed_annotations(context, locale, game, candidate.game))
                 feedback += paragraph(locale, "recovery.removal_final")
-                feedback += paragraph(locale, "recovery.metadata_unchanged")
             if candidate.warning is not None:
                 feedback += paragraph(locale, "recovery.candidate_warning")
                 feedback += render_match_diagnostic(context, locale, candidate.warning,

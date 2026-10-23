@@ -14,6 +14,7 @@ from .frontend_profile_operations import FrontendProfilePersistenceConflictError
 from .local_time_conversion import LocalTimeError
 from .local_time_http import LocalTimeConflict
 from .match_declaration_drafts import DeclarationDraftConflict
+from .match_evidence_feedback import MatchEvidenceFeedback
 from .match_recovery import MatchRecoveryConflict
 from .player_seat_setup import SeatSetupError
 from .profile_driven_creation import ProfileDrivenCreationFieldError
@@ -132,7 +133,10 @@ def map_frontend_exception_v1(
             field_key=_known_field(definition, error.field_key),
             message_key=f"validation.card_entry.{error.reason}",
             session_card_feedback=(error.feedback if definition.action_route in {
-                "/sessions/cards", "/sessions/play"} else None)),)
+                "/sessions/cards", "/sessions/play"} else None),
+            match_evidence_feedback=(error.feedback if definition.action_route in {
+                "/matches/cards", "/matches/recording-input"}
+                and type(error.feedback) is MatchEvidenceFeedback else None)),)
     if isinstance(error, CardEntryConflict):
         return (_issue(None, f"validation.card_entry.{error.reason}"),)
     if isinstance(error, ObservedTraceError) and definition.active_context_requirement == "matches":

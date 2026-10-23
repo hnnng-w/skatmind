@@ -40,7 +40,7 @@ default Play, change-submit or selection request. The updater tolerates the abse
 | Caller | Display boundary |
 | --- | --- |
 | Session accepted batch and remaining/public hands | `card_set_summary`, display copy only |
-| Match initial-hand/original-Skat/discard evidence | `card_set_summary`, separate source sets |
+| Match initial-hand/original-Skat/discard evidence | Compact read-only faces in separate accepted-source summaries (Issue #296) |
 | Recorded decision context hand | `card_set_display_order` over the retained historical hand |
 | Unplayed pair and recorded/conflicting pair evidence | Display copy, preserving per-Card attribution |
 | `cards_summary`, including Match actual/recommended/ranked candidates | Original supplied sequence |
@@ -483,7 +483,7 @@ candidate validation, including complete-trace reconciliation.
 | Perspective original dealt hand | Exact ten, including already played original Cards | Withdraw when recorded |
 | Original Skat, including Hand | Exact two | Withdraw when recorded |
 | Undeclared discards | Exact two | Record no discards; withdraw when recorded |
-| Hand discards | No nonempty grid or Save | Record no discards; withdraw when recorded |
+| Hand discards | Normal summary: not applicable; no palette or extra recording action | Explicit empty evidence and withdrawal in the advanced Hand evidence disclosure (Issue #296) |
 | Non-Hand discards | Exact two | Withdraw when recorded |
 
 Known-empty discards **before declaration are already legal**. Withdrawal writes
@@ -561,6 +561,81 @@ AGPL-3.0-only, dependencies, public/persistence contracts and 98 scenarios remai
 See [installed evidence](unified_workflow_visual_contract.md#direct-match-evidence-issue-268).
 
 ## Exact private HTTP contract
+
+### Match accepted evidence and Hand boundary (Issue #296)
+
+The selected recording now shows one concise accepted summary per source outside
+its editors: the named perspective initial hand, original Skat, and discarded
+Cards. Known sets use the existing compact read-only faces and display-only set
+ordering. Absent sources say **not recorded** with their own field label. Native
+checkboxes remain pending input, including source-safe rejected or language-return
+values; they never determine the accepted summaries. The editors remain collapsed
+until explicitly opened or opened by validation feedback. Their guidance now says
+exactly ten initial-hand Cards or exactly two Skat/non-Hand discard Cards.
+
+An accepted Hand declaration projects **Discarded cards: not applicable (Hand
+game)** for both retained `null` and `[]`. Its normal recording has no discard
+palette or required no-discards click. Original Skat retains its independent
+editor. An unsaved declaration checkbox cannot authorize this presentation.
+
+This projection is not retained evidence. `null` still means no explicit discard
+evidence; `[]` still means an explicit record of no discards. Rendering, language,
+navigation and declaration Save do not convert either value. Complete-initial-deal
+capability and strict Historical materialization still require retained `[]` for
+Hand, as documented in [Match materialization](match_review_and_materialization.md).
+
+The native **Advanced: explicit Hand discard evidence** disclosure lives outside
+the ordinary recording at `#match-hand-evidence`. It distinguishes absent explicit
+evidence from explicitly recorded emptiness, offers the existing empty action,
+and offers withdrawal whenever evidence is retained. This includes legacy `[]`.
+Withdrawal is necessary before a Hand-to-non-Hand correction that would otherwise
+conflict with retained emptiness; nothing is automatically cleared.
+
+For a complete Hand trace with a known bid and original Skat but missing discard
+evidence, the review's contextual remedy links to the selected Game's recording
+at `/matches/position/N#match-hand-evidence`. That disclosure is **server-opened**
+for this accepted source, including with JavaScript disabled. The review renders
+a link, not an unowned evidence submitter. Each action appears once on the
+recording and uses the existing `match-recording-input` owner with freshly
+generated declaration/source authority. The complete native map remains:
+
+| Submitter | Existing operation / interpretation |
+| --- | --- |
+| `set_declaration` | Explicit declaration Save, including implicit Enter in bid/Matadors |
+| `perspective_hand_selected` | `set_perspective_hand`, exact ten |
+| `original_skat_selected` | `set_original_skat`, exact two, independently of Hand |
+| `discarded_cards_selected` | `set_discarded_cards`, exact two outside accepted Hand |
+| Each `_unknown` | Explicit withdrawal to `null` |
+| `discarded_cards_empty` | Explicit `[]`; advanced for accepted Hand, existing secondary action before declaration |
+
+All evidence submitters retain `formnovalidate`, draft preservation, one-operation
+dispatch and existing guards from [Issue #292](match_declaration_drafts.md).
+`/matches/cards` remains the POST compatibility endpoint, not a GET editor.
+
+Count errors name only the affected source and exact count. Initial-hand/original-
+Skat overlap retains the authoritative domain rejection; only after rejection does
+a narrow private witness identify a Card in the other explicitly accepted source.
+For example, CJ in Alex's initial hand explains rejection of original Skat CJ/D7.
+The reverse overlap names the accepted original Skat. Full localized Card/Player
+labels are resolved only after exact binding and file-freshness checks, escaped
+on rendering, and translated again on authorized language return. No English
+exception parsing or inferred hidden ownership supplies this explanation. Other
+evidence conflicts retain a safe field-associated fallback; trace, binding, stale
+source, replay and persistence failures retain their own diagnostics. Legitimate
+original-Skat/discard overlap is still accepted.
+
+Empty normal selection remains invalid. Genuine saves, withdrawal, explicit empty
+evidence, unchanged evidence/replacement, and routine rewind/correction have
+distinct existing-framework receipts. No zero count is fabricated for positive
+Card-save messages. Delivery, one-use identity, original 60-second deadline and
+8-second display budget remain; enhanced language return can translate only a
+still-authorized visible receipt without extending either limit. Actionable
+recovery guidance and warnings remain inline. Passive rendering creates no receipt.
+
+The resulting inventories are **73 POST routes / 125 form definitions / 2,061
+keys per locale**. CSS, JavaScript, public formats, persistence and readiness
+contracts are unchanged. Exact commands, developer-browser scope, counters and
+acceptance gates are recorded in the [Issue #296 verification section](match_recording_error_recovery.md#issue-296-developer-verification).
 
 Issue #237 adds [source-bound Session Card feedback](session_card_feedback.md) to
 the two normal Session forms. Real canonical rejections now distinguish recorded

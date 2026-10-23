@@ -10,6 +10,7 @@ import re
 from skatmind.api.v1.session import files as session_files
 from skatmind.errors import SkatMindValidationError
 from skatmind.match_workspace_persistence import load_match_workspace_file_v1
+from skatmind.observed_trace_diagnostics import ObservedTraceError
 
 from .managed_item_storage import validate_managed_direct_child_path_v1
 from .operation_feedback import feedback_source
@@ -189,14 +190,15 @@ def _match_entry(active, values):
     if operation == "append_plays":
         validate_card_selection(cards, capacity=1)
     elif cards:
-        validate_card_selection(cards, capacity=10 if operation == "set_perspective_hand" else 2)
+        validate_card_selection(cards, capacity=32 if mode == "exact" else
+                                10 if operation == "set_perspective_hand" else 2)
     if operation != "append_plays":
         permitted = ("unknown", "exact", "known_empty") if operation == "set_discarded_cards" else (
             "unknown", "exact")
         if mode not in permitted:
             raise CardEntryError("mode", "card_evidence_mode")
         if mode == "exact" and len(cards) != (10 if operation == "set_perspective_hand" else 2):
-            raise CardEntryError("exact_count")
+            raise CardEntryError("match_count_" + operation.removeprefix("set_"))
     payload = {"operation": operation, "match_position": str(active.selected_position),
                "expected_revision": str(active.workspace.revision), "cards": cards}
     if operation != "append_plays":
@@ -205,8 +207,23 @@ def _match_entry(active, values):
         result = apply_unified_match_operation_v1(active, payload)
     except OSError as error:
         raise CardEntryConflict("save_failed") from error
+    except (ObservedTraceError, CardEntryConflict):
+        raise
+    except ValueError as error:
+        if operation == "append_plays":
+            raise
+        # A concrete accepted overlap can explain this rejection, but cannot
+        # replace domain validation or turn a stale/persistence conflict into it.
+        _require_binding(values.get("card_selection"), match_card_binding(active, operation))
+        _fresh(active, session=False)
+        from .match_evidence_feedback import rejected_evidence_witness
+
+        rejected = CardEntryError("evidence_conflict")
+        if mode == "exact":
+            rejected.feedback = rejected_evidence_witness(active, values)
+        raise rejected from error
     if result.http_status == 409:
         raise CardEntryConflict("file_changed")
     if result.http_status != 200:
-        raise CardEntryError("ownership")
+        raise CardEntryError("evidence_conflict" if operation != "append_plays" else "ownership")
     return f"/matches/position/{active.selected_position}#match-recording"

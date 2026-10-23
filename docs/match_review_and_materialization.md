@@ -71,6 +71,14 @@ Discards means the retained empty array. Those facts must reconstruct the
 complete original 32-Card Deal. Decision preparation may retain an unknown bid
 as null because own-hand reconstruction does not depend on it.
 
+Issue #296's normal browser Hand summary is a declaration-derived display, not a
+new materialization fact. It says that discards are not applicable for both `null`
+and `[]`, while this strict boundary still distinguishes them. The selected
+Game's advanced explicit Hand evidence action can record `[]` or withdraw it to
+`null`; the contextual review remedy opens that actual native owned action even
+without JavaScript. See [accepted evidence and the native action map](compact_card_entry.md#match-accepted-evidence-and-hand-boundary-issue-296).
+There is no automatic readiness upgrade on rendering or declaration Save.
+
 A complete trace can therefore make every Decision preparable while Historical,
 Training source, and played-list materialization remain unavailable because
 original Skat or Discards are unknown. No missing Card is completed from a deck

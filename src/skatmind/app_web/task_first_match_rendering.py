@@ -15,6 +15,11 @@ from .match_declaration_drafts import (
     MATCH_RECORDING_INPUT_ROUTE,
     fragment,
 )
+from .match_evidence_presentation import (
+    accepted_evidence,
+    missing_hand_discard_evidence,
+    saved_hand,
+)
 from .match_report_rendering import render_match_reports_v1
 from .recorded_trick_rendering import (
     render_current_trick,
@@ -24,7 +29,6 @@ from .recorded_trick_rendering import (
 from .stateful_localization import text, translated
 from .task_first_rendering import (
     card_palette,
-    card_set_summary,
     disclosure,
     form,
     hidden,
@@ -167,6 +171,8 @@ def _card_form(state, handle, locale, operation, binding, *, cards=(), play=Fals
         fields = paragraph(locale, "compact.evidence.replace")
         fields += compact_card_selector(locale, mode="set", selected=cards, balanced_grid=True,
             game_type=None if game["declaration"] is None else game["declaration"]["game_type"],
+            guidance_key="match_evidence.select_exact",
+            guidance_values={"count": 10 if operation == "set_perspective_hand" else 2},
             capacity=10 if operation == "set_perspective_hand" else 2).replace(
                 'name="cards"', f'name="evidence_{prefix}"')
         fields += '<button type="submit" class="primary" name="recording_action" value="' + prefix
@@ -201,13 +207,11 @@ def _evidence(state, handle, locale, bindings, *, hand=False):
         declaration = game["declaration"]
         discard = operation == "set_discarded_cards"
         hand_discards = discard and declaration is not None and declaration["hand_game"]
+        if hand_discards:
+            continue
         empty_allowed = discard and (declaration is None or declaration["hand_game"])
         binding = bindings.get(operation, "")
-        editor = paragraph(locale, "compact.evidence.accepted") + card_set_summary(locale, cards)
-        if hand_discards:
-            editor += paragraph(locale, "compact.evidence.hand_discards")
-        else:
-            editor += _card_form(state, handle, locale, operation, binding, cards=cards)
+        editor = _card_form(state, handle, locale, operation, binding, cards=cards)
         if cards is not None or empty_allowed:
             editor += paragraph(locale, "compact.evidence.secondary_scope")
         if cards is not None:
@@ -216,6 +220,24 @@ def _evidence(state, handle, locale, bindings, *, hand=False):
             editor += _evidence_action(handle, locale, operation, binding, "empty")
         content += section(locale, f"task.match.action.{operation}", editor, level=3)
     return content
+
+
+def _explicit_hand_evidence(state, handle, locale, bindings):
+    game = state["game"]
+    if not saved_hand(game):
+        return ""
+    recorded = game["discarded_cards"] is not None
+    content = paragraph(locale, "match_evidence.explicit_empty" if recorded
+                        else "match_evidence.no_explicit")
+    content += paragraph(locale, "match_evidence.explicit_help")
+    content += _evidence_action(handle, locale, "set_discarded_cards",
+        bindings.get("set_discarded_cards", ""), "empty")
+    if recorded:
+        content += _evidence_action(handle, locale, "set_discarded_cards",
+            bindings.get("set_discarded_cards", ""), "unknown")
+    return ('<details id="match-hand-evidence" class="advanced-settings"'
+        + (' open' if missing_hand_discard_evidence(game) else '') + '><summary>'
+        + translated(locale, "match_evidence.explicit_title") + '</summary>' + content + '</details>')
 
 
 def _annotations(state, handle, locale):
@@ -386,9 +408,13 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
             original_skat=game["original_skat"], discarded_cards=game["discarded_cards"])
         owner = _hand_editor_owner(state)
         if owner is not None:
+            task += accepted_evidence(locale, game, "perspective_initial_hand",
+                                      player=_name(state, locale, owner))
             task += '<details class="advanced-settings"><summary id="match-initial-hand">' + translated(
                 locale, "task.match.initial_hand", player=_name(state, locale, owner)) + '</summary>'
             task += _evidence(state, handle, locale, card_bindings, hand=True) + '</details>'
+        for field in ("original_skat", "discarded_cards"):
+            task += accepted_evidence(locale, game, field)
     if game is not None:
         task += (recovery[1] if recovery is not None else "" if recorded is None
                  else render_recorded_history(recorded, locale))
@@ -398,6 +424,7 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     evidence = _evidence(state, handle, locale, card_bindings)
     if evidence:
         body += disclosure(locale, "task.match.evidence", '<div id="match-evidence">' + evidence + '</div>')
+    body += _explicit_hand_evidence(state, handle, locale, card_bindings)
     body += disclosure(locale, "task.match.annotations", _annotations(state, handle, locale))
     metadata = {**state["match"], **state["source"],
         "match_timecode_start": state["source"]["match_timecode"]["start"],

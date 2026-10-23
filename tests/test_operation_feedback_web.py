@@ -212,7 +212,8 @@ def test_match_card_correction_noop_and_pass_are_contextual(localized_server, lo
             notice(page, "correction", locale)
             assert active.workspace.revision == revision + 1
         else:
-            assert not notices(page) and active.path.read_bytes() == before
+            notice(page, "unchanged", locale)
+            assert active.path.read_bytes() == before
         assert not notices(browser.page("/matches/current"))
     page = browser.page("/matches/position/2")
     page = follow(browser, browser.submit(primary(page, "mark_passed_deal")))

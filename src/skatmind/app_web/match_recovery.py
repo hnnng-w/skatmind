@@ -182,6 +182,8 @@ def apply_match_recovery(context: UnifiedMatchContextV1, token: str) -> str:
         if candidate.change.status == "unchanged":
             state.clear()
             state.notice = "unchanged"
+            state.routine_confirmation = True
+            context.operation_feedback.publish(attempt, feedback_source(context), ("unchanged", ()))
             return "unchanged"
         try:
             status = context.capture.save_candidate(candidate.change.workspace)
@@ -192,13 +194,14 @@ def apply_match_recovery(context: UnifiedMatchContextV1, token: str) -> str:
         context.capture.report_store.clear()
         context.last_result = None
         context.transfer_notice = None
-        actionable = bool(state.proposed_cards) or selection.action == "rewind"
+        actionable = bool(state.proposed_cards)
         state.clear()
         state.notice = "saved"
         if not actionable and candidate.warning is None:
             state.routine_confirmation = True
             context.operation_feedback.publish(attempt, feedback_source(context),
-                                               ("correction", ()))
+                                               ("rewind" if selection.action == "rewind"
+                                                else "correction", ()))
         return "saved"
 
 
