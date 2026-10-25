@@ -101,19 +101,32 @@ def test_selected_identity_controls_seats_and_single_overview(mixed, selected, a
     assert html.count('aria-current="page"') == 1
     assert len(re.findall(r'\bid="([^"]+)"', html)) == len(set(re.findall(r'\bid="([^"]+)"', html)))
     hand_editor = re.search(
-        r'<details class="advanced-settings"><summary id="match-initial-hand">.*?</details>',
+        r'<details class="advanced-settings match-source-editor" '
+        r'data-source="perspective_initial_hand"[^>]*>'
+        r'<summary id="match-initial-hand">.*?</details>',
         recording, re.S)
     assert bool(hand_editor) == (state["game"] is not None)
     current_task = recording
     if hand_editor:
         assert hand_editor[0].count('class="primary"') == 1
         assert 'name="recording_action" value="perspective_hand_selected"' in hand_editor[0]
-        current_task = recording.replace(hand_editor[0], "")
+    source_editors = re.findall(
+        r'<details class="advanced-settings match-source-editor"[^>]*>.*?</details>',
+        recording, re.S)
+    assert len(source_editors) == (3 if state["game"] is not None else 0)
+    for editor in source_editors:
+        assert editor.count('class="primary"') == 1
+        current_task = current_task.replace(editor, "")
     if action:
         assert f'value="{action}"' in current_task and current_task.count('class="primary"') == 1
     else:
         assert 'class="primary"' not in current_task
-    assert recording.count('class="primary"') == int(action is not None) + int(bool(hand_editor))
+    assert recording.count('class="primary"') == int(action is not None) + len(source_editors)
+    perspective = next(p for p in mixed.match_definition.participants
+                       if p.player_id == mixed.match_definition.perspective_player_id)
+    caption = escape(text(locale, "creation.match.recording_perspective",
+                          player=perspective.player_label))
+    assert '<p id="match-recording-perspective">' + caption + '</p>' in recording
     if selected in (1, 5):
         assert recording.index('class="recorded-history"') > recording.index(
             'recording-progress-layout')

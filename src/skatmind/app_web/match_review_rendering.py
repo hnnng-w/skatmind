@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from .compact_declaration_rendering import accepted_declaration_summary
-from .match_evidence_presentation import hand_evidence_remedy
 from .recorded_trick_rendering import render_recorded_history, render_recorded_summary
 from .stateful_localization import text, translated
 from .task_first_match_rendering import (
@@ -60,6 +59,7 @@ def render_match_analysis_v1(state, view, handle, locale):
             locale, "task.match.initial_hand_remedy", player=_name(state, locale, owner)) + '</a></p>'
     evidence = view.selected.evidence_summary
     historical_ready = (evidence is not None and evidence.complete_initial_deal_reconstructable
+                        and game["declaration"] is not None and game["declaration"]["bid_value"] is not None
                         and state["match"]["played_at"] is not None)
     historical = paragraph(locale, "recordings.match.historical")
     if not historical_ready:
@@ -69,7 +69,7 @@ def render_match_analysis_v1(state, view, handle, locale):
             "immediate_random_seed": 0, "search_random_seed": 0,
             "search_budget_profile": "historical_review_v1", "immediate_review": True,
             "use_profile_presets": True})
-    return content + hand_evidence_remedy(state, locale) + disclosure(
+    return content + disclosure(
         locale, "task.match.action.analyze_historical_game", historical)
 
 

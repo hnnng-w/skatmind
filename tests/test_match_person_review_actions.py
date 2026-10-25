@@ -66,7 +66,14 @@ def test_fresh_page_person_action_reviews_in_one_post(localized_server, locale, 
     assert setup.reviewed
     assert dict(setup.values)['perspective_seat'].startswith(('saved:', 'new:'))
     assert 'setup_action' not in dict(setup.values)
-    assert names[SEATS.index(seat)] in page
+    tree = Hierarchy(page)
+    summary = tree.by_id("match-setup-review")
+    label = "Geprüfte Erfassungsperspektive" if locale == "de" else "Reviewed recording perspective"
+    assert summary["text"] == label + ": " + names[SEATS.index(seat)]
+    assert tree.visible(summary) and summary["attrs"]["tabindex"] == "-1"
+    create, = [n for n in tree.nodes if n["tag"] == "button"
+               and n["attrs"].get("value") == "create"]
+    assert tree.nodes.index(create) == tree.nodes.index(summary) + 1
     assert context.frontend_profile.profile_path.read_bytes() == before
     assert not tuple(context.managed_stateful.root('matches').iterdir())
     assert context.managed_stateful.active_match is None

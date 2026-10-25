@@ -225,7 +225,24 @@ routes and behavior remain supported. No dependency or Node toolchain is added.
 
 ## Verification and compatibility
 
+### Issue #297 supersession
+
+The maintainer accepted #296's installed functional retest, including native
+JavaScript-disabled operation, on `c5ab67bf02bfde9bbae4565d19e17b5b0b2f8f19`.
+Rewind chronology, Cancel/Apply and truthful receipts remain accepted. Issue #297
+deliberately supersedes only the historical empty-Save and retained-Hand-empty
+prerequisites described below: normal unified two-card zero Save now withdraws to
+unknown, and accepted Hand supplies derived no-discard readiness without writing
+`[]`. A legacy retained `[]` has correction-only withdrawal beside declaration
+corrections, with the pending declaration preserved for its separate explicit Save.
+Initial-hand and standalone exact-entry boundaries remain. See
+[current Card entry](compact_card_entry.md#match-accepted-evidence-and-hand-boundary-issue-296)
+and [Issue #297 evidence](match_evidence_workflow.md).
+
 ### Issue #296 developer verification
+
+This subsection is historical evidence. Its zero-selection rejection and explicit
+Hand remedy assertions describe #296 and are superseded by #297 above.
 
 Starting branch: `bug/296-match-correction-and-evidence`; exact starting HEAD:
 `38ca126ccf739c2d29ca14ed04c2b4c62030f093`. The initial worktree was clean. The

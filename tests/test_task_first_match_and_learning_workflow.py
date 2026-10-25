@@ -1,3 +1,5 @@
+from html import escape
+
 import pytest
 import test_unified_local_app_web as web_helpers
 from test_local_match_capture_web import _creation_values
@@ -59,7 +61,9 @@ def test_match_progression_reuses_exact_evidence_and_never_materializes_on_rende
     html = render_task_first_match_v1(state, view, managed_handle=context.handle, locale=locale)
     assert context.workspace is before
     assert "User observation" in html
-    assert t(locale, "task.match.scope.bounded_observation_candidates") in html
+    assert view.selected.next_player_id == "player-c"
+    assert escape(t(locale, "match_evidence.selection.opponent", player="Carol")) in html
+    assert t(locale, "task.match.scope.bounded_observation_candidates") not in html
     assert 'value="set_response_link"' in html
     assert 'value="truncate_plays"' in html
     assert html.count('class="match-tile ') + html.count('class="match-tile"') == 36

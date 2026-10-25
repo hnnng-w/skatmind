@@ -75,13 +75,15 @@ def test_unknown_editors_do_not_depend_on_cards_or_prepared_count(localized_serv
     assert state["game"]["perspective_initial_hand"] is None
     assert 'id="match-evidence"' in page and 'id="match-initial-hand"' in page
     for operation in ("set_perspective_hand", "set_original_skat", "set_discarded_cards"):
+        if (operation == "set_discarded_cards" and state["game"]["declaration"] is not None
+                and state["game"]["declaration"]["hand_game"]):
+            assert 'name="evidence_discarded_cards"' not in page
+            assert 'value="discarded_cards_empty"' not in page
+            continue
         form = operation_form(page, operation)
         assert form["action"] == "/matches/recording-input"
         marker = form["values"]["recording_action"]
-        expected = ("discarded_cards_empty" if operation == "set_discarded_cards"
-                    and state["game"]["declaration"] is not None
-                    and state["game"]["declaration"]["hand_game"] else
-                    operation.removeprefix("set_") + "_selected")
+        expected = operation.removeprefix("set_") + "_selected"
         assert marker == expected
         assert native.owner(native.button(marker)) is native.owner(native.field("game_type"))
         assert "formnovalidate" in native.button(marker)

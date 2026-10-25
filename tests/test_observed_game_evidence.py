@@ -137,6 +137,19 @@ def test_full_hand_evidence_has_known_empty_discards_but_no_discard_review() -> 
     assert summary.complete_initial_deal_reconstructable is True
 
 
+def test_hand_declaration_supplies_derived_no_discard_fact_without_recording_it() -> None:
+    record = build_complete_observed_record(hand_game=True, include_discards=False)
+    before = record.to_dict()
+    summary = build_observed_game_evidence_summary_v1(record)
+    assert summary.complete_initial_deal_reconstructable
+    assert not summary.discarded_cards_known
+    assert not summary.discard_review_reconstructable
+    assert record.to_dict() == before and record.discarded_cards is None
+    non_hand = build_complete_observed_record(hand_game=False, include_discards=False)
+    non_hand_summary = build_observed_game_evidence_summary_v1(non_hand)
+    assert not non_hand_summary.complete_initial_deal_reconstructable
+
+
 def test_visible_non_hand_declarer_evidence_supports_discard_review_without_plays() -> None:
     data = build_historical_input()
     declarer = data["declarer_player_id"]

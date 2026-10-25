@@ -40,6 +40,7 @@ def main():
     args = parser.parse_args()
     assert args.output.parent.is_dir() and not args.output.exists()
     args.output.mkdir()
+    started_at = time.perf_counter()
     fixture = localized_server.__wrapped__(args.output)
     server = next(fixture)
     browsers = [LocalBrowser(args.browser, args.output / name) for name in ("first-profile", "second-profile")]
@@ -222,7 +223,13 @@ def main():
                                 open_ancestors(selector)
                                 click(cdp, selector)
                             for intent, keys, writes in (("selected", use_keys, 1), ("selected", not use_keys, 0),
-                                                         ("unknown", use_keys, 1)):
+                                                          ("unknown", use_keys, 1)):
+                                if intent == "unknown" and prefix != "perspective_hand":
+                                    for card in cards:
+                                        selector = f'input[name="evidence_{prefix}"][value="{card}"]'
+                                        open_ancestors(selector)
+                                        click(cdp, selector)
+                                    intent = "selected"
                                 action = prefix + "_" + intent
                                 result = observe(case, "explicit_" + action + ("_keys" if keys else "_pointer"), active,
                                     lambda action=action, keys=keys: explicit_button('button[value="' + action + '"]', keys=keys))
@@ -231,15 +238,18 @@ def main():
                                 assert counts["set_declaration"] == counts["profile_writes"] == 0
                                 assert result["after"]["bid_control"] == "invalid"
                                 assert result["after"]["accepted_declaration"] is None
-                    for keys, writes in ((False, 1), (True, 0)):
-                        result = observe(case, "explicit_empty_" + str(keys), active,
-                            lambda keys=keys: explicit_button('button[value=discarded_cards_empty]', keys=keys))
-                        assert result["requests"][0]["fields"]["recording_action"] == ["discarded_cards_empty"]
-                        assert counts["set_discarded_cards"] == 1 and counts["recording_writes"] == writes
+                    # Issue #297: no normal explicit-empty entry; zero Save is unknown/no-op.
+                    for keys in (False, True):
+                        result = observe(case, "absent_zero_save_" + str(keys), active,
+                            lambda keys=keys: explicit_button('button[value=discarded_cards_selected]', keys=keys))
+                        assert result["requests"][0]["fields"]["recording_action"] == ["discarded_cards_selected"]
+                        assert "evidence_discarded_cards" not in result["requests"][0]["fields"]
+                        assert counts["set_discarded_cards"] == 1 and counts["recording_writes"] == 0
                         assert counts["set_declaration"] == counts["profile_writes"] == 0
-                        assert active.workspace.slots[0].observed_game.discarded_cards == ()
+                        assert active.workspace.slots[0].observed_game.discarded_cards is None
         evidence["completed"] = True
     finally:
+        evidence["elapsed_seconds"] = round(time.perf_counter() - started_at, 3)
         (args.output / "evidence.json").write_text(json.dumps(evidence, indent=2), encoding="utf-8")
         for browser in browsers:
             browser.close()

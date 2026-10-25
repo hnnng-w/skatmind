@@ -109,19 +109,29 @@ def render_seat_setup_v1(profile, locale, *, family, setup=None):
         + (f'<p class="reviewed-perspective">{_t(locale, "creation.setup.reviewed")}: '
         + (escape(perspective_name) if perspective_name else _t(
             locale, "creation.common.no_perspective")) + '</p>'
-            if setup is not None and setup.reviewed else '')
+            if family != "matches" and setup is not None and setup.reviewed else '')
         +
         '</div>'
     )
 
 
-def render_setup_actions_v1(locale, *, family, setup=None):
+def render_setup_actions_v1(locale, *, family, setup=None, profile=None):
     action = "creation.session.action" if family == "sessions" else "creation.match.action"
+    review = ""
+    if family == "matches" and setup is not None and setup.reviewed:
+        values = dict(setup.values)
+        seat = match_perspective_seat_v1(values)
+        name = roster_names_v1(values, profile)[SEATS.index(seat)]
+        review = ('<p id="match-setup-review" class="reviewed-perspective" tabindex="-1">'
+                  + _t(locale, "creation.match.reviewed", player=name) + '</p>')
     return (
         '<button type="submit" class="secondary" name="setup_action" '
         'value="update" formnovalidate>'
         f'{_t(locale, "creation.setup.update")}</button>'
+        + ('<div class="match-setup-review">' + review if review else '')
         + (f'<button type="submit" class="primary" name="setup_action" value="create">'
            f'{_t(locale, action)}</button>'
-           if setup is not None and setup.reviewed else '')
+            if setup is not None and setup.reviewed else '')
+        + ('<small>' + _t(locale, "creation.match.reviewed_help") + '</small></div>'
+           if review else '')
     )

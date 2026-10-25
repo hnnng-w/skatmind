@@ -317,10 +317,13 @@ def test_match_peer_disclosures_keep_wrapper_order_fields_and_disabled_actions(l
     assert markup.targets["match-metadata"] == (
         "div", {"id": "match-metadata", "tabindex": "-1"})
     assert '<div id="match-metadata" tabindex="-1"><details class="advanced-settings">' in page
-    keys = ("task.match.evidence", "task.match.annotations", "task.match.metadata",
+    keys = ("task.match.annotations", "task.match.metadata",
             "task.match.statistics", "task.match.analysis", "task.match.corrections")
     positions = [page.index(f'<summary>{text("en", key)}</summary>') for key in keys]
     assert positions == sorted(positions)
+    assert f'<summary>{text("en", "task.match.evidence")}</summary>' not in page
+    assert page.index('id="match-evidence"') < page.index('id="match-games"') < positions[0]
+    assert page.count('class="advanced-settings match-source-editor"') == 2  # Accepted Hand.
     fields = operation_form(page, "update_match_metadata")
     source = localized_server.app_context.managed_stateful.active_match.path.read_bytes()
     translated = follow(browser, browser.submit(Forms(page).find("/actions/profile/language"),

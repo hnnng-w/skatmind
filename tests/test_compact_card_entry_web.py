@@ -314,7 +314,9 @@ def test_match_evidence_after_play_noop_modes_stale_position_and_real_recovery(l
                       if form["values"].get("recording_action") == "perspective_hand_unknown")
     page = follow(browser, browser.submit(withdrawal))
     assert active.workspace.slots[0].observed_game.perspective_initial_hand is None
-    page = follow(browser, browser.submit(operation_form(page, "set_discarded_cards")))
+    from test_direct_match_evidence import independent_form
+    page = follow(browser, browser.submit(independent_form(
+        browser, "set_discarded_cards", "discarded_cards_empty")))
     assert active.workspace.slots[0].observed_game.discarded_cards == ()
     stale = operation_form(page, "append_plays")
     browser.page("/matches/position/2")

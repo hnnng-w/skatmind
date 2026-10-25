@@ -2,18 +2,41 @@
 
 from .compact_card_rendering import card_set_display_order, compact_recorded_card
 from .stateful_localization import translated
-from .task_first_rendering import paragraph
 
 
 def saved_hand(game):
     return bool(game and game["declaration"] and game["declaration"]["hand_game"])
 
 
-def missing_hand_discard_evidence(game):
-    """The retained-empty prerequisite, after the other strict Game prerequisites."""
-    return (saved_hand(game) and game["declaration"]["bid_value"] is not None
-            and len(game["plays"]) == 30 and game["original_skat"] is not None
-            and game["discarded_cards"] is None)
+def initial_source_editor(game, perspective_player_id):
+    """One optional editor from accepted facts only; never a Play prerequisite."""
+    if game is None or game["plays"]:
+        return None
+    if game["perspective_initial_hand"] is None:
+        return "perspective_initial_hand"
+    if (game["declaration"] is None or saved_hand(game)
+            or perspective_player_id != game["declarer_player_id"]):
+        return None
+    return next((field for field in ("original_skat", "discarded_cards")
+                 if game[field] is None), None)
+
+
+def card_selection_explanation(game, perspective_player_id, next_player_id, scope):
+    """Choose finite copy without deriving or filtering any selectable Card."""
+    if scope == "exact_legal_cards":
+        return "match_evidence.selection.exact"
+    if scope != "bounded_observation_candidates":
+        return "task.match.scope." + scope
+    if next_player_id != perspective_player_id:
+        return "match_evidence.selection.opponent"
+    if game["perspective_initial_hand"] is None:
+        return "match_evidence.selection.initial_hand"
+    if (game["declaration"] is not None and not saved_hand(game)
+            and game["declarer_player_id"] == next_player_id):
+        missing = [field for field in ("original_skat", "discarded_cards") if game[field] is None]
+        if missing:
+            return "match_evidence.selection." + ("both" if len(missing) == 2 else missing[0])
+    return "task.match.scope." + scope
 
 
 def accepted_evidence(locale, game, field, *, player=None):
@@ -31,12 +54,3 @@ def accepted_evidence(locale, game, field, *, player=None):
                          for card in card_set_display_order(cards))
     return ('<p id="match-accepted-' + field + '" class="match-accepted-evidence"><strong>'
             + label + ':</strong> ' + value + '</p>')
-
-
-def hand_evidence_remedy(state, locale):
-    if not missing_hand_discard_evidence(state["game"]):
-        return ""
-    return (paragraph(locale, "match_evidence.historical_missing")
-        + '<p><a href="/matches/position/' + str(state["selected_position"])
-        + '#match-hand-evidence">' + translated(locale, "match_evidence.open_explicit")
-        + '</a></p>')

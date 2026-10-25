@@ -189,6 +189,7 @@ from .match_declaration_drafts import (
     continue_native_match_draft,
     dispatch_recording_input,
     distribute_recording_input,
+    has_recording_evidence_error,
     take_recording_draft,
 )
 from .match_frontend import (
@@ -725,6 +726,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 '<span class="language-buttons">', 1)
             if status < 400 and getattr(self, "_language_only_return", False):
                 view = None if pending is None or pending[1] is None else pending[1].view
+                if has_recording_evidence_error(content):
+                    view = None
                 content = render_language_return_v1(content,
                     token=getattr(self, "_language_return_token", None), view=view)
         if content_type == "text/html; charset=utf-8":
@@ -2988,7 +2991,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         )
         if not self._submit_seat_setup("matches", profile, text_values, generation,
                                        local_timestamp=timestamp):
-            self._redirect("/matches/new")
+            setup = current_seat_setup_v1(self.server.app_context, "matches", profile)
+            self._redirect("/matches/new" + ("#match-setup-review" if setup.reviewed else ""))
             return
         if local:
             text_values = canonical_time_payload(text_values, timestamp)

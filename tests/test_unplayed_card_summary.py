@@ -255,7 +255,8 @@ def test_accepted_match_recorded_evidence_and_readiness_survive_projection_and_r
     assert build_observed_game_evidence_summary_v1(game) == evidence
     assert evidence.original_skat_known is known_skat
     assert evidence.discarded_cards_known is known_discards
-    assert evidence.complete_initial_deal_reconstructable == (known_skat and known_discards)
+    assert evidence.complete_initial_deal_reconstructable == (
+        known_skat and (hand or known_discards))
     workspace = truncate_match_capture_plays_v1(workspace, match_position=3, target_play_count=29,
         expected_revision=workspace.revision).workspace_change.workspace
     remaining = workspace.slots[2].observed_game

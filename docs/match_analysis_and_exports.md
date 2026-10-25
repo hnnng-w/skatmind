@@ -155,9 +155,12 @@ complete-trace reconstruction, explicit execution and Report lifetimes are uncha
 
 Issue #268 removes the mode prerequisite from that hand editor and the separate
 Skat/discard editors. Exact ten-Card Save can resolve the fixture's missing C hand
-without an extra mode choice; it still executes no analysis. Empty selection is
-invalid; explicit withdrawal/eligible no-discards use independent saved-evidence
-actions. A real successful mutation invalidates Reports/recovery only after Save;
+without an extra mode choice; it still executes no analysis. Initial-hand zero
+selection remains invalid with a separate withdrawal action. Issue #297 maps zero
+selection in the normal unified two-card editors to withdrawal, while the independent
+exact-entry route retains its old rejection. Normal explicit-empty entry is removed;
+only accepted Hand with legacy `[]` exposes correction-only withdrawal. A real
+successful mutation invalidates Reports/recovery only after Save;
 an equal-set no-op retains Report bytes and recovery selection/preview, while an
 old diagnostic may be cleared on service entry. No inferred evidence is populated
 from a Report or complete trace. See [direct evidence](compact_card_entry.md#direct-match-evidence-actions-issue-268).
@@ -255,10 +258,15 @@ consume Workspace Commentary or Response Links.
 
 ## Strict Historical analysis
 
-`analyze_historical_game` first applies the unchanged strict Issue #167
-availability boundary. Execution requires a complete legal 30-Play trace,
+`analyze_historical_game` first applies the shared strict Issue #167 availability
+boundary, revised for Hand by Issue #297. Execution requires a complete legal 30-Play trace,
 Declarer and complete Declaration including bid, known original Skat, exact
-Discards, and a reconstructable complete Deal. Empty Slots, Passed Deals, and
+non-Hand Discards (or accepted Hand), and a reconstructable complete Deal. Issue #297
+allows Hand/`null` through the shared historical projection, which emits derived
+empty Discards without rewriting retained evidence. Literal known-fact flags and
+source fingerprints remain distinct from this capability. The unified review applies
+the declaration/bid prerequisites and retains its known-Match-time gate; evidence inspection adds no time
+gate and executes no analysis. Empty Slots, Passed Deals, and
 insufficient observed-Game evidence return the canonical materialization reason
 without invoking Application.
 

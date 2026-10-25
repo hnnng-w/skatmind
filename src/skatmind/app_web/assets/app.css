@@ -472,6 +472,8 @@ form:is([action="/sessions/review-whole-game"], [action="/matches/review-whole-g
 }
 
 #match-recording,
+#match-setup-review,
+#match-evidence,
 #match-initial-hand,
 #match-games,
 #match-recovery,
@@ -479,6 +481,29 @@ form:is([action="/sessions/review-whole-game"], [action="/matches/review-whole-g
 .match-history li {
   scroll-margin-block: 1rem;
   overflow-wrap: anywhere;
+}
+
+.match-setup-review {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+.match-setup-review p {
+  margin: 0;
+}
+
+#match-setup-review:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+#match-evidence p {
+  max-width: none;
+}
+
+#task-first-match .match-sources .form-grid {
+  max-width: none;
 }
 
 .match-game-seats {

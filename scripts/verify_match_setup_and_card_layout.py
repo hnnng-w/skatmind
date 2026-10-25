@@ -269,10 +269,22 @@ def main():
                 case['update_counts'] = dict(counts)
                 assert counts == Counter()
                 assert case['roster_error'] == (args.phase == 'before')
+                if args.phase == 'after':
+                    # Issue #297: capture the actual delivery before any verifier scrolling.
+                    landing = cdp.evaluate("(()=>{const e=document.querySelector('#match-setup-review'),b=document.querySelector('button[value=create]');const r=e.getBoundingClientRect(),s=b.getBoundingClientRect();return {text:e.textContent,focus:document.activeElement.id,reviewTop:r.top,reviewBottom:r.bottom,createTop:s.top,createBottom:s.bottom,height:innerHeight}})()")
+                    case['review_initial_landing'] = landing
+                    cdp.screenshot(args.output / f'{locale}-{script}-{roster}-review-initial-landing.png')
+                    assert landing['focus'] == 'match-setup-review'
+                    assert 0 <= landing['reviewTop'] < landing['reviewBottom'] <= landing['height']
+                    assert 0 <= landing['createTop'] < landing['createBottom'] <= landing['height']
+                    keyboard(cdp, 'Tab', 'Tab', 9)
+                    assert cdp.evaluate("document.activeElement.name==='setup_action'&&document.activeElement.value==='create'")
                 cdp.evaluate("document.querySelector('.seat-setup').scrollIntoView({block:'start'})")
                 time.sleep(.2)
                 cdp.screenshot(args.output / f'{locale}-{script}-{roster}-roster.png')
                 perspective = 'Anna' if roster == 'own' else 'Dora' if roster == 'new' else 'Clara' if roster == 'mixed' else 'Bea'
+                if args.phase == 'after':
+                    assert landing['text'].endswith(': ' + perspective)
                 if args.phase == 'before':
                     choose('perspective_seat', value='middlehand')
                     submit('button[name=setup_action][value=update]')

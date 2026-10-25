@@ -122,8 +122,6 @@ def test_native_shapes_eligibility_and_independent_literal_captions(
     expected = {"perspective_hand_selected", "original_skat_selected"}
     if context != "hand":
         expected.add("discarded_cards_selected")
-    if context != "non_hand":
-        expected.add("discarded_cards_empty")
     assert markers == expected
     assert 'name="card_evidence_mode"' not in page
     for marker in expected:
@@ -183,7 +181,9 @@ def test_unknown_known_empty_selection_and_withdrawal_transitions(
     monkeypatch.setattr(capture, "save_match_workspace_file_v1", save)
     before, revision = active.path.read_bytes(), active.workspace.revision
     selected = evidence_form(page, prefix + "_selected")
-    for invalid in ([], [""], list(cards[:-1]), [cards[0], cards[0]], ["invalid"]):
+    invalids = ([[]] if prefix == "perspective_hand" else []) + [
+        [""], list(cards[:-1]), [cards[0], cards[0]], ["invalid"]]
+    for invalid in invalids:
         response = browser.submit(selected, cards=invalid)
         assert response[0] == 400
         assert active.path.read_bytes() == before and not saves
@@ -196,23 +196,25 @@ def test_unknown_known_empty_selection_and_withdrawal_transitions(
     selected = evidence_form(page, prefix + "_selected")
     page = follow(browser, browser.submit(selected, cards=cards))
     assert len(saves) == 1 and active.path.read_bytes() == before
-    assert browser.submit(selected, cards=[])[0] == 400
-    assert active.path.read_bytes() == before
-    withdrawal = evidence_form(page, prefix + "_unknown")
-    assert "cards" not in withdrawal["values"]
+    if prefix == "perspective_hand":
+        assert browser.submit(selected, cards=[])[0] == 400
+        assert active.path.read_bytes() == before
+        withdrawal = evidence_form(page, prefix + "_unknown")
+    else:
+        withdrawal = evidence_form(page, prefix + "_selected")
     independent = independent_form(browser, "set_" + prefix, prefix + "_unknown")
     for extra in ("", cards[0], list(cards)):
         assert browser.submit(independent, cards=extra)[0] == 400
         assert active.path.read_bytes() == before and len(saves) == 1
-    page = follow(browser, browser.submit(withdrawal))
+    page = follow(browser, browser.submit(withdrawal, **(
+        {} if prefix == "perspective_hand" else {"cards": []})))
     assert len(saves) == 2 and active.workspace.revision == revision + 2
     assert getattr(active.workspace.slots[0].observed_game, field) is None
     game_json = active.workspace.slots[0].observed_game.to_dict()
     assert field in game_json and game_json[field] is None
     # Supported transport no-op without a redundant unknown-to-unknown button.
-    current = evidence_form(page, prefix + "_selected")
-    values = {**current["values"], "recording_action": prefix + "_unknown"}
-    follow(browser, browser.request("POST", current["action"], values))
+    follow(browser, browser.submit(independent_form(browser, "set_" + prefix,
+                                                    prefix + "_unknown")))
     assert len(saves) == 2
     assert load_match_workspace_file_v1(active.path).document.workspace == active.workspace
 
@@ -229,26 +231,31 @@ def test_explicit_empty_legality_noop_and_no_nonempty_hand_grid(localized_server
         assert browser.request("POST", "/matches/recording-input", values)[0] == 400
         assert active.path.read_bytes() == before
         return
-    page = follow(browser, browser.submit(evidence_form(page, "discarded_cards_empty")))
+    page = follow(browser, browser.submit(independent_form(
+        browser, "set_discarded_cards", "discarded_cards_empty")))
     assert active.workspace.revision == revision + 1
     assert active.workspace.slots[0].observed_game.to_dict()["discarded_cards"] == []
     saved = active.path.read_bytes()
-    page = follow(browser, browser.submit(evidence_form(page, "discarded_cards_empty")))
+    page = follow(browser, browser.submit(independent_form(
+        browser, "set_discarded_cards", "discarded_cards_empty")))
     assert active.path.read_bytes() == saved
     if context == "undeclared":
-        assert browser.submit(evidence_form(page, "discarded_cards_selected"))[0] == 400
+        assert browser.submit(independent_form(
+            browser, "set_discarded_cards", "discarded_cards_selected"))[0] == 400
         assert active.path.read_bytes() == saved
         page = follow(browser, browser.submit(evidence_form(page, "discarded_cards_selected"),
                                               cards=["SA", "S7"]))
-        page = follow(browser, browser.submit(evidence_form(page, "discarded_cards_empty")))
+        page = follow(browser, browser.submit(independent_form(
+            browser, "set_discarded_cards", "discarded_cards_empty")))
         assert active.workspace.slots[0].observed_game.discarded_cards == ()
     else:
         assert 'value="discarded_cards_selected"' not in page
-        values = {**evidence_form(page, "discarded_cards_empty")["values"],
+        values = {**evidence_form(page, "discarded_cards_unknown")["values"],
                   "recording_action": "discarded_cards_selected",
                   "evidence_discarded_cards": ["SA", "S7"]}
         assert browser.request("POST", "/matches/recording-input", values)[0] == 400
-    page = follow(browser, browser.submit(evidence_form(page, "discarded_cards_unknown")))
+    page = follow(browser, browser.submit(independent_form(
+        browser, "set_discarded_cards", "discarded_cards_unknown")))
     assert active.workspace.slots[0].observed_game.discarded_cards is None
 
 
@@ -417,7 +424,8 @@ def test_exact_source_language_selection_and_native_rejection_return(localized_s
                                           language="en"))
     assert evidence_form(page, "original_skat_selected")["values"]["evidence_original_skat"] == "SA"
     assert active.path.read_bytes() == saved
-    assert 'value="original_skat_unknown"' in page
+    assert 'value="original_skat_unknown"' not in page
+    assert "deselect all and Save" in page
 
 
 def test_all_action_markers_keep_movement_and_reload_source_guards(localized_server):
@@ -428,7 +436,9 @@ def test_all_action_markers_keep_movement_and_reload_source_guards(localized_ser
         page = follow(browser, browser.submit(evidence_form(page, prefix + "_selected"),
                                               cards=cards))
     active = localized_server.app_context.managed_stateful.active_match
-    forms = [evidence_form(page, marker) for _, marker, _ in VARIANTS]
+    forms = [form for form in Forms(page).forms if form["values"].get("recording_action")
+             in {marker for _, marker, _ in VARIANTS}]
+    forms += [independent_form(browser, operation, marker) for operation, marker, _ in VARIANTS]
     before = active.path.read_bytes()
     browser.page("/matches/position/2")
     browser.page("/matches/position/1")
@@ -438,7 +448,7 @@ def test_all_action_markers_keep_movement_and_reload_source_guards(localized_ser
         assert 'href="#match-recording"' in raw.decode()
         assert 'href="#validation-field-' not in raw.decode()
     assert active.path.read_bytes() == before
-    current = evidence_form(browser.page("/matches/position/1"), "original_skat_unknown")
+    current = evidence_form(browser.page("/matches/position/1"), "original_skat_selected")
     page = follow(browser, browser.submit(Forms(browser.page("/matches/position/1")).find(
         "/matches/api/v1/reload")))
     assert browser.submit(current)[0] == 409
@@ -467,13 +477,16 @@ def test_trace_error_keeps_visible_fieldset_and_legacy_secondary_has_action_feed
     status, _, raw = browser.request("POST", "/matches/cards",
         {**legacy, "card_evidence_mode": "unknown", "cards": ["bad"]})
     assert status == 400
-    block = block_for(raw.decode(), "original_skat_unknown")
+    block = block_for(raw.decode(), "original_skat_selected")
     summary, = re.findall(r'<section class="error-summary".*?</section>', raw.decode(), re.S)
-    assert 'Remove recorded original Skat' in summary
+    assert 'A submitted Card code is invalid' in summary
+    from test_recording_task_focus import Hierarchy
+    tree = Hierarchy(raw.decode())
+    assert tree.visible(next(n for n in tree.nodes if n["attrs"].get("class") == "error-summary"))
     assert 'href="#validation-form-heading-' in summary and 'aria-invalid="true"' not in block
     assert block.startswith(summary)
     assert re.match(r'<span class="validation-anchor" id="[^"]+"></span>'
-                    r'<div class="form-grid"><button', block[len(summary):])
+                     r'<div class="form-grid"><p>', block[len(summary):])
 
 
 def test_actual_body_and_field_bounds_remain_on_existing_route(localized_server):

@@ -371,3 +371,25 @@ def test_training_source_record_uses_match_source_and_has_no_partition() -> None
     assert result.record.provenance.notes is None
     assert not hasattr(result.record, "partition")
     assert not hasattr(result.record, "samples")
+
+
+def test_hand_none_and_explicit_empty_project_equally_without_source_normalization() -> None:
+    definition = _definition()
+    data = build_historical_input(game_type="grand", hand_game=True)
+    results = []
+    sources = []
+    for discards in (None, ()):
+        game = _observed_game(definition, match_position=3,
+            declarer_player_id=data["declarer_player_id"],
+            declaration=declaration_from_historical(data), original_skat=data["skat"],
+            discarded_cards=discards, plays=observed_plays_from_historical(data))
+        workspace = _set_game(create_match_workspace_v1(definition), game)
+        before = workspace.to_dict()
+        result = materialize_match_observed_game_historical_v1(workspace, match_position=3)
+        assert result.status == "available"
+        assert result.historical_game.discarded_cards == ()
+        assert workspace.to_dict() == before
+        sources.append(before)
+        results.append(result)
+    assert sources[0] != sources[1]
+    assert results[0] == results[1]

@@ -212,7 +212,7 @@ def test_update_opens_but_changed_advanced_values_still_require_review(localized
     form = Forms(browser.page("/matches/new")).find(CREATE)
     response = browser.submit(form, **new_name_roster(), match_title="Synthetic Match",
         perspective_seat="forehand", source_title="Reviewed title", setup_action="update")
-    assert response[0] == 303 and response[1]["location"] == "/matches/new"
+    assert response[0] == 303 and response[1]["location"] == "/matches/new#match-setup-review"
     page = follow(browser, response)
     assert "open" in outer_details(page)
     form = Forms(page).find(CREATE)

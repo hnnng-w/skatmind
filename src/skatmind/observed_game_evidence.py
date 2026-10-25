@@ -134,11 +134,10 @@ class ObservedGameEvidenceSummaryV1:
         ):
             raise ValueError("Discard review requires known original Skat and Discards.")
         if self.complete_initial_deal_reconstructable and not (
-            self.complete_play_trace and self.original_skat_known and self.discarded_cards_known
+            self.complete_play_trace and self.original_skat_known
         ):
             raise ValueError(
-                "Complete initial Deal reconstruction requires complete Play, Skat, "
-                "and Discard evidence."
+                "Complete initial Deal reconstruction requires complete Play and Skat evidence."
             )
 
     def to_dict(self) -> dict[str, Any]:
@@ -244,7 +243,8 @@ def build_observed_game_evidence_summary_from_trace_v1(
 
     discarded_cards_known = record.discarded_cards is not None
     complete_initial_deal = (
-        complete_play_trace and record.original_skat is not None and discarded_cards_known
+        complete_play_trace and record.original_skat is not None
+        and (record.declaration.hand_game or discarded_cards_known)
     )
     return ObservedGameEvidenceSummaryV1._from_validated(
         play_count=play_count,

@@ -62,9 +62,17 @@ def distribute_recording_input(html):
     from .validation_rendering import _open_containing_details
 
     fragments = tuple(_FRAGMENT.finditer(html))
+    if any('aria-invalid="true"' in match[2] or 'class="error-summary"' in match[2]
+           for match in fragments):
+        # Rejected-source visibility takes precedence over defaults and language overlays.
+        html = re.sub(
+            r'(<details\b[^>]*class="[^"]*match-source-editor[^"]*"[^>]*?)\sopen(?:="[^"]*")?',
+            r'\1', html)
     for match in fragments:
         content = re.sub(r'<(input|button|select|textarea|fieldset)\b',
             rf'<\1 form="{MATCH_RECORDING_FORM_ID}"', match[2])
+        if 'class="error-summary"' in content and ' autofocus' not in content:
+            content = content.replace('class="error-summary"', 'class="error-summary" autofocus', 1)
         html = html.replace(match[0], '', 1)
         html = html.replace(f'<!-- match-input:{match[1]}:location -->',
                             fragment(match[1], content), 1)
@@ -72,6 +80,10 @@ def distribute_recording_input(html):
             start = html.index(f'<!-- match-input:{match[1]}:start -->')
             html = _open_containing_details(html, start, start + len(content))
     return html
+
+
+def has_recording_evidence_error(html):
+    return any('class="error-summary"' in match[2] for match in _FRAGMENT.finditer(html))
 
 
 @dataclass(frozen=True, slots=True)
@@ -216,6 +228,12 @@ def dispatch_recording_input(handler, parsed):
             payload = {"managed_handle": active.handle, "operation": operation,
                        "card_selection": match_card_binding(active, operation),
                        "card_evidence_form": action}
+            if (mode == "exact" and operation in {"set_original_skat", "set_discarded_cards"}
+                    and field_name not in values):
+                # Only an absent successful checkbox group means explicit withdrawal.
+                # Blank/invalid/duplicate values still reach exact validation unchanged.
+                mode = "unknown"
+                payload["card_evidence_form"] = operation.removeprefix("set_") + "_unknown"
             if mode == "exact":
                 payload["cards"] = values.get(field_name, [])
             error = None
@@ -229,6 +247,9 @@ def dispatch_recording_input(handler, parsed):
             except (CardEntryError, ObservedTraceError) as failure:
                 if isinstance(failure, CardEntryError):
                     failure.field_key = field_name if mode == "exact" else None
+                    if failure.reason in {
+                            "match_count_original_skat", "match_count_discarded_cards"}:
+                        failure.reason = "recording_count_" + operation.removeprefix("set_")
                 error = failure
             _verify_successor(before, predecessor, active, operation)
             _fresh(active, session=False)
@@ -314,6 +335,11 @@ def bridge_independent_evidence_feedback(active, definition, state):
         except CardEntryConflict:
             return definition, state
         name = "evidence_" + operation.removeprefix("set_")
+        game = active.workspace.slots[active.selected_position - 1].observed_game
+        if (mode == "unknown" and operation in {"set_original_skat", "set_discarded_cards"}
+                and not (operation == "set_discarded_cards" and game is not None
+                         and game.declaration is not None and game.declaration.hand_game)):
+            marker = operation.removeprefix("set_") + "_selected"
         values = [FormValueV1(field="declaration_selection",
                              values=(declaration_binding(active, "match-declaration"),)),
                   FormValueV1(field="recording_action", values=(marker,))]

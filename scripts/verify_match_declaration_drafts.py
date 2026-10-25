@@ -45,6 +45,7 @@ def main():
     assert (".zip" in match_frontend.__file__) == (args.phase == "before")
     assert args.output.parent.is_dir() and not args.output.exists()
     args.output.mkdir()
+    started_at = time.perf_counter()
     fixture = localized_server.__wrapped__(args.output)
     server = next(fixture)
     local = LocalBrowser(args.browser, args.output / "browser-profile")
@@ -230,7 +231,7 @@ def main():
                                    for e in cdp.events[requests_before:])
                     assert not cdp.evaluate("document.querySelector('#match-recording-input').checkValidity()")
                     assert not cdp.evaluate("!!document.querySelector('[value=discarded_cards_empty]')")
-                    open_evidence()
+                    open_evidence('fieldset:has(input[name="evidence_original_skat"])')
                     for card in ("H8", "D8"):
                         click(cdp, f'input[name="evidence_original_skat"][value="{card}"]')
                     cdp.activate('button[value="original_skat_selected"]')
@@ -255,6 +256,7 @@ def main():
             case["submitted_controls"] = payloads
         evidence["completed"] = True
     finally:
+        evidence["elapsed_seconds"] = round(time.perf_counter() - started_at, 3)
         (args.output / "evidence.json").write_text(json.dumps(evidence, indent=2), encoding="utf-8")
         local.close()
         try:

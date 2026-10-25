@@ -154,6 +154,21 @@ second picker. Neutral Update/implicit Enter does not choose a person. The hidde
 person binding is regenerated rather than captured as editable language state;
 source-checked time-validation failures retain the explicit selected person.
 See [the setup lifecycle](settings_and_player_seat_setup.md#match-person-choice-issue-294).
+Issue #297 puts the sole **Reviewed recording perspective: name** result immediately
+beside final Create, after the optional metadata. The person is resolved from the
+reviewed setup's binding, never option order or submitted label text. Successful
+person choices and resolved Updates redirect to native focus target
+`#match-setup-review`; the next Tab reaches Create. Neutral unresolved Update retains
+selection guidance and offers no Create. This is a fragment on the current reviewed
+setup, not additional authority or a persistent autofocus flag. Ordinary visits and
+language returns do not recreate a successful setup action. Error focus has priority;
+verified enhanced language focus/viewport remains intact. The result describes the
+reviewed values, and an adjacent note requires Update after further unsent edits.
+Full-form comparison, replacement/reorder semantics, own-person guards, the original
+absolute expiry, zero-ID review and one-use Create remain authoritative. Session's
+review presentation is unchanged. The created Match also displays its accepted
+recording perspective near the current Game heading, including empty positions;
+seat rotation never changes that identity or preselects a per-Game declarer.
 Friendly platform values are `euroskat`, `in_person`, `other_online`,
 `unknown`, and `custom`. An optional Source URL is a normal field; source kind,
 title, channel, timecodes, and other exact Product metadata remain inside

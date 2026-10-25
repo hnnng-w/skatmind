@@ -66,22 +66,22 @@ Player Decisions when one complete legal trace determines every playable hand.
 
 A strict Historical Game is materializable only when the observed Game has a
 Declarer and complete Declaration including `bid_value`, a complete legal
-30-Play trace, known original Skat, and exact Discards. For Hand Games, exact
-Discards means the retained empty array. Those facts must reconstruct the
+30-Play trace, known original Skat, and exact non-Hand Discards or accepted Hand.
+Issue #297 allows retained Hand discards to be `null` or `[]`: the accepted
+validated Hand declaration determines that no Cards were discarded. Those facts reconstruct the
 complete original 32-Card Deal. Decision preparation may retain an unknown bid
 as null because own-hand reconstruction does not depend on it.
 
-Issue #296's normal browser Hand summary is a declaration-derived display, not a
-new materialization fact. It says that discards are not applicable for both `null`
-and `[]`, while this strict boundary still distinguishes them. The selected
-Game's advanced explicit Hand evidence action can record `[]` or withdraw it to
-`null`; the contextual review remedy opens that actual native owned action even
-without JavaScript. See [accepted evidence and the native action map](compact_card_entry.md#match-accepted-evidence-and-hand-boundary-issue-296).
-There is no automatic readiness upgrade on rendering or declaration Save.
+This deliberately supersedes #296's retained-empty prerequisite and its browser
+remedy. The normal Hand summary says discards are not applicable, without asking
+for confirmation. Literal `discarded_cards_known` stays false for `null` and true
+for `[]`; derived complete-deal readiness can be true for either. Neither rendering
+nor declaration Save writes an observation. A separately accepted declaration change
+can change derived readiness. See [accepted evidence and the native action map](compact_card_entry.md#match-accepted-evidence-and-hand-boundary-issue-296).
 
 A complete trace can therefore make every Decision preparable while Historical,
 Training source, and played-list materialization remain unavailable because
-original Skat or Discards are unknown. No missing Card is completed from a deck
+original Skat or required non-Hand Discards are unknown. No missing Card is completed from a deck
 complement merely to cross the stricter boundary.
 
 ## Observed reconstruction
@@ -221,6 +221,19 @@ The raw value is built through `build_historical_game_record()`, serialized with
 the existing canonical serializer, rebuilt, and required to compare equal. The
 existing Historical summary must report a complete Game and complete Settlement.
 No shortened Historical Game is synthesized from a partial observed trace.
+
+The shared materializer validates the retained source and trace **before** projecting
+Hand/`null` to Historical `discarded_cards=[]`. Invalid nonempty Hand discards are
+never hidden by replacement. Declaration/bid, trace, original Skat and non-Hand
+discard unavailability keep their existing reason precedence. Workspace Progress,
+position evidence, Historical execution, Historical collections, Training-source
+Records and complete fixed lists use this shared derivation. Equivalent Hand/`null`
+and Hand/`[]` yield equivalent Historical Request/Training content; their source
+bytes and fingerprints remain distinct. Each consumer retains its own time rules,
+including the unified review's known-Match-time requirement. Materialization alone
+does not execute analysis or publish a Report. Learning-v2 continues through safe
+Decision reconstruction; retaining original Skat for historical reconstruction
+does not reveal it to a Hand Decision or supply hindsight opponent knowledge.
 
 ## Match-level played time
 

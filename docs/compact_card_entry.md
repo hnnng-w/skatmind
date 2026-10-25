@@ -52,8 +52,8 @@ kind. No producer, source array, Report, Request, Result or download is sorted.
 
 Normal active Session deal, known Skat, discard, and Play use the component.
 Normal Match perspective-hand, original-Skat, discard evidence, and single Play
-use it. The optional initial-hand editor is beside recording, before history;
-other evidence remains secondary. Unknown evidence does not block observed Plays.
+use it. Issue #297 places the three optional source editors before next-Play entry
+inside the current Game. Unknown evidence does not block observed Plays.
 Session corrections, public hands, events, advanced ordered Play, guided Analyze/Review,
 and standalone surfaces retain their meanings. Shared legacy `card_select` and
 `card_palette` were not globally replaced.
@@ -406,8 +406,9 @@ of the pending installed targeted retest.
 ## Match replacement and truthful Play scope
 
 Issue #263 makes this existing evidence entry discoverable. Empty/passed positions
-omit the empty Skat/discard wrapper; started Games retain usable unknown evidence,
-known-empty modes, real diagnostics and clear actions. The separate initial-hand
+omit source editors; started Games retain directly accessible unknown evidence,
+real diagnostics and withdrawal. Issue #297 removes normal known-empty entry;
+its independent compatibility contract remains. The separate initial-hand
 summary names its accepted perspective owner and has the native destination
 `/matches/position/N#match-initial-hand`. Applicable missing-hand review offers one
 shared action to it. One native summary activation may be needed to open it;
@@ -433,9 +434,10 @@ mode alone saves nothing; explicit Save applies that mode's existing semantics.
 Rejected saves retain useful safe input. These legacy mode controls are no longer
 the normal evidence editor after Issue #268.
 
-Issue #247 corrects the adjacent disclosure caption to **Original Skat and discard
-evidence**, matching its actual controls. The separate perspective **initial-hand**
-editor stays in place and retains played Cards in its original set. The concise
+Issue #247 corrected the former outer disclosure caption to **Original Skat and
+discard evidence**. Issue #297 removes that outer disclosure and places each
+source beside its own native editor. The perspective **initial-hand** editor
+retains played Cards in its original set. The concise
 [read-only pair summary](unplayed_card_summary.md) never checks derived Cards in an
 editor, changes Unknown to Exact, or offers a save-inference action. No evidence
 mode, binding, disclosure identity, native language/error restoration or Card
@@ -481,19 +483,25 @@ candidate validation, including complete-trace reconciliation.
 | Evidence/context | Selection Save | Separate secondary actions |
 | --- | --- | --- |
 | Perspective original dealt hand | Exact ten, including already played original Cards | Withdraw when recorded |
-| Original Skat, including Hand | Exact two | Withdraw when recorded |
-| Undeclared discards | Exact two | Record no discards; withdraw when recorded |
-| Hand discards | Normal summary: not applicable; no palette or extra recording action | Explicit empty evidence and withdrawal in the advanced Hand evidence disclosure (Issue #296) |
-| Non-Hand discards | Exact two | Withdraw when recorded |
+| Original Skat, including Hand | Exact two; zero withdraws to unknown | None |
+| Undeclared discards | Exact two; zero withdraws to unknown | None |
+| Hand discards | Not applicable; no palette or extra confirmation | Correction-only withdrawal when accepted Hand actually retains legacy `[]` |
+| Non-Hand discards | Exact two; zero withdraws to unknown | None |
 
-Known-empty discards **before declaration are already legal**. Withdrawal writes
-`None`/JSON `null`; the explicit no-discards action writes `()`/JSON `[]`. Required
+This table reflects Issue #297's normal unified UI. Known-empty discards before
+declaration remain legal through the independently callable compatibility contract.
+Withdrawal writes `None`/JSON `null`; the independent explicit no-discards operation
+writes `()`/JSON `[]`. Required
 keys, `_RETAIN` versus `None`, ownership/overlap rules and source attribution are
 unchanged. A derived final pair or complete trace never backfills recorded evidence.
 
-Zero-selection Save rejects for both unknown and recorded evidence, including
-undeclared explicit-empty discards. It never withdraws or asserts emptiness. A
-valid equal-set Save is a no-op. Invalid codes, counts, duplicates, ownership and
+Zero-selection initial-hand Save still rejects. In the normal unified original-Skat
+and discard editors, zero successful checkbox values means withdrawal to `null`,
+never `[]`; zero while already unknown is a true no-op. Only the selected source
+is normalized, after existing request/source validation, to the existing `_unknown`
+discriminator with its forbidden Card fields omitted. Blank strings, invalid codes,
+duplicates, unsupported fields, ambiguous submitters and stale/foreign authority
+do not become empty input. A valid equal-set Save is a no-op. Invalid codes, counts, duplicates, ownership and
 trace conflicts reject the entire candidate and retain applicable safe submitted
 Cards. Secondary forms contain only regenerated hidden transport plus their explicit
 button. They change saved evidence, **not the neighboring grid selection**. Unsent
@@ -502,7 +510,7 @@ clear-checkbox, autosave, radio wizard or automatic retry.
 
 ### Seven private variants and compatibility
 
-All forms retain URL-encoded `POST /matches/cards`, an **8,192-byte read bound**,
+The seven independent compatibility variants retain URL-encoded `POST /matches/cards`, an **8,192-byte read bound**,
 256-field parsing, strict singular fields, optional `_frontend_form_instance`,
 authorization and `303 /matches/position/N#match-recording`. Initial boundary
 verification found the baseline registry declared 8,192 bytes while its actual
@@ -532,7 +540,8 @@ generation HMAC and persistence CAS remain authority.
 All legacy definitions and mode-based parsing remain. Legacy unknown/known-empty
 may deliberately ignore valid within-capacity Cards; invalid/duplicate/excess Cards
 still fail preliminary checks. The lower mapping's exact-empty discard convergence
-is unchanged and is not authorization for normal exact-empty Save. Match Play,
+is unchanged. Independent exact zero remains invalid; the unified adapter's zero
+Save uses unknown instead. Match Play,
 Session and correction keep their shared selector behavior.
 
 New selection registry metadata has only editable `cards`, plus internal feedback
@@ -564,14 +573,50 @@ See [installed evidence](unified_workflow_visual_contract.md#direct-match-eviden
 
 ### Match accepted evidence and Hand boundary (Issue #296)
 
-The selected recording now shows one concise accepted summary per source outside
-its editors: the named perspective initial hand, original Skat, and discarded
+Issue #297 supersedes #296's placement, opening, empty-Save and retained-empty
+readiness rules. The selected recording shows one concise accepted summary per source outside
+its editor: the named perspective initial hand, original Skat, and discarded
 Cards. Known sets use the existing compact read-only faces and display-only set
 ordering. Absent sources say **not recorded** with their own field label. Native
 checkboxes remain pending input, including source-safe rejected or language-return
-values; they never determine the accepted summaries. The editors remain collapsed
-until explicitly opened or opened by validation feedback. Their guidance now says
-exactly ten initial-hand Cards or exactly two Skat/non-Hand discard Cards.
+values; they never determine the accepted summaries. Each ordinary source has one
+directly operable native `details`/`summary` editor, with no enclosing disclosure.
+All evidence palettes use the full source-section width before the narrower
+Play/score split. `#match-evidence` and `#match-initial-hand` remain destinations.
+The 36-position overview follows the current Game, its history and navigation.
+
+The server opens at most one normal editor on ordinary delivery:
+
+| Accepted state | Initially open source |
+| --- | --- |
+| Empty/passed position, no observed Game | None |
+| Started Game, zero Plays, missing perspective initial hand | Initial hand |
+| Initial hand known, zero Plays, accepted non-Hand perspective declarer, original Skat missing | Original Skat |
+| Same, original Skat known, discards missing | Discards |
+| Known playable perspective hand has its required facts | None |
+| Initial hand known, no accepted declaration | None |
+| Initial hand known, perspective defender | None |
+| Initial hand known, accepted Hand | None |
+| One or more Plays, including complete/rule-ended recording | None |
+| Recoverably rejected source input | Its exact source, overriding ordinary defaults |
+
+Accepted, unchanged and withdrawal Saves recompute this policy from accepted state.
+Draft declarer/Hand values never choose a source path. Native language return uses
+the same policy; verified enhanced language return preserves user-open/closed state
+and viewport/focus under existing source/manifest checks. Rejected-source visibility
+and error focus take priority over disclosure/viewport restoration. Optional evidence
+does not introduce a Play blocker or mandatory wizard. A known initial hand means
+the ten originally dealt Cards, including already played Cards from that hand.
+Two-card guidance explains zero withdrawal; initial-hand guidance keeps exact-ten
+and its separate explicit withdrawal. Only source-area paragraphs override 72ch.
+
+Candidate explanations use accepted facts and the authoritative selection scope:
+the named perspective's missing initial hand; only the missing original-Skat/discard
+facts for a non-Hand perspective declarer; the known playable hand for a Hand
+declarer/defender; or another actor's hand not known through the perspective. They
+never request an opponent hand in the perspective editor. The Anna/Grand fixture
+correctly keeps all 32 candidates until both original Skat and Discards are supplied;
+the exact ten then come from the existing legal-card rules, not text-driven filtering.
 
 An accepted Hand declaration projects **Discarded cards: not applicable (Hand
 game)** for both retained `null` and `[]`. Its normal recording has no discard
@@ -580,33 +625,37 @@ editor. An unsaved declaration checkbox cannot authorize this presentation.
 
 This projection is not retained evidence. `null` still means no explicit discard
 evidence; `[]` still means an explicit record of no discards. Rendering, language,
-navigation and declaration Save do not convert either value. Complete-initial-deal
-capability and strict Historical materialization still require retained `[]` for
-Hand, as documented in [Match materialization](match_review_and_materialization.md).
+navigation and declaration Save do not convert either value. The recorded-known
+flag remains literal, while accepted Hand supplies the derived no-discard fact for
+complete-deal/historical capability. Only the shared derived Historical Game emits
+`discarded_cards=[]` for Hand/`null`, after retained-source validation. Complete
+trace and known original Skat remain required; Historical bid/time requirements
+remain consumer-specific. See [Match materialization](match_review_and_materialization.md).
 
-The native **Advanced: explicit Hand discard evidence** disclosure lives outside
-the ordinary recording at `#match-hand-evidence`. It distinguishes absent explicit
-evidence from explicitly recorded emptiness, offers the existing empty action,
-and offers withdrawal whenever evidence is retained. This includes legacy `[]`.
-Withdrawal is necessary before a Hand-to-non-Hand correction that would otherwise
-conflict with retained emptiness; nothing is automatically cleared.
+There is no normal explicit-empty entry before declaration or for accepted Hand,
+and no historical remedy asking for `[]`. Only accepted Hand actually retaining
+legacy/imported `[]` shows correction-only withdrawal at `#match-hand-evidence`
+beside declaration corrections. It uses the existing source-bound unknown operation
+and the shared native owner. A pending declaration draft survives that evidence
+operation; declaration Save remains separate. Hand-to-non-Hand still rejects while
+`[]` remains. Withdrawal to `null` preserves existing accepted-Hand readiness;
+a later saved non-Hand declaration requires actual discarded Cards again.
 
-For a complete Hand trace with a known bid and original Skat but missing discard
-evidence, the review's contextual remedy links to the selected Game's recording
-at `/matches/position/N#match-hand-evidence`. That disclosure is **server-opened**
-for this accepted source, including with JavaScript disabled. The review renders
-a link, not an unowned evidence submitter. Each action appears once on the
-recording and uses the existing `match-recording-input` owner with freshly
-generated declaration/source authority. The complete native map remains:
+The normal unified native map is:
 
 | Submitter | Existing operation / interpretation |
 | --- | --- |
 | `set_declaration` | Explicit declaration Save, including implicit Enter in bid/Matadors |
 | `perspective_hand_selected` | `set_perspective_hand`, exact ten |
-| `original_skat_selected` | `set_original_skat`, exact two, independently of Hand |
-| `discarded_cards_selected` | `set_discarded_cards`, exact two outside accepted Hand |
-| Each `_unknown` | Explicit withdrawal to `null` |
-| `discarded_cards_empty` | Explicit `[]`; advanced for accepted Hand, existing secondary action before declaration |
+| `original_skat_selected` | `set_original_skat`, exact two or selected-zero withdrawal, independently of Hand |
+| `discarded_cards_selected` | `set_discarded_cards`, exact two or selected-zero withdrawal outside accepted Hand |
+| `perspective_hand_unknown` | Explicit initial-hand withdrawal to `null` |
+| `discarded_cards_unknown` | Conditional legacy Hand/`[]` correction-only withdrawal |
+
+The independently callable seven variants above, including known-empty, remain
+supported with their strict original contracts. Count feedback is scoped: normal
+two-card rejection says exactly two or deselect all and Save, while initial-hand,
+Session and independent exact-entry messages retain their own boundaries.
 
 All evidence submitters retain `formnovalidate`, draft preservation, one-operation
 dispatch and existing guards from [Issue #292](match_declaration_drafts.md).

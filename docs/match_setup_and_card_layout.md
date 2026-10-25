@@ -1,5 +1,30 @@
 # Match setup and Card layout — Issue #294
 
+## Current Issue #297 follow-up
+
+The accepted starting state is clean `bug/297-match-evidence-workflow` at
+`c5ab67bf02bfde9bbae4565d19e17b5b0b2f8f19`. #292–#296 remain functionally accepted.
+Issue #297 moves the existing reviewed-person paragraph into one compact result
+beside Create and makes that result the native fragment/focus destination after
+successful person selection or resolved Update. The next Tab reaches Create;
+neutral unresolved Update does not gain Create authority. The accepted Match
+perspective remains named near the current Game heading through position rotation.
+See [creation semantics](profile_driven_stateful_creation.md#creation-forms).
+
+All three source palettes now occupy the current Game's full-width source area
+before Play, with one native editor each and no outer evidence disclosure. Only
+the relevant source paragraphs lose the 72ch prose cap. Existing 8/4/2/1 tracks,
+font, input/target sizes and Play/score layout remain. The accepted-state opening
+policy and zero/two-card Save map are documented in
+[Card entry](compact_card_entry.md#match-accepted-evidence-and-hand-boundary-issue-296).
+The Hand capability correction is shared with historical materialization, not
+implemented as an HTML-only readiness exception.
+
+Current verification, exact commands, inventories and remaining gates are in
+[Issue #297 developer evidence](match_evidence_workflow.md). Earlier measurements
+below remain historical. Changed-layout genuine 200% browser zoom requires a new
+installed targeted retest; old layout acceptance does not establish it.
+
 ## Scope and implementation
 
 The original implementation preflight found a clean

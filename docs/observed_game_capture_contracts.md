@@ -96,7 +96,7 @@ Both arrays use canonical full-deck order and must be disjoint when present.
 null:
     Discards were not observed
 empty array:
-    known Hand Game with no Discards
+    explicit observation that no Cards were discarded (compatible with Hand)
 two Cards:
     known exact non-Hand Discards
 ```
@@ -227,9 +227,20 @@ original Skat and Discards plus an exact original Declarer hand. The original
 hand may come directly from a visible Declarer perspective hand or from a
 complete trace with the reconstruction formula.
 
-`complete_initial_deal_reconstructable` is true only for a complete legal trace,
-known original Skat, and exact known Discard evidence. For Hand, exact Discard
-evidence is the retained empty array. The summary describes evidence capability;
+Issue #297 derives `complete_initial_deal_reconstructable` from a complete legal
+30-Play/10-Trick trace, known original Skat, and **either the accepted validated
+Hand declaration or retained Discard evidence**. Hand itself supplies the no-discard
+fact. Hand with `null` and Hand with `[]` therefore have the same complete-deal
+capability. Non-Hand with `null` does not. No observed field is filled or normalized.
+
+`discarded_cards_known` remains exactly `record.discarded_cards is not None`;
+it is false for Hand/`null` and true for Hand/`[]`. The value-only summary has no
+Hand field, so its universal implication is complete-deal capability implies
+complete trace and known original Skat. The focused builder enforces the full
+declaration-aware formula. Discard-review capability retains its non-Hand rule.
+There is no new time gate on this evidence flag, field, key, version or Schema.
+
+The summary describes evidence capability;
 it does not itself claim that Historical, Session, review, or Dataset
 materialization has occurred. Issue #167 consumes these capabilities in a
 separate internal layer: Decision preparation needs only the acting Player's
@@ -264,8 +275,10 @@ reconstruct only the acting Player's own hand; future opponent ownership and
 future public state remain excluded, and `actual_card_played` is attached only
 after the Decision-time visible state. Existing Skat and declared-Ouvert
 visibility semantics remain authoritative. Strict normal-completion Historical
-materialization separately requires original Skat, exact Discards, and complete-
-Deal reconstruction. Commentary and Response Links remain Workspace sidecars.
+materialization separately requires original Skat, complete-Deal reconstruction,
+and exact non-Hand Discards or accepted Hand. Only the derived Historical Game
+uses `discarded_cards=[]` for Hand/`null`; retained source bytes remain literal.
+Commentary and Response Links remain Workspace sidecars.
 See [Match review and materialization](match_review_and_materialization.md).
 
 Issue #168 can explicitly analyze one safely prepared Decision or one strict

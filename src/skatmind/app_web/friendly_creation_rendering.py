@@ -189,7 +189,7 @@ def render_profile_driven_match_creation_v1(
         + technical_details(locale, EUROSKAT_36_STANDARD_V1_FORMAT.to_dict())
         +
         "</details>"
-        + render_setup_actions_v1(locale, family="matches", setup=setup)
+        + render_setup_actions_v1(locale, family="matches", setup=setup, profile=profile)
         + "</form></section>"
     )
     return _setup_values(html, setup)

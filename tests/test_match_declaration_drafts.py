@@ -134,7 +134,7 @@ def test_native_evidence_preserves_unsaved_declaration(localized_server):
     page.choose("discarded_cards", {"H7", "D7"})
     assert len([c for c in page.controls if c.get("name") == "declarer_player_id"]) == 1
     for action in ("set_declaration", "perspective_hand_selected", "original_skat_selected",
-                   "discarded_cards_selected", "discarded_cards_empty"):
+                   "discarded_cards_selected"):
         assert page.owner(page.button(action)) is page.owner(page.field("declarer_player_id"))
     active = localized_server.app_context.managed_stateful.active_match
     revision = active.workspace.revision
@@ -219,11 +219,15 @@ def test_all_editors_withdrawals_and_semantically_invalid_drafts(
     assert "<script>x</script>" not in html
     active = localized_server.app_context.managed_stateful.active_match
     assert active.workspace.slots[0].observed_game.declaration is None
-    html = follow(browser, page.submit(browser, prefix + "_unknown"))
+    if prefix == "perspective_hand":
+        action = prefix + "_unknown"
+    else:
+        page.choose(prefix, ())
+        action = prefix + "_selected"
+    html = follow(browser, page.submit(browser, action))
     assert NativePage(html).field("bid_value")["value"] == draft["bid_value"]
     if prefix == "discarded_cards":
-        html = follow(browser, NativePage(html).submit(browser, "discarded_cards_empty"))
-        assert active.workspace.slots[0].observed_game.discarded_cards == ()
+        assert active.workspace.slots[0].observed_game.discarded_cards is None
 
 
 @pytest.mark.parametrize("change", (

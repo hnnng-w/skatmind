@@ -171,7 +171,7 @@ def _materialize_match_observed_game_historical_from_reconstruction_v1(
             game_id=game.game_id,
             reason="original_skat_unavailable",
         )
-    if game.discarded_cards is None:
+    if game.discarded_cards is None and not game.declaration.hand_game:
         return _unavailable(
             workspace,
             match_position=game.match_position,
@@ -228,7 +228,7 @@ def _materialize_match_observed_game_historical_from_reconstruction_v1(
         "skat": list(game.original_skat),
         "declarer_player_id": game.declarer_player_id,
         "declaration": _build_historical_declaration(reconstruction),
-        "discarded_cards": list(game.discarded_cards),
+        "discarded_cards": [] if game.declaration.hand_game else list(game.discarded_cards),
         "game_end_reason": HISTORICAL_GAME_END_REASON,
         "tricks": tricks,
     }

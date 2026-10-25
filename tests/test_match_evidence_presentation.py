@@ -5,7 +5,7 @@ import re
 from html import escape
 
 import pytest
-from test_direct_match_evidence import evidence_form
+from test_direct_match_evidence import evidence_form, independent_form
 from test_frontend_language_switching import localized_server as _localized_server
 from test_match_card_correction_ui import activated_form, recovery_text
 from test_match_recording_recovery_web import declarer_choice, entry_action, follow, operation_form
@@ -97,15 +97,13 @@ def test_accepted_sources_visible_and_hand_display_is_not_retained_evidence(
     expected = ("Gedrückte Karten: entfällt (Handspiel)" if locale == "de" else
                 "Discarded cards: not applicable (Hand game)")
     assert expected in accepted(page, "discarded_cards")["text"]
-    tree = Hierarchy(page)
-    action, = [n for n in tree.nodes if n["tag"] == "button"
-               and n["attrs"].get("value") == "discarded_cards_empty"]
-    assert not any(p["attrs"].get("id") == "match-recording" for p in action["parents"])
-    assert any(p["attrs"].get("id") == "match-hand-evidence" for p in action["parents"])
+    assert 'value="discarded_cards_empty"' not in page
+    assert 'id="match-hand-evidence"' not in page
     assert 'name="evidence_discarded_cards"' not in page
     assert active.path.read_bytes() == original
     assert active.workspace.slots[0].observed_game.discarded_cards is None
-    page = follow(browser, browser.submit(evidence_form(page, "discarded_cards_empty")))
+    page = follow(browser, browser.submit(independent_form(
+        browser, "set_discarded_cards", "discarded_cards_empty")))
     assert expected in accepted(page, "discarded_cards")["text"]
     assert active.workspace.slots[0].observed_game.discarded_cards == ()
     page = follow(browser, browser.submit(evidence_form(page, "discarded_cards_unknown")))
@@ -125,7 +123,9 @@ def test_wrong_count_names_only_the_affected_source(localized_server, prefix, co
     form = evidence_form(page, prefix + "_selected")
     active = localized_server.app_context.managed_stateful.active_match
     before = active.path.read_bytes()
-    for cards in ([], ["CJ"], list(HAND[:3]) if count == 2 else [*HAND, "H7"]):
+    invalids = ([[]] if count == 10 else []) + [
+        ["CJ"], list(HAND[:3]) if count == 2 else [*HAND, "H7"]]
+    for cards in invalids:
         status, _, raw = browser.submit(form, cards=cards)
         assert status == 400 and active.path.read_bytes() == before
         tree = Hierarchy(raw.decode())
@@ -179,7 +179,7 @@ def test_real_save_noop_and_withdrawal_deliver_distinct_one_use_receipts(localiz
     assert active.path.read_bytes() == saved
     receipt, = [n for n in Hierarchy(page).nodes if "data-operation-feedback" in n["attrs"]]
     assert ("Nichts geändert" if locale == "de" else "Nothing changed") in receipt["text"]
-    page = follow(browser, browser.submit(evidence_form(page, "original_skat_unknown")))
+    page = follow(browser, browser.submit(evidence_form(page, "original_skat_selected"), cards=[]))
     receipt, = [n for n in Hierarchy(page).nodes if "data-operation-feedback" in n["attrs"]]
     assert ("entfernt" if locale == "de" else "removed") in receipt["text"]
     assert 'data-operation-feedback' not in browser.page("/matches/position/1")
@@ -207,7 +207,7 @@ def complete_hand(browser, locale="en"):
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))
-def test_complete_hand_native_remedy_changes_only_explicit_evidence(
+def test_complete_hand_readiness_and_legacy_withdrawal_keep_literal_evidence(
     localized_server, monkeypatch, locale,
 ):
     import skatmind.app_web.frontend_profile_operations as profile
@@ -221,9 +221,9 @@ def test_complete_hand_native_remedy_changes_only_explicit_evidence(
     before = active.path.read_bytes()
     game = active.workspace.slots[0].observed_game
     result = materialize_match_observed_game_historical_v1(active.workspace, match_position=1)
-    assert result.unavailable_reason == "discarded_cards_unavailable"
+    assert result.status == "available"
     evidence = build_observed_game_evidence_summary_v1(game)
-    assert not evidence.complete_initial_deal_reconstructable
+    assert evidence.complete_initial_deal_reconstructable and not evidence.discarded_cards_known
     assert evidence.all_player_decision_samples_reconstructable
     assert active.workspace.match_definition.played_at is not None
     calls = []
@@ -243,23 +243,20 @@ def test_complete_hand_native_remedy_changes_only_explicit_evidence(
     monkeypatch.setattr(analysis, "execute_match_decision_analysis_v1", forbidden)
     monkeypatch.setattr(analysis, "execute_match_historical_analysis_v1", forbidden)
     review = browser.page("/matches/review/1")
-    tree = Hierarchy(review)
-    remedy, = [n for n in tree.nodes if n["attrs"].get("href") ==
-               "/matches/position/1#match-hand-evidence"]
-    assert tree.visible(remedy)
+    assert '#match-hand-evidence' not in review
     assert 'value="discarded_cards_empty"' not in review
-    page = browser.page(remedy["attrs"]["href"])
-    tree = Hierarchy(page)
-    action, = [n for n in tree.nodes if n["tag"] == "button" and
-               n["attrs"].get("value") == "discarded_cards_empty"]
-    assert tree.visible(action) and action["attrs"]["form"] == "match-recording-input"
+    page = browser.page("/matches/position/1")
+    assert 'id="match-hand-evidence"' not in page
     assert active.path.read_bytes() == before and not calls
-    page = follow(browser, browser.submit(evidence_form(page, "discarded_cards_empty")))
+    # The independent compatibility client constructs the legacy retained observation.
+    page = follow(browser, browser.submit(independent_form(
+        browser, "set_discarded_cards", "discarded_cards_empty")))
     assert calls == ["set_discarded_cards", "save"]
     after = active.workspace.slots[0].observed_game
     assert {k: v for k, v in after.to_dict().items() if k != "discarded_cards"} == {
         k: v for k, v in game.to_dict().items() if k != "discarded_cards"}
     assert build_observed_game_evidence_summary_v1(after).complete_initial_deal_reconstructable
+    assert build_observed_game_evidence_summary_v1(after).discarded_cards_known
     assert materialize_match_observed_game_historical_v1(
         active.workspace, match_position=1).status == "available"
     retained = active.path.read_bytes()
@@ -278,7 +275,8 @@ def test_complete_hand_native_remedy_changes_only_explicit_evidence(
 def test_hand_empty_withdrawal_allows_later_non_hand_correction(localized_server):
     browser = Browser(localized_server)
     page = source_game(browser, hand=True)
-    page = follow(browser, browser.submit(evidence_form(page, "discarded_cards_empty")))
+    page = follow(browser, browser.submit(independent_form(
+        browser, "set_discarded_cards", "discarded_cards_empty")))
     active = localized_server.app_context.managed_stateful.active_match
     before = active.path.read_bytes()
     form = operation_form(page, "set_declaration")
@@ -333,7 +331,12 @@ def test_evidence_receipt_language_continuation_keeps_identity_and_deadline(
     page = source_game(browser, hand=True)
     page = follow(browser, browser.submit(evidence_form(page, "original_skat_selected"),
                                           cards=["HA", "D7"]))
-    page = follow(browser, browser.submit(evidence_form(page, marker)))
+    if marker == "discarded_cards_empty":
+        page = follow(browser, browser.submit(independent_form(
+            browser, "set_discarded_cards", marker)))
+    else:
+        page = follow(browser, browser.submit(evidence_form(page, "original_skat_selected"),
+            **({"cards": []} if marker.endswith("_unknown") else {})))
     active = localized_server.app_context.managed_stateful.active_match
     before = active.path.read_bytes()
     receipt = bound_page(localized_server, page).feedback.receipt
