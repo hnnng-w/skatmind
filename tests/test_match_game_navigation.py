@@ -87,7 +87,9 @@ def test_selected_identity_controls_seats_and_single_overview(mixed, selected, a
                 + escape(player.player_label) + '</dd>') in seats
     assert "<Player" not in html
     assert ('href="/matches/position/3#match-recording"' in recording) == (selected != 3)
-    assert (text(locale, "task.match.first_unfinished", number=3) in recording) == (selected != 3)
+    continuation_key = ("task.match.open_game" if selected in (1, 2)
+                        else "task.match.first_unfinished")
+    assert (text(locale, continuation_key, number=3) in recording) == (selected != 3)
     assert 'href="#match-games"' in recording
     assert (f'href="/matches/review/{selected}"' in recording) == bool(view.selected.play_count)
     for step in view.workflow.completed_steps:

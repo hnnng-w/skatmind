@@ -37,13 +37,27 @@ disclosure after recording/overview, opened for relevant feedback. The first-unf
 rule, selected-Game-first ordering, all 36 tiles, rotation and Mark as passed remain.
 
 The existing `view.next_position` is unchanged: first canonical entry whose view
-is neither `passed_deal` nor `play_complete`. If it equals the selection, there is
-no redundant continuation CTA. Otherwise **Open Game N for recording**, preceded by
-**First Game with incomplete recording**,
-can point backward. Passing or recording the final Card keeps the selected Game;
-continuation is explicit. If there is no suggestion, the message states only that
-all 36 entries are passed or contain complete traces. All-started/zero-Play input
-still suggests Game 1 even though Product occupancy status is `complete`.
+is not `passed_deal`, `play_complete` or `rule_ended`. If it equals the selection,
+there is no redundant continuation CTA. The destination can point backward.
+Passing or recording the final Card keeps the selected Game; continuation is explicit.
+If there is no suggestion, the message states only that all 36 entries are passed,
+rule-ended, or contain complete traces. All-started/zero-Play input still suggests
+Game 1 even though Product occupancy status is `complete`.
+
+Issue #298 places terminal selected-Game navigation immediately after the accepted
+recording status, before seats, declaration/evidence editors, totals and history.
+**First Game with incomplete recording** gives context to the concise **Open Game N**
+native GET link. It uses the shared `.button-link` treatment and `.content-stack`
+spacing, with overview and readiness-dependent decision-selection/inspection links
+as secondary actions. There is one group, without a duplicate below history. When
+all entries are terminal, the existing truthful all-complete message and secondary
+navigation occupy this upper area, without a continuation target. The complete
+36-entry overview remains below recording.
+
+For an unfinished selected Game, existing Start/declaration/Card actions retain
+priority and the unchanged **Open Game N for recording** link stays after history.
+Unavailable capture or missing declaration does not establish terminal completion.
+Passed and rule-ended Null states keep their distinct status and explanation.
 
 Tiles and continuation links use `/matches/position/N#match-recording`. Normal
 creation returns to Game 1 with that fragment after exactly one create and no
@@ -78,6 +92,117 @@ targets remain exact. Unsent other-form inputs survive language changes only wit
 the existing JavaScript enhancement; submitted safe input survives natively.
 
 ## Focused verification
+
+### Prominent completion continuation (Issue #298)
+
+Starting clean branch: `bug/298-match-completion-navigation`, full HEAD
+`0ca32d293cdbfeff3b49de97e1e45cdcad048907`. Maintainer installed acceptance of #297
+already established complete status in both selected Game and overview, all ten
+Tricks/30 Plays, and an empty Game 2 with Bea/Clara/Anna in canonical seat order
+and Anna still the recording perspective. Those are accepted baseline facts.
+
+Developer evidence reproduced the placement defect using a validated disposable copy
+of `skatmind-uat-match-end-29-plays.json`, imported through `/matches/import`. At
+1365x900, the German native final-Card return showed completion at viewport Y 142,
+but continuation at Y 5424, below the full history. Twelve new regression cases
+failed on the requested placement/copy contract before the repair. Completion itself
+passed, including one final-Card save and passive continuation without writes.
+
+The change reads only the already captured `view` and matching page state. It adds
+one paired caption, for **2,073 catalog keys per locale**, retaining **73 POST routes
+and 125 forms**. Native form ownership, the enabled hidden declaration default
+submitter, existing routes, source/generation checks, Report/recovery lifetimes,
+deletion boundaries and all persistence/public contracts remain intact. No CSS or
+JavaScript changes are needed. Normal final-Card focus stays on `#match-recording`;
+the link receives focus only through user navigation. Existing validation and
+source-checked native/enhanced language return remain authoritative.
+
+The new complete HTTP module builds the named Anna/Bea/Clara 29-Play prefix from
+`examples/historical_grand_normal_completion.json` through official builders. Its
+16 cases cover final D9, one save, unchanged selection, native GET/no-write
+continuation, rotated empty Game 2, exact earlier gaps, unfinished task priority,
+passed/complete/all-terminal entries, short Null with truthful inspection, mixed
+passed/short-ended completion, and genuine 30-to-29 rewind. Existing modules retain
+validation/language, review readiness, source-bound stale forms, Report/recovery,
+deletion and #292 declaration ownership coverage. In particular, the complete
+declaration-draft module checks the first associated enabled submitter; the new
+terminal-page test checks it again in the moved-navigation composition. With no
+submitter, ownership or draft changes, the unrelated #292 browser flow need not be
+repeated.
+
+The complete-module inventory follows actual renderer imports, helper callers and
+`rg -l` searches for `task.match.first_unfinished`, `task.match.all_complete`,
+`task.match.next`, `match-recording-status`, `match-game-seats`, `match-recording`,
+`match-declaration`, `match-evidence` and `/matches/position/`, supplemented by the
+shared language/validation, strict paired-catalog, rename and executable packaging
+contracts. Run complete modules, with the exclusive analysis-action module after
+parallel workers exit:
+
+```powershell
+$scratch = "C:\Users\HENNIN~1\AppData\Local\Temp\opencode"
+py -3.13 -m pytest `
+  tests/test_match_completion_navigation_web.py `
+  tests/test_match_game_navigation.py tests/test_match_game_navigation_web.py `
+  tests/test_task_first_stateful_rendering.py tests/test_task_first_stateful_projections.py `
+  tests/test_recorded_trick_progress_web.py tests/test_null_recording_end_web.py `
+  tests/test_match_evidence_workflow.py tests/test_match_evidence_navigation.py `
+  tests/test_unified_workflow_visual_contract.py tests/test_task_first_match_and_learning_workflow.py `
+  tests/test_direct_match_evidence.py tests/test_match_evidence_presentation.py `
+  tests/test_operation_feedback_language.py tests/test_operation_feedback_web.py `
+  tests/test_recording_task_focus.py tests/test_match_declaration_drafts.py `
+  tests/test_compact_declaration_form.py tests/test_compact_declaration_web.py `
+  tests/test_frontend_validation_preservation.py tests/test_task_first_language_preservation.py `
+  tests/test_frontend_language_switching.py tests/test_language_switch_context.py `
+  tests/test_language_view_continuity.py tests/test_language_view_script.py `
+  tests/test_frontend_localization_foundation.py tests/test_complete_frontend_localization.py `
+  tests/test_skatmind_rename.py tests/test_packaging_and_distribution.py `
+  tests/test_profile_driven_creation_packaging.py tests/test_profile_driven_form_contracts.py `
+  tests/test_match_recording_recovery.py tests/test_match_recording_recovery_web.py `
+  tests/test_match_card_correction_ui.py tests/test_recording_deletion_lifecycle.py `
+  tests/test_match_setup_and_card_layout.py tests/test_review_return_labels.py `
+  tests/test_compact_play_grid_web.py tests/test_unplayed_card_summary_web.py `
+  tests/test_match_decision_selection_web.py `
+  -q -ra --tb=short -p no:cacheprovider -n 2 --dist=loadfile --max-worker-restart=0 `
+  --junitxml="$scratch\issue-298-complete-parallel.xml"
+py -3.13 -m pytest tests/test_match_analysis_action_placement.py `
+  -q -ra --tb=short -p no:cacheprovider -n 0 `
+  --junitxml="$scratch\issue-298-exclusive.xml"
+git diff --check
+$env:Path = "C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313;" + $env:Path
+.\scripts\check.ps1 -Mode Quick
+```
+
+The disposable source-tree browser verifier is retained externally as
+`$scratch\verify_298.py`. Its `--phase before|after --output FRESH_DIRECTORY` modes
+use the #297-compatible dependency-free Edge harness, real pointer and native
+Tab/Space/Enter events, de/en, JavaScript enabled/disabled, 1365x900 and 320x900
+with long names. The initial final-Card screenshot and geometry are captured before
+verifier scroll/focus/disclosure actions. It also retains delivered HTML, network
+requests, accepted state/fingerprints, actual computed prominence/focus outlines,
+explicit rewind and error/recovery/language observations. Enhanced language return
+is checked against its submitted landmark/offset while scrolled into history;
+it does not jump back to the completion action. Native language keeps the existing
+fragment-free return; initial recovery selection still lands on `#match-recovery`.
+Error summaries retain focus on both script paths.
+
+Successful baseline artifacts: `$scratch\issue-298-before-03`; changed artifacts:
+`$scratch\issue-298-after-03`. Every completed browser cell has one legitimate
+final-Card operation/save/replacement and zero navigation-triggered writes, IDs,
+analysis or preparation operations. The four desktop cells separately exercise one
+deliberate rewind save and three explicit language profile writes. Fixture import
+and profile setup are excluded from those interaction counts. Measured browser zoom
+is **1 (100%)**; narrow viewport emulation is not zoom. Genuine **200% changed-action
+zoom remains an installed acceptance item**. Intermediate verifier failures were
+accounting/fixture/selector or historical focus assumptions, not completion failures.
+
+These are developer checks, not installed UAT. Exact counts/runtimes and the final
+Quick result/log accompany the completion handoff; **local Full is not run under
+the session-approved routine**. Keep #298 open for exact-commit branch/main CI and
+installed targeted acceptance of the new completion action. #292–#297 remain
+complete; #208 stays open, UAT-01 is not globally accepted and UAT-02–12 remain
+paused. Full maintainer UAT and current architecture/code analysis with treatment
+of material findings remain required before v1.0.0. Release preparation is not
+authorized.
 
 ### Discoverable Match evidence (Issue #263)
 

@@ -1605,6 +1605,7 @@
   "task.match.next.rule_ended": "This Null game has ended. You can inspect the recorded history.",
   "task.match.next.set_declaration": "Choose who became declarer and which game was declared. Hand and Skat evidence can be added below.",
   "task.match.next.start_game": "Record this Game or mark the deal passed. No Game ID or timecode is needed.",
+  "task.match.open_game": "Open Game {number}",
   "task.match.overview": "Game overview",
   "task.match.partial": "Partially recorded: {count} of {total} Tricks",
   "task.match.partial.cards_1": "; 1 Card in Trick {trick}",

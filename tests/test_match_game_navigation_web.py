@@ -172,7 +172,7 @@ def test_final_card_report_preview_language_noop_cancel_and_real_rewind(
     assert response[1]["location"] == "/matches/position/1#match-recording"
     page = follow(browser, response)
     assert len(saves) == count + 1 and active.selected_position == 1
-    assert text(locale, "task.match.first_unfinished", number=2) in page
+    assert text(locale, "task.match.open_game", number=2) in page
     assert len(active.workspace.slots[0].observed_game.plays) == 30
     assert_progress(page, locale, 30)
     assert 'data-unplayed-cards' in page

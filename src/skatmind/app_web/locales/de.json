@@ -1605,6 +1605,7 @@
   "task.match.next.rule_ended": "Dieses Nullspiel ist beendet. Sie können den erfassten Verlauf ansehen.",
   "task.match.next.set_declaration": "Wählen Sie den Alleinspieler und das angesagte Spiel. Hand- und Skat-Belege können unten ergänzt werden.",
   "task.match.next.start_game": "Erfassen Sie dieses Spiel oder markieren Sie es als eingepasst. Spiel-ID und Zeitmarke werden nicht benötigt.",
+  "task.match.open_game": "Spiel {number} öffnen",
   "task.match.overview": "Spieleübersicht",
   "task.match.partial": "Teilweise erfasst: {count} von {total} Stichen",
   "task.match.partial.cards_1": "; 1 Karte in Stich {trick}",
