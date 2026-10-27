@@ -20,6 +20,14 @@ _HEADER_NAME = re.compile(rb"^[!#$%&'*+.^_`|~0-9A-Za-z-]+$")
 _UPLOAD_FILE_FIELDS = frozenset({"workspace_file", "report_source_file"})
 
 
+class _UploadedJSONError(ValueError):
+    """Private marker for the upload decoder phase; existing ValueError behavior remains."""
+
+
+class _UploadedFileTypeError(ValueError):
+    """Private marker for an unsupported file-part media type."""
+
+
 def _reject_duplicate_json_keys(
     pairs: list[tuple[str, object]],
 ) -> dict[str, object]:
@@ -211,7 +219,7 @@ def parse_learning_corpus_multipart_upload_v1(
             if file_field is not None:
                 raise ValueError("Exactly one uploaded file is allowed.")
             if part_content_type is not None and media_type != "application/json":
-                raise ValueError("Uploaded files must use application/json.")
+                raise _UploadedFileTypeError("Uploaded files must use application/json.")
             file_field = name
             file_content = content
             continue
@@ -232,7 +240,10 @@ def parse_learning_corpus_multipart_upload_v1(
 
     if file_field is None or file_content is None:
         raise ValueError("Exactly one uploaded file is required.")
-    decode_learning_corpus_uploaded_json_v1(file_content)
+    try:
+        decode_learning_corpus_uploaded_json_v1(file_content)
+    except ValueError as error:
+        raise _UploadedJSONError(str(error)) from error
     return LearningCorpusMultipartUploadV1(
         fields=fields,
         file_field=file_field,

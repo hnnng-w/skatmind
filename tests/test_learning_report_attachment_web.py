@@ -46,10 +46,11 @@ def localized_server(tmp_path):
     yield from _localized_server.__wrapped__(tmp_path)
 
 
-def submit_upload(browser, form, source, *, fields=None):
+def submit_upload(browser, form, source, *, fields=None,
+                  filename="synthetic-strategy-source.json", file_type="application/json"):
     """Send emitted text controls verbatim. Overrides are explicitly negative tests."""
     body, content_type = _multipart(tuple(form["values"].items()) if fields is None else fields,
-        (("report_source_file", "synthetic-strategy-source.json", source, "application/json"),))
+        (("report_source_file", filename, source, file_type),))
     connection = http.client.HTTPConnection("127.0.0.1", browser.server.port, timeout=120)
     try:
         connection.request("POST", form["action"], body, headers={"Cookie": browser.cookie,
@@ -194,7 +195,8 @@ def test_old_singleton_stays_valid_after_unrelated_match_but_not_after_current_r
     rejected = submit_upload(browser, singleton, source)
     assert rejected[0] == 400
     page = rejected[2].decode()
-    assert text("en", "validation.message.file_reselection") in page
+    assert text("en", "validation.report_file.reselect") in page
+    assert text("en", "validation.report_file.attachment") in page
     assert "not accepted" in page and 'role="alert"' in page
     # A singleton's new transport is regenerated, explicitly described as an unaccepted retry.
     assert upload_form(page)["values"]["match_snapshot_id"] == ("" if add_unrelated else second)
@@ -235,10 +237,11 @@ def test_multiple_wrong_target_retry_preserves_actual_choice_and_valid_preparati
     page = response[2].decode()
     assert not notices(page)
     assert upload_form(page)["values"]["match_snapshot_id"] == wrong
-    assert text("en", "validation.message.file_reselection") in page
+    assert text("en", "validation.report_file.reselect") in page
+    assert text("en", "validation.report_file.attachment") in page
     page = switch(browser, page, "de")
     assert upload_form(page)["values"]["match_snapshot_id"] == wrong
-    assert text("de", "validation.message.file_reselection") in page
+    assert text("de", "validation.report_file.reselect") in page
     assert active.corpus.prepared_artifacts is prepared and downloads(browser) == retained
     assert saved_bytes(active.path) == files and active.corpus.strategy_source_store.sources == ()
     form = upload_form(page)
@@ -298,7 +301,8 @@ def test_legacy_source_wrapper_is_accepted_but_plain_documents_are_not(localized
         response = submit_upload(browser, upload_form(page), json.dumps(document).encode())
         assert response[0] == 400
         page = response[2].decode()
-        assert text("en", "validation.message.file_reselection") in page
+        assert text("en", "validation.report_file.format") in page
+        assert text("en", "validation.message.file_reselection") not in page
         assert active.corpus.prepared_artifacts is prepared and downloads(browser) == retained
 
 

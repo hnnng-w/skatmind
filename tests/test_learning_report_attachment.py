@@ -210,7 +210,7 @@ def test_no_target_feedback_stays_visible_and_language_excludes_hidden_transport
         originating_route=definition.action_route, active_family_binding="learning",
         review_wizard_step=None, form_instance=None, safe_visible_values=FormValuesV1(),
         validation_issues=(FrontendValidationIssueV1(field_key="report_source_file",
-            message_key="validation.message.file_reselection"),),
+            message_key="validation.report_file.json"),),
         status="invalid", feedback_generation=1)
     page = apply_validation_feedback_to_html_v1(
         render(specimen("add")), definition, state, locale="en")
@@ -218,4 +218,5 @@ def test_no_target_feedback_stays_visible_and_language_excludes_hidden_transport
     summary = next(n for n in tree.nodes if n["attrs"].get("class") == "error-summary")
     assert all("open" in n["attrs"] for n in summary["parents"] if n["tag"] == "details")
     assert 'href="#learning-report-target"' in page
-    assert text("en", "validation.message.file_reselection") in page
+    assert text("en", "validation.report_file.json") in page
+    assert text("en", "validation.message.file_reselection") not in page

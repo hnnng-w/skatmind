@@ -344,6 +344,12 @@ def _learning_report_feedback(block, state, locale):
         return match[0]
 
     block = pattern.sub(choices, block)
+    if any(issue.message_key == "validation.report_file.format"
+           for issue in state.validation_issues):
+        return block
+    hint = '<p>' + escape(translate_frontend_message_v1(
+        locale, "validation.report_file.reselect")) + '</p>'
+    block = _insert_field_messages(block, "report_source_file", hint)
     return '<p>' + escape(translate_frontend_message_v1(
         locale, "task.learning.report_retry")) + '</p>' + block
 
@@ -383,6 +389,10 @@ def _render_summary(
     ):
         heading_key = "validation.rollout.unavailable_heading"
         guidance_key = "validation.rollout.unavailable_guidance"
+    if (state.form_key == "learning.operation.import_strategy_teacher_report"
+            and state.status != "conflict"):
+        heading_key = "validation.report_file.heading"
+        guidance_key = None
     items = []
     for issue, (field, _identifier, message) in zip(
             state.validation_issues, translated, strict=True):
@@ -441,7 +451,8 @@ def _render_summary(
         f'lang="{locale_attribute}">'
         f'<h2 id="validation-summary-heading-{state.feedback_generation}">'
         f"{escape(translate_frontend_message_v1(locale, heading_key))}</h2>"
-        f"{evidence_action}<p>{escape(translate_frontend_message_v1(locale, guidance_key))}</p>"
+        f"{evidence_action}" + ("" if guidance_key is None else
+            f"<p>{escape(translate_frontend_message_v1(locale, guidance_key))}</p>") +
         f"<ul>{''.join(items)}</ul>{actions}{reload_guidance}{retained_result}</section>"
     )
 

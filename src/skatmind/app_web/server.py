@@ -1685,6 +1685,11 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                        else "validation.message.language_context_conflict")
             issues = (FrontendValidationIssueV1(
                 field_key=None, message_key=message),)
+        if (issues is None
+                and definition.form_key == "learning.operation.import_strategy_teacher_report"):
+            from .learning_report_feedback import report_file_validation_issues
+
+            issues = report_file_validation_issues(error, status=status)
         if issues is None:
             if status in {
                 HTTPStatus.REQUEST_ENTITY_TOO_LARGE,

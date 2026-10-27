@@ -248,3 +248,179 @@ remain complete. #208 remains open, UAT-01 is not globally accepted, and UAT-02�
 remain paused. Full maintainer UAT and the current architecture/code analysis with
 treatment of material findings remain required before v1.0.0. Release preparation
 is not authorized.
+
+## Installed-UAT feedback follow-up
+
+### Accepted baseline and narrow correction
+
+This follow-up started on `bug/299-learning-report-discoverability` at
+`93e2f20c76c12e07e5e881c57df6b7758dbd5b9e`, with a clean worktree. The maintainer
+reported that the original exact-commit branch and main CI gates passed and accepted
+the installed visible download, explicit attachment, applied/duplicate receipts,
+ordinary-Result rejection with accepted-source retention, JavaScript-disabled
+operation, browser zoom and usability for the tested build. Those acceptances stand.
+
+The remaining installed finding was rejection clarity: an ordinary Result produced
+the generic form heading and retained-safe-values boilerplate, plus two equal-ranking
+file errors, one of which only instructed reselection. A real downloaded ordinary
+Result submitted through the emitted multipart form reproduced this in both locales:
+
+```powershell
+py -3.13 -m pytest tests/test_learning_report_rejection.py -q --tb=short
+```
+
+Baseline result: **two expected failures in 9.16s**, showing the actual generic
+delivered-HTML summaries. The correction is limited to the existing Report-file form:
+
+* Private parser markers identify strict JSON-object decoding and file-part media
+  rejection. They retain existing `ValueError` behavior, including standalone callers,
+  and cover malformed JSON rejected before the bytes-import helper is reached.
+* The private bytes importer marks complete-source-codec rejection as `format` and
+  source-binding/import rejection as `attachment`. Managed-path validation stays
+  outside that attachment classification. Direct transfer keeps its original errors.
+* The registered Report-file form alone maps these phases to localized diagnostics.
+  HTTP 413/415 and conflict status take precedence. No filename, extension, raw-English
+  message matching, uploaded content, or new public error contract is used.
+* A wrong source format now has **Report file not attached** and the approved paired
+  explanation directing the user to **Downloads for this analysis** → **Report for
+  Learning (JSON)**. One summary error links to the actual empty file input with its
+  existing ARIA error association. The redundant reselection error and generic
+  safe-values guidance are absent. The long explanation itself supplies the retry
+  instruction; other rejections use a neutral short hint beside the file field.
+* Malformed JSON has a JSON-object diagnosis; valid-source attachment failure directs
+  attention to the selected Match version. Conflicts retain conflict presentation.
+  Existing target-remedy fallback, initial error focus, disclosure opening, file
+  clearing, native/enhanced language return and suppression of old success remain.
+
+The authoritative parser, codec, target reconciliation and import operations still
+make the same acceptance decisions. No route, operation, registered form, schema,
+source format, persistence field, receipt lifetime or styling changed. Five paired
+messages bring the measured inventory to **73 POST routes / 125 forms / 2,082 keys
+per locale / ten prepared Learning downloads**. The earlier 2,077-key measurement
+above remains the original implementation baseline.
+
+### Follow-up regression validation
+
+The new complete rejection module uses actual emitted download links and multipart
+forms. It covers both locales; unchanged rejection under a plausible source filename;
+valid source acceptance under an unrelated filename; one error/link/ARIA target;
+empty file inputs; native/enhanced translated errors; valid retry and duplicate
+receipts; strict early JSON rejection; wrong target and active-context conflict;
+actual shared-route 413/415 and file-part media rejection; status-priority mapping;
+and unrelated Workspace upload feedback. On rejection it checks selected target,
+source bindings, Store and all three prepared-object identities, all ten download
+bytes, and persistent files. Existing modules retain stale-target, legacy wrapper,
+metadata-only same-revision reconciliation, direct-transfer and debrief coverage.
+
+Intermediate focused runs identified obsolete reselection-copy assertions (**35
+passed / four failed in 30.72s**) and test-harness assumptions about language-return
+autofocus and `HTTPConnection` context management (**51 passed / five failed in
+56.33s**). Corrected complete focused modules passed **56 tests in 59.84s**. Two
+additional real transport cases were included in the final complete-module run.
+The scoped Ruff check passed after line wrapping.
+
+Final parallel command, line-wrapped only for readability:
+
+```powershell
+py -3.13 -m pytest `
+  tests/test_learning_report_rejection.py `
+  tests/test_learning_report_attachment.py `
+  tests/test_learning_report_attachment_web.py `
+  tests/test_frontend_validation_preservation.py `
+  tests/test_unified_local_app_web.py `
+  tests/test_unified_local_app_managed_items.py `
+  tests/test_learning_corpus_web_uploads.py `
+  tests/test_match_analysis_report_source_export.py `
+  tests/test_learning_prepared_navigation.py `
+  tests/test_learning_debrief_web.py `
+  tests/test_operation_feedback.py `
+  tests/test_operation_feedback_web.py `
+  tests/test_operation_feedback_language.py `
+  tests/test_operation_feedback_script.py `
+  tests/test_frontend_localization_foundation.py `
+  tests/test_complete_frontend_localization.py `
+  tests/test_frontend_language_switching.py `
+  tests/test_task_first_language_preservation.py `
+  tests/test_language_switch_context.py `
+  tests/test_language_view_continuity.py `
+  tests/test_language_view_script.py `
+  tests/test_packaging_and_distribution.py `
+  tests/test_guided_frontend_packaging.py `
+  tests/test_profile_driven_creation_packaging.py `
+  tests/test_skatmind_rename.py `
+  tests/test_task_first_match_and_learning_workflow.py `
+  tests/test_task_first_stateful_rendering.py `
+  tests/test_guided_frontend_web.py `
+  tests/test_guided_frontend_json_transfer.py `
+  tests/test_completed_trick_input_grouping.py `
+  tests/test_session_card_feedback_web.py `
+  tests/test_session_whole_game_review_web.py `
+  tests/test_compact_declaration_web.py `
+  tests/test_session_declaration_correction_web.py `
+  tests/test_profile_driven_creation_web.py `
+  tests/test_match_learning_report_discoverability.py `
+  -q -n 2 --dist=loadfile --max-worker-restart=0 -p scripts.validation_pytest `
+  --validation-report="C:\Users\HENNIN~1\AppData\Local\Temp\opencode\issue299-rejection-parallel.json" `
+  --durations=15 --tb=short -rs
+```
+
+Result: **865 passed / one skipped in 352.22s** across 36 complete modules. The skip
+is the same Windows symlink-privilege limitation in
+`test_managed_direct_child_validation_rejects_escape_and_links`.
+After both parallel workers exited, the four exclusive modules ran separately:
+
+```powershell
+py -3.13 -m pytest tests/test_early_rejection_observer.py tests/test_local_learning_corpus_web.py tests/test_unified_rejection_transport.py tests/test_match_analysis_action_placement.py -q -p scripts.validation_pytest --validation-report="C:\Users\HENNIN~1\AppData\Local\Temp\opencode\issue299-rejection-serial.json" --durations=10 --tb=short -rs
+```
+
+Result: **95 passed in 60.85s**, no skips. Total: **40 complete modules / 960 passed /
+one skipped**. Full local validation is not authorized by this task-specific routine;
+the final explicit Quick and documentation-sensitive recheck are reported separately
+in the completion handoff, using the commands documented above.
+
+### Bounded browser evidence and operation accounting
+
+```powershell
+py -3.13 "C:\Users\HENNIN~1\AppData\Local\Temp\opencode\issue299_rejection_browser.py" --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "C:\Users\HENNIN~1\AppData\Local\Temp\opencode\issue299-rejection-browser-01"
+```
+
+Result: **passed in 37.820s**, CPython 3.13.7 and actual headless Microsoft Edge
+**156.0.4314.42**, fresh isolated profiles at default **100% zoom**, device pixel ratio
+and visual viewport scale `1`. German/enabled and English/disabled cases used 390 x
+900; German/disabled and English/enabled cases used 1365 x 900. This is a bounded
+source-tree probe, not installed UAT or a repeat acceptance of zoom.
+
+Each case downloads the actual ordinary Result and correct source using emitted
+anchors, submits the ordinary file through the emitted form, and captures the initial
+HTTP-400 return before verifier scrolling/focusing. Evidence shows the localized
+explanation, one error link, open disclosure, empty input, native focused error summary
+and visible outline. Native Tab/Enter activation of the error link focuses the real
+file input. Language return translates the error and retains an empty input without
+success. Explicit correct-file retry then shows the existing applied or duplicate
+receipt. Narrow screenshots show readable wrapping without document overflow.
+`evidence.json`, downloaded files and PNGs remain under the command's output directory.
+
+Phase counters and full managed-file comparisons establish:
+
+* Fixture analysis, collection creation/import, optional prior source attachment and
+  explicit preparation are recorded separately from the tested rejection/retry.
+* Viewing/download and ordinary-Result rejection add no analysis, preparation,
+  reconciliation, generated Product ID, Match/Catalog/Snapshot/Profile write. Rejection
+  preserves bindings, selected target, all prepared references and all ten downloads.
+* The explicit error-language change performs its existing Profile save only.
+* Correct-file retry performs one existing Decision reconciliation. First addition
+  invalidates preparation; duplicate retains prepared identity and bytes. Neither
+  case adds analysis, preparation, Product IDs or persistent writes.
+* Feedback rendering adds no Product operation or write.
+
+### Follow-up handoff boundary
+
+The follow-up remains **locally validated, CI pending** after its final local checks.
+The maintainer's original installed functional/native/zoom acceptances and original
+exact-commit CI remain accepted for that tested build. New exact-commit CI is needed
+for these edits. Later installed acceptance should focus on the revised rejection
+and a valid retry, without repeating the entire original #299 UAT sequence.
+Keep #299 and #208 open. #292–#298 remain complete. UAT-01 is not globally accepted;
+UAT-02–12 remain paused. Release preparation is not authorized. All work uses
+disposable source-tree data; installed UAT data is untouched. Changes remain unstaged
+and uncommitted, with no Git/GitHub publication.

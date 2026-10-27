@@ -23,7 +23,7 @@ from skatmind.corpus_web.operations import (
 )
 from skatmind.corpus_web.preparation import prepare_learning_corpus_artifacts_web_v1
 from skatmind.corpus_web.state import build_learning_corpus_web_state_v1
-from skatmind.corpus_web.uploads import LearningCorpusMultipartUploadV1
+from skatmind.corpus_web.uploads import LearningCorpusMultipartUploadV1, _UploadedJSONError
 from skatmind.learning_corpus_strategy_teacher import (
     LearningCorpusStrategyTeacherReportSourceV1,
     build_learning_corpus_strategy_teacher_report_source_v1,
@@ -33,6 +33,7 @@ from skatmind.match_analysis_report_source_codec import (
 )
 
 from .learning_outcome_navigation import LearningEntryOutcome
+from .learning_report_feedback import ReportFileError
 from .managed_item_contracts import DiscoveredManagedItemV1
 from .managed_item_import import decode_managed_item_json_object_v1
 from .managed_item_storage import (
@@ -231,10 +232,15 @@ def import_report_source_into_unified_learning_v1(
             context.path,
             expected_kind="directory",
         )
-        result = import_strategy_teacher_report_into_learning_corpus_web_v1(
-            context.corpus,
-            source,
-        )
+        try:
+            result = import_strategy_teacher_report_into_learning_corpus_web_v1(
+                context.corpus,
+                source,
+            )
+        except ValueError as error:
+            if not file_import_feedback:
+                raise
+            raise ReportFileError("attachment") from error
         if file_import_feedback:
             context.operation_feedback.publish(attempt, feedback_source(context),
                                                 report_attachment_message(result.status))
@@ -248,12 +254,21 @@ def import_report_source_bytes_into_unified_learning_v1(
     *,
     match_snapshot_id: str,
 ) -> LearningCorpusWebResultV1:
-    document = decode_managed_item_json_object_v1(source_bytes)
-    exported = resume_match_analysis_report_source_export_v1(document)
-    source = build_learning_corpus_strategy_teacher_report_source_v1(
-        match_snapshot_id=match_snapshot_id,
-        report=exported.report,
-    )
+    try:
+        document = decode_managed_item_json_object_v1(source_bytes)
+    except ValueError as error:
+        raise _UploadedJSONError(str(error)) from error
+    try:
+        exported = resume_match_analysis_report_source_export_v1(document)
+    except ValueError as error:
+        raise ReportFileError("format") from error
+    try:
+        source = build_learning_corpus_strategy_teacher_report_source_v1(
+            match_snapshot_id=match_snapshot_id,
+            report=exported.report,
+        )
+    except ValueError as error:
+        raise ReportFileError("attachment") from error
     return import_report_source_into_unified_learning_v1(context, source, file_import_feedback=True)
 
 
