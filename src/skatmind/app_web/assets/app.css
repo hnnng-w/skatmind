@@ -120,11 +120,7 @@ body:has(#task-first-learning) .language-buttons {
 }
 
 /* Learning explanations and ten ordinary links use the available reading width. */
-#learning-results p,
-#learning-results h2,
-#learning-results h3,
-#learning-results h4,
-#learning-results li {
+#learning-prepared-result :is(p, h2, h3, h4, li, dt, dd) {
   overflow-wrap: anywhere;
   max-width: 72ch;
   hyphens: auto;

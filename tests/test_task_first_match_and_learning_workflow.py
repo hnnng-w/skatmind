@@ -112,14 +112,16 @@ def test_explicit_transfer_selection_build_and_ten_downloads(tmp_path, locale):
     destination = "/learning/prepared/" + "a" * 64
     html = render_task_first_learning_v1(state, managed_handle=target.handle, locale=locale,
                                        prepared_location=destination)
-    assert t(locale, "task.learning.current_results") in html
+    assert t(locale, "task.learning.results") in html
+    assert 'id="learning-result-technical" class="advanced-settings"' in html
+    assert t(locale, "learning.result.technical_downloads") in html
     assert t(locale, "debrief.preparation") in html
     assert t(locale, "task.learning.rebuild") in html
     assert f'href="{destination}"' in html
     assert html.count('value="prepare_learning_artifacts"') == 1
     assert 'class="primary"' not in html
     for kind in LEARNING_CORPUS_ALL_PREPARED_DOWNLOAD_KINDS:
-        assert f'/learning/downloads/{kind.replace("_", "-")}.json' in html
+        assert html.count(f'/learning/downloads/{kind.replace("_", "-")}.json') == 1
 
 
 def test_native_record_and_pass_submit_once_and_get_performs_no_product_mutation(

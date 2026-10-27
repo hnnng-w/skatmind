@@ -5,6 +5,8 @@ from html import escape
 
 from skatmind.match_debrief import build_debrief_projection
 
+from .learning_focus_rendering import render_learning_focuses
+from .learning_result_projection import project_learning_focuses
 from .render_locale import localized_render
 from .result_rendering import _section_body, render_result_presentation_v1
 from .rollout_result_presentation import build_rollout_presentation
@@ -47,7 +49,7 @@ def report_presentation(evidence, locale):
         value, value.result.to_dict()["document"], "match_decision", locale=locale)
 
 
-def render_debrief(scope, locale, *, selector="all", profile=None, heading=True):
+def render_debrief(scope, locale, *, selector="all", profile=None, heading=True, show_focuses=True):
     player = scope.player(selector)
     view = build_debrief_projection(scope.snapshots, scope.sources, player_id=player,
                                     tactical=scope.tactical, coaching=scope.coaching)
@@ -123,13 +125,9 @@ def render_debrief(scope, locale, *, selector="all", profile=None, heading=True)
             topics += paragraph(locale, "debrief.topic_counts", player=player_name(scope.snapshots, identity),
                 topic=text(locale, "debrief.motif." + motif), decisions=decisions, games=games)
         body += disclosure(locale, "debrief.topics", topics)
-    if view.focuses:
-        body += '<h3>' + translated(locale, "debrief.focuses") + '</h3>'
-        for focus in view.focuses:
-            body += paragraph(locale, "debrief.topic_counts", player=player_name(scope.snapshots, focus.player_id),
-                topic=text(locale, "debrief.motif." + focus.motif_type),
-                decisions=focus.qualifying_decision_count, games=focus.distinct_game_count)
-            body += paragraph(locale, "debrief.guidance." + focus.guidance_code)
+    if show_focuses:
+        body += render_learning_focuses(project_learning_focuses(scope.coaching, scope.snapshots,
+            locale, profile=profile, player_id=player), locale)
     current = {item.match_snapshot_id for item in scope.snapshots}
     stale = [item for item in scope.sources if item.snapshot.match_snapshot_id not in current]
     for evidence in stale:

@@ -289,7 +289,7 @@ def test_post_to_get_supersession_never_replays_add_or_attributes_old_notice(
         page = browser.page(view_link(page))
         assert not notices(page)  # Ordinary GET already consumed the one-use receipt.
         row = result_node(page)
-        assert "Prepared datasets" in row["text"]
+        assert row["text"] == "Learning review"
     assert saved_bytes(current.path) == before
 
 

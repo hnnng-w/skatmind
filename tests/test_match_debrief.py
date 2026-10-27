@@ -263,4 +263,6 @@ def test_qualified_legacy_focus_content_is_rendered_without_threshold_recalculat
     html = render_debrief(scope, "en")
     for focus in coaching.focus_areas:
         assert focus.guidance_text in html
-    assert "2 distinct decisions in 2 distinct games" in html
+    assert "2 supporting decisions · 2 Games · 2 Matches" in html
+    assert html.count("Supporting decisions") == len(coaching.focus_areas)
+    assert "Decision 22" in html

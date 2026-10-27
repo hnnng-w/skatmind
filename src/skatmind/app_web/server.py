@@ -670,7 +670,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             pending = getattr(self, "_language_return", None)
             try:
                 validate_language_source_v1(self.server.app_context, source,
-                    check_files=LEARNING_PREPARED_PATTERN.fullmatch(source.route) is not None)
+                    check_files=(source.route == "/learning/current"
+                        or LEARNING_PREPARED_PATTERN.fullmatch(source.route) is not None))
                 if getattr(self, "_language_only_return", False):
                     with self.server.app_context.lock:
                         if (self.server.app_context.frontend_profile.generation
@@ -2409,7 +2410,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         expected_active=None,
         prepared_scope=None,
     ) -> None:
+        from skatmind.corpus_web.downloads import (
+            LearningCorpusPreparedDownloadUnavailableError,
+            require_learning_corpus_prepared_bundle_v1,
+        )
+
         from .learning_outcome_navigation import current_learning_entry_outcome
+        from .learning_result_projection import project_learning_result
 
         active = self._active_learning()
         if expected_active is not None and active is not expected_active:
@@ -2424,10 +2431,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                  f"/learning/prepared/{prepared_scope.scope_id}")
         self._rendered_language_source = capture_language_source_v1(
             self.server.app_context, route)
-        if prepared_scope is not None:
-            validate_language_source_v1(self.server.app_context,
-                self._rendered_language_source, check_files=True)
-        state = build_unified_learning_state_v1(active)
+        validate_language_source_v1(self.server.app_context,
+            self._rendered_language_source, check_files=True)
         result = active.last_result
         notice = error_notice or (result.message if result is not None and result.status in {
             "revision_conflict", "persistence_conflict", "resolution_required",
@@ -2458,7 +2463,17 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if creation_notice:
             with active.corpus.lock:
                 active.operation_feedback.begin()
-        scope = collection_scope(self.server.app_context, active)
+        with active.corpus.lock:
+            state = build_unified_learning_state_v1(active)
+            scope = collection_scope(self.server.app_context, active)
+            result_display = None
+            if state["prepared"] is not None:
+                try:
+                    bundle = require_learning_corpus_prepared_bundle_v1(active.corpus)
+                except LearningCorpusPreparedDownloadUnavailableError as error:
+                    raise DebriefUnavailable("changed") from error
+                result_display = project_learning_result(bundle, scope.snapshots, state, locale,
+                    profile=profile, recorded=() if discovery is None else discovery.view.items)
         try:
             prepared_location = prepared_result_location(self.server.app_context, active)
         except DebriefUnavailable:
@@ -2477,9 +2492,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             entry_outcome=entry_outcome,
             prepared_location=prepared_location,
             show_prepared=prepared_scope is not None,
+            result_display=result_display,
             rejected_build=(feedback is not None
                 and feedback.form_key == "learning.operation.prepare_learning_artifacts"),
-            debrief=render_debrief(scope, locale, profile=profile, heading=False)
+            debrief=(render_debrief(scope, locale, profile=profile, heading=False,
+                                   show_focuses=result_display is None)
+                     if scope.sources or result_display is None else "")
                 + render_available_reports(available_reports(self.server.app_context, active),
                                            active, locale, profile),
         )

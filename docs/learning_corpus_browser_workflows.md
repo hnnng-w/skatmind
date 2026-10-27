@@ -507,15 +507,26 @@ Coaching-only preparation, retry, or partial publication.
 
 ## Dashboard privacy
 
-### Unified retained-result explanation (Issue #258)
+### Unified retained-result explanation (Issues #258 and #300)
 
-The unified `learning-results` region now reads: retained input/coverage, separate
-evidence and Coaching interpretation, split availability, then purpose-grouped
-downloads. It uses only the already captured minimized prepared state. The source
-heading and counts belong to that preparation, not the last submitted form or
-`last_result`. Failed recreation preserves an older valid result with existing
-error priority. #256 native landing, #257 affected/selected version identity and
-#245 final-HTML-only receipt delivery are unchanged.
+Issue #300 supersedes the aggregate-first layout with **Learning review** at the
+same unique `learning-results` heading. A short included-data summary and actual
+retained findings come first. **Included data** describes exact selected Match
+revisions/variants and bound analysis evidence. **Technical details and downloads**
+contains coverage, counters, actual localized partition reasons and the ten grouped
+links. Both inner disclosures start closed on a fresh explicit result landing.
+Source-management controls remain in their existing canonical locations, including
+the independently discoverable **Attach a report file** disclosure before preparation.
+See [Learning result readability](learning_result_readability.md).
+
+The private immutable display projection captures the accepted bundle under the
+Corpus lock through `require_learning_corpus_prepared_bundle_v1`. It reads retained
+objects directly, not canonical exports, and widens neither minimized Corpus state
+nor public contracts. Existing owner, prepared-object, generation, source-revision,
+Catalog, Snapshot and cross-family checks apply. Both current and explicit prepared
+pages validate persisted sources before rendering and again before HTML delivery.
+The projection is never cached or used as authorization. Failed recreation retains
+the prior valid result with error-focus priority and existing receipt semantics.
 
 | Prepared field | Normal unit and scope |
 | --- | --- |
@@ -542,11 +553,16 @@ again. This defensive rendering does not validate or alter Product inputs.
 Human evidence remains factual commentary/explicit response links. Strategy Teacher
 evidence is separately supplied and source-bound; importing a Workspace does not
 include every previously executed Report. Optional absence is not a failed evaluation.
-Tactical motifs are structural observations, not mistakes. Coaching uses generic
-status explanations because the minimized view cannot establish every specific cause
-of no focus. Immediate-only assessments cannot establish an actionable focus. The
-browser shows aggregates only; detailed Player focuses, fixed Guidance, Cards and
-metrics remain in the existing Coaching JSON. No thresholds or consensus are recomputed.
+Tactical motifs are structural observations, not mistakes. The private projection
+additionally uses the retained Coaching report's exact joined/unjoined counts,
+distinct Teacher-covered decisions, complete-Search-assessable decisions, mixed
+statuses and assessment scopes. These support conditional concise no-focus
+explanations, without an authoritative global no-focus-reason enum or a second
+eligibility engine. One joined decision cannot establish cross-Game recurrence,
+even with several Reports; one represented Match does not mean one Game. Immediate-only
+assessments remain descriptive. Qualified focuses show the existing Player order,
+focus priority, localized topic and fixed Guidance, with exact supporting decisions
+in a native disclosure. No thresholds or consensus are recomputed.
 
 Known-player requires earlier Train context; unseen-player means Player-disjoint
 partitions. Neither means membership in Settings. An unavailable split remains a
@@ -572,10 +588,11 @@ recurrence count. It does not expose individual observations, actual Cards,
 per-Player motif counts, recurrence identities, complete hands, legal-Card sets,
 Commentary, Strategy Teacher values, fingerprints, or paths.
 
-For Coaching, it adds only report status, Decision count, Teacher Assessment
+For Coaching, minimized state adds only report status, Decision count, Teacher Assessment
 count, focus-area count, and Player-with-focus count. It does not expose Player
 focus rows, Guidance, motifs, Cards, ranks, aggregate metrics, source identities,
-fingerprints, or paths.
+fingerprints, or paths. Unified HTML can additionally show the bounded guarded focus
+projection above; this does not serialize complete private objects into state or HTML.
 
 Dashboard state and HTML omit:
 
@@ -610,9 +627,10 @@ retain exactly ten downloads in this order:
 | Tactical Motif Cross-game Summary | `/downloads/tactical-motif-cross-game-summary.json` | `tactical-motif-cross-game-summary` |
 | Tactical Cross-game Coaching | `/downloads/tactical-cross-game-coaching.json` | `tactical-cross-game-coaching` |
 
-Issue #258 changes only the unified UI's DOM order, using `/learning`-prefixed
-existing native hrefs. Each link appears once, visibly outside Technical details,
-with a localized descriptive name, purpose sentence and JSON indicator:
+Issue #258 established the unified UI's three purpose groups, using `/learning`-prefixed
+existing native hrefs. Issue #300 retains that order and places all ten links once
+inside the initially closed **Technical details and downloads** disclosure. Short
+localized names and JSON indicators replace repeated per-file explanatory prose:
 
 | Unified visible group | Artifact kinds, in UI order |
 | --- | --- |

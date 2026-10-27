@@ -1,10 +1,15 @@
-"""Read-only explanation of the captured minimized Learning preparation."""
+"""Compact read-only result with optional guarded retained Coaching presentation."""
 
 from collections.abc import Mapping
 from html import escape
 
+from skatmind.learning_dataset_v2_partition_contracts import (
+    LEARNING_DATASET_PARTITION_UNAVAILABLE_REASONS,
+)
+
+from .learning_focus_rendering import render_learning_focuses
 from .stateful_localization import text, translated
-from .task_first_rendering import paragraph
+from .task_first_rendering import disclosure, paragraph, technical_details
 
 # Presentation order only. Canonical/standalone download tuples remain authoritative.
 _DOWNLOAD_GROUPS = (
@@ -74,54 +79,92 @@ def _coaching_status(prepared):
     return status if supported else "unknown"
 
 
-def render_learning_result(prepared, locale):
+def render_learning_result(prepared, locale, *, display=None):
     """No source access, execution, state mutation or receipt delivery."""
     def number(key):
         value = _count(prepared.get(key))
         return text(locale, "learning.result.unknown") if value is None else str(value)
 
-    body = paragraph(locale, "task.learning.current_results")
-    body += paragraph(locale, "learning.result.matches", count=number("cross_game_match_count"))
-    body += paragraph(locale, "learning.result.coverage",
+    coverage = _coverage_status(prepared)
+    coaching = _coaching_status(prepared)
+    consistent = display is not None and all(
+        prepared.get(key) == value and type(prepared.get(key)) is type(value)
+        for key, value in display.expected_coaching)
+    body = '<div id="learning-result-primary">'
+    body += paragraph(locale, "learning.result.overview", matches=number("cross_game_match_count"),
+        observed=number("observed_decision_count"), records=number("record_count"))
+    if coverage != "complete":
+        body += paragraph(locale, "learning.result.dataset." + coverage)
+    if consistent and coaching != "unknown":
+        if display.focuses:
+            body += render_learning_focuses(display.focuses, locale)
+        elif coverage not in ("empty", "unavailable", "unknown"):
+            body += paragraph(locale, "learning.result.explanation." + display.explanation)
+    else:
+        body += paragraph(locale, "learning.result.coaching." + (
+            coaching if display is None else "unknown"))
+    if coverage in ("complete", "partial") and not (consistent and display.focuses):
+        body += '<p><a class="button-link" href="/review/recorded">' + translated(
+            locale, "learning.result.choose_decision") + '</a></p>'
+    body += '</div>'
+    inputs = ''
+    if display is not None:
+        inputs += '<ul>' + ''.join('<li>' + escape(label) + '</li>'
+            for label in display.sources) + '</ul>'
+        if display.analysis_sources:
+            inputs += '<ul>' + ''.join('<li>' + escape(label) + '</li>'
+                for label in display.analysis_sources) + '</ul>'
+    else:
+        inputs += paragraph(locale, "learning.result.reference_unavailable")
+    inputs += '<p><a href="#insight-versions">' + translated(
+        locale, "task.learning.selected") + '</a> · <a href="#learning-sources">' + translated(
+        locale, "task.learning.attach_file") + '</a></p>'
+    body += disclosure(locale, "learning.result.included_data", inputs).replace(
+        '<details ', '<details id="learning-result-inputs" ', 1)
+    details = paragraph(locale, "learning.result.matches", count=number("cross_game_match_count"))
+    details += paragraph(locale, "learning.result.coverage",
         observed=number("observed_decision_count"), records=number("record_count"),
         skipped=number("skipped_decision_count"))
-    body += paragraph(locale, "learning.result.dataset." + _coverage_status(prepared))
-    body += paragraph(locale, "learning.result.summary_scope")
-    body += '<h3>' + translated(locale, "learning.result.evidence") + '</h3>'
-    body += paragraph(locale, "learning.result.human", comments=number("commentary_evidence_count"),
-                      responses=number("response_evidence_count"))
-    body += paragraph(locale, "learning.result.teacher",
+    details += paragraph(locale, "learning.result.dataset." + coverage)
+    details += paragraph(locale, "learning.result.human",
+        comments=number("commentary_evidence_count"), responses=number("response_evidence_count"))
+    details += paragraph(locale, "learning.result.teacher",
                       count=number("strategy_teacher_evidence_count"))
-    body += paragraph(locale, "learning.result.optional")
-    body += paragraph(locale, "learning.result.tactical",
+    if display is not None:
+        details += '<dl>' + ''.join('<dt>' + translated(locale, "learning.result.count." + key)
+            + '</dt><dd>' + str(value) + '</dd>'
+            for key, value in display.coaching_counts) + '</dl>'
+    details += paragraph(locale, "learning.result.tactical",
         evidence=number("tactical_evidence_count"),
         skipped=number("tactical_skipped_decision_count"),
         occurrences=number("tactical_motif_occurrence_count"),
         status=text(locale, "learning.result.tactical." + _tactical_status(prepared)))
-    body += '<h3>' + translated(locale, "learning.result.coaching") + '</h3>'
-    body += paragraph(locale, "learning.result.coaching." + _coaching_status(prepared))
-    body += paragraph(locale, "learning.result.focus_counts",
+    details += paragraph(locale, "learning.result.focus_counts",
         focuses=number("tactical_coaching_focus_area_count"),
         players=number("tactical_coaching_player_with_focus_count"))
-    body += paragraph(locale, "learning.result.coaching_scope")
-    body += '<h3>' + translated(locale, "learning.result.partitions") + '</h3>'
+    details += '<h3>' + translated(locale, "learning.result.partitions") + '</h3>'
     for mode in ("known_player", "unseen_player"):
         partition = prepared.get(mode)
         status = partition.get("status") if isinstance(partition, Mapping) else None
         if status not in ("complete", "unavailable"):
             status = "unknown"
-        body += paragraph(locale, "learning.result.partition",
+        details += paragraph(locale, "learning.result.partition",
             mode=text(locale, "learning.result." + mode),
             status=text(locale, "learning.result.partition." + status))
-    body += paragraph(locale, "learning.result.partition_scope")
-    body += '<div class="learning-downloads"><h3>' + translated(
+        reason = partition.get("unavailable_reason") if isinstance(partition, Mapping) else None
+        if status == "unavailable":
+            details += paragraph(locale, "learning.result.partition_reason." + (
+                reason if isinstance(reason, str)
+                and reason in LEARNING_DATASET_PARTITION_UNAVAILABLE_REASONS else "unknown"))
+    details += '<div class="learning-downloads"><h3>' + translated(
         locale, "learning.result.downloads") + '</h3>'
     for group, kinds in _DOWNLOAD_GROUPS:
-        body += '<h4>' + translated(locale, "learning.result.group." + group) + '</h4><ul>'
+        details += '<h4>' + translated(locale, "learning.result.group." + group) + '</h4><ul>'
         for kind in kinds:
-            body += (f'<li><a href="/learning/downloads/{kind.replace("_", "-")}.json" download>'
-                + translated(locale, "task.download." + kind) + ' (JSON)</a>'
-                + '<p>' + translated(locale, "learning.result.file." + kind) + '</p></li>')
-        body += '</ul>'
-    body += '<p>' + escape(text(locale, "learning.result.download_scope")) + '</p></div>'
+            details += (f'<li><a href="/learning/downloads/{kind.replace("_", "-")}.json" download>'
+                + translated(locale, "task.download." + kind) + ' (JSON)</a></li>')
+        details += '</ul>'
+    details += '</div>' + technical_details(locale, learning_result_technical_facts(prepared))
+    body += disclosure(locale, "learning.result.technical_downloads", details).replace(
+        '<details ', '<details id="learning-result-technical" ', 1)
     return body

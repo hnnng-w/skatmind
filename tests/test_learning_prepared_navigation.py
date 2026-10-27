@@ -57,7 +57,7 @@ def result_node(page, *, visible=True, autofocus=True):
     assert Hierarchy.visible(row) is visible
     assert ("autofocus" in row["attrs"]) is autofocus
     assert row["attrs"]["tabindex"] == "-1"
-    assert "Prepared datasets" in row["text"]
+    assert row["text"] == "Learning review"
     assert "Recreate dataset preparation" not in row["text"]
     assert any(p["tag"] == "details" for p in row["parents"])
     return row

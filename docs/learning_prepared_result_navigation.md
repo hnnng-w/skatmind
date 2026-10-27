@@ -20,7 +20,9 @@ GET /learning/prepared/<64-lowercase-hex-collection-scope>
 The emitted URL has no fragment, including its self-link. Repeated activation on
 the result page therefore makes a real GET and reopens the result even after the
 user manually closed the disclosure. Ordinary `/learning/current` retains its
-compact defaults. All other disclosures keep their existing behavior.
+compact defaults. Issue #300 adds initially closed **Included data** and **Technical
+details and downloads** within the result; the outer disclosure still opens on a
+fresh explicit landing. See [Learning result readability](learning_result_readability.md).
 
 ## Availability and publication
 
@@ -61,7 +63,10 @@ not required to open or focus the result.
 
 The preparation receipt is associated with the visible result. With enhancement
 its existing Dismiss button can be the next Tab destination while the receipt is
-present; otherwise the next destination is the first result download. Passive
+present; otherwise the next destination is the recorded-decision chooser for a
+usable no-focus result, the first supporting-decisions disclosure when focuses
+exist, or Included data for an empty/unavailable result. Downloads are now behind
+their own closed native disclosure. Passive
 View and Refresh never manufacture or replay a preparation-success receipt.
 Ordinary entry retains visible one-use feedback outside its compact disclosure.
 

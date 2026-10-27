@@ -80,20 +80,22 @@ def rendered(state, locale="en"):
     return tree, tree.by_id("learning-prepared-result")["text"]
 
 
-def assert_downloads(tree, locale="en", *, visible=False):
-    links = tree.within("learning-prepared-result", "a")
+def assert_downloads(tree, locale="en"):
+    links = [n for n in tree.within("learning-prepared-result", "a")
+             if n["attrs"].get("href", "").startswith("/learning/downloads/")]
     expected = [kind for _, kinds in GROUPS for kind in kinds]
     assert [n["attrs"]["href"] for n in links] == [
         f'/learning/downloads/{kind.replace("_", "-")}.json' for kind in expected]
     assert LEARNING_CORPUS_ALL_PREPARED_DOWNLOAD_KINDS == CANONICAL
     for link in links:
         assert "download" in link["attrs"] and "autofocus" not in link["attrs"]
-        assert Hierarchy.visible(link) is visible
+        assert not Hierarchy.visible(link)
         assert len(link["text"]) > 10 and "JSON" in link["text"]
         disclosure = next(p for p in reversed(link["parents"]) if p["tag"] == "details")
-        assert ("open" in disclosure["attrs"]) is visible
+        assert "open" not in disclosure["attrs"]
+        assert disclosure["attrs"]["id"] == "learning-result-technical"
         item = next(p for p in reversed(link["parents"]) if p["tag"] == "li")
-        assert len(item["text"]) > len(link["text"]) + 25
+        assert item["text"] == link["text"]  # No repeated per-file explanatory wall.
     if locale == "en":
         assert [n["text"] for n in tree.within("learning-prepared-result", "h4")] == [
             title for title, _ in GROUPS]
@@ -117,10 +119,10 @@ def test_genuine_partial_preparation_explains_units_and_preserves_downloads(loca
     assert "Recorded decisions: 6." in text
     assert "Included with a reconstructed before-Card state: 2." in text
     assert "Without such a state (skipped): 4." in text
-    assert "Strategy Teacher evidence included in this Dataset: 0." in text
-    assert "does not automatically include every previously executed Report" in text
-    assert "No qualifying review focus" in text
-    assert_downloads(Hierarchy(page), visible=True)
+    assert "Normalized analysis-evidence items included in this Dataset: 0." in text
+    assert "no analysis evidence is joined for review focuses" in text
+    assert "no analysis evidence" in Hierarchy(page).by_id("learning-result-primary")["text"]
+    assert_downloads(Hierarchy(page))
     retained = downloads(browser)
     for locale in ("en", "de"):
         tree, _ = rendered(state, locale)
@@ -170,7 +172,7 @@ def test_genuine_empty_all_skipped_and_complete_coverage_partial_match(
     assert state["known_player"]["status"] == state["unseen_player"]["status"] == "unavailable"
     text = Hierarchy(page).by_id("learning-prepared-result")["text"]
     assert sentence in text
-    assert_downloads(Hierarchy(page), visible=True)
+    assert_downloads(Hierarchy(page))
     downloads(browser)
 
 
@@ -184,19 +186,22 @@ def test_dataset_literal_coverage_is_not_game_completion(status, counts, sentenc
     tree, text = rendered(specimen(dataset_status=status, observed_decision_count=counts[0],
         record_count=counts[1], skipped_decision_count=counts[2]))
     assert sentence in text
-    assert "not completion of every Game or model training" in text
+    primary = tree.by_id("learning-result-primary")["text"]
+    assert "Represented Match summaries: 1" in primary
+    assert "completed Games" not in primary and "trained" not in primary
     assert "Commentary included in this Dataset: 0; linked responses included: 0." in text
-    assert "Optional evidence can be absent without a failed evaluation." in text
+    assert "Commentary included" not in primary
     assert "Tactical decisions with reconstructed observations: 1; skipped: 2." in text
-    assert "Motif occurrences: 4." in text
-    assert "Several motifs can occur in one decision" in text
+    assert "Motif occurrences: 4 (several can occur in one decision)." in text
+    assert "Motif occurrences" not in primary
     assert_downloads(tree)
 
 
 @pytest.mark.parametrize(("status", "decisions", "focus", "players", "sentence"), (
     ("empty", 0, 0, 0, "No Tactical Decision summaries are available for review focuses."),
     ("insufficient_evidence", 1, 0, 0, "No qualifying review focus from this report's evidence."),
-    ("available", 4, 2, 1, "Qualified review focuses are present."),
+    ("available", 4, 2, 1, "Qualified review focuses are present; "
+                         "their display details are unavailable here."),
 ))
 def test_coaching_literal_states_not_error_free_play(status, decisions, focus, players, sentence):
     _, text = rendered(specimen(tactical_coaching_status=status,
@@ -205,8 +210,9 @@ def test_coaching_literal_states_not_error_free_play(status, decisions, focus, p
     assert sentence in text
     assert (f"Retained Player–motif review focuses: {focus}. "
             f"Players with a focus: {players}.") in text
-    assert "not a verdict on mistakes or Player weakness" in text
-    assert "Immediate-only assessments do not establish a review focus" in text
+    assert "every move was good" not in text
+    assert "learning-focus" not in text  # Scalar counts cannot manufacture guidance.
+    assert "Immediate-only" not in text  # No inferred analysis method from these counts.
 
 
 @pytest.mark.parametrize("status", ("complete", "unavailable"))
@@ -216,8 +222,9 @@ def test_partition_modes_have_separate_status_and_settings_are_not_membership(st
     assert ("Known-player split: available." if status == "complete"
             else "Known-player split: unavailable for this preparation.") in text
     assert "Unseen-player split: unavailable for this preparation." in text
-    assert "An unavailable split does not invalidate this evaluation or its downloads." in text
-    assert "Neither mode refers to the current Settings directory" in text
+    assert "Known-player split" not in tree.by_id("learning-result-primary")["text"]
+    assert '"unavailable_reason": "insufficient_components"' in text
+    assert "The reason cannot be interpreted here" in text
     assert_downloads(tree)
 
 
@@ -274,7 +281,7 @@ def test_all_skipped_tactical_is_partial_not_empty_and_does_not_merge_dataset_co
         tactical_coaching_decision_count=0))
     assert "All recorded decisions lack a safe Dataset Record." in text
     assert "Tactical coverage: at least one recorded decision is skipped." in text
-    assert "Motif occurrences: 0." in text
+    assert "Motif occurrences: 0 (several can occur in one decision)." in text
     assert "No Tactical Decision summaries are available for review focuses." in text
 
 
@@ -286,7 +293,7 @@ def test_german_literal_coverage_and_groups_with_optional_evidence():
     assert "Ohne solchen Zustand (übersprungen): 2." in text
     assert ("In diesem Datensatz enthaltene Kommentare: 2; "
             "enthaltene verknüpfte Reaktionen: 1.") in text
-    assert "In diesem Datensatz enthaltene Analysebelege (Strategy Teacher): 4." in text
+    assert "In diesem Datensatz enthaltene normalisierte Analysebelege: 4." in text
     assert [n["text"].replace("\u00ad", "") for n in tree.within(
         "learning-prepared-result", "h4")] == [
         "Zusammenfassungen und Prüfschwerpunkte", "Zugrunde liegende Belege",
@@ -328,13 +335,16 @@ def test_available_focus_reuses_bounded_coaching_fixture_without_changing_thresh
     report = _report(store, tuple(s[4] for s in sources))
     assert report.status == "available" and report.focus_area_count == 2
     assert report.player_with_focus_count == 1
-    _, text = rendered(specimen(tactical_coaching_status=report.status,
-        tactical_coaching_decision_count=report.decision_summary_count,
-        tactical_coaching_focus_area_count=report.focus_area_count,
-        tactical_coaching_player_with_focus_count=report.player_with_focus_count))
-    assert "Qualified review focuses are present." in text
-    assert "Retained Player–motif review focuses: 2. Players with a focus: 1." in text
-    assert "Coaching JSON below contains the retained Player focuses and guidance" in text
-    assert "C8" not in text and "player-a" not in text
-    assert all(focus.guidance_text not in text for player in report.player_reports
-               for focus in player.focus_areas)
+    from skatmind.app_web.learning_focus_rendering import render_learning_focuses
+    from skatmind.app_web.learning_result_projection import project_learning_focuses
+
+    view = project_learning_focuses(report, tuple(s[1] for s in sources), "en")
+    tree = Hierarchy(render_learning_focuses(view, "en"))
+    assert [n["text"] for n in tree.nodes if n["tag"] == "h3"] == [
+        focus.player + " — " + focus.topic for focus in view]
+    assert [focus.guidance for focus in view] == [focus.guidance_text
+        for player in report.player_reports for focus in player.focus_areas]
+    assert all(len(focus.references) == focus.decisions == 2 for focus in view)
+    assert all("Game 3" in ref and "Decision 22" in ref for focus in view
+               for ref in focus.references)
+    assert all("open" not in node["attrs"] for node in tree.nodes if node["tag"] == "details")

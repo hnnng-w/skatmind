@@ -102,6 +102,11 @@ def run(args):
                             else:
                                 cdp.activate(selector)
                             time.sleep(.8)
+                            for _ in range(100):
+                                if cdp.evaluate("document.readyState === 'complete' && !!document.activeElement"):
+                                    break
+                                time.sleep(.05)
+                            time.sleep(.2)
                             cdp.evaluate("void 0")
                             item["actions"].append(dict(name=label, calls=dict(calls-before), requests=dict(requests-req),
                                 before_submit=before_submit,
@@ -132,7 +137,7 @@ def run(args):
                                 if row["receipts"] and item["javascript"]:
                                     assert row["next_tab"]["cls"] == "operation-dismiss", row
                                 else:
-                                    assert row["next_tab"]["href"].startswith("/learning/downloads/"), row
+                                    assert row["next_tab"]["href"] == "/review/recorded", row
                             if error:
                                 assert row["focus"]["cls"] == "error-summary", row
                                 assert all(a["id"] != "learning-results" for a in row["autofocus"]), row
@@ -197,7 +202,7 @@ def verify_after(cdp, server, http, active, path, item, calls, requests, action,
         assert not cdp.evaluate("document.querySelector(" + json.dumps(DISCLOSURE) + ").open")
         view("closed-view-" + ("pointer" if pointer else "tab-enter"), pointer=pointer)
     # Refresh the native landing, before the measurement helper's next-Tab probe
-    # scrolls onward to downloads (reload may legitimately restore that viewport).
+    # scrolls onward to the decision chooser (reload may legitimately restore that viewport).
     action(VIEW, "return-before-refresh", pointer=True)
     req = requests.copy()
     cdp.call("Page.reload", ignoreCache=True)

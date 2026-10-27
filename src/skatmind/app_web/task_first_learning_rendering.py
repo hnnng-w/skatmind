@@ -1,11 +1,11 @@
 # ruff: noqa: E501 - Keep complete server-rendered elements legible.
 from __future__ import annotations
 
-from collections import Counter
 from html import escape
 
 from .learning_outcome_navigation import learning_match_target, learning_version_target
-from .learning_result_rendering import learning_result_technical_facts, render_learning_result
+from .learning_result_rendering import render_learning_result
+from .learning_source_labels import snapshot_labels, version_labels
 from .stateful_localization import managed_name, text, translated
 from .task_first_projections import project_task_first_learning_v1
 from .task_first_rendering import (
@@ -79,18 +79,7 @@ def _match_label(locale, profile, match_id, recorded):
 
 
 def _version_labels(locale, snapshots):
-    """Display ordinals within captured canonical same-Match/revision order only."""
-    counts = Counter(snapshot["workspace_revision"] for snapshot in snapshots)
-    seen = Counter()
-    labels = {}
-    for snapshot in snapshots:
-        revision = snapshot["workspace_revision"]
-        seen[revision] += 1
-        label = text(locale, "task.learning.saved_revision", revision=revision)
-        if counts[revision] > 1:
-            label = text(locale, "task.learning.version_variant", revision_label=label, number=seen[revision])
-        labels[snapshot["match_snapshot_id"]] = label
-    return labels
+    return version_labels(locale, snapshots)
 
 
 def _version(locale, snapshot, label, identity):
@@ -101,18 +90,11 @@ def _version(locale, snapshot, label, identity):
 
 def _report_sources(state, handle, locale, profile, recorded):
     """Describe captured exact bindings only; choices do not predict file compatibility."""
-    names = {match["match_id"]: _match_label(locale, profile, match["match_id"], recorded)
-             for match in state["matches"]}
-    counts = Counter(names.values())
-    labels, current = {}, {}
-    for number, match in enumerate(state["matches"], 1):
-        name = names[match["match_id"]]
-        if counts[name] > 1:
-            name = text(locale, "task.learning.report_match", name=name, number=number)
-        versions = _version_labels(locale, match["snapshots"])
+    labels = snapshot_labels(state, locale, profile, recorded)
+    current = {}
+    for match in state["matches"]:
         for snapshot in match["snapshots"]:
             identity = snapshot["match_snapshot_id"]
-            labels[identity] = text(locale, "task.learning.report_target", name=name, version=versions[identity])
             if snapshot["current"]:
                 current[identity] = match["match_id"]
     options = tuple(dict((item["match_snapshot_id"], labels[item["match_snapshot_id"]])
@@ -169,7 +151,7 @@ def _report_sources(state, handle, locale, profile, recorded):
     return sources
 
 
-def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile=None, recorded=(), rejected_build=False, active_recorded=None, learning_selection=None, source_generation=0, candidate_limit_reached=False, entry_outcome=None, debrief="", prepared_location=None, show_prepared=False):
+def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile=None, recorded=(), rejected_build=False, active_recorded=None, learning_selection=None, source_generation=0, candidate_limit_reached=False, entry_outcome=None, debrief="", prepared_location=None, show_prepared=False, result_display=None):
     view = project_task_first_learning_v1(state)
     handle = managed_handle
     revision = state["corpus"]["catalog_revision"]
@@ -304,7 +286,7 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
     prepared = state["prepared"]
     results = paragraph(locale, "task.learning.no_results")
     if prepared is not None:
-        results = render_learning_result(prepared, locale)
+        results = render_learning_result(prepared, locale, display=result_display)
     focus = ' data-learning-result-focus autofocus' if show_prepared else ''
     receipt = '<!-- results-operation-feedback -->'
     result_section = section(locale, "task.learning.results", (receipt if show_prepared else '') + results)
@@ -322,6 +304,5 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
     advanced += form(locale, "/learning/api/v1/operations", _hidden(handle, "reload_corpus"), "common.action.reload")
     body += disclosure(locale, "task.advanced", advanced)
     body += technical_details(locale, {"corpus": state["corpus"], "matches": state["matches"],
-                                        "strategy_sources": state["strategy_sources"],
-                                        "prepared": learning_result_technical_facts(prepared)})
+                                        "strategy_sources": state["strategy_sources"]})
     return '<div id="task-first-learning">' + body + '</div>'

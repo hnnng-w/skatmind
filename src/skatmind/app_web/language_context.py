@@ -257,6 +257,19 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
         if learning is None:
             raise LanguageContextConflict
         with learning.corpus.lock:
+            if learning_page and any(value is not None for value in (
+                learning.corpus.prepared_artifacts, learning.corpus.tactical_prepared_artifacts,
+                learning.corpus.tactical_coaching_prepared_artifacts,
+            )):
+                from skatmind.corpus_web.downloads import (
+                    LearningCorpusPreparedDownloadUnavailableError,
+                    require_learning_corpus_prepared_bundle_v1,
+                )
+
+                try:
+                    require_learning_corpus_prepared_bundle_v1(learning.corpus)
+                except LearningCorpusPreparedDownloadUnavailableError as error:
+                    raise LanguageContextConflict from error
             references.extend((learning, learning.corpus.store, learning.corpus.prepared_artifacts,
                 learning.corpus.tactical_prepared_artifacts,
                 learning.corpus.tactical_coaching_prepared_artifacts, learning.last_result))

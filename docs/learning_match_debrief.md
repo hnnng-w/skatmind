@@ -59,6 +59,14 @@ remedy imports a version, switches Current or discards a Report automatically.
 Dataset preparation remains the existing separate operation, now named
 **Prepare dataset** / **Recreate dataset preparation**. Its settings, coverage,
 ten downloads and diagnostics are under **Dataset preparation and exports**.
+Issue #300 puts the compact **Learning review** first within its result region,
+with **Included data** and **Technical details and downloads** closed on a fresh
+result landing. The shared retained-focus projection shows exact supporting
+decisions without inventing live Match/Report capabilities. The unified collection
+shows its focus list in this result only; the preceding debrief keeps independent
+whole-game comparisons. With prepared results and no incorporated comparisons,
+the empty comparison panel is omitted. Standalone and Player-filtered debriefs keep
+their own focuses. See [Learning result readability](learning_result_readability.md).
 Issue #293 adds a [source-bound prepared-result view](learning_prepared_result_navigation.md).
 Explicit View and successful preparation open the disclosure and focus the actual
 `learning-results` heading. Ordinary collection entry stays compact. Validation
