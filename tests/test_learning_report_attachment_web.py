@@ -5,6 +5,7 @@ import json
 from collections import Counter
 
 import pytest
+from test_analysis_download_details import download_nodes
 from test_frontend_language_switching import localized_server as _localized_server
 from test_language_switch_context import switch
 from test_learning_corpus_web_uploads import _multipart
@@ -21,9 +22,12 @@ from test_learning_report_attachment import upload_form, upload_nodes
 from test_learning_version_selection_web import exact_selection, save_variant
 from test_match_recording_recovery_web import follow, operation_form
 from test_match_workspace_contracts import _observed_game
+from test_operation_feedback_language import continued, presentation
+from test_operation_feedback_web import notice, notices
 from test_recorded_review_navigation import chooser_form, external_pass, saved_partial_match
 from test_session_recorded_review_web import Browser, Forms
 from test_skatmind_rename import _legacy_report_source
+from test_task_first_language_preservation import enhanced_switch
 
 import skatmind.app_web.learning_frontend as learning
 import skatmind.capture_web.analysis as analysis
@@ -60,12 +64,13 @@ def submit_upload(browser, form, source, *, fields=None):
 def executed_source(browser, server):
     path, workspace = saved_partial_match(server)
     follow(browser, browser.submit(chooser_form(browser.page("/review/recorded"), "matches")))
-    follow(browser, browser.submit(operation_form(browser.page("/matches/position/3"),
+    page = follow(browser, browser.submit(operation_form(browser.page("/matches/position/3"),
         "analyze_decision"), immediate_sample_count="2"))
     report = server.app_context.managed_stateful.active_match.capture.report_store.list()[0]
     assert report.value.status == "executed"
-    status, headers, source = browser.request("GET",
-        f"/matches/api/v1/reports/{report.report_id}/strategy-source.json")
+    link, = (node for node in download_nodes(page)
+             if node["text"] == text("en", "result.download_report_source"))
+    status, headers, source = browser.request("GET", link["attrs"]["href"])
     assert status == 200 and '-strategy-source.json"' in headers["content-disposition"]
     return path, workspace, report, source
 
@@ -122,6 +127,8 @@ def test_real_singleton_attach_prepare_duplicate_language_reload_and_fresh_conte
     response = submit_upload(browser, form, source)
     assert response[0] == 303 and response[1]["location"] == "/learning/current"
     page = follow(browser, response)
+    notice(page, "report_attached")
+    assert not notices(browser.page("/learning/current"))
     bound = active.corpus.strategy_source_store.sources[0]
     assert bound.match_snapshot_id == target and bound.source_report_id == report.report_id
     assert bound.report == report and active.corpus.prepared_artifacts is None
@@ -132,6 +139,7 @@ def test_real_singleton_attach_prepare_duplicate_language_reload_and_fresh_conte
     retained = downloads(browser)
     before = calls.copy()
     page = follow(browser, submit_upload(browser, upload_form(page), source))
+    notice(page, "report_already_attached")
     assert active.last_result.status == "unchanged"
     assert active.corpus.strategy_source_store.sources == (bound,)
     assert active.corpus.prepared_artifacts is prepared
@@ -225,6 +233,7 @@ def test_multiple_wrong_target_retry_preserves_actual_choice_and_valid_preparati
     response = submit_upload(browser, form, source)
     assert response[0] == 400
     page = response[2].decode()
+    assert not notices(page)
     assert upload_form(page)["values"]["match_snapshot_id"] == wrong
     assert text("en", "validation.message.file_reselection") in page
     page = switch(browser, page, "de")
@@ -347,3 +356,52 @@ def test_same_revision_matching_is_decision_reconciliation_not_whole_workspace_o
     assert active.corpus.strategy_source_store.sources == ()
     build(browser, page)
     assert active.corpus.prepared_artifacts is not None
+
+
+def test_file_receipt_language_continuation_rejection_and_no_refresh_replay(localized_server):
+    browser = Browser(localized_server)
+    path, _, _, source = executed_source(browser, localized_server)
+    create_collection(browser)
+    page = add_source_match(browser, path)
+    active = localized_server.app_context.managed_stateful.active_learning
+    files = saved_bytes(active.path)
+    for key in ("report_attached", "report_already_attached"):
+        page = follow(browser, submit_upload(browser, upload_form(page), source))
+        notice(page, key)
+        for locale, budget in (("de", 5000), ("en", 3000)):
+            page = follow(browser, enhanced_switch(browser, page,
+                json.dumps(presentation(page, budget, locale)), locale))
+            continued(page, key, locale, budget)
+        page = browser.page("/learning/current")
+        assert not notices(page)
+    page = build(browser, page)
+    prepared, retained = active.corpus.prepared_artifacts, downloads(browser)
+    form = upload_form(page)
+    # Do not deliver a pending duplicate success before the next rejected attempt.
+    assert submit_upload(browser, form, source)[0] == 303
+    assert active.operation_feedback.pending is not None
+    rejected = submit_upload(browser, form, b'{"invalid": true}')
+    assert rejected[0] == 400 and not notices(rejected[2].decode())
+    assert active.operation_feedback.pending is None
+    assert active.corpus.prepared_artifacts is prepared and downloads(browser) == retained
+    assert saved_bytes(active.path) == files
+    assert not notices(browser.page("/learning/current"))
+
+
+def test_direct_report_transfer_keeps_match_feedback_without_delayed_learning_receipt(
+    localized_server,
+):
+    browser = Browser(localized_server)
+    path, _, report, _ = executed_source(browser, localized_server)
+    create_collection(browser)
+    page = add_source_match(browser, path)
+    target = upload_form(page)["values"]["match_snapshot_id"]
+    active = localized_server.app_context.managed_stateful.active_learning
+    page = browser.page(f"/matches/reports/{report.report_id}")
+    for key in ("feedback.transfer_report", "feedback.transfer_unchanged"):
+        page = follow(browser, browser.submit(Forms(page).find("/matches/transfer-report"),
+                                              match_snapshot_id=target))
+        assert text("en", key) in page
+        assert not notices(page) and active.operation_feedback.pending is None
+        assert not notices(browser.page("/learning/current"))
+    assert len(active.corpus.strategy_source_store.sources) == 1

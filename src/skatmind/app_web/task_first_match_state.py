@@ -65,6 +65,9 @@ def build_task_first_match_page_state_v1(context, view, *, report_id=None):
         "selected_report": None if selected is None else _selected_report_details(selected),
         "decision_context": match_decision_context(selected, workspace),
         "analysis_explanation": match_analysis_explanation(selected, workspace),
+        "report_source_available": (selected is not None
+            and selected.report_kind == "decision_analysis" and selected.value.status == "executed"
+            and selected.value.options.recommendation_method != "whole_game_rollout"),
         "download_availability": {
             "report_result": selected is not None and selected.report_kind != "materialization"
                              and selected.value.status == "executed",

@@ -77,6 +77,8 @@ def test_delivered_view_and_preparation_share_exact_native_result_destination(lo
         assert "data-operation-feedback " not in page
     ordinary = browser.page("/learning/current")
     assert view_link(ordinary) == destination
+    assert ordinary.index('href="' + destination + '"') < ordinary.index(
+        "Attach a report file") < ordinary.index("Dataset preparation and exports")
     result_node(ordinary, visible=False, autofocus=False)
 
 

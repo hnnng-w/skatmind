@@ -5,10 +5,12 @@ from .render_locale import html_message, localized_render
 
 
 @localized_render
-def analysis_downloads(*, request_href: str | None = None, result_href: str | None = None) -> str:
+def analysis_downloads(*, request_href: str | None = None, result_href: str | None = None,
+                       report_source_href: str | None = None) -> str:
     links = []
     for href, key in ((request_href, "result.download_request"),
-                      (result_href, "result.download_result")):
+                      (result_href, "result.download_result"),
+                      (report_source_href, "result.download_report_source")):
         if href is not None:
             links.append(f'<li><a class="button-link secondary" href="{escape(href, quote=True)}" '
                          f'download>{html_message(key)}</a></li>')

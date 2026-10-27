@@ -40,7 +40,7 @@ from .managed_item_storage import (
     validate_managed_direct_child_path_v1,
 )
 from .operation_feedback import PendingOperationFeedback, feedback_source
-from .operation_feedback_mapping import learning_import_message
+from .operation_feedback_mapping import learning_import_message, report_attachment_message
 
 if TYPE_CHECKING:
     from .debrief_frontend import DebriefSourceStoreV1
@@ -221,9 +221,11 @@ def select_unified_learning_current_snapshot_v1(
 def import_report_source_into_unified_learning_v1(
     context: UnifiedLearningContextV1,
     source: LearningCorpusStrategyTeacherReportSourceV1,
+    *,
+    file_import_feedback: bool = False,
 ) -> LearningCorpusWebResultV1:
     with context.corpus.lock:
-        context.operation_feedback.begin()
+        attempt = context.operation_feedback.begin()
         validate_managed_direct_child_path_v1(
             context.category_root,
             context.path,
@@ -233,6 +235,9 @@ def import_report_source_into_unified_learning_v1(
             context.corpus,
             source,
         )
+        if file_import_feedback:
+            context.operation_feedback.publish(attempt, feedback_source(context),
+                                                report_attachment_message(result.status))
     context.last_result = result
     return result
 
@@ -249,7 +254,7 @@ def import_report_source_bytes_into_unified_learning_v1(
         match_snapshot_id=match_snapshot_id,
         report=exported.report,
     )
-    return import_report_source_into_unified_learning_v1(context, source)
+    return import_report_source_into_unified_learning_v1(context, source, file_import_feedback=True)
 
 
 def remove_unified_learning_report_source_v1(

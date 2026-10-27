@@ -296,6 +296,11 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
     if view.status == "results" and prepared_location is not None:
         body += '<p><a class="button-link" href="' + escape(prepared_location, quote=True) + '">' + translated(
             locale, "task.learning.view_results") + '</a></p>'
+    sources = _report_sources(state, handle, locale, profile, recorded)
+    attachment = disclosure(locale, "task.learning.attach_file",
+        '<div id="learning-sources">' + section(locale, "task.learning.sources", sources, level=3) + '</div>')
+    blocked = any(source["binding_status"] == "non_current" for source in state["strategy_sources"])
+    body += attachment.replace('<details ', '<details open ', 1) if blocked else attachment
     prepared = state["prepared"]
     results = paragraph(locale, "task.learning.no_results")
     if prepared is not None:
@@ -314,12 +319,6 @@ def render_task_first_learning_v1(state, *, managed_handle, locale="en", profile
         + form(locale, "/learning/api/v1/operations", _hidden(handle, "import_match_workspace")
             + hidden("expected_catalog_revision", revision) + upload + transfer_choices(locale, conflict_identity="learning-upload-conflict"),
             "creation.import.action", multipart=True), level=3)
-    sources = _report_sources(state, handle, locale, profile, recorded)
-    source_section = '<div id="learning-sources">' + section(locale, "task.learning.sources", sources, level=3) + '</div>'
-    if view.status == "sources":
-        body += source_section
-    else:
-        advanced += source_section
     advanced += form(locale, "/learning/api/v1/operations", _hidden(handle, "reload_corpus"), "common.action.reload")
     body += disclosure(locale, "task.advanced", advanced)
     body += technical_details(locale, {"corpus": state["corpus"], "matches": state["matches"],

@@ -118,7 +118,9 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
             content += _explanation_details(evidence_rows, locale)
         if state["download_availability"]["report_result"]:
             content += analysis_downloads(
-                result_href=f'/matches/api/v1/reports/{report["report_id"]}.json', locale=locale)
+                result_href=f'/matches/api/v1/reports/{report["report_id"]}.json',
+                report_source_href=(f'/matches/api/v1/reports/{report["report_id"]}/strategy-source.json'
+                    if state.get("report_source_available", False) else None), locale=locale)
         content += technical_details(locale, report, caption_key="result.analysis_details")
     if materialization_form:
         content += materialization_form

@@ -3,6 +3,11 @@
 from .operation_feedback import feedback_players, player_ordinal
 
 
+def report_attachment_message(status):
+    key = {"applied": "report_attached", "unchanged": "report_already_attached"}.get(status)
+    return None if key is None else (key, ())
+
+
 def learning_import_message(status, relation, selection_mode):
     if status != "applied":
         return None

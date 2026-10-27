@@ -138,10 +138,30 @@ def test_optional_source_help_names_wrapper_effect_and_lifetime():
     page = render(specimen("build"))
     assert "Attach an existing decision-analysis Report" in page
     assert "Check and attach Report" in page and "Report source (JSON)" in page
-    assert "-strategy-source.json" in page and "Download for Learning Corpus" in page
+    assert "-strategy-source.json" in page and "Report for Learning (JSON)" in page
+    assert "Downloads for this analysis" in page and "Download for Learning Corpus" not in page
     assert "Request, Result or recording JSON" in page
     assert "restart" in page and "Reload" in page
     assert "not prepare datasets" in page
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+@pytest.mark.parametrize("status", ("add", "select", "build", "sources"))
+def test_attachment_disclosure_is_unique_named_and_outside_advanced(locale, status):
+    state = specimen(status)
+    page = render_task_first_learning_v1(state, managed_handle="a" * 64, locale=locale,
+        prepared_location="/learning/prepared/exact")
+    tree = Hierarchy(page)
+    source = tree.by_id("learning-sources")
+    disclosure, = (n for n in source["parents"] if n["tag"] == "details")
+    assert text(locale, "task.learning.attach_file") in disclosure["text"]
+    assert ("open" in disclosure["attrs"]) == (status == "sources")
+    assert page.count('id="learning-sources"') == 1
+    assert page.count('id="learning-report-target"') == 1
+    assert page.count('<!-- report-attachment-feedback -->') == 1
+    assert page.count('value="clear_strategy_teacher_reports"') == 1
+    assert page.index(text(locale, "task.learning.attach_file")) < page.index(
+        text(locale, "debrief.preparation"))
 
 
 def test_hidden_target_error_links_to_visible_description_and_is_not_restored():
@@ -162,6 +182,7 @@ def test_hidden_target_error_links_to_visible_description_and_is_not_restored():
     target = next(n for n in tree.nodes if n["attrs"].get("id") == link["attrs"]["href"][1:])
     assert target["tag"] != "input" and target["attrs"].get("tabindex") == "-1"
     assert "not accepted" in page and "Try again" in page
+    assert all("open" in n["attrs"] for n in summary["parents"] if n["tag"] == "details")
 
 
 def test_defensive_duplicate_offered_identity_counts_once_and_missing_metadata_is_not_offered():

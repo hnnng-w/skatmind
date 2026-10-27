@@ -28,6 +28,7 @@ MESSAGE_PARAMETERS = {
     "declarer": (), "declaration": (), "details": (), "ending": (),
     "game_started": ("number",), "game_passed": ("number",), "correction": (),
     "version_added": (), "version_selected": (), "prepared": (),
+    "report_attached": (), "report_already_attached": (),
     "debrief_added": ("binding",),
     "evidence_removed": (), "evidence_empty": (), "unchanged": (), "rewind": (),
 }

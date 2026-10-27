@@ -438,6 +438,20 @@ Inventory remains **67 routes / 112 forms**, now **1,797 paired keys**. Automati
 inclusion/discovery/conversion, durable Report sources, full Coaching presentation
 and recommendation adaptation remain separate open work.
 
+Issue #299 makes this existing file path discoverable: the exact eligible selected
+Match Report exposes **Report for Learning (JSON)** beside its ordinary Result in
+the visible Downloads group. Learning moves its existing source upload/management
+controls once into **Attach a report file**, after the prominent prepared-results
+link and before preparation/results, outside generic Advanced. Ordinary views are
+collapsed; non-current blockers and rejected uploads expose the actual remedy.
+Authoritative file-import `applied`/`unchanged` statuses produce one-use **Report
+attached.** / **Report already attached.** receipts under the existing feedback
+lifecycle. Direct transfer keeps independent Match feedback, and whole-game rollout
+keeps separate incorporation/debrief. Exact source selection, reconciliation,
+process-local lifetime, duplicate retention, and #293 focus/language return remain.
+Measured inventory: **73 POST routes / 125 forms / 2,077 paired keys / ten prepared
+downloads**. See [eligibility, verification, and acceptance gates](match_report_learning_discoverability.md).
+
 Issue #258 explains the retained result inside the existing `learning-results`
 identity. Compact source-qualified sentences precede separate Human/Teacher/Tactical
 evidence and Coaching status, then per-mode split availability and ten grouped native
@@ -504,8 +518,9 @@ The normal Evaluate collection action appears after prerequisite guidance. Defau
 Dataset ID derived from the Corpus ID, seeds `0` and `0`, and weights `70/15/15`.
 Configuration is neither learned nor saved automatically.
 
-Strategy Teacher import remains Advanced. Non-current-source remediation exposes
-its native removal controls visibly when it blocks evaluation. Uploads always require
+Optional Report-file attachment now uses #299's purpose-named disclosure outside
+Advanced. Non-current-source remediation opens its native removal controls when it
+blocks evaluation. Uploads always require
 file reselection when needed. Matching prepared artifacts lead to View evaluation at
 `#learning-results`, with the existing secondary preparation control labelled Recreate
 evaluation in its original placement. Missing-selection and source-remediation links

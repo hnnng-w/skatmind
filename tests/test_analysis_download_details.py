@@ -33,6 +33,10 @@ from skatmind.app_web.result_presentation import (
 from skatmind.app_web.result_rendering import render_result_presentation_v1
 from skatmind.app_web.translation_catalog import translate_frontend_message_v1 as text
 from skatmind.match_analysis_exports import build_match_report_result_export_v1
+from skatmind.match_analysis_report_source_export import (
+    build_match_analysis_report_source_export_v1,
+    serialize_match_analysis_report_source_export_v1,
+)
 
 
 @pytest.fixture
@@ -142,7 +146,7 @@ def test_real_session_downloads_have_no_technical_ancestor(localized_server):
     assert context.execution.result_json_bytes == execution.result_json_bytes
 
 
-def test_real_match_selected_report_owns_only_its_result(localized_server):
+def test_real_match_selected_report_owns_result_and_learning_source(localized_server):
     browser = Browser(localized_server)
     record_context_match(browser)
     record_second_context_game(browser)
@@ -153,27 +157,36 @@ def test_real_match_selected_report_owns_only_its_result(localized_server):
             browser.page(f"/matches/review/{game}"), "analyze_decision")))
         report = active.capture.report_store.list()[-1]
         route = f"/matches/api/v1/reports/{report.report_id}.json"
+        source_route = f"/matches/api/v1/reports/{report.report_id}/strategy-source.json"
         artifact = build_match_report_result_export_v1(report)
-        assert_analysis_actions(page, (route,))
+        assert_analysis_actions(page, (route, source_route))
+        assert localized_server.app_context.managed_stateful.active_learning is None
+        source_bytes = serialize_match_analysis_report_source_export_v1(
+            build_match_analysis_report_source_export_v1(report))
+        source_filename = artifact.filename.removesuffix('.json') + '-strategy-source.json'
+        assert_delivery(browser, source_route, source_bytes, source_filename)
         assert page.index('class="analysis-downloads"') < page.index('class="technical-details"')
         assert_delivery(browser, route, artifact.to_bytes(), artifact.filename)
-        retained.append((report, route, artifact))
+        retained.append((report, route, artifact, source_route, source_bytes, source_filename))
     source = active.path.read_bytes()
     browser.page("/matches/position/2")
-    for report, route, artifact in retained:
+    for report, route, artifact, source_route, source_bytes, source_filename in retained:
         page = browser.page(f"/matches/reports/{report.report_id}")
-        assert_analysis_actions(page, (route,))
-        assert len(download_nodes(page)) == 1
+        assert_analysis_actions(page, (route, source_route))
+        assert len(download_nodes(page)) == 2
         assert_delivery(browser, route, artifact.to_bytes(), artifact.filename)
+        assert_delivery(browser, source_route, source_bytes, source_filename)
     assert active.path.read_bytes() == source
     # Deliberate external-file fault, not a mocked successful save or execution.
     active.path.write_bytes(b"{}\n")
     assert browser.request("GET", retained[0][1])[0] == 409
     active.path.write_bytes(source)
-    assert all(browser.request("GET", route)[0] == 404 for _, route, _ in retained)
+    assert all(browser.request("GET", item[index])[0] == 404
+               for item in retained for index in (1, 3))
     follow(browser, browser.submit(Forms(page).find("/matches/api/v1/reload")))
-    for _, route, _ in retained:
-        assert browser.request("GET", route)[0] == 404
+    for item in retained:
+        for index in (1, 3):
+            assert browser.request("GET", item[index])[0] == 404
 
 
 @pytest.mark.parametrize("workflow", (WorkflowV1.POSITION_ANALYSIS, WorkflowV1.HISTORICAL_GAME))

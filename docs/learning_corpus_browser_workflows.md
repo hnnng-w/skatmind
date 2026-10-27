@@ -225,7 +225,7 @@ repair data, retry, merge, or fall back to an empty Corpus.
 
 ## Match Capture Report-source transfer
 
-An executed Match Capture Decision Analysis report page now provides:
+An executed standalone Match Capture Decision Analysis report page provides:
 
 ```text
 Download for Learning Corpus
@@ -286,21 +286,41 @@ scan, Report persistence, or Capture-to-Corpus background connection.
 
 ### Unified optional attachment (Issue #259)
 
-The opened unified collection keeps **Attach an existing decision-analysis Report**
-secondary under Advanced, except that existing non-current-source remedies remain
-visible when they block evaluation. **Report source (JSON)** accepts the specialized
+Issue #299 exposes the existing controls once under the native **Attach a report
+file** disclosure, outside generic Advanced. It follows **View prepared datasets**
+when available and precedes **Dataset preparation and exports**; the collection
+debrief remains primary. Ordinary views keep it collapsed. Non-current bindings
+open their remedy, and rejected uploads open the actual containing disclosure,
+including the zero-target fallback. **Report source (JSON)** accepts the specialized
 source wrapper above for an already executed Match Decision Report. Plain Request,
 Result, recording, Historical and materialization documents are not substitutes.
 **Check and attach Report** validates existing evidence; it does not execute analysis,
 prepare the collection or persist the Report.
 
-The existing unified authenticated source route is
-`/matches/api/v1/reports/<report_id>/strategy-source.json`. At this baseline the unified
-Report page exposes the ordinary Result download, not a source-download link. The
-help therefore names the verified standalone Match Capture **Download for Learning
-Corpus** export and its `-strategy-source.json` suffix. It does not construct a link
-from an unrelated active Report. The separate existing direct Match transfer remains
-available without changes.
+Open the required unified Match analysis, then choose **Report for Learning (JSON)**
+under **Downloads for this analysis**. The single native source anchor uses the
+existing authenticated route
+`/matches/api/v1/reports/<report_id>/strategy-source.json`, alongside the distinct
+ordinary **Analysis Result (JSON)** action. It belongs to the exact selected retained
+Report, including an older reopened Report or a Report for a different Game. No
+Learning collection needs to be open. The deterministic `-strategy-source.json`
+filename, canonical bytes, JSON headers, attachment disposition, authentication,
+no-store policy, and authoritative download-time freshness checks are unchanged.
+
+Eligibility is projected from the captured validated Report: current retained
+Decision Analysis, outer status `executed`, and an existing supported source method
+(Immediate, Search, Auto, or Information-set Search). An executed Information-set
+Report with unavailable inner Search and no recommendation remains eligible.
+Outer unavailable, Historical, materialization and whole-game rollout Reports have
+no source action. Session and generic Analyze/Review artifacts are unchanged.
+Rendering neither builds a source wrapper nor rebuilds a Request or runs analysis.
+Stale, missing, evicted, detached, reloaded, replaced or deleted recording sources
+retain the existing rejection behavior; another Report is never substituted.
+
+The independent direct Match-to-Learning transfer keeps its Match-return feedback.
+Whole-game rollout keeps its separate explicit incorporation and Learning debrief.
+Standalone Capture retains **Download for Learning Corpus** at its unprefixed route
+above. See [Issue #299 verification and handoff](match_report_learning_discoverability.md).
 
 | Captured domain / field | Presentation and ownership |
 | --- | --- |
@@ -336,6 +356,15 @@ offered target as unaccepted input. No-target errors still open their containing
 disclosure beside the prerequisite. File content is never restored by validation or
 language overlays; hidden target transport is excluded from editable language state.
 
+Explicit file import publishes **Report attached.** for authoritative `applied` and
+**Report already attached.** for exact `unchanged`, using paired catalog messages.
+The existing Product lock binds the receipt to the attempt and accepted post-operation
+source. The shared direct-transfer helper opts out by default. Existing one-use
+delivery, source checks, expiry, display budget, language continuation and error
+suppression apply. The first native POST/303/GET visibly confirms the outcome without
+JavaScript; ordinary refresh does not replay it. Rejection suppresses old success and
+keeps error/field focus priority. A receipt performs no Product operation or write.
+
 Attached sources are process-local. Restart/fresh context needs them again; same-context
 Reload can retain and reclassify them while invalidating preparation. Actual add/remove/
 clear changes invalidate artifacts, exact duplicate/no-op operations preserve them,
@@ -343,10 +372,13 @@ and evaluation remains explicit. Removal affects the binding, not the uploaded o
 Report or Match. Teacher-evidence export is not a source-wrapper backup.
 
 The private presentation retains #245 receipts, #256 outcome targets, #257 Current
-policy and #258's three groups/ten exact exports. No route, form, parser, JavaScript,
-public/persistence contract, preparation default or standalone behavior changes.
-Inventory remains **67 POST routes / 112 forms**; eleven scoped captions bring paired
-catalog keys from **1,786 to 1,797**. See [installed evidence](unified_workflow_visual_contract.md#optional-learning-report-attachment-issue-259).
+policy, #258's three groups/ten exact exports, and #293 prepared-result navigation.
+No route, form, parser, JavaScript, public/persistence contract, preparation default
+or standalone behavior changes. The historical #259 inventory was **67 POST routes /
+112 forms**, with eleven scoped captions bringing paired keys from **1,786 to 1,797**;
+see its [installed evidence](unified_workflow_visual_contract.md#optional-learning-report-attachment-issue-259).
+The measured #299 inventory is **73 POST routes / 125 forms / 2,077 keys per locale /
+ten prepared downloads**, adding four paired keys to the 2,073-key starting checkout.
 
 One server retains at most `2,048` exact Strategy Teacher source bindings in
 memory. Equal source bindings are `unchanged`; a different source under the same
