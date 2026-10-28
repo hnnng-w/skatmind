@@ -1,6 +1,20 @@
 # Ordinary analysis number formatting (Issue #301)
 
-## Implementation and preserved policies
+## Current follow-up boundary
+
+The installed-feedback follow-up below refines **ordinary Match point cells only**:
+typed `expected_point_swing` values now use Python `.2f`, while `win_rate` remains
+a raw fraction with its existing precision. Shared guided/Session formatting and
+canonical numeric values remain unchanged. The maintainer's installed acceptances
+on `f665d36761f439b96ae7ec351c3b8ce6059f03f9` remain accepted for that build.
+
+The sections through **Original changed files and handoff (historical)** record the
+original locale-only implementation and its actual observed outputs. Its raw Match
+point-display policy and then-pending acceptance status are historical; they are
+superseded only as explicitly described in the follow-up section. Historical test
+counts, browser screenshots and displayed values are not new-policy evidence.
+
+## Original locale-only implementation (historical)
 
 Ordinary analysis has two numeric presentation paths:
 
@@ -192,7 +206,7 @@ Intermediate browser probes:
 * `-02` passed four cases in **49.050s**. Final `-03` repeated them after the import
   formatting and counter-label cleanup; it is the final evidence above.
 
-## Changed files and handoff
+## Original changed files and handoff (historical)
 
 Product changes are limited to these three private frontend files:
 
@@ -223,3 +237,189 @@ pending.** Keep #301 and #208 open. #292–#300 remain complete, including #300'
 installed acceptance. UAT-01 is not globally accepted; UAT-02–12 remain paused.
 Broader design and Learning product-policy questions remain separate. Release
 preparation is not authorized.
+
+## Installed-feedback follow-up: two-decimal Match point display
+
+### Accepted installed baseline and bounded correction
+
+Expected/actual branch: `bug/301-analysis-number-formatting`. Expected/actual
+starting HEAD: `f665d36761f439b96ae7ec351c3b8ce6059f03f9`; the initial worktree was
+clean. The maintainer reported these installed targeted results on that commit:
+
+1. Ordinary Match localization and language switching worked, with excessive
+   floating-point digits in the point-comparison column as the remaining finding.
+2. Shared guided formatting and language switching worked. The supplied screenshot
+   showed `100,00%` and point values `11,00 / 10,00 / 0,00`.
+3. Native language return worked with JavaScript disabled.
+4. Downloads worked and preserved canonical JSON numeric formatting.
+
+These are maintainer acceptances for the tested build. This source-tree follow-up
+does not replace them or claim new installed acceptance.
+
+The Product patch changes only `match_report_rendering.py`: its ordinary candidate
+cell calls `ordinary_scalar(value, ".2f", locale=locale)` for `expected_point_swing`
+and retains the default format for `win_rate`. `ordinary_result_numbers.py` and
+`result_presentation.py` are unchanged. Exact integers/floats use Python's existing
+two-decimal rounding, including signed zero. `None` remains unavailable; booleans
+and strings retain their prior literal rendering. No rounded string enters scoring,
+ranking, recommendation, tie classification, persistence or serialization.
+
+| Card | Controlled original point value | German after | English after |
+| --- | --- | --- | --- |
+| CQ | `2.0599999999999996` | `2,06` | `2.06` |
+| C10 | `1.2400000000000002` | `1,24` | `1.24` |
+| C8 | `1.2200000000000002` | `1,22` | `1.22` |
+| C7 | `1.1600000000000001` | `1,16` | `1.16` |
+
+Numeric point zero now displays `0,00` / `0.00`. Point `-0.0` and `-0.004` display
+`-0,00` / `-0.00`; `2.675` follows Python float `.2f` as `2,67` / `2.67`.
+Raw rates remain `0,125` / `0.125`, `1,0` / `1.0`, integer zero `0`, float zero
+`0,0` / `0.0`, and scientific-notation precision as before. There is no percentage
+conversion, Decimal policy or zero normalization.
+
+### Regression and complete-module verification
+
+The new HTTP regression uses a genuine disposable Match Report as the page owner,
+then explicitly substitutes only the four screenshot scalars in the display
+projection. It is a **controlled display fixture**, not an assertion that the engine
+produced those scores. Both locale cases failed before the Product edit, with
+`2,0599999999999996` versus `2,06` and `2.0599999999999996` versus `2.06`.
+All four expected point cells are checked together. Report objects, recording bytes
+and Result/Report-for-Learning downloads remain the genuine baseline and unchanged.
+
+The existing genuine-analysis HTTP case now checks points with `.2f` and rates with
+raw `str`, preserving its concurrent locale requests, `de -> en -> de` return,
+selected Report identity, execution/save counters and exact downloads. The shared
+genuine Bounded/Information-set HTTP tests are preserved. Arithmetic-only fixtures
+also cover positive/negative/zero and integer points, both booleans, unavailable and
+literal strings, Python rounding, raw rate precision, and repeated/concurrent locales.
+The rounding-collision fixture uses distinct retained scores `1.2421875` and
+`1.240234375`: both display `1.24`, but CJ alone remains best, SJ retains rank 2,
+one better Card and a positive unrounded difference. Literal preformatted table
+assertions and shared `.6g`, percentage and equal-best tests remain intact.
+
+Environment: Windows 11 `10.0.26300`, PowerShell 5.1, source-tree development package,
+64-bit CPython **3.13.7**, pytest **9.0.3**, using the interpreter path above. All
+fixtures and browser profiles are disposable, outside the checkout. No installed
+UAT environment or real managed data was accessed.
+
+```powershell
+$scratch = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode'
+py -3.13 -m pytest tests/test_analysis_explanations_web.py -k controlled_match_screenshot -q --tb=short -p scripts.validation_pytest --validation-report="$scratch\issue301-points-before.json"
+py -3.13 -m pytest tests/test_ordinary_result_numbers.py tests/test_candidate_comparison_layout.py tests/test_analysis_explanations_web.py -q --tb=short -p scripts.validation_pytest --validation-report="$scratch\issue301-points-focused.json"
+```
+
+Before: **two expected failures, nine deselected in 7.23s**. After: **66 passed in
+36.17s** across the three complete modules. One intermediate Ruff probe found an
+overlong new test signature, which was wrapped; subsequent lint passed. There were
+no failed post-correction pytest or browser runs.
+
+The inventory derives from the sole Product boundary and its actual callers:
+
+* `task_first_match_rendering._reports()` supplies the ordinary Report renderer to
+  recording/review/Report views. Direct renderer tests, Match navigation/context,
+  selected older Report ownership, and both canonical download families are included.
+* Native/enhanced language return and error feedback remain covered by the affected
+  language modules and the exclusive Match analysis/action-placement module.
+* Shared guided/Session presentation and equal-best behavior, plus the neighboring
+  Match rollout branch, are explicit unchanged sentinels.
+* Private module discovery, package metadata/resources, translation inventory and
+  strict rename checks cover the changed source/tests/documentation.
+
+This is **27 parallel modules plus one exclusive module**, rather than a repeat of
+the original 58-module inventory. No rejection transport, standalone Corpus, engine
+or helper implementation changed, so their former broader inventories are not
+repeated independently.
+
+```powershell
+py -3.13 -m pytest tests/test_ordinary_result_numbers.py tests/test_candidate_comparison_layout.py tests/test_analysis_explanations_web.py tests/test_analysis_download_details.py tests/test_recorded_decision_context_web.py tests/test_review_return_labels.py tests/test_match_evidence_navigation.py tests/test_match_game_navigation.py tests/test_task_first_match_and_learning_workflow.py tests/test_task_first_stateful_rendering.py tests/test_match_learning_report_discoverability.py tests/test_match_analysis_exports.py tests/test_match_analysis_report_source_export.py tests/test_frontend_language_switching.py tests/test_language_view_continuity.py tests/test_language_switch_context.py tests/test_task_first_language_preservation.py tests/test_operation_feedback_language.py tests/test_rollout_result_presentation.py tests/test_match_rollout_web.py tests/test_guided_frontend_result_presentation.py tests/test_equal_best_immediate.py tests/test_complete_frontend_localization.py tests/test_frontend_localization_foundation.py tests/test_guided_frontend_packaging.py tests/test_packaging_and_distribution.py tests/test_skatmind_rename.py -q -n 2 --dist=loadfile --max-worker-restart=0 -p scripts.validation_pytest --validation-report="$scratch\issue301-points-parallel.json" --durations=10 --tb=short -rs
+py -3.13 -m pytest tests/test_match_analysis_action_placement.py -q -p scripts.validation_pytest --validation-report="$scratch\issue301-points-serial.json" --durations=10 --tb=short -rs
+```
+
+Parallel: **696 passed in 135.67s**. After both workers and browser verification
+exited, exclusive serial: **25 passed in 17.51s**. Total: **721 distinct passing
+tests across 28 complete modules, no skips**. The earlier 66 focused passes overlap.
+
+After this documentation update, repeat these complete documentation-sensitive
+modules and final explicit Quick with process-local interpreter selection:
+
+```powershell
+py -3.13 -m pytest tests/test_skatmind_rename.py tests/test_packaging_and_distribution.py tests/test_guided_frontend_packaging.py tests/test_frontend_localization_foundation.py tests/test_complete_frontend_localization.py -q --tb=short -p scripts.validation_pytest --validation-report="$scratch\issue301-points-documentation.json"
+$env:PATH = 'C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313;' + $env:PATH
+$env:TEMP = $scratch
+$env:TMP = $scratch
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+```
+
+The completion handoff records the final repeat result/timing and exact generated
+Quick log path. Local Full is not authorized and is not claimed.
+
+### New browser evidence and operation accounting
+
+```powershell
+py -3.13 scripts/verify_ordinary_result_numbers.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "$scratch\issue301-points-browser-01"
+```
+
+**Six cases passed in 68.784s**, actual headless Microsoft Edge **156.0.4314.50**,
+fresh profiles at default 100% zoom, 1365 x 900 viewport, device pixel ratio and
+visual viewport scale `1`. These are new source-tree results, not installed acceptance.
+The first four cases are genuine Session/Match executions, each with JavaScript
+disabled/enabled. Two additional Match cases use the explicitly controlled display
+projection described above. Every case activates actual `de -> en -> de` language
+buttons, returns to the selected page, captures visible numeric cells and screenshots,
+and activates native download links. The older selected Match Report is retained
+after a newer Report for another Game exists.
+
+Observed new-policy values:
+
+* Genuine Match: C8/C7/C9 point cells `12,00 / 10,62 / 9,50` in German and
+  `12.00 / 10.62 / 9.50` in English. Rates remain `1,0 / 0,875 / 0,875` and
+  `1.0 / 0.875 / 0.875`. The unrounded `10.625` follows Python `.2f` to `10.62`.
+* Controlled precision projection: CQ/C10/C8/C7 display `2,06 / 1,24 / 1,22 / 1,16`
+  and `2.06 / 1.24 / 1.22 / 1.16`; raw rates remain `0,94 / 0,96 / 1,0 / 0,58`
+  and `0.94 / 0.96 / 1.0 / 0.58`. These four display scalars do not replace the
+  genuine Report, its recommendation or its canonical exports.
+* Genuine shared Session sentinel: unchanged CJ/SJ equality, `100,00% / 6,00 / 6`
+  and `100.00% / 6.00 / 6`, played SJ optimal and stable candidate order.
+
+Evidence under `$scratch\issue301-points-browser-01` contains `evidence.json`,
+**18 readable screenshots**, displayed values and source classification, retained
+Report IDs, operation/request counters, and **36 actual native downloads** with
+byte lengths and SHA-256 values. All downloads matched canonical bytes, with separate
+HTTP byte checks. Representative German/native and English/enhanced precision
+screenshots, genuine Match and shared Session screenshots were inspected.
+
+| Phase | Two Session cases | Four Match cases (two controlled-display) |
+| --- | --- | --- |
+| Disposable recording | 34 Session saves; two creation Profile saves | 52 Match saves; four creation Profile saves |
+| Deliberate baseline analysis | two genuine Session analyses | eight genuine Match analyses |
+| Explicit language changes | six Profile saves | twelve Profile saves |
+| Passive viewing/disclosures/downloads | zero operations/writes | zero operations/writes |
+
+Thus **18 explicit language-profile saves** are separate from six creation-profile
+saves. Passive phases added no analysis, preparation, import, recording, Catalog or
+Snapshot writes. All non-Profile managed bytes and genuine retained Reports remain
+identical. Controlled projection adds no execution or write. No Learning workflow
+or complete prior acceptance sequence was repeated.
+
+### Follow-up changed files and handoff
+
+Exactly eight files change:
+
+* `src/skatmind/app_web/match_report_rendering.py`
+* `tests/test_ordinary_result_numbers.py`
+* `tests/test_candidate_comparison_layout.py`
+* `tests/test_analysis_explanations_web.py`
+* `scripts/verify_ordinary_result_numbers.py`
+* `docs/ordinary_analysis_number_formatting.md`
+* `docs/match_report_learning_discoverability.md`
+* `docs/unified_local_frontend_guided_analysis_and_results.md`
+
+All changes remain unstaged and uncommitted; no publication action is performed.
+**Locally validated; new exact-commit hosted CI and installed targeted follow-up
+pending.** Keep #301 and #208 open. Preserve existing maintainer acceptances for
+their tested build; the subsequent installed follow-up should focus on corrected
+Match point display and language/native return. #292–#300 remain complete. UAT-01
+is not globally accepted; UAT-02–12 remain paused. Broader design and Learning
+product-policy questions stay separate. Release preparation is not authorized.

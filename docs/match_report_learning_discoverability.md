@@ -427,14 +427,20 @@ and uncommitted, with no Git/GitHub publication.
 
 ## Ordinary Report numeric localization (Issue #301)
 
-The ordinary Match candidate table now localizes its retained typed numeric cells
-at display time. It preserves raw scalar precision and the `win_rate` fraction:
+The ordinary Match candidate table localizes its retained typed numeric cells
+at display time. The installed-feedback follow-up renders numeric
+`expected_point_swing` cells with Python `.2f` (including integer points), while
+preserving the underlying numeric precision. It preserves raw `win_rate` precision:
 English `0.125` becomes German `0,125`, not a percentage. Result and Report-for-Learning
 downloads remain canonical and byte-identical across language changes. Whole-game
 rollout formatting retains its separate existing policy. See
 [ordinary analysis number formatting](ordinary_analysis_number_formatting.md) for
 the two producer paths, executed-fixture evidence and complete verification inventory.
 
-For this follow-up, #292–#300 remain complete. #301 and #208 remain open pending
-new exact-commit hosted CI and installed targeted acceptance; no complete Learning
-workflow acceptance is repeated or changed by numeric presentation.
+The maintainer accepted localization, shared guided formatting, native language
+return and canonical downloads on `f665d36761f439b96ae7ec351c3b8ce6059f03f9`;
+excessive Match point digits prompted this narrow refinement. Those acceptances
+remain valid for that build. #292–#300 remain complete. #301 and #208 remain open
+pending new exact-commit hosted CI and installed targeted follow-up on Match point
+display and language/native return; no complete Learning workflow acceptance is
+repeated or changed by numeric presentation.

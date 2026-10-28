@@ -686,8 +686,11 @@ the request's German/English locale before HTML rendering. Existing `.6g` means,
 `.2f` Immediate best-card point swings and equal-best explanation values, and
 scaled `.2f` percentages retain their exact precision and units. German uses decimal
 commas; default English retains decimal points. Literal strings and retained
-technical prose remain untouched. The separate ordinary Match renderer uses the
-same private boundary with its existing raw scalar/fraction representation.
+technical prose remain untouched. Following installed feedback, the separate ordinary
+Match renderer uses the same private boundary with Python `.2f` for numeric point
+cells and the existing raw fraction precision for rates. The accepted shared
+guided/Session projection retains its existing policies. Canonical values and exports
+remain unchanged; display rounding does not create ties or alter recommendations.
 
 See [ordinary analysis number formatting](ordinary_analysis_number_formatting.md)
 for regression-first HTTP evidence, complete module inventory, browser downloads,

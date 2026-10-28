@@ -12,10 +12,12 @@ from test_guided_frontend_result_presentation import _execution, _position_docum
 from skatmind.api.v1 import WorkflowV1
 from skatmind.app_web.match_report_rendering import render_match_reports_v1
 from skatmind.app_web.render_locale import localized_render
+from skatmind.app_web.result_immediate import retained_immediate_best_cards
 from skatmind.app_web.result_localization import result_label
 from skatmind.app_web.result_presentation import build_result_presentation_v1
 from skatmind.app_web.result_rendering import render_result_presentation_v1
 from skatmind.app_web.stateful_localization import card_name, text
+from skatmind.post_game_review import build_post_game_review_summary
 
 
 @pytest.mark.parametrize("method,source", (
@@ -101,7 +103,7 @@ def test_immediate_tie_explanation_and_cells_keep_python_two_decimal_rounding(
     assert retained.result.to_dict()["document"] == document
 
 
-def test_match_raw_scalars_keep_precision_signed_zero_booleans_and_literal_text():
+def test_match_point_precision_preserves_raw_rates_signed_zero_booleans_and_literal_text():
     rows = [dict(card="C7", expected_point_swing=-1.23456789, win_rate=1.23456789e-7),
             dict(card="C8", expected_point_swing=-0.0, win_rate=False),
             dict(card="C9", expected_point_swing="literal 1.25", win_rate=None)]
@@ -114,11 +116,67 @@ def test_match_raw_scalars_keep_precision_signed_zero_booleans_and_literal_text(
         assert_candidates(html, [text(locale, key) for key in (
             "validation.field.card", "result.point_swing", "result.win_rate")], [
             [f'{card_name(locale, "C7")} (C7)',
-             "-1,23456789" if locale == "de" else "-1.23456789",
+             "-1,23" if locale == "de" else "-1.23",
              "1,23456789e-07" if locale == "de" else "1.23456789e-07"],
-            [f'{card_name(locale, "C8")} (C8)', "-0,0" if locale == "de" else "-0.0", "False"],
+            [f'{card_name(locale, "C8")} (C8)', "-0,00" if locale == "de" else "-0.00", "False"],
             [f'{card_name(locale, "C9")} (C9)', "literal 1.25",
              text(locale, "status.unavailable")]])
     with ThreadPoolExecutor(max_workers=2) as pool:
         list(pool.map(render, ("de", "en", "de") * 3))
+    assert state == original
+
+
+@pytest.mark.parametrize("value,expected", (
+    (10.23, "10.23"), (9.95, "9.95"), (5.44, "5.44"), (2.96, "2.96"),
+    (1.125, "1.12"), (-1.125, "-1.12"), (1.375, "1.38"), (2.675, "2.67"),
+    (0, "0.00"), (7, "7.00"), (-4, "-4.00"), (0.0, "0.00"), (-0.0, "-0.00"),
+    (-0.004, "-0.00"), (None, None), (True, "True"), (False, "False"),
+    ("literal 1.25", "literal 1.25"), ("2.0599999999999996", "2.0599999999999996"),
+))
+def test_match_point_policy_keeps_defensive_values_and_independent_rate_precision(value, expected):
+    rows = [dict(card=card, expected_point_swing=value, win_rate=rate)
+            for card, rate in (("CQ", 0.125), ("C10", 1.0), ("C8", 0), ("C7", 0.0))]
+    state = {"reports": [], "selected_report": {"report_kind": "decision_analysis",
+        "details": {"immediate_candidate_values": rows}},
+        "download_availability": {"report_result": False}}
+    original = copy.deepcopy(state)
+    for locale in ("de", "en", "de"):
+        points = (text(locale, "status.unavailable") if expected is None else
+                  expected.replace(".", ",") if locale == "de" and type(value) in {int, float}
+                  else expected)
+        assert_candidates(render_match_reports_v1(state, locale), [text(locale, key) for key in (
+            "validation.field.card", "result.point_swing", "result.win_rate")], [
+            [f'{card_name(locale, "CQ")} (CQ)', points, "0,125" if locale == "de" else "0.125"],
+            [f'{card_name(locale, "C10")} (C10)', points, "1,0" if locale == "de" else "1.0"],
+            [f'{card_name(locale, "C8")} (C8)', points, "0"],
+            [f'{card_name(locale, "C7")} (C7)', points, "0,0" if locale == "de" else "0.0"]])
+    assert state == original
+
+
+def test_match_rounding_collision_preserves_distinct_scores_order_and_recommendation():
+    # Arithmetic-only retained fixture: both displayed scores round to 1.24.
+    document = scalar_document(scalar_values((1.2421875, 1.240234375)))
+    rows = document["analysis_report"]
+    review = build_post_game_review_summary("SJ", rows, "grand", "defender")
+    assert retained_immediate_best_cards(document) == ("CJ",)
+    assert [row["expected_point_swing"] for row in rows] == [1.2421875, 1.240234375]
+    assert [row["is_recommended"] for row in rows] == [True, False]
+    assert review["better_card_count"] == 1 and review["actual_card_rank"] == 2
+    assert review["expected_point_swing_difference"] > 0
+    state = {"reports": [], "selected_report": {"report_kind": "decision_analysis",
+        "details": {"recommendation": document["recommendation"], "post_game_review": review,
+                    "immediate_candidate_values": rows}},
+        "download_availability": {"report_result": False}}
+    original = copy.deepcopy(state)
+    for locale in ("de", "en", "de"):
+        html = render_match_reports_v1(state, locale)
+        points = "1,24" if locale == "de" else "1.24"
+        assert_candidates(html, [text(locale, key) for key in (
+            "validation.field.card", "result.point_swing", "result.win_rate")], [
+            [f'{card_name(locale, "CJ")} (CJ)', points, "0,0" if locale == "de" else "0.0"],
+            [f'{card_name(locale, "SJ")} (SJ)', points, "0,1" if locale == "de" else "0.1"]])
+        recommendation = html.split('class="workflow-table-scroll')[0]
+        assert f'{card_name(locale, "CJ")} (CJ)' in recommendation
+        assert f'{card_name(locale, "SJ")} (SJ)' not in recommendation
+        assert retained_immediate_best_cards(document) == ("CJ",)
     assert state == original

@@ -18,7 +18,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tests"))
 sys.path.insert(0, str(ROOT))
 
-from test_analysis_explanations_web import candidate_values  # noqa: E402
+from test_analysis_explanations_web import (  # noqa: E402
+    candidate_values,
+    controlled_match_precision_projection,
+)
 from test_equal_best_immediate import assert_visible_equal_best  # noqa: E402
 from test_frontend_language_switching import localized_server  # noqa: E402
 from test_match_recording_recovery_web import follow, operation_form  # noqa: E402
@@ -37,6 +40,7 @@ import skatmind.api.v1.session.files as session_files  # noqa: E402
 import skatmind.app_web.execution as execution  # noqa: E402
 import skatmind.app_web.frontend_profile_operations as profiles  # noqa: E402
 import skatmind.app_web.learning_frontend as learning  # noqa: E402
+import skatmind.app_web.task_first_match_state as match_state  # noqa: E402
 import skatmind.capture_web.analysis as match_analysis  # noqa: E402
 import skatmind.capture_web.context as match_context  # noqa: E402
 import skatmind.learning_corpus_import as corpus_import  # noqa: E402
@@ -66,14 +70,15 @@ def wait(cdp, expression):
     raise AssertionError(expression)
 
 
-def run_case(args, path, script, evidence):
-    root = args.output / f"{path}-js{int(script)}"
+def run_case(args, path, script, evidence, *, precision=False):
+    root = args.output / f"{path}{'-precision' if precision else ''}-js{int(script)}"
     root.mkdir()
     fixture = localized_server.__wrapped__(root)
     server = next(fixture)
     local = None
     calls, requests = Counter(), Counter()
-    row = dict(path=path, javascript=script, phases=[], views=[])
+    row = dict(path=path, javascript=script, phases=[], views=[],
+        fixture="controlled_display_projection" if precision else "genuine_analysis")
     evidence["runs"].append(row)
 
     def counted(key, real):
@@ -137,6 +142,11 @@ def run_case(args, path, script, evidence):
                 row["selected_report"] = retained.report_id
                 row["newer_report"] = newer.report_id
             row["phases"].append(dict(name="deliberate_initial_analysis", calls=dict(calls-before), requests=dict(requests-req)))
+            if precision:
+                # The Report and its downloads remain genuine; only display scalars are controlled.
+                project = controlled_match_precision_projection(match_state._selected_report_details)
+                stack.enter_context(patch.object(match_state, "_selected_report_details", project))
+                row["controlled_candidates"] = project(retained)["details"]["immediate_candidate_values"]
             home = server.app_context.managed_home.root
             profile = server.app_context.frontend_profile.profile_path
             files = saved_bytes(home, profile)
@@ -172,10 +182,15 @@ def run_case(args, path, script, evidence):
                     assert [cell for start in (2, 7) for cell in values[start:start + 3]] == expected
                 else:
                     expected = []
-                    for candidate in retained.value.result.document["analysis_report"]:
+                    candidates = (row["controlled_candidates"] if precision
+                                  else retained.value.result.document["analysis_report"])
+                    for candidate in candidates:
                         expected.append(f'{card_name(locale, candidate["card"])} ({candidate["card"]})')
-                        expected.extend(str(candidate[key]).replace(".", ",") if locale == "de" else str(candidate[key])
-                                        for key in ("expected_point_swing", "win_rate"))
+                        numbers = (f'{candidate["expected_point_swing"]:.2f}', str(candidate["win_rate"]))
+                        expected.extend(value.replace(".", ",") if locale == "de" else value for value in numbers)
+                    if precision:
+                        assert expected[1::3] == (["2,06", "1,24", "1,22", "1,16"] if locale == "de"
+                                                 else ["2.06", "1.24", "1.22", "1.16"])
                     assert candidate_values(html) == expected
                     assert active.capture.report_store.get(retained.report_id) is retained
                     assert canonical(retained.to_dict()) == exact
@@ -230,12 +245,14 @@ def run(args):
     started = time.monotonic()
     evidence = dict(completed=False, python=sys.version, executable=sys.executable,
         platform=platform.platform(), module=skatmind.__file__, runs=[],
-        boundary="Disposable genuine Immediate executions from source-tree fixtures; no installed UAT or Learning workflow.",
+        boundary="Disposable source-tree genuine Immediate executions plus explicitly controlled screenshot display projections; no installed UAT or Learning workflow.",
         zoom="Fresh profiles at default 100%; viewport emulation is not browser zoom.")
     try:
         for path in ("session", "match"):
             for script in (False, True):
                 run_case(args, path, script, evidence)
+        for script in (False, True):
+            run_case(args, "match", script, evidence, precision=True)
         evidence["completed"] = True
     finally:
         evidence["seconds"] = round(time.monotonic() - started, 3)

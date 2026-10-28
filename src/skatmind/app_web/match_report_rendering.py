@@ -103,7 +103,9 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
                         "validation.field.card", "result.point_swing", "result.win_rate")),
                     rows_html=tuple((cards_summary(locale, (candidate["card"],)), *(
                         translated(locale, "status.unavailable") if candidate.get(key) is None
-                        else escape(ordinary_scalar(candidate[key], locale=locale)) for key in ("expected_point_swing", "win_rate")))
+                        else escape(ordinary_scalar(candidate[key],
+                            ".2f" if key == "expected_point_swing" else "", locale=locale))
+                        for key in ("expected_point_swing", "win_rate")))
                         for candidate in candidates), identity="match-candidates") + '</div>')
         for key, label_key in (("declarer_points", "guided.declarer_points"),
                                ("defender_points", "guided.defender_points")):

@@ -1,7 +1,8 @@
-"""Real returned-form execution and source lifetimes; no successful-operation mocks."""
+"""Real returned-form execution plus explicitly controlled display-only regressions."""
 import re
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from html import unescape
 
 import pytest
@@ -25,6 +26,7 @@ from test_session_recorded_review_web import (
 import skatmind.api.v1.session.files as files
 import skatmind.app_web.execution as execution
 import skatmind.app_web.frontend_profile_operations as profiles
+import skatmind.app_web.task_first_match_state as match_state
 import skatmind.capture_web.analysis as match_analysis
 import skatmind.capture_web.context as match_context
 from skatmind.app_web.json_transfer import canonical_frontend_json_bytes_v1 as canonical
@@ -36,6 +38,55 @@ def candidate_values(page):
     """Read the delivered candidate cells, excluding responsive duplicate labels."""
     return [unescape(value) for value in re.findall(
         r'<span class="candidate-value">(.*?)</span>', page, re.S)]
+
+
+def controlled_match_precision_projection(real):
+    """Inject screenshot scalars into a disposable display projection, not an execution."""
+    rows = [
+        {"card": card, "expected_point_swing": points, "win_rate": rate}
+        for card, points, rate in (
+            ("CQ", 2.0599999999999996, 0.94), ("C10", 1.2400000000000002, 0.96),
+            ("C8", 1.2200000000000002, 1.0), ("C7", 1.1600000000000001, 0.58),
+        )
+    ]
+    def project(report):
+        value = real(report)
+        value["details"]["immediate_candidate_values"] = deepcopy(rows)
+        return value
+    return project
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+def test_controlled_match_screenshot_points_in_delivered_html(
+    localized_server, monkeypatch, locale,
+):
+    browser = Browser(localized_server)
+    record_context_match(browser)
+    follow(browser, browser.submit(operation_form(browser.page("/matches/review/1"),
+        "analyze_decision"), immediate_sample_count="8"))
+    active = localized_server.app_context.managed_stateful.active_match
+    report, = active.capture.report_store.list()
+    exact, disk = canonical(report.to_dict()), active.path.read_bytes()
+    routes = (f"/matches/api/v1/reports/{report.report_id}.json",
+              f"/matches/api/v1/reports/{report.report_id}/strategy-source.json")
+    downloads = {route: browser.request("GET", route)[2] for route in routes}
+    monkeypatch.setattr(match_state, "_selected_report_details",
+                        controlled_match_precision_projection(match_state._selected_report_details))
+    route = f"/matches/reports/{report.report_id}"
+    status, _, raw = browser.request("GET", route, headers={"Accept-Language": locale})
+    assert status == 200
+    expected = []
+    for card, points, rate in (("CQ", "2.06", "0.94"), ("C10", "1.24", "0.96"),
+                               ("C8", "1.22", "1.0"), ("C7", "1.16", "0.58")):
+        expected.extend((f"{card_name(locale, card)} ({card})",
+                         points.replace(".", ",") if locale == "de" else points,
+                         rate.replace(".", ",") if locale == "de" else rate))
+    assert candidate_values(raw.decode()) == expected
+    assert active.capture.report_store.get(report.report_id) is report
+    assert canonical(report.to_dict()) == exact and active.path.read_bytes() == disk
+    for route, expected_bytes in downloads.items():
+        status, _, raw = browser.request("GET", route)
+        assert status == 200 and raw == expected_bytes
 
 
 @pytest.mark.parametrize("path", ("session", "match"))
@@ -86,8 +137,9 @@ def test_real_ordinary_numbers_language_return_and_exact_downloads(
             expected = []
             for row in rows:
                 expected.append(f'{card_name(locale, row["card"])} ({row["card"]})')
-                expected.extend(str(row[key]).replace(".", ",") if locale == "de"
-                                else str(row[key]) for key in ("expected_point_swing", "win_rate"))
+                numbers = (f'{row["expected_point_swing"]:.2f}', str(row["win_rate"]))
+                expected.extend(value.replace(".", ",") if locale == "de" else value
+                                for value in numbers)
             assert candidate_values(page) == expected
 
     # Before an explicit preference is saved, each concurrent HTTP request owns its locale.
