@@ -314,3 +314,253 @@ accepted, UAT-02–12 remain paused, and release preparation is not authorized. 
 maintainer UAT and current architecture/code analysis with treatment of material
 findings remain required before v1.0.0. No local Full or installed maintainer UAT is
 performed by this implementation task.
+
+## CI conflict-response follow-up: run 40590330894
+
+### Verified checkout and authenticated evidence
+
+This follow-up started with a clean worktree on
+`bug/300-learning-result-readability`, at
+`9382d85ce420b2206c02cacf9b99858bc6a518ae`. Authenticated read-only GitHub CLI
+retrieval succeeded for [run 40590330894](https://github.com/hnnng-w/skatmind/actions/runs/40590330894).
+The retrieved run's `headSha` is that exact commit. No Actions rerun or Git/GitHub
+write/publication action was performed.
+
+```powershell
+gh run view 40590330894 --repo hnnng-w/skatmind --log-failed
+gh run download 40590330894 --repo hnnng-w/skatmind --name regression-ubuntu --name regression-windows --dir "$env:TEMP\opencode\issue300-ci-40590330894"
+gh run view 40590330894 --repo hnnng-w/skatmind --json headSha,conclusion,jobs --jq '{headSha,conclusion,jobs:[.jobs[]|{name,conclusion}]}'
+```
+
+Both downloaded regression artifacts contain `summary.json`, `pytest-collection.json`,
+`pytest-collection.log`, `pytest-parallel.json` and `pytest-parallel.log`. Inspection
+of the structured phase records and failure tracebacks establishes the complete
+failure list on **each** OS:
+
+```text
+tests/test_learning_direct_entry.py::test_canonical_save_conflict_can_leave_a_real_valid_orphan
+http.client.RemoteDisconnected: Remote end closed connection without response
+```
+
+There are no other failed test IDs in either regression artifact. Both failures
+occur in the test's **call phase**, in the two-worker, file-grouped parallel run.
+Collection passes on both systems. The exclusive phase is not executed after the
+parallel failure; the artifacts contain no exclusive-phase report. This is not a
+worker crash, collection mismatch, timeout, or demonstrated OS-specific failure.
+
+| CI regression | Environment | Pytest outcome/time | Collection wall time | Parallel stage wall time | Validation runner wall time |
+| --- | --- | --- | --- | --- | --- |
+| Ubuntu | CPython 3.13.15 / GCC 13.3.0; Linux 6.17.0-1022-azure / glibc 2.39; image `ubuntu24` `20261023.334.3` | 1 failed, 11,318 passed, 2 skipped / 1752.76s | 13.552s, exit 0 | 1753.483s, exit 1 | 1767.076s |
+| Windows | CPython 3.13.15 / MSC v.1944 x64; Windows Server 2025 build 26100; image `win25-vs2026` `20261021.278.1` | 1 failed, 11,320 passed, no skips / 2866.89s | 21.131s, exit 0 | 2867.804s, exit 1 | 2889.208s |
+
+Both use pytest **9.2.0**, pluggy **1.7.0**, xdist **3.8.0**, two workers and
+11,321 parallel test items. The two Ubuntu skips are the existing Windows-only
+junction fixtures:
+
+* `tests/test_learning_direct_entry.py::test_actual_file_boundaries_fail_before_import[junction]`
+* `tests/test_recording_deletion_files.py::test_real_junction_root_is_not_followed`
+
+Both report the reason **Windows junction fixture**. Neither pytest log contains
+a warnings summary or reported pytest warning count. The Actions logs separately
+contain Node.js deprecation notices from artifact tooling: `DEP0040` and `DEP0169`
+for uploads, `DEP0040` and `DEP0005` for the check job's downloads, and notices that
+Node-20-targeted artifact actions are running on Node 24. These are distinct from
+the captured server exception and did not cause the pytest failure.
+
+The `check` job's actual rejection is:
+
+```text
+Final gate rejected. Validation decision: mode=full reason=gate_prerequisites_invalid lookup=gate_prerequisites
+```
+
+Its `NEEDS_JSON` reports `regression: failure`; coordinator, standards, generated,
+build, cells and matrix-result are successful. Authenticated job metadata confirms
+both builds, all twelve installation cells, both matrix results and
+`v1-supported-platform-matrix` passed. The check gate reflects the failed regression
+prerequisite and adds no independent demonstrated failure.
+
+### Before-fix reproduction and root cause
+
+On the unchanged published source, the exact existing regression was run first:
+
+```powershell
+py -3.13 --version
+py -3.13 -m pytest tests/test_learning_direct_entry.py::test_canonical_save_conflict_can_leave_a_real_valid_orphan -q --tb=short
+```
+
+CPython **3.13.7** on the local Windows development host produced **one failure in
+5.74s**, with the same `RemoteDisconnected` and chained server traceback as both
+CI systems. The independently supplied static finding therefore matches the actual
+CI failure; a Python patch-version or parallel-execution theory is unnecessary.
+
+The fixture publishes a competing valid Catalog during the canonical import save.
+The attempted import conflicts and intentionally preserves the original active
+Store, while one valid orphan Snapshot may remain. HTTP dispatch raises
+`LearningEntryConflict`; `do_POST` handles it by rendering registered form rejection.
+That rendering calls `_learning_page`, whose persisted-source guard correctly finds
+that disk differs from active memory and raises `LanguageContextConflict`. Because
+this second exception occurs inside an `except` suite, sibling `except` clauses do
+not catch it. The request thread closes without an HTTP response.
+
+The new complete `test_learning_conflict_response.py` was also run against unchanged
+Product code before the repair: **10 failures / 16 passes in 31.65s**. Eight failures
+reproduce pre-render Catalog/Snapshot rejection for prepared/unprepared collections
+in both locales. Two additional independent review regressions demonstrate the same
+escape for a source-owner change raising `DebriefUnavailable`. These owner-change
+cases were not additional failures reported by CI. The 16 already-passing cases
+exercise the existing during-render/final-delivery guard behavior.
+
+### Bounded repair and regression guarantees
+
+The only Product edit adds a three-line specific handler in the
+`/learning/current` branch of `_render_rejected_form`: `LanguageContextConflict`
+and `DebriefUnavailable` use the existing `_language_conflict_page`. That response
+clears the pending rich-page source binding and emits a localized HTTP **409** with
+the existing native **Open the current task** link to `/learning`. It performs no
+recursive page rendering, reload, import, selection, preparation or retry.
+
+No `check_files` validation is removed or bypassed on errors. Owner, persisted
+Catalog/Snapshot, prepared-bundle identity/generation/source, pre-render and final
+delivery guards remain unchanged. Programming exceptions are not newly swallowed.
+No stale finding or current-source control is published. The compact #300 design,
+canonical import outcome, and legitimate orphan remain intact.
+
+The original canonical-save test keeps its exact original in-memory Store,
+competing Catalog, valid orphan and recording-existence assertions. It additionally
+checks complete localized status/body delivery and `Content-Length`, unchanged
+recording bytes, exactly one import/save attempt, successful passive recovery, and
+no subsequent write. The new module verifies all three detection timings through
+real emitted HTTP forms, in both locales, with prepared/unprepared sources and
+Catalog/Snapshot mismatches; it also verifies changed-owner delivery. The existing
+#300 source-change-during-rendering regression remains and passes.
+
+The initial corrected three-module run passed **69 tests / one existing symlink
+skip in 105.34s**. These passes overlap the final inventory below.
+
+```powershell
+py -3.13 -m pytest tests/test_learning_direct_entry.py tests/test_learning_conflict_response.py tests/test_learning_result_readability.py -q --tb=short -rs
+```
+
+### Corrected complete-module inventory
+
+The follow-up inventory covers the Learning rejection branch and its direct/shared
+HTTP, validation, language, feedback, attachment, debrief and result callers. It
+includes the previously omitted complete `test_learning_direct_entry.py` plus the
+reviewed live settings, deletion-lifecycle, task-focus and visual-contract callers.
+Those additional modules are coverage corrections, not assertions that they failed
+in CI. No test expectation is relaxed, inventory weakened or skip added.
+
+The following **44 complete parallel modules** passed **849 tests / two skips in
+398.55s**:
+
+```powershell
+py -3.13 -m pytest `
+  tests/test_learning_conflict_response.py tests/test_learning_direct_entry.py `
+  tests/test_learning_direct_entry_web.py tests/test_learning_result_readability.py `
+  tests/test_learning_result_explanations.py tests/test_learning_prepared_navigation.py `
+  tests/test_learning_outcome_navigation.py tests/test_learning_source_navigation.py `
+  tests/test_learning_overview_navigation.py tests/test_learning_entry_purpose.py `
+  tests/test_learning_version_presentation.py tests/test_learning_version_selection_web.py `
+  tests/test_learning_report_attachment.py tests/test_learning_report_attachment_web.py `
+  tests/test_learning_report_rejection.py tests/test_learning_debrief_web.py tests/test_match_debrief.py `
+  tests/test_task_first_stateful_rendering.py tests/test_task_first_match_and_learning_workflow.py `
+  tests/test_unified_local_app_web.py tests/test_unified_local_app_managed_items.py `
+  tests/test_profile_driven_settings_web.py tests/test_recording_deletion_lifecycle.py `
+  tests/test_recording_task_focus.py tests/test_unified_workflow_visual_contract.py `
+  tests/test_frontend_language_switching.py tests/test_language_switch_context.py `
+  tests/test_language_view_continuity.py tests/test_language_view_script.py `
+  tests/test_task_first_language_preservation.py tests/test_frontend_validation_preservation.py `
+  tests/test_operation_feedback.py tests/test_operation_feedback_web.py `
+  tests/test_operation_feedback_language.py tests/test_operation_feedback_script.py `
+  tests/test_match_learning_report_discoverability.py tests/test_learning_corpus_web_core.py `
+  tests/test_learning_corpus_web_uploads.py tests/test_skatmind_rename.py `
+  tests/test_packaging_and_distribution.py tests/test_profile_driven_creation_packaging.py `
+  tests/test_frontend_localization_foundation.py tests/test_complete_frontend_localization.py `
+  tests/test_guided_frontend_packaging.py `
+  -q -n 2 --dist=loadfile --max-worker-restart=0 -p scripts.validation_pytest `
+  --validation-report="$env:TEMP\opencode\issue300-conflict-parallel.json" `
+  --durations=15 --tb=short -rs
+```
+
+After both workers exited, the four complete exclusive modules passed **95 tests
+in 70.91s**, with no skips:
+
+```powershell
+py -3.13 -m pytest tests/test_early_rejection_observer.py tests/test_local_learning_corpus_web.py tests/test_unified_rejection_transport.py tests/test_match_analysis_action_placement.py -q -p scripts.validation_pytest --validation-report="$env:TEMP\opencode\issue300-conflict-serial.json" --durations=10 --tb=short -rs
+```
+
+Total: **48 complete modules / 944 distinct passes / two existing skips**. The skips
+are the local Windows account's unavailable symlink capability in
+`test_learning_direct_entry.py::test_actual_file_boundaries_fail_before_import[symlink]`
+(`Actual symlink creation unavailable: 22`) and
+`test_unified_local_app_managed_items.py::test_managed_direct_child_validation_rejects_escape_and_links`
+(`This Windows account cannot create symbolic links.`). These differ legitimately
+from the hosted Ubuntu junction skips and are not counted as passes.
+
+### Bounded browser evidence and operation accounting
+
+```powershell
+py -3.13 scripts/verify_learning_conflict_response.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "$env:TEMP\opencode\issue300-conflict-browser-01"
+```
+
+The probe passed all four German/English, JavaScript-enabled/disabled combinations
+in **45.496s**. It used CPython **3.13.7**, headless Edge **156.0.4314.42**, a
+1100 x 900 viewport and fresh disposable profiles at default **100% zoom**; measured
+device pixel ratio and visual viewport scale are **1**. No installed data or UAT
+environment was accessed. Genuine changed-layout zoom remains installed acceptance.
+
+Each case uses real emitted Add/file/preparation forms, native selection controls,
+pointer actions and Tab/Enter. A deliberately competing valid Catalog write during
+Add reproduces the actual canonical-save conflict. The browser receives a complete
+localized **409**, natively focuses the error, and sees neither stale findings nor
+source controls. It follows the emitted recovery link to a **200** collection list.
+Reopen, subsequent Add where needed, file retry and preparation are separate explicit
+actions. Wrong-format file rejection remains **400** with an empty input; valid retry
+shows the existing attachment receipt. Explicit preparation returns to the compact
+focused result with technical details closed and all ten downloads available.
+
+The evidence records one canonical import, one Snapshot publication and one failed
+canonical Catalog-save attempt per conflict, plus **one deliberately competing
+Catalog write** separately. Exactly one valid orphan is retained. The original
+recording bytes, active Store and prepared objects remain unchanged. Rejection and
+passive recovery add **zero** further operations or persistent writes. Explicit
+reopen changes only the active context through existing behavior. Wrong-file rejection
+adds no operation; correct attachment performs one existing reconciliation; explicit
+preparation performs one preparation and its existing reconciliation. Setup analysis,
+fixture files, Profile/locale writes and subsequent explicit mutations are separately
+identified. This is bounded developer verification, not full UAT or zoom acceptance.
+
+`evidence.json`, screenshots and download hashes are retained under the command's
+output directory. Representative inspected images are
+`de-js1/initial-conflict-response.png` and
+`en-js0/compact-result-after-recovery.png`.
+
+### Follow-up final validation and publication boundary
+
+Changed files are exactly:
+
+* `src/skatmind/app_web/server.py`
+* `tests/test_learning_direct_entry.py`
+* `tests/test_learning_conflict_response.py` (new)
+* `scripts/verify_learning_conflict_response.py` (new)
+* `docs/learning_result_readability.md`
+
+The inventories remain **73 POST routes / 125 forms / 2,115 keys per locale / ten
+prepared downloads**. After this documentation update, complete strict rename,
+packaging and localization rechecks precede the final explicit Quick:
+
+```powershell
+py -3.13 -m pytest tests/test_skatmind_rename.py tests/test_packaging_and_distribution.py tests/test_profile_driven_creation_packaging.py tests/test_frontend_localization_foundation.py tests/test_complete_frontend_localization.py -q --tb=short
+function python { & py -3.13 @args }
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+```
+
+The final overlapping recheck count and Quick log directory accompany the handoff;
+they are not added to the distinct test total above. No local Full is run under this
+task-specific routine. All changes remain unstaged/uncommitted. Report **Locally
+validated, new exact-commit CI pending** after those final checks. Keep #300 open for
+new exact-commit branch/main `check` and `v1-supported-platform-matrix`, followed by
+installed targeted acceptance including genuine changed-layout zoom. #292–#299 remain
+complete; #208 stays open, UAT-01 is not globally accepted, UAT-02–12 remain paused,
+and release preparation is not authorized.

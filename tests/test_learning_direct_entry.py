@@ -262,6 +262,8 @@ def test_active_saved_file_edit_fails_without_reload_or_report_clear(localized_s
 
 
 def test_canonical_save_conflict_can_leave_a_real_valid_orphan(localized_server, monkeypatch):
+    from test_learning_conflict_response import assert_conflict
+
     import skatmind.learning_corpus_import as imports
     from skatmind.learning_corpus_catalog import build_learning_corpus_catalog_v1
     from skatmind.learning_corpus_persistence_codec import (
@@ -277,17 +279,30 @@ def test_canonical_save_conflict_can_leave_a_real_valid_orphan(localized_server,
             revision=1, match_snapshots=(), current_matches=()))
     real = imports.save_learning_corpus_catalog_v1
     calls = []
+    real_import = entry.import_workspace_bytes_into_unified_learning_v1
+    import_calls = []
+    recording = path.read_bytes()
+    def imported(*args, **kwargs):
+        import_calls.append(kwargs)
+        return real_import(*args, **kwargs)
+    monkeypatch.setattr(entry, "import_workspace_bytes_into_unified_learning_v1", imported)
     def conflict(root, document, *, expected_content_fingerprint):
         calls.append(document)
         assert real(root, competing, expected_content_fingerprint=expected_content_fingerprint
                     ).status == "saved"
         return real(root, document, expected_content_fingerprint=expected_content_fingerprint)
     monkeypatch.setattr(imports, "save_learning_corpus_catalog_v1", conflict)
-    assert browser.submit(add_form(browser), source_handle=source_handle(path))[0] == 409
+    response = browser.submit(add_form(browser), source_handle=source_handle(path))
+    recovery = assert_conflict(response, "en")
     assert len(calls) == 1 and target.corpus.store is original
     disk = load_learning_corpus_directory_v1(target.path)
     assert disk.document == competing and len(disk.orphan_match_snapshot_ids) == 1
     assert not disk.match_snapshots and path.exists()
+    assert path.read_bytes() == recording and len(import_calls) == 1
+    before = saved_bytes(target.path)
+    assert browser.request("GET", recovery)[0] == 200
+    assert saved_bytes(target.path) == before and target.corpus.store is original
+    assert len(calls) == len(import_calls) == 1
 
 
 def test_non_current_report_has_visible_removal_and_explicit_rebuild(localized_server):

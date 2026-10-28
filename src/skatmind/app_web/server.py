@@ -1635,6 +1635,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if page == "/learning/current":
             try:
                 self._learning_page(status=status)
+            except (LanguageContextConflict, DebriefUnavailable):
+                # Rejection rendering can itself lose its source; do not retry that page.
+                self._language_conflict_page(page)
             except KeyError:
                 self._managed_category_page("corpora", status=status)
             return
