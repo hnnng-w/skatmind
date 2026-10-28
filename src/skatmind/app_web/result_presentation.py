@@ -10,6 +10,7 @@ from skatmind.information_set_search_workflow import (
 from skatmind.recommendation_workflow import COMPATIBLE_WORLD_MINIMAX_METHOD
 
 from .analysis_explanation import explanation_rows, project_analysis_explanation
+from .ordinary_result_numbers import ordinary_scalar
 from .render_locale import localized_card_name, localized_render, message
 from .result_immediate import retained_immediate_best_cards
 
@@ -152,7 +153,7 @@ def _text(value: object) -> str:
     if type(value) is bool:
         return "Yes" if value else "No"
     if type(value) is float:
-        return f"{value:.6g}"
+        return ordinary_scalar(value, ".6g")
     if type(value) in {str, int}:
         rendered = str(value)
         return rendered if rendered else _NOT_AVAILABLE
@@ -162,7 +163,7 @@ def _text(value: object) -> str:
 def _percentage(value: object) -> str:
     if type(value) not in {int, float}:
         return _NOT_AVAILABLE
-    return f"{float(value) * 100:.2f}%"
+    return ordinary_scalar(float(value) * 100, ".2f") + "%"
 
 
 def _cards(value: object) -> str:
@@ -207,7 +208,7 @@ def _analysis_candidate_table(
                  if candidate.get("card") in best_cards else "lower_evaluated")
                 if best_cards else _text(candidate.get("is_recommended")),
                 _percentage(candidate.get("win_rate")),
-                (f"{candidate['expected_point_swing']:.2f}" if best_cards
+                (ordinary_scalar(candidate["expected_point_swing"], ".2f") if best_cards
                  else _text(candidate.get("expected_point_swing"))),
                 _text(candidate.get("average_trick_points")),
             )
@@ -406,7 +407,8 @@ def _build_position_presentation(
         if position.get("game_type") != "null":
             explanation += " " + message(
                 "result.immediate.equal_points",
-                value=f"{document['analysis_report'][0]['expected_point_swing']:.2f}",
+                value=ordinary_scalar(
+                    document["analysis_report"][0]["expected_point_swing"], ".2f"),
             )
         if (review.get("is_available") is True and review.get("actual_card_played") in best_cards
                 and review.get("decision_quality") == "optimal"

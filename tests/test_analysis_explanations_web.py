@@ -1,9 +1,13 @@
 """Real returned-form execution and source lifetimes; no successful-operation mocks."""
+import re
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
+from html import unescape
 
 import pytest
 from test_analysis_download_details import assert_analysis_actions
-from test_analysis_explanations import normal_result
+from test_analysis_explanations import normal_result, search_request
+from test_equal_best_immediate import assert_visible_equal_best
 from test_frontend_language_switching import localized_server as _server
 from test_guided_frontend_web import _multipart, _request
 from test_match_card_correction_ui import activated_form
@@ -20,8 +24,136 @@ from test_session_recorded_review_web import (
 
 import skatmind.api.v1.session.files as files
 import skatmind.app_web.execution as execution
+import skatmind.app_web.frontend_profile_operations as profiles
+import skatmind.capture_web.analysis as match_analysis
+import skatmind.capture_web.context as match_context
 from skatmind.app_web.json_transfer import canonical_frontend_json_bytes_v1 as canonical
 from skatmind.app_web.recorded_decision_context_sources import match_analysis_explanation
+from skatmind.app_web.stateful_localization import card_name, text
+
+
+def candidate_values(page):
+    """Read the delivered candidate cells, excluding responsive duplicate labels."""
+    return [unescape(value) for value in re.findall(
+        r'<span class="candidate-value">(.*?)</span>', page, re.S)]
+
+
+@pytest.mark.parametrize("path", ("session", "match"))
+def test_real_ordinary_numbers_language_return_and_exact_downloads(
+    localized_server, path, monkeypatch,
+):
+    browser = Browser(localized_server)
+    if path == "session":
+        record_score_review_game(browser, names=("B 1.25", "C 0.125", "A 3.14"))
+        page = follow(browser, browser.submit(score_review_form(browser)))
+        active = localized_server.app_context.managed_stateful.active_session
+        retained = active.execution
+        route = "/sessions/current"
+        downloads = {f"/sessions/downloads/{name}.json": getattr(retained, name + "_json_bytes")
+                     for name in ("request", "result")}
+    else:
+        record_context_match(browser, names=("B 1.25", "C 0.125", "A 3.14"))
+        page = follow(browser, browser.submit(operation_form(browser.page(
+            "/matches/review/1"), "analyze_decision"), immediate_sample_count="8"))
+        active = localized_server.app_context.managed_stateful.active_match
+        retained, = active.capture.report_store.list()
+        route = f"/matches/reports/{retained.report_id}"
+        downloads = {url: browser.request("GET", url)[2] for url in (
+            f"/matches/api/v1/reports/{retained.report_id}.json",
+            f"/matches/api/v1/reports/{retained.report_id}/strategy-source.json")}
+    disk = active.path.read_bytes()
+    exact = canonical(retained.result.result.to_dict() if path == "session" else retained.to_dict())
+    calls = Counter()
+    for module, name in (
+        (execution, "execute"), (match_analysis, "execute_match_decision_analysis_v1"),
+        (files, "save_session_file"), (match_context, "save_match_workspace_file_v1"),
+        (profiles, "save_frontend_profile_file_v1"),
+    ):
+        real = getattr(module, name)
+        def counted(*args, _real=real, _name=name, **kwargs):
+            calls[_name] += 1
+            return _real(*args, **kwargs)
+        monkeypatch.setattr(module, name, counted)
+
+    def check_page(page, locale):
+        assert f'<html lang="{locale}">' in page
+        assert "B 1.25" in page and "C 0.125" in page and "A 3.14" in page
+        if path == "session":
+            assert_visible_equal_best(page, locale)
+        else:
+            rows = retained.value.result.document["analysis_report"]
+            assert rows and any(type(row["expected_point_swing"]) is float for row in rows)
+            expected = []
+            for row in rows:
+                expected.append(f'{card_name(locale, row["card"])} ({row["card"]})')
+                expected.extend(str(row[key]).replace(".", ",") if locale == "de"
+                                else str(row[key]) for key in ("expected_point_swing", "win_rate"))
+            assert candidate_values(page) == expected
+
+    # Before an explicit preference is saved, each concurrent HTTP request owns its locale.
+    def get(locale):
+        status, _, raw = browser.request("GET", route, headers={"Accept-Language": locale})
+        assert status == 200
+        check_page(raw.decode(), locale)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        list(pool.map(get, ("de", "en", "de") * 2))
+    assert not calls
+    for locale in ("de", "en", "de"):
+        page = browser.page(route)
+        response = browser.submit(Forms(page).find("/actions/profile/language"), language=locale)
+        assert response[0] == 303 and response[1]["location"] == route
+        page = follow(browser, response)
+        check_page(page, locale)
+        if path == "session":
+            assert active.execution is retained
+        else:
+            assert active.capture.report_store.get(retained.report_id) is retained
+        for url, raw in downloads.items():
+            status, _, downloaded = browser.request("GET", url)
+            assert status == 200 and downloaded == raw
+    assert active.path.read_bytes() == disk
+    assert canonical(
+        retained.result.result.to_dict() if path == "session" else retained.to_dict()) == exact
+    assert calls == {"save_frontend_profile_file_v1": 3}
+
+
+@pytest.mark.parametrize("method,key", (
+    ("minimax", "bounded_search_result"),
+    ("information_set_search", "information_set_search_result"),
+))
+def test_genuine_guided_search_numeric_cells_and_canonical_bytes(localized_server, method, key):
+    browser = Browser(localized_server)
+    form = Forms(browser.page("/analyze")).find("/actions/analyze/import-json")
+    body, kind = _multipart(
+        canonical(search_request(method)), revision=int(form["values"]["revision"]))
+    page = follow(browser, _request(localized_server, "POST", form["action"], body=body,
+        headers={"Cookie": browser.cookie, "Origin": localized_server.origin,
+                 "Content-Type": kind}))
+    follow(browser, browser.submit(Forms(page).find("/actions/analyze/run-imported")))
+    state = localized_server.app_context.analyze_state
+    result = state.latest_successful_result.result
+    search = result.document[key]
+    assert search["status"] == "complete" and search["candidate_results"]
+    exact = canonical(result.to_dict())
+    for locale in ("de", "en", "de"):
+        page = follow(browser, browser.submit(Forms(browser.page("/analyze")).find(
+            "/actions/profile/language"), language=locale))
+        expected = []
+        for row in search["candidate_results"]:
+            expected.extend((row["card"], str(row["rank"]), text(locale,
+                "common.answer.yes" if row["is_recommended"] else "common.answer.no"),
+                str(row["completed_world_count"])))
+            numbers = [f'{float(row["local_contract_success_rate"]) * 100:.2f}%', *(
+                format(row[field], ".6g") if type(row[field]) is float else str(row[field])
+                for field in ("mean_local_side_game_score", "mean_local_side_card_point_margin"))]
+            expected.extend(value.replace(".", ",") if locale == "de" else value
+                            for value in numbers)
+        assert candidate_values(page) == expected
+        for name in ("request", "result"):
+            status, _, raw = browser.request("GET", f"/downloads/analyze/{name}.json")
+            assert status == 200 and raw == getattr(state, name + "_json_bytes")
+    assert localized_server.app_context.analyze_state is state
+    assert canonical(result.to_dict()) == exact
 
 
 @pytest.fixture

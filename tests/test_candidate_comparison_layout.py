@@ -138,7 +138,9 @@ def test_match_curated_scalar_shape_keeps_fractions_and_empty_state(locale, coun
     if count:
         assert_candidates(rendered, [text(locale, k) for k in (
             "validation.field.card", "result.point_swing", "result.win_rate")], [
-                [f'{card_name(locale, "C7")} (C7)', "-1.25", "0.125"],
+                [f'{card_name(locale, "C7")} (C7)',
+                 "-1,25" if locale == "de" else "-1.25",
+                 "0,125" if locale == "de" else "0.125"],
                 [f'{card_name(locale, "C9")} (C9)', "0", "0"],
                 [f'{card_name(locale, "C8")} (C8)', text(locale, "status.unavailable"),
                  text(locale, "status.unavailable")]][:count])

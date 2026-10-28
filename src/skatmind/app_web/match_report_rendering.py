@@ -6,6 +6,7 @@ from html import escape
 from .analysis_download_rendering import analysis_downloads
 from .analysis_explanation import explanation_rows
 from .candidate_table_rendering import candidate_table_html
+from .ordinary_result_numbers import ordinary_scalar
 from .recorded_decision_context_rendering import render_recorded_decision_context
 from .render_locale import localized_render
 from .result_localization import result_label
@@ -102,7 +103,7 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
                         "validation.field.card", "result.point_swing", "result.win_rate")),
                     rows_html=tuple((cards_summary(locale, (candidate["card"],)), *(
                         translated(locale, "status.unavailable") if candidate.get(key) is None
-                        else escape(str(candidate[key])) for key in ("expected_point_swing", "win_rate")))
+                        else escape(ordinary_scalar(candidate[key], locale=locale)) for key in ("expected_point_swing", "win_rate")))
                         for candidate in candidates), identity="match-candidates") + '</div>')
         for key, label_key in (("declarer_points", "guided.declarer_points"),
                                ("defender_points", "guided.defender_points")):

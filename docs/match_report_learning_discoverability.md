@@ -424,3 +424,17 @@ Keep #299 and #208 open. #292–#298 remain complete. UAT-01 is not globally acc
 UAT-02–12 remain paused. Release preparation is not authorized. All work uses
 disposable source-tree data; installed UAT data is untouched. Changes remain unstaged
 and uncommitted, with no Git/GitHub publication.
+
+## Ordinary Report numeric localization (Issue #301)
+
+The ordinary Match candidate table now localizes its retained typed numeric cells
+at display time. It preserves raw scalar precision and the `win_rate` fraction:
+English `0.125` becomes German `0,125`, not a percentage. Result and Report-for-Learning
+downloads remain canonical and byte-identical across language changes. Whole-game
+rollout formatting retains its separate existing policy. See
+[ordinary analysis number formatting](ordinary_analysis_number_formatting.md) for
+the two producer paths, executed-fixture evidence and complete verification inventory.
+
+For this follow-up, #292–#300 remain complete. #301 and #208 remain open pending
+new exact-commit hosted CI and installed targeted acceptance; no complete Learning
+workflow acceptance is repeated or changed by numeric presentation.

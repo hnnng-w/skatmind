@@ -44,9 +44,10 @@ def assert_visible_equal_best(html, locale):
     assert card_name(locale, "CJ") in normal and card_name(locale, "SJ") in normal
     assert text(locale, "result.immediate.actual_equal", card=card_name(locale, "SJ")) in normal
     recommendation = normal.split('<section aria-labelledby="result-section-3">')[0]
-    assert text(locale, "result.immediate.equal_points", value="6.00") in recommendation
+    points = "6,00" if locale == "de" else "6.00"
+    assert text(locale, "result.immediate.equal_points", value=points) in recommendation
     assert text(locale, "result.value.optimal") in normal
-    assert normal.count("6.00") >= 2
+    assert normal.count(points) >= 2
     assert len(re.findall(r"<table\b", normal)) == 1
     table = re.search(r"<table\b[^>]*>(.*?)</table>", normal, re.S)[1]
     assert f'>{text(locale, "common.answer.yes")}<' not in table

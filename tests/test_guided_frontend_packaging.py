@@ -24,6 +24,7 @@ _GUIDED_MODULES = (
     "match_review_context",
     "match_report_rendering",
     "match_review_rendering",
+    "ordinary_result_numbers",
     "position_form",
     "recorded_review_opening",
     "recorded_review_rendering",

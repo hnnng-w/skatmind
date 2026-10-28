@@ -678,3 +678,17 @@ execution. Issue #219 changes only private stateful creation, profile settings,
 and managed display presentation; it does not change Analyze or Review execution.
 See [Profile-driven stateful creation](profile_driven_stateful_creation.md).
 Issue #220 is documented in [Task-first bilingual stateful workflows](task_first_bilingual_stateful_workflows.md).
+
+## Ordinary numeric presentation (Issue #301)
+
+Guided and Session ordinary Results now localize typed numeric display values to
+the request's German/English locale before HTML rendering. Existing `.6g` means,
+`.2f` Immediate best-card point swings and equal-best explanation values, and
+scaled `.2f` percentages retain their exact precision and units. German uses decimal
+commas; default English retains decimal points. Literal strings and retained
+technical prose remain untouched. The separate ordinary Match renderer uses the
+same private boundary with its existing raw scalar/fraction representation.
+
+See [ordinary analysis number formatting](ordinary_analysis_number_formatting.md)
+for regression-first HTTP evidence, complete module inventory, browser downloads,
+operation accounting, and the pending exact-commit CI/installed acceptance boundary.
