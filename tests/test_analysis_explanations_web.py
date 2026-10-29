@@ -32,6 +32,11 @@ import skatmind.capture_web.context as match_context
 from skatmind.app_web.json_transfer import canonical_frontend_json_bytes_v1 as canonical
 from skatmind.app_web.recorded_decision_context_sources import match_analysis_explanation
 from skatmind.app_web.stateful_localization import card_name, text
+from skatmind.match_analysis_exports import build_match_report_result_export_v1
+from skatmind.match_analysis_report_source_export import (
+    build_match_analysis_report_source_export_v1,
+    serialize_match_analysis_report_source_export_v1,
+)
 
 
 def candidate_values(page):
@@ -57,7 +62,7 @@ def controlled_match_precision_projection(real):
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))
-def test_controlled_match_screenshot_points_in_delivered_html(
+def test_controlled_match_screenshot_points_and_percentages_in_delivered_html(
     localized_server, monkeypatch, locale,
 ):
     browser = Browser(localized_server)
@@ -76,8 +81,8 @@ def test_controlled_match_screenshot_points_in_delivered_html(
     status, _, raw = browser.request("GET", route, headers={"Accept-Language": locale})
     assert status == 200
     expected = []
-    for card, points, rate in (("CQ", "2.06", "0.94"), ("C10", "1.24", "0.96"),
-                               ("C8", "1.22", "1.0"), ("C7", "1.16", "0.58")):
+    for card, points, rate in (("CQ", "2.06", "94.00%"), ("C10", "1.24", "96.00%"),
+                               ("C8", "1.22", "100.00%"), ("C7", "1.16", "58.00%")):
         expected.extend((f"{card_name(locale, card)} ({card})",
                          points.replace(".", ",") if locale == "de" else points,
                          rate.replace(".", ",") if locale == "de" else rate))
@@ -104,14 +109,21 @@ def test_real_ordinary_numbers_language_return_and_exact_downloads(
                      for name in ("request", "result")}
     else:
         record_context_match(browser, names=("B 1.25", "C 0.125", "A 3.14"))
-        page = follow(browser, browser.submit(operation_form(browser.page(
-            "/matches/review/1"), "analyze_decision"), immediate_sample_count="8"))
+        record_second_context_game(browser)
+        for game in (1, 4):
+            page = follow(browser, browser.submit(operation_form(browser.page(
+                f"/matches/review/{game}"), "analyze_decision"), immediate_sample_count="8"))
         active = localized_server.app_context.managed_stateful.active_match
-        retained, = active.capture.report_store.list()
+        retained, newer = active.capture.report_store.list()
+        assert retained.report_id != newer.report_id
         route = f"/matches/reports/{retained.report_id}"
-        downloads = {url: browser.request("GET", url)[2] for url in (
-            f"/matches/api/v1/reports/{retained.report_id}.json",
-            f"/matches/api/v1/reports/{retained.report_id}/strategy-source.json")}
+        downloads = {
+            f"/matches/api/v1/reports/{retained.report_id}.json":
+                build_match_report_result_export_v1(retained).to_bytes(),
+            f"/matches/api/v1/reports/{retained.report_id}/strategy-source.json":
+                serialize_match_analysis_report_source_export_v1(
+                    build_match_analysis_report_source_export_v1(retained)),
+        }
     disk = active.path.read_bytes()
     exact = canonical(retained.result.result.to_dict() if path == "session" else retained.to_dict())
     calls = Counter()
@@ -133,14 +145,21 @@ def test_real_ordinary_numbers_language_return_and_exact_downloads(
             assert_visible_equal_best(page, locale)
         else:
             rows = retained.value.result.document["analysis_report"]
-            assert rows and any(type(row["expected_point_swing"]) is float for row in rows)
+            assert [row["card"] for row in rows] == ["C8", "C7", "C9"]
+            assert [row["win_rate"] for row in rows] == [1.0, 0.875, 0.875]
+            assert [row["expected_point_swing"] for row in rows] == [12.0, 10.625, 9.5]
             expected = []
-            for row in rows:
-                expected.append(f'{card_name(locale, row["card"])} ({row["card"]})')
-                numbers = (f'{row["expected_point_swing"]:.2f}', str(row["win_rate"]))
+            for card, points, rate in (("C8", "12.00", "100.00%"),
+                                      ("C7", "10.62", "87.50%"), ("C9", "9.50", "87.50%")):
+                expected.append(f'{card_name(locale, card)} ({card})')
                 expected.extend(value.replace(".", ",") if locale == "de" else value
-                                for value in numbers)
+                                for value in (points, rate))
             assert candidate_values(page) == expected
+            assert (f'<p>{text(locale, "task.recommendation")}</p>'
+                    f'{card_name(locale, "C8")} (C8)') in page
+            assert text(locale, "result.win_rate") in page
+            for url in downloads:
+                assert f'href="{url}"' in page
 
     # Before an explicit preference is saved, each concurrent HTTP request owns its locale.
     def get(locale):

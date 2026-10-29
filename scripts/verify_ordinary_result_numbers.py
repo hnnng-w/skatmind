@@ -48,7 +48,7 @@ from skatmind.app_web.json_transfer import (  # noqa: E402
     canonical_frontend_json_bytes_v1 as canonical,
 )
 from skatmind.app_web.server import SkatMindAppWebRequestHandlerV1 as Handler  # noqa: E402
-from skatmind.app_web.stateful_localization import card_name  # noqa: E402
+from skatmind.app_web.stateful_localization import card_name, text  # noqa: E402
 from skatmind.match_analysis_exports import build_match_report_result_export_v1  # noqa: E402
 from skatmind.match_analysis_report_source_export import (  # noqa: E402
     build_match_analysis_report_source_export_v1,
@@ -186,21 +186,37 @@ def run_case(args, path, script, evidence, *, precision=False):
                                   else retained.value.result.document["analysis_report"])
                     for candidate in candidates:
                         expected.append(f'{card_name(locale, candidate["card"])} ({candidate["card"]})')
-                        numbers = (f'{candidate["expected_point_swing"]:.2f}', str(candidate["win_rate"]))
+                        numbers = (f'{candidate["expected_point_swing"]:.2f}', f'{float(candidate["win_rate"]) * 100:.2f}%')
                         expected.extend(value.replace(".", ",") if locale == "de" else value for value in numbers)
                     if precision:
                         assert expected[1::3] == (["2,06", "1,24", "1,22", "1,16"] if locale == "de"
                                                  else ["2.06", "1.24", "1.22", "1.16"])
+                        assert expected[2::3] == (["94,00%", "96,00%", "100,00%", "58,00%"] if locale == "de"
+                                                 else ["94.00%", "96.00%", "100.00%", "58.00%"])
+                    else:
+                        assert expected[1::3] == (["12,00", "10,62", "9,50"] if locale == "de"
+                                                 else ["12.00", "10.62", "9.50"])
+                        assert expected[2::3] == (["100,00%", "87,50%", "87,50%"] if locale == "de"
+                                                 else ["100.00%", "87.50%", "87.50%"])
                     assert candidate_values(html) == expected
+                    card = retained.value.result.document["recommendation"]["card"]
+                    assert card == "C8"
+                    assert f'<p>{text(locale, "task.recommendation")}</p>{card_name(locale, card)} ({card})' in html
                     assert active.capture.report_store.get(retained.report_id) is retained
+                    assert active.capture.report_store.list() == (retained, newer)
                     assert canonical(retained.to_dict()) == exact
-                cdp.evaluate("document.querySelector('.candidate-comparison').scrollIntoView({block:'center'})")
-                displayed = cdp.evaluate("[...document.querySelectorAll('.candidate-value')].map(e=>({text:e.innerText,visible:e.checkVisibility()}))")
-                assert all(cell["visible"] for cell in displayed)
-                cdp.screenshot(root / f"{index}-{locale}-numbers.png")
-                view = dict(locale=locale, cells=displayed, downloads=[],
-                    scale=cdp.evaluate("({devicePixelRatio,scale:visualViewport.scale})"))
+                view = dict(locale=locale, downloads=[], layouts=[])
                 row["views"].append(view)
+                for width in (1365, 390):
+                    cdp.call("Emulation.setDeviceMetricsOverride", width=width, height=900, deviceScaleFactor=1, mobile=False)
+                    cdp.evaluate("document.querySelector('.candidate-comparison').scrollIntoView({block:'center'})")
+                    displayed = cdp.evaluate("[...document.querySelectorAll('.candidate-value')].map(e=>({text:e.innerText,visible:e.checkVisibility(),width:e.getBoundingClientRect().width,cellWidth:e.parentElement.clientWidth,scrollWidth:e.parentElement.scrollWidth}))")
+                    assert all(cell["visible"] and cell["width"] > 0 and cell["scrollWidth"] <= cell["cellWidth"] + 1 for cell in displayed)
+                    assert cdp.evaluate("document.documentElement.scrollWidth <= innerWidth")
+                    cdp.screenshot(root / f"{index}-{locale}-{width}-numbers.png")
+                    view["layouts"].append(dict(width=width, cells=displayed,
+                        scale=cdp.evaluate("({devicePixelRatio,scale:visualViewport.scale})")))
+                cdp.call("Emulation.setDeviceMetricsOverride", width=1365, height=900, deviceScaleFactor=1, mobile=False)
                 download_dir = root / f"downloads-{index}-{locale}"
                 download_dir.mkdir()
                 cdp.call("Browser.setDownloadBehavior", behavior="allow", downloadPath=str(download_dir.resolve()))

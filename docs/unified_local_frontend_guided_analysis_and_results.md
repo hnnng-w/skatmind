@@ -679,7 +679,7 @@ and managed display presentation; it does not change Analyze or Review execution
 See [Profile-driven stateful creation](profile_driven_stateful_creation.md).
 Issue #220 is documented in [Task-first bilingual stateful workflows](task_first_bilingual_stateful_workflows.md).
 
-## Ordinary numeric presentation (Issue #301)
+## Ordinary numeric presentation (Issues #301 and #302)
 
 Guided and Session ordinary Results now localize typed numeric display values to
 the request's German/English locale before HTML rendering. Existing `.6g` means,
@@ -688,7 +688,11 @@ scaled `.2f` percentages retain their exact precision and units. German uses dec
 commas; default English retains decimal points. Literal strings and retained
 technical prose remain untouched. Following installed feedback, the separate ordinary
 Match renderer uses the same private boundary with Python `.2f` for numeric point
-cells and the existing raw fraction precision for rates. The accepted shared
+cells. Issue #302 renders its exact numeric rates as percentages with `float(rate) * 100`,
+Python `.2f`, the request-local decimal separator and one `%`, preserving ordinary
+rounding and signed zero. Missing/`None` stays unavailable; booleans and escaped
+literal strings are not converted. The metric remains current-Trick local-side wins,
+with the existing label and method explanation. The accepted shared
 guided/Session projection retains its existing policies. Canonical values and exports
 remain unchanged; display rounding does not create ties or alter recommendations.
 

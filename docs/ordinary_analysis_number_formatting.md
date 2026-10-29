@@ -1,18 +1,22 @@
-# Ordinary analysis number formatting (Issue #301)
+# Ordinary analysis number formatting (Issues #301 and #302)
 
-## Current follow-up boundary
+## Current policy
 
-The installed-feedback follow-up below refines **ordinary Match point cells only**:
-typed `expected_point_swing` values now use Python `.2f`, while `win_rate` remains
-a raw fraction with its existing precision. Shared guided/Session formatting and
-canonical numeric values remain unchanged. The maintainer's installed acceptances
-on `f665d36761f439b96ae7ec351c3b8ce6059f03f9` remain accepted for that build.
+Issue #302 renders ordinary Match numeric `win_rate` cells as percentages:
+`float(rate) * 100`, Python `.2f`, request-local decimal separator, then one `%`.
+The accepted Issue #301 `expected_point_swing` policy remains Python `.2f`.
+Only exact `int`/`float` values are converted; missing/`None` is localized unavailable,
+booleans remain literal, and strings remain escaped literal text. Retained Reports
+and canonical exports keep their original fractions and full numeric precision.
+The metric remains the acting side winning the current simulated Trick. Existing
+labels, explanations, Null objectives, recommendation and tie semantics are unchanged.
 
-The sections through **Original changed files and handoff (historical)** record the
-original locale-only implementation and its actual observed outputs. Its raw Match
-point-display policy and then-pending acceptance status are historical; they are
-superseded only as explicitly described in the follow-up section. Historical test
-counts, browser screenshots and displayed values are not new-policy evidence.
+Issue #301 is complete within its accepted scope, including installed number
+localization, two-decimal Match points, language return and native operation. The
+following original implementation and point follow-up sections preserve their actual
+observations, then-current policies and then-pending handoffs as **historical**.
+Their raw-fraction observations are not evidence for #302. The #302 record at the end
+documents the new percentage behavior and its separate pending acceptance gates.
 
 ## Original locale-only implementation (historical)
 
@@ -238,7 +242,7 @@ installed acceptance. UAT-01 is not globally accepted; UAT-02–12 remain paused
 Broader design and Learning product-policy questions remain separate. Release
 preparation is not authorized.
 
-## Installed-feedback follow-up: two-decimal Match point display
+## Installed-feedback follow-up: two-decimal Match point display (Issue #301, historical)
 
 ### Accepted installed baseline and bounded correction
 
@@ -423,3 +427,235 @@ their tested build; the subsequent installed follow-up should focus on corrected
 Match point display and language/native return. #292–#300 remain complete. UAT-01
 is not globally accepted; UAT-02–12 remain paused. Broader design and Learning
 product-policy questions stay separate. Release preparation is not authorized.
+
+## Issue #302: ordinary Match win percentages
+
+### Checkout, root cause and implementation
+
+Expected and actual branch: `bug/302-match-win-percentages`. Expected and actual
+starting/current HEAD: `60117e6d60e05923bfe6bb402810763f8cb922e4`; the starting
+worktree was clean. Verification used `git status --short`,
+`git branch --show-current` and `git rev-parse HEAD`. All edits remain unstaged
+and uncommitted; no Git/GitHub publication action was performed.
+
+The ordinary Match renderer read `details["immediate_candidate_values"]` through
+the default raw scalar format for rates, unlike the established numeric percentage
+arithmetic in `result_presentation._percentage`. A private `_candidate_value` cell
+helper now handles missing values, converts exact numeric rates using that arithmetic,
+and HTML-escapes the result. It retains the existing `.2f` point branch and literal
+fallback. `ordinary_result_numbers.py`, its defaults/callers and
+`result_presentation.py` are unchanged. No shared Search method semantics, rollout
+formatting, schemas, catalog messages, routes, forms or Product operations change.
+
+| Retained rate | German | English |
+| --- | --- | --- |
+| `0.94` | `94,00%` | `94.00%` |
+| `0.96` | `96,00%` | `96.00%` |
+| `0.875` | `87,50%` | `87.50%` |
+| `0.125` | `12,50%` | `12.50%` |
+| `1`, `1.0` | `100,00%` | `100.00%` |
+| `0`, `0.0` | `0,00%` | `0.00%` |
+| `-0.0`, `-0.00001` | `-0,00%` | `-0.00%` |
+| `0.9999999` | `100,00%` | `100.00%` |
+| `0.0000001` | `0,00%` | `0.00%` |
+| `0.01125` | `1,12%` | `1.12%` |
+
+These are ordinary Python float rounding results, including signed zero and rounded
+endpoints. No Decimal, clamping, endpoint special case or rollout policy is introduced.
+Text `"0.94"` and `"94.00%"` remains exactly that text in both locales. Boolean
+`True`/`False` remains literal; missing and `None` remain localized unavailable.
+
+### Regression-first evidence and environment
+
+Before Product edits, both delivered-HTTP controlled screenshot cases failed:
+German `0,94` versus `94,00%`, English `0.94` versus `94.00%`. Their genuine retained
+Report owns the page/downloads; only its disposable display projection receives the
+explicit screenshot scalars. These are not engine-produced scores. The existing
+point expectations `2.06 / 1.24 / 1.22 / 1.16` and decimal-comma equivalents remain.
+
+Environment: Windows 11 `10.0.26300`, PowerShell **5.1.26100.9711**, 64-bit CPython
+**3.13.7**, pytest **9.0.3**, pytest-xdist **3.8.0**, Ruff **0.15.17**. Interpreter:
+`C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe`.
+`skatmind.__file__` resolves to this checkout's `src/skatmind/__init__.py`. Only
+disposable source-tree data and isolated browser profiles were used; no installed
+UAT environment or real managed data was accessed.
+
+```powershell
+$scratch = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode'
+Test-Path -LiteralPath $scratch
+py -3.13 -m pytest tests/test_analysis_explanations_web.py -k controlled_match_screenshot -q --tb=short -p scripts.validation_pytest --validation-report="$scratch\issue302-before.json"
+py -3.13 -m pytest tests/test_ordinary_result_numbers.py tests/test_candidate_comparison_layout.py tests/test_analysis_explanations_web.py -q --tb=short -p scripts.validation_pytest --validation-report="$scratch\issue302-focused.json"
+py -3.13 -m pytest tests/test_ordinary_result_numbers.py tests/test_candidate_comparison_layout.py tests/test_analysis_explanations_web.py -q --tb=short -p scripts.validation_pytest --validation-report="$scratch\issue302-focused-02.json"
+py -3.13 -m ruff check src/skatmind/app_web/match_report_rendering.py tests/test_ordinary_result_numbers.py tests/test_candidate_comparison_layout.py tests/test_analysis_explanations_web.py scripts/verify_ordinary_result_numbers.py
+```
+
+* Before: **two expected failures, nine deselected, 9.36s**.
+* First complete three-module run: **88 passed / two failed, 64.81s**. The new Null
+  collision fixtures omitted the required `game_value`; supplying `23` corrected
+  their setup without changing Product semantics. An initial scoped Ruff probe
+  (the command above without the browser script) also found one overlong test line;
+  wrapping it corrected lint.
+* Corrected complete three-module run: **90 passed, 86.55s**; scoped Ruff passed.
+  These are overlapping executions, not additional distinct tests.
+
+New literal expectations cover all acceptance examples, integer/float endpoints,
+signed zero, near-endpoint/Python rounding, missing cells, `None`, both booleans,
+numeric-looking/preformatted/empty/HTML-sensitive strings and repeated concurrent
+locales. Renamed Match tests deliberately replace their former raw-fraction policy;
+generic already-formatted candidate-table tests remain lossless literal tests.
+Independent point, label, accessibility, empty-state and immutability checks remain.
+
+Controlled distinct rates `0.12501` and `0.12504` both display `12.50%`, but retain
+their values, unique recommendation and rank/quality behavior for Grand and both
+Null roles. The distinct-point `1.2421875`/`1.240234375` collision regression remains.
+Genuine Match HTTP coverage separately executes two Games, reopens the older Report,
+checks explicit C8/C7/C9 values/order and C8 recommendation, concurrent request locales,
+native `de -> en -> de` return, exact canonical Result and Report-for-Learning bytes,
+unchanged recording bytes/Report identity, and three language-profile saves only.
+Genuine shared Search HTTP, shared percentage/equality and separate rollout tests
+remain sentinels.
+
+### Complete affected-module inventory
+
+The starting inventory is the **27 parallel modules plus one exclusive module**
+from #301's point follow-up above. The sole Product caller remains
+`task_first_match_rendering._reports()`; the new helper is private to that renderer.
+There is no new shared-helper caller or dependency requiring expansion. The inventory
+retains Match source/generation/navigation checks, older-Report ownership, canonical
+downloads, native/enhanced language behavior, shared/rollout sentinels and strict
+rename, packaging and localization assertions without relaxing inventories.
+
+Exact full commands (line-wrapped only for readability):
+
+```powershell
+py -3.13 -m pytest `
+  tests/test_ordinary_result_numbers.py `
+  tests/test_candidate_comparison_layout.py `
+  tests/test_analysis_explanations_web.py `
+  tests/test_analysis_download_details.py `
+  tests/test_recorded_decision_context_web.py `
+  tests/test_review_return_labels.py `
+  tests/test_match_evidence_navigation.py `
+  tests/test_match_game_navigation.py `
+  tests/test_task_first_match_and_learning_workflow.py `
+  tests/test_task_first_stateful_rendering.py `
+  tests/test_match_learning_report_discoverability.py `
+  tests/test_match_analysis_exports.py `
+  tests/test_match_analysis_report_source_export.py `
+  tests/test_frontend_language_switching.py `
+  tests/test_language_view_continuity.py `
+  tests/test_language_switch_context.py `
+  tests/test_task_first_language_preservation.py `
+  tests/test_operation_feedback_language.py `
+  tests/test_rollout_result_presentation.py `
+  tests/test_match_rollout_web.py `
+  tests/test_guided_frontend_result_presentation.py `
+  tests/test_equal_best_immediate.py `
+  tests/test_complete_frontend_localization.py `
+  tests/test_frontend_localization_foundation.py `
+  tests/test_guided_frontend_packaging.py `
+  tests/test_packaging_and_distribution.py `
+  tests/test_skatmind_rename.py `
+  -q -n 2 --dist=loadfile --max-worker-restart=0 -p scripts.validation_pytest `
+  --validation-report="$scratch\issue302-parallel.json" --durations=10 --tb=short -rs
+py -3.13 -m pytest tests/test_match_analysis_action_placement.py -q -p scripts.validation_pytest --validation-report="$scratch\issue302-serial.json" --durations=10 --tb=short -rs
+```
+
+Parallel: **720 passed in 197.54s**. After both workers and browser verification
+exited, exclusive serial: **25 passed in 29.79s**. Total: **745 distinct passing
+tests in 28 complete modules, zero failures/skips**. The development passes above
+and documentation-sensitive repeats below overlap this inventory.
+
+### Bounded browser verification
+
+```powershell
+py -3.13 scripts/verify_ordinary_result_numbers.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "$scratch\issue302-browser-01"
+py -3.13 scripts/verify_ordinary_result_numbers.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --output "$scratch\issue302-browser-02"
+```
+
+Final `-02`: **six cases passed in 87.723s**, actual headless Microsoft Edge
+**156.0.4314.50**. Initial `-01` passed in **97.257s**; its desktop inline-span
+`clientWidth` was zero, so final instrumentation uses nonzero bounding widths and
+parent-cell overflow measurements. This was a verifier measurement refinement,
+not a Product/browser failure. Both runs use the same six bounded fixtures.
+
+Two genuine Session cases, two genuine Match cases and two explicitly labelled
+**controlled display projection** Match cases each cover JavaScript disabled/enabled,
+actual language buttons `de -> en -> de`, and both 1365 x 900 desktop and 390 x 900
+narrow layouts. Fresh profiles retain default 100% zoom, device pixel ratio and
+visual viewport scale `1`; resizing is not zoom acceptance. Every candidate has
+visible text/nonzero width, and cell/document overflow checks pass. Representative
+German/English desktop/narrow screenshots were inspected for readable tables.
+
+* Genuine Match C8/C7/C9: points `12,00 / 10,62 / 9,50` and `12.00 / 10.62 / 9.50`;
+  rates `100,00% / 87,50% / 87,50%` and `100.00% / 87.50% / 87.50%`.
+* Controlled CQ/C10/C8/C7: points `2,06 / 1,24 / 1,22 / 1,16` and
+  `2.06 / 1.24 / 1.22 / 1.16`; rates `94,00% / 96,00% / 100,00% / 58,00%` and
+  `94.00% / 96.00% / 100.00% / 58.00%`. These display scalars do not replace the
+  genuine retained Report, C8 recommendation or exports.
+* Genuine shared Session: unchanged CJ/SJ equal-best order and played-SJ assessment,
+  with `100,00% / 6,00 / 6` and `100.00% / 6.00 / 6`.
+
+Evidence under `$scratch\issue302-browser-02` includes `evidence.json`, **36 PNGs**,
+display values/layout measurements, older/newer Report IDs, phase/request counters,
+and **36 actual native downloads** with byte lengths and SHA-256 values. Every emitted
+available anchor downloads bytes identical to its canonical retained artifact; separate
+HTTP GET checks verify those routes too. Match provides Result and Report-for-Learning;
+Session provides Request and Result. The selected older Report, full Report-store order,
+candidate order and recommendation survive every language return.
+
+| Phase | Two Session cases | Four Match cases (two controlled-display) |
+| --- | --- | --- |
+| Disposable fixture recording | 34 Session saves; two creation Profile saves | 52 Match saves; four creation Profile saves |
+| Deliberate baseline analysis | two genuine Session analyses | eight genuine Match analyses |
+| Explicit language changes | six Profile saves | twelve Profile saves |
+| Passive views, layout checks, disclosures and downloads | zero operations/writes | zero operations/writes |
+
+The **18 language-profile saves** are separate from six creation-profile saves.
+Passive activity adds no analysis, preparation, import, recording, Catalog or Snapshot
+writes; all non-Profile managed bytes and genuine retained Reports remain identical.
+Controlled display projection adds no execution/write. No Learning workflow is opened
+or prepared. This is developer verification, not installed maintainer UAT or a repeat
+of the prior full acceptance sequence.
+
+### Changed files and final local gate
+
+Exactly eight files change:
+
+* Product: `src/skatmind/app_web/match_report_rendering.py`.
+* Tests: `tests/test_ordinary_result_numbers.py`,
+  `tests/test_candidate_comparison_layout.py`, `tests/test_analysis_explanations_web.py`.
+* Browser verifier: `scripts/verify_ordinary_result_numbers.py`.
+* Documentation: this file, `docs/match_report_learning_discoverability.md`, and
+  `docs/unified_local_frontend_guided_analysis_and_results.md`.
+
+After documentation, repeat complete documentation-sensitive modules, review the
+complete tracked/new-file diff and empty index, then run the explicit final Quick:
+
+```powershell
+py -3.13 -m pytest tests/test_skatmind_rename.py tests/test_packaging_and_distribution.py tests/test_guided_frontend_packaging.py tests/test_frontend_localization_foundation.py tests/test_complete_frontend_localization.py -q -n 2 --dist=loadfile --max-worker-restart=0 -p scripts.validation_pytest --validation-report="$scratch\issue302-documentation.json" --durations=10 --tb=short -rs
+git diff
+git status --short
+git diff --cached --stat
+git diff --check
+$env:PATH = 'C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313;' + $env:PATH
+$env:TEMP = $scratch
+$env:TMP = $scratch
+.\scripts\check.ps1 -Mode Quick
+```
+
+Final repeat results/timings and the generated `$scratch\skatmind-check-*` Quick
+log directory are recorded in the completion handoff without a post-gate edit.
+Quick covers Ruff, packaged-schema parity and input examples only. No local Full,
+full regression/generated-output/distribution certification or installed acceptance
+is claimed.
+
+**Locally validated; exact-commit hosted CI and installed targeted acceptance
+pending.** Keep #302 open for exact-commit branch/main `check` and
+`v1-supported-platform-matrix`, followed by installed targeted acceptance of
+percentages, language return and JavaScript-disabled behavior. #292–#301 remain
+complete within their accepted scopes. Keep #208 open: UAT-01 is not globally
+accepted and UAT-02–12 remain paused. Broader design and Learning product-policy
+questions remain separate. Full maintainer UAT and current architecture/code analysis
+with treatment of material findings remain required before v1.0.0. Release preparation
+is not authorized.

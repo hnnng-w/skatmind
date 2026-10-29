@@ -425,13 +425,16 @@ UAT-02–12 remain paused. Release preparation is not authorized. All work uses
 disposable source-tree data; installed UAT data is untouched. Changes remain unstaged
 and uncommitted, with no Git/GitHub publication.
 
-## Ordinary Report numeric localization (Issue #301)
+## Ordinary Report numeric localization (Issues #301 and #302)
 
 The ordinary Match candidate table localizes its retained typed numeric cells
 at display time. The installed-feedback follow-up renders numeric
 `expected_point_swing` cells with Python `.2f` (including integer points), while
-preserving the underlying numeric precision. It preserves raw `win_rate` precision:
-English `0.125` becomes German `0,125`, not a percentage. Result and Report-for-Learning
+preserving the underlying numeric precision. Issue #302 displays exact numeric
+`win_rate` values using `float(rate) * 100`, Python `.2f`, the request-local decimal
+separator and one `%`: English `12.50%`, German `12,50%` for retained `0.125`.
+Missing values remain unavailable; booleans and escaped strings remain literal.
+Result and Report-for-Learning
 downloads remain canonical and byte-identical across language changes. Whole-game
 rollout formatting retains its separate existing policy. See
 [ordinary analysis number formatting](ordinary_analysis_number_formatting.md) for
@@ -439,8 +442,9 @@ the two producer paths, executed-fixture evidence and complete verification inve
 
 The maintainer accepted localization, shared guided formatting, native language
 return and canonical downloads on `f665d36761f439b96ae7ec351c3b8ce6059f03f9`;
-excessive Match point digits prompted this narrow refinement. Those acceptances
-remain valid for that build. #292–#300 remain complete. #301 and #208 remain open
-pending new exact-commit hosted CI and installed targeted follow-up on Match point
-display and language/native return; no complete Learning workflow acceptance is
-repeated or changed by numeric presentation.
+excessive Match point digits prompted the accepted two-decimal refinement. Issue #301
+is now complete, including installed point display, language return and native operation.
+#292–#301 remain complete within their accepted scopes. #302 remains open for
+exact-commit hosted CI and installed targeted acceptance of percentages, language
+return and JavaScript-disabled behavior. #208 remains open; no complete Learning
+workflow acceptance is repeated or changed by numeric presentation.

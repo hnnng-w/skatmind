@@ -2,6 +2,7 @@
 
 import copy
 from concurrent.futures import ThreadPoolExecutor
+from html import escape
 from threading import Barrier
 
 import pytest
@@ -103,7 +104,7 @@ def test_immediate_tie_explanation_and_cells_keep_python_two_decimal_rounding(
     assert retained.result.to_dict()["document"] == document
 
 
-def test_match_point_precision_preserves_raw_rates_signed_zero_booleans_and_literal_text():
+def test_match_percentages_preserve_point_precision_signed_zero_booleans_and_literal_text():
     rows = [dict(card="C7", expected_point_swing=-1.23456789, win_rate=1.23456789e-7),
             dict(card="C8", expected_point_swing=-0.0, win_rate=False),
             dict(card="C9", expected_point_swing="literal 1.25", win_rate=None)]
@@ -117,7 +118,7 @@ def test_match_point_precision_preserves_raw_rates_signed_zero_booleans_and_lite
             "validation.field.card", "result.point_swing", "result.win_rate")], [
             [f'{card_name(locale, "C7")} (C7)',
              "-1,23" if locale == "de" else "-1.23",
-             "1,23456789e-07" if locale == "de" else "1.23456789e-07"],
+             "0,00%" if locale == "de" else "0.00%"],
             [f'{card_name(locale, "C8")} (C8)', "-0,00" if locale == "de" else "-0.00", "False"],
             [f'{card_name(locale, "C9")} (C9)', "literal 1.25",
              text(locale, "status.unavailable")]])
@@ -133,7 +134,7 @@ def test_match_point_precision_preserves_raw_rates_signed_zero_booleans_and_lite
     (-0.004, "-0.00"), (None, None), (True, "True"), (False, "False"),
     ("literal 1.25", "literal 1.25"), ("2.0599999999999996", "2.0599999999999996"),
 ))
-def test_match_point_policy_keeps_defensive_values_and_independent_rate_precision(value, expected):
+def test_match_point_policy_keeps_defensive_values_alongside_percentages(value, expected):
     rows = [dict(card=card, expected_point_swing=value, win_rate=rate)
             for card, rate in (("CQ", 0.125), ("C10", 1.0), ("C8", 0), ("C7", 0.0))]
     state = {"reports": [], "selected_report": {"report_kind": "decision_analysis",
@@ -146,10 +147,87 @@ def test_match_point_policy_keeps_defensive_values_and_independent_rate_precisio
                   else expected)
         assert_candidates(render_match_reports_v1(state, locale), [text(locale, key) for key in (
             "validation.field.card", "result.point_swing", "result.win_rate")], [
-            [f'{card_name(locale, "CQ")} (CQ)', points, "0,125" if locale == "de" else "0.125"],
-            [f'{card_name(locale, "C10")} (C10)', points, "1,0" if locale == "de" else "1.0"],
-            [f'{card_name(locale, "C8")} (C8)', points, "0"],
-            [f'{card_name(locale, "C7")} (C7)', points, "0,0" if locale == "de" else "0.0"]])
+            [f'{card_name(locale, "CQ")} (CQ)', points, "12,50%" if locale == "de" else "12.50%"],
+            [f'{card_name(locale, "C10")} (C10)', points,
+             "100,00%" if locale == "de" else "100.00%"],
+            [f'{card_name(locale, "C8")} (C8)', points, "0,00%" if locale == "de" else "0.00%"],
+            [f'{card_name(locale, "C7")} (C7)', points, "0,00%" if locale == "de" else "0.00%"]])
+    assert state == original
+
+
+@pytest.mark.parametrize("value,english,german", (
+    (0.94, "94.00%", "94,00%"), (0.96, "96.00%", "96,00%"),
+    (0.875, "87.50%", "87,50%"), (0.125, "12.50%", "12,50%"),
+    (1, "100.00%", "100,00%"), (1.0, "100.00%", "100,00%"),
+    (0, "0.00%", "0,00%"), (0.0, "0.00%", "0,00%"),
+    (-0.0, "-0.00%", "-0,00%"), (-0.00001, "-0.00%", "-0,00%"),
+    (0.0000001, "0.00%", "0,00%"), (0.9999999, "100.00%", "100,00%"),
+    (0.01125, "1.12%", "1,12%"), (None, None, None),
+    (True, "True", "True"), (False, "False", "False"),
+    ("0.94", "0.94", "0.94"), ("94.00%", "94.00%", "94.00%"),
+    ("literal 1.25", "literal 1.25", "literal 1.25"), ("", "", ""),
+    ('<b>94.00% & "rate"</b>', '<b>94.00% & "rate"</b>', '<b>94.00% & "rate"</b>'),
+))
+def test_match_rate_policy_explicit_values_missing_cells_and_concurrent_locales(
+    value, english, german,
+):
+    state = {"reports": [], "selected_report": {"report_kind": "decision_analysis",
+        "details": {"immediate_candidate_values": [
+            dict(card="CQ", expected_point_swing=2.0599999999999996, win_rate=value),
+            dict(card="C8")]}}, "download_availability": {"report_result": False}}
+    original = copy.deepcopy(state)
+
+    def render(locale):
+        html = render_match_reports_v1(state, locale)
+        unavailable = text(locale, "status.unavailable")
+        rate = german if locale == "de" else english
+        assert_candidates(html, [text(locale, key) for key in (
+            "validation.field.card", "result.point_swing", "result.win_rate")], [
+            [f'{card_name(locale, "CQ")} (CQ)', "2,06" if locale == "de" else "2.06",
+             unavailable if rate is None else rate],
+            [f'{card_name(locale, "C8")} (C8)', unavailable, unavailable]])
+        if type(value) is str:
+            assert f'<span class="candidate-value">{escape(value)}</span>' in html
+            assert "<b>" not in html
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        list(pool.map(render, ("de", "en", "de") * 3))
+    assert state == original
+
+
+@pytest.mark.parametrize("game,role", (
+    ("grand", "defender"), ("null", "declarer"), ("null", "defender"),
+))
+def test_match_percentage_collision_keeps_exact_objective_order_and_recommendation(game, role):
+    # Arithmetic-only rates collide in display; Null still prefers the lower win fraction.
+    values = scalar_values((6.0, 5.0) if game == "grand" else (5.0, 6.0))
+    values["CJ"]["win_rate"], values["SJ"]["win_rate"] = 0.12501, 0.12504
+    document = scalar_document(values, game, role)
+    rows = document["analysis_report"]
+    review = build_post_game_review_summary("SJ", rows, game, role, game_value=23)
+    assert retained_immediate_best_cards(document) == ("CJ",)
+    assert [row["win_rate"] for row in rows] == [0.12501, 0.12504]
+    assert [row["is_recommended"] for row in rows] == [True, False]
+    assert review["better_card_count"] == 1 and review["actual_card_rank"] == 2
+    state = {"reports": [], "selected_report": {"report_kind": "decision_analysis",
+        "details": {"recommendation": document["recommendation"], "post_game_review": review,
+                    "immediate_candidate_values": rows}},
+        "download_availability": {"report_result": False}}
+    original = copy.deepcopy(state)
+    for locale in ("de", "en", "de"):
+        html = render_match_reports_v1(state, locale)
+        rate = "12,50%" if locale == "de" else "12.50%"
+        points = ("6.00", "5.00") if game == "grand" else ("5.00", "6.00")
+        assert_candidates(html, [text(locale, key) for key in (
+            "validation.field.card", "result.point_swing", "result.win_rate")], [
+            [f'{card_name(locale, card)} ({card})',
+             point.replace(".", ",") if locale == "de" else point, rate]
+            for card, point in zip(("CJ", "SJ"), points, strict=True)])
+        recommendation = html.split('class="workflow-table-scroll')[0]
+        assert f'{card_name(locale, "CJ")} (CJ)' in recommendation
+        assert f'{card_name(locale, "SJ")} (SJ)' not in recommendation
+        assert retained_immediate_best_cards(document) == ("CJ",)
+        assert build_post_game_review_summary("SJ", rows, game, role, game_value=23) == review
     assert state == original
 
 
@@ -173,8 +251,8 @@ def test_match_rounding_collision_preserves_distinct_scores_order_and_recommenda
         points = "1,24" if locale == "de" else "1.24"
         assert_candidates(html, [text(locale, key) for key in (
             "validation.field.card", "result.point_swing", "result.win_rate")], [
-            [f'{card_name(locale, "CJ")} (CJ)', points, "0,0" if locale == "de" else "0.0"],
-            [f'{card_name(locale, "SJ")} (SJ)', points, "0,1" if locale == "de" else "0.1"]])
+            [f'{card_name(locale, "CJ")} (CJ)', points, "0,00%" if locale == "de" else "0.00%"],
+            [f'{card_name(locale, "SJ")} (SJ)', points, "10,00%" if locale == "de" else "10.00%"]])
         recommendation = html.split('class="workflow-table-scroll')[0]
         assert f'{card_name(locale, "CJ")} (CJ)' in recommendation
         assert f'{card_name(locale, "SJ")} (SJ)' not in recommendation

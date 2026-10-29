@@ -102,9 +102,7 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
                     columns_html=tuple(translated(locale, key) for key in (
                         "validation.field.card", "result.point_swing", "result.win_rate")),
                     rows_html=tuple((cards_summary(locale, (candidate["card"],)), *(
-                        translated(locale, "status.unavailable") if candidate.get(key) is None
-                        else escape(ordinary_scalar(candidate[key],
-                            ".2f" if key == "expected_point_swing" else "", locale=locale))
+                        _candidate_value(candidate.get(key), key, locale)
                         for key in ("expected_point_swing", "win_rate")))
                         for candidate in candidates), identity="match-candidates") + '</div>')
         for key, label_key in (("declarer_points", "guided.declarer_points"),
@@ -132,6 +130,14 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
                 content += f'<p><a href="/matches/api/v1/exports/{kind.replace("_", "-")}.json" download>' + translated(
                     locale, f"task.download.{kind}") + '</a></p>'
     return content
+
+
+def _candidate_value(value, key, locale):
+    if value is None:
+        return translated(locale, "status.unavailable")
+    if key == "win_rate" and type(value) in {int, float}:
+        return escape(ordinary_scalar(float(value) * 100, ".2f", locale=locale) + "%")
+    return escape(ordinary_scalar(value, ".2f" if key == "expected_point_swing" else "", locale=locale))
 
 
 def _explanation_details(rows, locale):

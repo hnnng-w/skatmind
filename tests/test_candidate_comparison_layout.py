@@ -125,7 +125,7 @@ def test_unique_best_and_lower_candidate_statuses_remain_in_original_order(local
 
 @pytest.mark.parametrize("locale", ("de", "en"))
 @pytest.mark.parametrize("count", (0, 1, 3))
-def test_match_curated_scalar_shape_keeps_fractions_and_empty_state(locale, count):
+def test_match_curated_scalar_shape_shows_percentages_and_keeps_empty_state(locale, count):
     rows = [{"card": "C7", "expected_point_swing": -1.25, "win_rate": 0.125},
             {"card": "C9", "expected_point_swing": 0, "win_rate": 0},
             {"card": "C8", "expected_point_swing": None, "win_rate": None}][:count]
@@ -140,8 +140,9 @@ def test_match_curated_scalar_shape_keeps_fractions_and_empty_state(locale, coun
             "validation.field.card", "result.point_swing", "result.win_rate")], [
                 [f'{card_name(locale, "C7")} (C7)',
                  "-1,25" if locale == "de" else "-1.25",
-                 "0,125" if locale == "de" else "0.125"],
-                [f'{card_name(locale, "C9")} (C9)', "0,00" if locale == "de" else "0.00", "0"],
+                 "12,50%" if locale == "de" else "12.50%"],
+                [f'{card_name(locale, "C9")} (C9)', "0,00" if locale == "de" else "0.00",
+                 "0,00%" if locale == "de" else "0.00%"],
                 [f'{card_name(locale, "C8")} (C8)', text(locale, "status.unavailable"),
                  text(locale, "status.unavailable")]][:count])
         region, = [n for n in Hierarchy(rendered).nodes if n["attrs"].get("role") == "region"]
