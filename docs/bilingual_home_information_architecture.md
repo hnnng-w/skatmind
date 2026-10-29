@@ -2,6 +2,14 @@
 
 ## Status
 
+Issue #303 changes the operative `home.task.analyze_decision.summary` to **Enter a
+card situation yourself and analyze one decision**, with the corresponding German
+catalog text. The five tasks, order, groups, destinations and primary navigation
+remain exact. Independent analysis now directly links to the recorded chooser;
+manual completed-game review is distinguished from persistent individual recording.
+See [the current entry contract](home_and_recorded_review_navigation.md#independent-analysis-and-manual-review-entry-issue-303).
+Historical #217 scope guidance below remains historical.
+
 Issue #255 restores an ordinary fifth Learning task card within the unchanged
 five-task/three-group contract. It supersedes only #229's compact plain-link
 exception and clarifies collection purpose; see the current navigation guide below.

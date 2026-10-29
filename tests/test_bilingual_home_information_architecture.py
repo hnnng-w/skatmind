@@ -196,9 +196,9 @@ def test_short_introductions_replace_generic_related_panels_without_losing_contr
         assert '<a href="/matches/current">Resolve prerequisite</a>' in html
 
     analyze = render_app_page_v1(state, "/analyze", frontend=_frontend("en"))
-    assert "current or retrospective Card choice" in analyze
+    assert "Enter your hand and the visible game situation." in analyze
     review = render_app_page_v1(state, "/review", frontend=_frontend("en"))
-    assert "has not already been recorded" in review
+    assert "In the guided editor, enter the full deal and play history." in review
 
     german = render_app_content_page_v1(
         state,

@@ -635,7 +635,6 @@ def render_review_workflow_v1(state: ProcessLocalFrontendWorkflowStateV1) -> str
         _process_local_notice(),
         _error_summary(messages),
         _result(state, page="review"),
-        f'<section class="workflow-choice"><h2>{_t("guided.review.choose")}</h2><p>{_t("guided.review.enter")}</p><p>{_t("guided.import")}</p></section>',
     ]
     if draft is None and state.imported_request is None:
         content.append(

@@ -199,6 +199,187 @@ bytes. Explicit language preference saving retains its separate profile behavior
 
 ## Session review and manual compatibility
 
+### Independent analysis and manual review entry (Issue #303)
+
+`GET /analyze` keeps its form directly available. A short **Enter a situation
+yourself** heading and hand/visible-situation introduction identify manual input.
+One native button-styled **Choose a decision from a recording** link outside the
+form reaches `/review/recorded`. The mode legend asks what to assess in that
+situation; `live_decision` and `post_game_review` retain their existing meanings.
+The operative Home analysis description now says to enter a card situation yourself
+and analyze one decision. The five tasks, order, destinations and navigation remain.
+
+`GET /review` and the chooser's existing manual link use **Review a completed game
+manually**. Its one introduction scopes full-deal/full-history input specifically
+to the guided editor. The redundant choice heading and introductory import caption
+are removed; the existing normal-completion scope and JSON-import guidance remain.
+Historical and retrospective Position imports, editable process-local drafts,
+repeat execution, retained Results and downloads remain supported.
+
+Two secondary native links outside forms lead to the recorded chooser and to
+`/sessions` (**Record a game and continue later**, introduced as the persistently
+saved recording alternative). These links neither transfer nor save the manual
+draft. The truthful process-local notice remains. Returning through `/review`
+continues the accepted step or imported state without starting/resetting the editor.
+Analyze and Review retain separate state; unsent browser input gains no persistence.
+
+The existing chooser still opens only through `POST /review/open-recording` with
+its exact family, opaque handle and generation. Discovery remains bounded;
+openability is not decision eligibility. Same-source reuse, changed-source conflicts,
+explicit Reload, selected Reports and canonical downloads keep their existing guards.
+The correction adds no route, form, execution or Product write to passive entry.
+Both locales use the existing CSS and language/error-focus mechanisms.
+
+Current derived inventories are **9 static routes, 7 navigation entries, 5 Home
+tasks, 73 POST routes, 125 form definitions and 2,117 matching catalog keys**.
+Four source-specific presentation keys replace two superseded choice-copy keys;
+all route/form counts remain exact. Earlier inventories below are historical.
+
+#### Scoped developer verification
+
+The clean starting branch was `bug/303-analysis-review-entry`, HEAD
+`1c6381a7f2678ac7e562ced6f25950c97fb0f9ce`. Source-tree checks used CPython
+3.13.7. Evidence is outside the repository at
+`C:/Users/HENNIN~1/AppData/Local/Temp/opencode` (abbreviated `$E` below).
+
+The new delivered-HTTP module first ran before Product edits. Its first run had
+14 failures in 16.32s, including test-authoring assumptions about the Request
+wrapper, existing Result-before-summary placement and the Learning preparation
+patch target. Those assumptions were corrected against the actual contracts.
+The second pre-implementation run had 14 expected failures in 15.30s for the
+missing entry copy/links. No Product guard was relaxed to make a test pass.
+
+```powershell
+$E = 'C:/Users/HENNIN~1/AppData/Local/Temp/opencode'
+# First and corrected pre-implementation runs; use red, then red2 for $run.
+$run = 'red'
+py -3.13 -m pytest tests/test_analysis_review_entry_paths.py -q `
+  -o cache_dir="$E/303-pytest-cache" --basetemp="$E/303-$run-tmp" `
+  --junitxml="$E/303-$run.xml"
+# The red2 command additionally used --tb=short.
+
+py -3.13 -m pytest tests/test_analysis_review_entry_paths.py `
+  tests/test_recorded_review_navigation.py tests/test_bilingual_home_information_architecture.py `
+  tests/test_frontend_localization_foundation.py -q --tb=short `
+  -o cache_dir="$E/303-pytest-cache" --basetemp="$E/303-focused-tmp" `
+  --junitxml="$E/303-focused.xml"
+```
+
+That four-module pass was **80 passed in 41.27s**. The complete caller-derived
+inventory below then passed **705 tests in 143.11s**, with **zero skips**:
+
+```powershell
+py -3.13 -m pytest -n 2 --dist=loadfile --max-worker-restart=0 `
+  tests/test_analysis_review_entry_paths.py `
+  tests/test_recorded_review_navigation.py `
+  tests/test_recording_entry_settings_navigation.py `
+  tests/test_bilingual_home_information_architecture.py `
+  tests/test_unified_workflow_visual_contract.py `
+  tests/test_guided_frontend_web.py `
+  tests/test_guided_frontend_json_transfer.py `
+  tests/test_guided_frontend_execution.py `
+  tests/test_frontend_validation_preservation.py `
+  tests/test_frontend_language_switching.py `
+  tests/test_language_switch_context.py `
+  tests/test_language_view_continuity.py `
+  tests/test_task_first_language_preservation.py `
+  tests/test_guided_frontend_packaging.py `
+  tests/test_packaging_and_distribution.py `
+  tests/test_frontend_localization_foundation.py `
+  tests/test_complete_frontend_localization.py `
+  tests/test_skatmind_rename.py `
+  tests/test_completed_trick_input_grouping.py `
+  tests/test_analysis_download_details.py `
+  tests/test_learning_entry_purpose.py `
+  tests/test_guided_position_form.py `
+  tests/test_guided_historical_review_form.py `
+  tests/test_unified_local_app_contracts.py `
+  tests/test_unified_local_app_web.py -q --tb=short --durations=15 `
+  -o cache_dir="$E/303-pytest-cache" --basetemp="$E/303-complete-tmp" `
+  --junitxml="$E/303-complete.xml"
+```
+
+The 25 modules cover the changed shared entry/guided renderers, operative Home
+copy, exact routes/forms/catalogs, localization/package resources, strict rename
+inventory, normal mode/editor/import execution, retained Results/downloads,
+guarded Session/Match opening and source conflicts, and native/enhanced language
+and validation paths. Direct shared-renderer callers additionally include completed
+Trick controls, retained analysis downloads and Learning entry presentation.
+None is a configured exclusive module. Both parallel workers exited normally.
+The strict rename inventory passed without an inventory edit.
+
+A focused Ruff check found four overlong lines in the new test module only.
+Line wrapping corrected them, followed by the complete module rerun:
+
+```powershell
+py -3.13 -m pytest tests/test_analysis_review_entry_paths.py -q --tb=short `
+  -o cache_dir="$E/303-pytest-cache" --basetemp="$E/303-final-entry-tmp" `
+  --junitxml="$E/303-final-entry.xml"
+```
+
+It passed **14 tests in 17.48s**, zero skips. These focused passes repeat tests
+within the 705 distinct passing tests; they do not increase distinct coverage.
+After the evidence documentation update, the complete strict inventory module
+also passed again: **8 tests in 2.55s**, zero skips:
+
+```powershell
+py -3.13 -m pytest tests/test_skatmind_rename.py -q --tb=short `
+  -o cache_dir="$E/303-pytest-cache" --basetemp="$E/303-final-inventory-tmp" `
+  --junitxml="$E/303-final-inventory.xml"
+```
+
+The final explicit Quick and diff checks are reported with their actual external
+log paths in the handoff. The approved task-specific routine does not run local Full:
+
+```powershell
+function python { py -3.13 @args }
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+```
+
+The disposable probe command was:
+
+```powershell
+py -3.13 "$E/303_probe.py" "$E/303-browser-a"
+```
+
+An initial probe import failed before browser/fixture creation because its external
+script lacked the repository-root import path. After correcting only that disposable
+script, all **8 cells, 172 actions and 48 measurements** passed. The probe used
+headless **Microsoft Edge 156.0.4314.50**, German/English, application JavaScript
+enabled/disabled, and emulated CSS viewports **1365 x 900** and **390 x 844**.
+Fresh profiles retained default 100% zoom, measured DPR 1 and visual viewport
+scale 1. No enlarged browser zoom was exercised; viewport emulation is not zoom.
+Entry labels and controls fit without document horizontal overflow. Representative
+screenshots and unscaled top crops were inspected.
+
+There were **104 pointer** and **68 natural Tab/Enter** actions; programmatic focus
+was not used. Actual delivered HTML, request paths, exact open-form fields, visible
+focus and next Tab are retained in `303-browser-a/evidence.json` and `summary.json`.
+All cells exercised the independent link, explicit genuine Session and Match opening,
+manual entry and its recording alternative, accepted step-2 or imported Position
+return, both language directions, a real retained Analyze Result, and rejected empty
+hand feedback. Error autofocus and next Tab to its hand link were observed; language
+return kept the existing script-mode-specific focus behavior and rejected values.
+Canonical Analyze downloads remained byte-identical.
+
+| Separate phase | Observed operations/writes across eight cells |
+| --- | --- |
+| Deliberate disposable fixture creation | 64 Session saves, 8 Match saves, 8 profile saves; 32 discovery calls |
+| Passive navigation, 96 measured actions | 104 bounded discovery calls; zero execution, Learning preparation or persistent writes; file hashes and modification times unchanged |
+| Explicit recording opening, 16 actions | 16 guarded open POSTs and 16 source loads; zero execution or writes |
+| Manual setup, 12 actions | Four explicit starts plus four accepted Player steps; four native multipart Position imports; process-local only |
+| Explicit synthetic Analyze setup | 8 actual executions, separately counted; zero Product saves |
+| Rejected native Analyze submission, 8 actions | 8 validation POSTs; zero execution or writes |
+| Explicit language selection, 40 actions | 40 profile saves; zero Product saves or execution |
+
+This is source-tree developer evidence. **Locally validated; new exact-commit
+hosted CI and installed targeted acceptance pending.** Keep #303 open for branch
+and main `check` / `v1-supported-platform-matrix` and installed targeted entry-path
+acceptance. Keep #208 open: UAT-01 is not globally accepted, UAT-02–12 remain paused.
+Full maintainer UAT and current architecture/code analysis with treatment of material
+findings remain required before v1.0.0; Release preparation is not authorized.
+
 Session opening returns to `/sessions/current#recorded-decisions`. The existing
 #221 list, observation/selection/exporter, frozen information, explicit executor,
 source labels, and downloads are reused directly. An eligible saved own decision

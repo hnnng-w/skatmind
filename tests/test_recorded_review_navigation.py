@@ -513,12 +513,15 @@ def test_open_security_no_active_context_and_exact_query_allowlist(localized_ser
         assert browser.request("POST", form["action"], form["values"], headers=headers)[0] == 403
 
 
-def test_manual_import_and_real_result_survive_chooser(localized_server):
+@pytest.mark.parametrize("example_name", (
+    "grand_post_game_mistake_actual_card.json", "historical_grand_declarer_concession.json",
+))
+def test_manual_import_and_real_result_survive_chooser(localized_server, example_name):
     import http.client
     browser = Browser(localized_server)
     page = browser.page("/review")
     form = Forms(page).find("/actions/review/import-json")
-    example = Path(__file__).parents[1] / "examples/grand_post_game_mistake_actual_card.json"
+    example = Path(__file__).parents[1] / "examples" / example_name
     data = example.read_bytes()
     boundary = "navigation-manual-import"
     body = b""
@@ -537,6 +540,15 @@ def test_manual_import_and_real_result_survive_chooser(localized_server):
     response.read()
     connection.close()
     page = browser.page("/review")
+    imported = localized_server.app_context.review_state
+    assert imported.imported_request is not None and imported.latest_successful_result is None
+    assert not any(f["action"] == "/actions/review/start" for f in Forms(page).forms)
+    main = page.split('<main', 1)[1].split('</main>', 1)[0]
+    for destination in ("/sessions", "/review/recorded"):
+        browser.page(re.search(rf'href="({destination})"', main)[1])
+        browser.page("/analyze")
+        page = browser.page("/review")
+        assert localized_server.app_context.review_state is imported
     page = follow(browser, browser.submit(Forms(page).find("/actions/review/run-imported")))
     state = localized_server.app_context.review_state
     result = browser.request("GET", "/downloads/review/result.json")[2]
@@ -545,3 +557,5 @@ def test_manual_import_and_real_result_survive_chooser(localized_server):
     page = browser.page("/review")
     assert localized_server.app_context.review_state is state
     assert browser.request("GET", "/downloads/review/result.json")[2] == result
+    assert text("en", "guided.run_imported_again") in page
+    assert 'href="/downloads/review/request.json"' in page

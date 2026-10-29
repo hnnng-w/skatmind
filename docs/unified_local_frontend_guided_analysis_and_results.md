@@ -99,8 +99,13 @@ discards drafts, imports, and Results unless the user explicitly downloaded JSON
 
 ## Position form
 
-`/analyze` begins with the normal choice between a current decision and one
-actually played retrospective Card. The normal sections are:
+Issue #303 identifies `/analyze` as **Enter a situation yourself**, with one short
+hand/visible-situation introduction and a native button-styled link to the saved
+recording chooser outside the form. The form stays directly available. Its mode
+legend asks what to assess in this situation; the current decision and actually
+played retrospective Card options retain their values and execution behavior.
+Retained Result presentation and validation-focus priority remain intact.
+The normal sections are:
 
 ```text
 Your role and the contract
@@ -263,6 +268,17 @@ describe Search as perfect play, or describe rule-based behavior as a learned
 prediction.
 
 ## Historical editor
+
+Issue #303 labels `/review` **Review a completed game manually**, also used on the
+chooser's manual link. Its concise full-deal/full-history explanation explicitly
+applies to the guided editor; the Historical and retrospective Position JSON-import
+paths below remain separate supported variants. Secondary native links outside
+forms reach the recorded chooser and `/sessions`, the persistently saved recording
+alternative. They do not save or transfer the manual draft. The existing process-local
+notice, editable draft, repeat-execution and export lifecycles remain valid.
+GET `/review` resumes the available step/import/Result without starting or resetting
+the editor. See [entry navigation](home_and_recorded_review_navigation.md#independent-analysis-and-manual-review-entry-issue-303)
+for the source distinction and scoped verification.
 
 The normal `/review` editor has exactly seven server-rendered steps:
 
