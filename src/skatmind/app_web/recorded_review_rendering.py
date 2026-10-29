@@ -11,6 +11,9 @@ def render_recorded_review_chooser_v1(discoveries, *, profile, locale, active_so
     """Render strict discovery classifications, never decision eligibility or Requests."""
     body = '<div id="recorded-review-chooser">' + paragraph(locale, "recordings.introduction")
     body += paragraph(locale, "recordings.lifetime")
+    body += '<p class="entry-actions"><a class="button-link secondary" href="/review">'
+    body += translated(locale, "recordings.manual") + '</a></p>'
+    body += paragraph(locale, "recordings.manual_help")
     for family in RECORDING_FAMILIES:
         view = discoveries[family].view
         body += '<section><h2>' + translated(locale, f"recordings.{family}") + '</h2>'
@@ -30,10 +33,8 @@ def render_recorded_review_chooser_v1(discoveries, *, profile, locale, active_so
                           + '</button></form>')
                 body += render_delete_action(item, locale, "review")
             body += '</article>'
-        body += f'<p><a href="/{family}">' + translated(
-            locale, f"navigation.{family}") + '</a></p></section>'
-    body += '<p><a href="/review">' + translated(locale, "recordings.manual") + '</a></p>'
-    body += paragraph(locale, "recordings.manual_help")
+        body += (f'<p class="entry-actions"><a class="button-link secondary" href="/{family}">'
+                 + translated(locale, f"navigation.{family}") + '</a></p></section>')
     if any(item.status != "available" for discovery in discoveries.values()
            for item in discovery.view.items):
         body += '<p><a href="/about">' + translated(locale, "recordings.storage_help") + '</a></p>'

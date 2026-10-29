@@ -558,6 +558,7 @@
   "guided.review.progress": "Step {step} of 7",
   "guided.review.run": "Validate and run Review",
   "guided.review.runtime_help": "Search-dependent reviews use the existing Historical Review budget profile. Samples can increase runtime; seeds preserve reproducibility. Timing is not a quality guarantee.",
+  "guided.review.saved_names_help": "Choose a saved name or enter a name.",
   "guided.review.scope": "Manual editor scope",
   "guided.review.scope_help": "The guided editor emits normal completion only. Existing supported shortened endings, continuations, party-wide Claims, and Position post-game variants remain available through strict JSON import.",
   "guided.review.selections": "Review selections",

@@ -996,6 +996,17 @@ main p { max-width: 72ch; }
   background: var(--green-dark);
 }
 
+.entry-actions .button-link.secondary {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: #68776e;
+}
+
+.entry-actions .button-link.secondary:is(:hover, :active) {
+  color: var(--ink);
+  background: #e6ece8;
+}
+
 .guided-empty-state {
   border-left: 0.35rem solid var(--gold);
 }

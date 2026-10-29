@@ -20,7 +20,7 @@ def localized_server(tmp_path):
     yield from _server.__wrapped__(tmp_path)
 
 
-def entry_link(page, destination, caption, *, button=False):
+def entry_link(page, destination, caption, *, secondary=True):
     tree = Hierarchy(page)
     links = [node for node in tree.nodes if node["tag"] == "a"
              and node["attrs"].get("href") == destination
@@ -31,14 +31,19 @@ def entry_link(page, destination, caption, *, button=False):
     assert tree.visible(link)
     assert not any(parent["tag"] == "form" for parent in link["parents"])
     assert not {"role", "onclick", "tabindex", "target", "download"} & link["attrs"].keys()
-    assert ("button-link" in link["attrs"].get("class", "").split()) == button
+    classes = link["attrs"].get("class", "").split()
+    assert "button-link" in classes
+    assert ("secondary" in classes) == secondary
+    if secondary:
+        assert any("entry-actions" in parent["attrs"].get("class", "").split()
+                   for parent in link["parents"])
     return link["attrs"]["href"]
 
 
-def recorded_link(page, locale, *, button=False):
+def recorded_link(page, locale, *, primary=False):
     caption = ("Choose a decision from a recording" if locale == "en"
                else "Entscheidung aus Aufzeichnung auswählen")
-    return entry_link(page, "/review/recorded", caption, button=button)
+    return entry_link(page, "/review/recorded", caption, secondary=not primary)
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))
@@ -54,7 +59,7 @@ def test_delivered_independent_entry_has_direct_form_and_one_native_recorded_act
                else "Situation selbst eingeben")
     assert [node["text"] for node in tree.nodes if node["tag"] == "h2"].count(heading) == 1
     assert page.count(text(locale, "entry.decision")) == 1
-    recorded_link(page, locale, button=True)
+    recorded_link(page, locale, primary=True)
     assert page.index('href="/review/recorded"', page.index("<main")) < page.index(
         'id="workflow-form"')
     form = tree.by_id("workflow-form")
@@ -119,7 +124,7 @@ def test_emitted_analysis_modes_still_execute_their_exact_request(localized_serv
     assert state.draft.analysis_mode == mode
     assert state.latest_successful_request.document["analysis_mode"] == mode
     assert Forms(page).find(form["action"])["values"]["analysis_mode"] == mode
-    recorded_link(page, "en", button=True)
+    recorded_link(page, "en", primary=True)
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))
@@ -142,7 +147,7 @@ def test_entry_navigation_keeps_result_rejected_values_and_language_error_priori
     assert "autofocus" in summary["attrs"]
     assert page.index('class="result-presentation"') < page.index('class="error-summary"')
     assert page.index('class="error-summary"') < page.index('id="workflow-form"')
-    browser.page(recorded_link(page, locale, button=True))
+    browser.page(recorded_link(page, locale, primary=True))
     page = browser.page("/analyze")
     other = "en" if locale == "de" else "de"
     language = Forms(page).find("/actions/profile/language")
@@ -150,7 +155,7 @@ def test_entry_navigation_keeps_result_rejected_values_and_language_error_priori
     page = (follow(browser, enhanced_switch(browser, page,
             envelope(page, form["action"], {"hand": []}), other)) if enhanced
             else switch(browser, page, other))
-    recorded_link(page, other, button=True)
+    recorded_link(page, other, primary=True)
     assert text(other, "validation.summary.heading") in page
     assert "hand" not in Forms(page).find(form["action"])["values"]
     assert localized_server.app_context.analyze_state is state
@@ -201,7 +206,7 @@ def test_passive_entry_links_preserve_files_and_require_exact_recording_open_for
                         forbidden)
     browser = Browser(localized_server)
     initial = (context.analyze_state, context.review_state)
-    page = browser.page(recorded_link(browser.page("/analyze"), "en", button=True))
+    page = browser.page(recorded_link(browser.page("/analyze"), "en", primary=True))
     page = browser.page(entry_link(page, "/review", text("en", "recordings.manual")))
     browser.page(entry_link(page, "/sessions", text("en", "entry.recording_action")))
     page = browser.page(recorded_link(browser.page("/review"), "en"))
@@ -219,3 +224,36 @@ def test_passive_entry_links_preserve_files_and_require_exact_recording_open_for
     assert not any(f["action"] == "/sessions/review-decision"
                    or f["values"].get("operation") == "analyze_decision" for f in Forms(page).forms)
     assert {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()} == before
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+@pytest.mark.parametrize("populated", (False, True))
+def test_chooser_manual_action_precedes_both_lists_and_family_entries_match(
+    localized_server, locale, populated,
+):
+    context = localized_server.app_context
+    if populated:
+        for index in range(6):
+            _save_session(context.managed_stateful.root("sessions") / f"synthetic-{index}.json",
+                          session_id=f"synthetic-session-{index}")
+        saved_partial_match(localized_server)
+    browser = Browser(localized_server)
+    page = browser.request("GET", "/review/recorded",
+                           headers={"Accept-Language": locale})[2].decode()
+    entry_link(page, "/review", text(locale, "recordings.manual"))
+    for family in ("sessions", "matches"):
+        entry_link(page, "/" + family, text(locale, "navigation." + family))
+    tree = Hierarchy(page)
+    manual = next(node for node in tree.within("recorded-review-chooser", "a")
+                  if node["attrs"]["href"] == "/review")
+    headings = tree.within("recorded-review-chooser", "h2")
+    assert [node["text"] for node in headings] == [text(locale, "recordings." + family)
+                                                 for family in ("sessions", "matches")]
+    assert tree.nodes.index(manual) < tree.nodes.index(headings[0]) < tree.nodes.index(headings[1])
+    assert page.index(text(locale, "recordings.lifetime")) < page.index(
+        'href="/review"', page.index("<main"))
+    assert page.count(text(locale, "recordings.manual_help")) == 1
+    forms = [f for f in Forms(page).forms if f["action"] == "/review/open-recording"]
+    assert len(forms) == (7 if populated else 0)
+    for form in forms:
+        assert set(form["values"]) == {"family", "handle", "generation", "_frontend_form_instance"}

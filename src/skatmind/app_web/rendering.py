@@ -370,6 +370,7 @@ def render_app_page_v1(
     storage_root: Path | None = None,
     analyze_state: ProcessLocalFrontendWorkflowStateV1 | None = None,
     review_state: ProcessLocalFrontendWorkflowStateV1 | None = None,
+    review_player_names: tuple[str, ...] = (),
     frontend: BrowserSafeFrontendProfileStateV1 | None = None,
     profile: LocalFrontendProfileV1 | None = None,
     settings_editor=None,
@@ -383,6 +384,12 @@ def render_app_page_v1(
         raise ValueError("Private storage Path is allowed only on About.")
     if route not in {"/about", "/settings"} and profile is not None:
         raise ValueError("Private profile data is allowed only on Settings.")
+    if type(review_player_names) is not tuple or any(
+        type(name) is not str for name in review_player_names
+    ):
+        raise ValueError("Review player names must be an immutable tuple of display text.")
+    if route != "/review" and review_player_names:
+        raise ValueError("Review player names are allowed only on manual Review.")
     if analyze_state is not None and type(analyze_state) is not ProcessLocalFrontendWorkflowStateV1:
         raise ValueError("analyze_state must be exact process-local workflow state.")
     if review_state is not None and type(review_state) is not ProcessLocalFrontendWorkflowStateV1:
@@ -397,7 +404,8 @@ def render_app_page_v1(
     elif route == "/review":
         title = _text(frontend_state, "page.review.title")
         content = render_review_workflow_v1(
-            review_state or ProcessLocalFrontendWorkflowStateV1(), locale=frontend_state.locale)
+            review_state or ProcessLocalFrontendWorkflowStateV1(),
+            player_names=review_player_names, locale=frontend_state.locale)
     elif route == "/about":
         if not isinstance(storage_root, Path):
             raise ValueError("About rendering requires one private storage Path.")

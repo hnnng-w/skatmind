@@ -904,6 +904,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         storage_root = self.server.app_context.managed_home.root if route == "/about" else None
         with self.server.app_context.lock:
             frontend = self._frontend_state()
+            profile = self.server.app_context.frontend_profile.document
             rendered = render_app_page_v1(
                 self.server.app_context.browser_state,
                 route,
@@ -911,9 +912,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 analyze_state=self.server.app_context.analyze_state,
                 review_state=self.server.app_context.review_state,
                 frontend=frontend,
-                profile=(
-                    self.server.app_context.frontend_profile.document
-                    if route == "/settings" else None
+                profile=profile if route == "/settings" else None,
+                review_player_names=(
+                    tuple(player.display_name for player in profile.known_players)
+                    if route == "/review" and profile is not None else ()
                 ),
                 settings_editor=self.server.app_context.settings_editor,
                 return_to=route,

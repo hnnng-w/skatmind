@@ -231,11 +231,178 @@ The correction adds no route, form, execution or Product write to passive entry.
 Both locales use the existing CSS and language/error-focus mechanisms.
 
 Current derived inventories are **9 static routes, 7 navigation entries, 5 Home
-tasks, 73 POST routes, 125 form definitions and 2,117 matching catalog keys**.
-Four source-specific presentation keys replace two superseded choice-copy keys;
-all route/form counts remain exact. Earlier inventories below are historical.
+tasks, 73 POST routes, 125 form definitions and 2,118 matching catalog keys**.
+The initial correction added four source-specific keys and retired two superseded
+choice-copy keys; the installed-feedback follow-up adds one saved-name hint.
+All route/form counts remain exact. Earlier inventories below are historical.
+
+#### Installed-feedback follow-up
+
+The maintainer accepted the other tested behavior at
+`9e7cfb7240d6ae7abf295f9f842773b718882ba5` on
+`bug/303-analysis-review-entry`. This bounded follow-up preserves those acceptances.
+It addresses entry-action affordance, manual-entry placement and saved-name
+convenience at manual editor step 1.
+
+The two manual Review alternatives, the chooser's manual entry and its per-family
+Session/Match entry links now share secondary button-link styling scoped to
+`.entry-actions`. They inherit the existing wrapping, spacing, radius and 44px
+minimum target height, with the established white secondary surface, dark text,
+border, hover surface and visible native keyboard focus. The Analyze action retains
+its green primary appearance. All remain native anchors with their original
+captions/destinations, outside forms. The chooser's single manual-entry block now
+follows the introductory explanation, above both recording lists; family ordering
+and guarded recording-opening POSTs remain unchanged.
+
+Manual editor step 1 offers saved display names through one native `datalist`
+shared by its three existing editable text inputs. A short translated hint appears
+only when names exist. The server projects only an immutable tuple of names from
+the already loaded validated profile under the existing context lock. The generic
+renderer still rejects a complete private profile on `/review`. Suggestions copy
+text without allocating seats or binding profile Player identities. Empty labels,
+new free text, duplicate-name validation, fixed Historical IDs and accepted draft
+labels retain their existing behavior; a later profile rename only changes future
+suggestions. See the [guided editor](unified_local_frontend_guided_analysis_and_results.md#historical-editor).
+
+German startup remains an explicit **Deutsch** preference, persisted by the existing
+language action and included when the UAT builder copies the profile. Saved English
+still takes precedence over the browser language. The observed English startup alone
+does not establish a lost-language regression, and this follow-up changes no locale
+resolution or persistence policy.
+
+##### Follow-up verification
+
+The follow-up started from the clean branch/HEAD above and used CPython 3.13.7.
+Evidence remains outside the repository under
+`C:/Users/HENNIN~1/AppData/Local/Temp/opencode` (`$E` in these commands).
+
+```powershell
+$E = 'C:/Users/HENNIN~1/AppData/Local/Temp/opencode'
+py -3.13 -m pytest tests/test_analysis_review_entry_paths.py tests/test_manual_review_saved_names.py -q --tb=short -o cache_dir="$E/303-followup-cache" --basetemp="$E/303-followup-red-tmp" --junitxml="$E/303-followup-red.xml"
+py -3.13 -m pytest tests/test_analysis_review_entry_paths.py tests/test_manual_review_saved_names.py tests/test_recorded_review_navigation.py tests/test_frontend_localization_foundation.py -q --tb=short -o cache_dir="$E/303-followup-cache" --basetemp="$E/303-followup-focused-tmp" --junitxml="$E/303-followup-focused.xml"
+```
+
+Regression-first delivered HTTP produced **20 failed / 13 passed in 31.42s**:
+19 failures demonstrated missing styling/suggestions; one test incorrectly expected
+German for an invalid profile and was corrected to the unchanged English fallback.
+The implementation then passed **85 tests in 57.33s**. A focused Ruff check found
+four overlong new-test lines; wrapping them corrected that check.
+
+The following **31 complete modules passed 779 tests in 156.18s, zero skips**:
+
+```powershell
+py -3.13 -m pytest -n 2 --dist=loadfile --max-worker-restart=0 `
+  tests/test_analysis_review_entry_paths.py `
+  tests/test_manual_review_saved_names.py `
+  tests/test_recorded_review_navigation.py `
+  tests/test_recording_entry_settings_navigation.py `
+  tests/test_bilingual_home_information_architecture.py `
+  tests/test_unified_workflow_visual_contract.py `
+  tests/test_guided_frontend_web.py `
+  tests/test_guided_frontend_json_transfer.py `
+  tests/test_guided_frontend_execution.py `
+  tests/test_frontend_validation_preservation.py `
+  tests/test_frontend_language_switching.py `
+  tests/test_language_switch_context.py `
+  tests/test_language_view_continuity.py `
+  tests/test_task_first_language_preservation.py `
+  tests/test_guided_frontend_packaging.py `
+  tests/test_packaging_and_distribution.py `
+  tests/test_frontend_localization_foundation.py `
+  tests/test_complete_frontend_localization.py `
+  tests/test_skatmind_rename.py `
+  tests/test_completed_trick_input_grouping.py `
+  tests/test_analysis_download_details.py `
+  tests/test_learning_entry_purpose.py `
+  tests/test_guided_position_form.py `
+  tests/test_guided_historical_review_form.py `
+  tests/test_unified_local_app_contracts.py `
+  tests/test_unified_local_app_web.py `
+  tests/test_frontend_profile_persistence.py `
+  tests/test_profile_driven_form_contracts.py `
+  tests/test_profile_driven_settings_web.py `
+  tests/test_settings_seat_setup_web.py `
+  tests/test_profile_driven_creation_packaging.py -q --tb=short --durations=15 `
+  -o cache_dir="$E/303-followup-cache" --basetemp="$E/303-followup-complete-tmp" `
+  --junitxml="$E/303-followup-complete.xml"
+```
+
+The inventory retains the initial #303 rendering/navigation, mode/editor/import,
+Result/download, language/validation, package/localization and exact-inventory
+callers. The new HTTP module and five profile/settings/packaging modules additionally
+cover the locked display-name projection and unchanged profile boundary. The 85-test
+pass repeats tests within the **779 distinct passing tests**. Both parallel workers
+exited; no selected module belongs to the configured exclusive set. Strict inventories
+were retained, with only the catalog count increased by the single new hint.
+
+Browser commands used disposable source-tree fixtures only:
+
+```powershell
+# Preliminary native-picker diagnostics, separately retained for attempts 1 through 8.
+py -3.13 "$E/303_native_picker_probe.py" "$E/303-followup-picker-8"
+# Full presentation/navigation/free-text matrix with separately recorded picker attempts.
+py -3.13 "$E/303_followup_browser.py" "$E/303-followup-browser-a"
+```
+
+The preliminary script evolved during diagnosis; each invocation used the same
+command shape with the corresponding `303-followup-picker-N` output directory.
+Attempts 1/2/3/5/8 did not commit a native suggestion: Enter reached the form.
+Attempt 1 then failed its field lookup after that transition. Headed attempts
+4/6/7 stopped at a foreground-ownership assertion before sending OS keys. Headless
+and headed DevTools approaches, the arrow indicator, and a separate focused-page
+emulation attempt did not establish picker selection. These are unsuccessful
+verification attempts, not passing picker evidence or a proven Product defect.
+Each diagnostic deliberately created three synthetic profile names; its 24 total
+fixture updates are separate from the instrumented matrix below.
+
+The matrix completed **8 German/English × JavaScript enabled/disabled × desktop/narrow
+cells**, **128 actions** (48 pointer, 80 natural Tab/Enter), and **64 measurements**
+in headless **Microsoft Edge 156.0.4314.50**. Each chooser contained 12 genuine saved
+Sessions and one saved Match. Initial viewport screenshots and delivered HTML were
+captured before verifier scrolling/focusing. Computed secondary surfaces, borders,
+padding, wrapping, targets of at least 44px, the unchanged green primary action,
+hover color and native focus passed. Manual entry appeared exactly once above both
+lists. Free text, optional empty labels, duplicate-name rejection, corrected step-2
+progression, accepted-state navigation and language/error return passed. File hashes
+and modification times stayed unchanged during passive navigation and text entry.
+Every matrix cell ended with a saved German preference.
+
+**Native picker selection was verified in 0 of 8 cells.** The real Tab/character/
+ArrowDown/Enter attempts typed only `Alex`, never the full suggested name. They
+reached the existing form with that free text; the probe explicitly returned to
+step 1 and tested free-text entry separately. No DOM assignment, fill operation or
+free-text success is counted as suggestion-picker coverage. Actual native pointer
+selection and keyboard suggestion selection, particularly without JavaScript,
+remain required in the bounded installed follow-up.
+
+The measured CSS viewports were **1365 x 900** and **390 x 844**, fresh-profile
+default 100% zoom, DPR 1 and visual viewport scale 1. Viewport emulation is not
+enlarged browser zoom; enlarged zoom was not tested. Representative screenshots
+were inspected and no document horizontal overflow was detected. See
+`303-followup-browser-a/evidence.json`, `summary.json`, delivered HTML and PNGs.
+
+| Instrumented phase | Observed operations/writes across eight cells |
+| --- | --- |
+| Explicit fixtures | 96 Session saves, 8 Match saves, 32 profile saves (24 name additions and 8 initial language preferences) |
+| Passive navigation, 80 actions | 80 bounded discovery calls; zero Product/profile writes, execution or Learning preparation |
+| Native picker attempts, separately recorded | Eight existing label POSTs with the typed prefix; process-local only; zero persistent writes |
+| Manual setup, 24 actions | Eight starts, eight explicit Back actions after picker attempts, eight accepted free-text steps; process-local only |
+| Duplicate-name validation, 8 actions | Eight rejected label POSTs; zero persistent writes or execution |
+| Explicit language selection, 16 actions | 12 profile saves and four unchanged-language actions; zero Product writes |
+
+The final explicit Quick and diff-check results/log paths are recorded in the handoff.
+Local Full is excluded by the approved task-specific routine. The earlier functional
+acceptances remain; #303 stays open for new exact-commit branch/main `check` and
+`v1-supported-platform-matrix` plus the bounded installed follow-up, including the
+unverified native picker paths. #208 stays open; UAT-01 is not globally accepted,
+UAT-02–12 remain paused, and full maintainer UAT plus current architecture/code
+analysis with treatment of material findings remain required before v1.0.0.
+Release preparation is not authorized.
 
 #### Scoped developer verification
+
+The following is the initial #303 implementation evidence, before the installed-
+feedback follow-up above.
 
 The clean starting branch was `bug/303-analysis-review-entry`, HEAD
 `1c6381a7f2678ac7e562ced6f25950c97fb0f9ce`. Source-tree checks used CPython

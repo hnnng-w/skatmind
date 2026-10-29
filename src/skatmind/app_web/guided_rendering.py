@@ -495,17 +495,30 @@ def _review_step(
     state: ProcessLocalFrontendWorkflowStateV1,
     draft: HistoricalFormDraftV1,
     messages: dict[str, tuple[str, ...]],
+    player_names: tuple[str, ...],
 ) -> str:
     progress = (
         f'<p class="wizard-progress" role="status">{_t("guided.review.progress", step=draft.step)}: '
         f'{_t(f"guided.review.step.{draft.step}")}</p>'
     )
     if draft.step == 1:
+        suggestions = (
+            f'<p id="review-player-name-help">{_t("guided.review.saved_names_help")}</p>'
+            '<datalist id="review-player-names">'
+            + ''.join(f'<option value="{_e(name)}"></option>' for name in player_names)
+            + '</datalist>'
+            if player_names else ""
+        )
+        list_attributes = (
+            ' list="review-player-names" aria-describedby="review-player-name-help"'
+            if player_names else ""
+        )
         body = f'''<form id="workflow-form" method="post" action="{REVIEW_UPDATE_PLAYERS_ACTION_ROUTE_PATH}">{_revision(state)}
           <h2>{_t("guided.review.step.1")}</h2><p>{_t("guided.review.players_help")}</p>
-          {_field_group(messages, "forehand_label", f'<label>{_t("creation.seat.forehand")}<input name="forehand_label" value="{_e(draft.players[0].player_label or "")}"></label>')}
-          {_field_group(messages, "middlehand_label", f'<label>{_t("creation.seat.middlehand")}<input name="middlehand_label" value="{_e(draft.players[1].player_label or "")}"></label>')}
-          {_field_group(messages, "rearhand_label", f'<label>{_t("creation.seat.rearhand")}<input name="rearhand_label" value="{_e(draft.players[2].player_label or "")}"></label>')}
+          {suggestions}
+          {_field_group(messages, "forehand_label", f'<label>{_t("creation.seat.forehand")}<input name="forehand_label" value="{_e(draft.players[0].player_label or "")}"{list_attributes}></label>')}
+          {_field_group(messages, "middlehand_label", f'<label>{_t("creation.seat.middlehand")}<input name="middlehand_label" value="{_e(draft.players[1].player_label or "")}"{list_attributes}></label>')}
+          {_field_group(messages, "rearhand_label", f'<label>{_t("creation.seat.rearhand")}<input name="rearhand_label" value="{_e(draft.players[2].player_label or "")}"{list_attributes}></label>')}
           <button type="submit">{_t("common.action.continue")}</button></form>'''
     elif draft.step == 2:
         body = (
@@ -626,9 +639,13 @@ def _review_step(
 
 
 @localized_render
-def render_review_workflow_v1(state: ProcessLocalFrontendWorkflowStateV1) -> str:
+def render_review_workflow_v1(
+    state: ProcessLocalFrontendWorkflowStateV1, *, player_names: tuple[str, ...] = (),
+) -> str:
     if type(state) is not ProcessLocalFrontendWorkflowStateV1:
         raise ValueError("state must be exact process-local workflow state.")
+    if type(player_names) is not tuple or any(type(name) is not str for name in player_names):
+        raise ValueError("Player name suggestions must be an immutable tuple of display text.")
     messages = _messages(state)
     draft = state.draft if type(state.draft) is HistoricalFormDraftV1 else None
     content = [
@@ -642,7 +659,7 @@ def render_review_workflow_v1(state: ProcessLocalFrontendWorkflowStateV1) -> str
             f'<button type="submit">{_t("guided.review.start")}</button></form>'
         )
     if draft is not None:
-        content.append(_review_step(state, draft, messages))
+        content.append(_review_step(state, draft, messages, player_names))
     content.extend(
         (
             f'<aside class="scope-note"><h2>{_t("guided.review.scope")}</h2><p>{_t("guided.review.scope_help")}</p></aside>',

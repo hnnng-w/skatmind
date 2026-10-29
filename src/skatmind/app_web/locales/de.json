@@ -558,6 +558,7 @@
   "guided.review.progress": "Schritt {step} von 7",
   "guided.review.run": "Prüfen und Auswertung starten",
   "guided.review.runtime_help": "Suchabhängige Auswertungen nutzen das bestehende historische Auswertungsbudget. Stichproben können die Laufzeit erhöhen; Startwerte bewahren Reproduzierbarkeit. Laufzeit ist keine Qualitätsgarantie.",
+  "guided.review.saved_names_help": "Gespeicherten Namen auswählen oder einen Namen eingeben.",
   "guided.review.scope": "Umfang des manuellen Editors",
   "guided.review.scope_help": "Der geführte Editor erzeugt nur normalen Abschluss. Bestehende unterstützte verkürzte Enden, Fortsetzungen, parteiweite Ansprüche und nachträgliche Positionsvarianten bleiben über strengen JSON-Import verfügbar.",
   "guided.review.selections": "Auswahl prüfen",

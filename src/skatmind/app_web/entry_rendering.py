@@ -15,9 +15,11 @@ def render_entry_introduction_v1(route: str, locale: str) -> str:
                 + introduction + '<p><a class="button-link" href="/review/recorded">'
                 + translated(locale, "entry.recorded_action") + '</a></p>')
     if route == "/review":
-        return (introduction + '<p><a href="/review/recorded">'
-                + translated(locale, "entry.recorded_action") + '</a></p><p>'
+        return (introduction + '<p class="entry-actions">'
+                + '<a class="button-link secondary" href="/review/recorded">'
+                + translated(locale, "entry.recorded_action") + '</a></p><p class="entry-actions">'
                 + translated(locale, "entry.recording_introduction") + ' '
-                + '<a href="/sessions">' + translated(locale, "entry.recording_action")
+                + '<a class="button-link secondary" href="/sessions">'
+                + translated(locale, "entry.recording_action")
                 + '</a></p>')
     return introduction

@@ -280,6 +280,24 @@ GET `/review` resumes the available step/import/Result without starting or reset
 the editor. See [entry navigation](home_and_recorded_review_navigation.md#independent-analysis-and-manual-review-entry-issue-303)
 for the source distinction and scoped verification.
 
+The bounded #303 installed-feedback follow-up gives these secondary entry links a
+scoped button-style surface and moves the chooser's manual entry above its recording
+lists, preserving the maintainer's earlier functional acceptances. Step 1 now offers
+saved display names through native `input[list]` controls and one shared `datalist`.
+The single localized hint is conditional on available names; absent, empty or invalid
+profiles retain the ordinary free-text guidance. The already loaded validated profile
+supplies a request-local immutable tuple of display names only, read under the existing
+lock. No complete private profile is passed to the manual page renderer.
+
+Selecting a suggestion copies editable display text into a seat field. It does not
+allocate a seat automatically, bind a profile Player, save a profile or create a
+recording. The POST still submits only the existing three optional label fields and
+normal revision/instrumentation guards. Names are escaped in HTML, all three `list`
+associations resolve to the same unique datalist, and the accepted draft owns its
+labels independently of later profile edits. Previously offered names remain valid
+free text. Fixed Historical Player IDs, uniqueness validation, rejected values,
+language return, imports, Results and exports remain unchanged.
+
 The normal `/review` editor has exactly seven server-rendered steps:
 
 ```text
