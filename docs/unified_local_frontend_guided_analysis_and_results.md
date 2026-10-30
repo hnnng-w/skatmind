@@ -127,6 +127,24 @@ declaration dependencies, Trick order and winners, Turn Phase, all three
 remaining hand sizes, information visibility, and actual-Card legality. The
 frontend does not infer hidden ownership or calculate Game value independently.
 
+### Suit-grouped Card palettes (Issue #304)
+
+All eight `_card_palette()` callers now share the compact native Card faces and
+container-based balanced **8/4/2/1** suit layout. This covers Analyze `hand`, `skat`,
+`public_declarer_cards`, Review's four deal fields and its restricted non-Hand
+discard field. Printed suits are labelled in German/English and empty restricted
+groups are omitted. Guided DOM, keyboard and native submission order stays
+**C/S/H/D**, then **A/10/K/Q/J/9/8/7**. The guided fieldset, selected-count meaning,
+feedback markers and explicit form operations remain owned by the guided adapter.
+Full localized accessible Card names accompany the compact visual faces.
+
+The maintainer accepted #303 A–C on
+`038130df1296675b96a83c4631d7ecb754ebadd1`, including the native saved-name picker,
+JavaScript-disabled operation and zoom. That acceptance remains within #303's
+scope. The newly changed palette layout needs its own installed targeted acceptance.
+See [Issue #304 verification](guided_card_palettes.md) for measured geometry,
+complete module commands, operation accounting and remaining gates.
+
 ### Completed-trick input grouping (Issue #273)
 
 Each of the nine numbered fieldsets contains four local input wrappers in the

@@ -4,6 +4,7 @@ from __future__ import annotations
 from html import escape
 
 from .card_form import CANONICAL_CARD_CONTROLS_V1
+from .compact_card_rendering import compact_card_groups
 from .guided_contracts import (
     ANALYZE_IMPORT_JSON_ACTION_ROUTE_PATH,
     ANALYZE_REQUEST_DOWNLOAD_ROUTE_PATH,
@@ -144,25 +145,22 @@ def _card_palette(
     messages = messages or {}
     selected = set(selected_cards)
     allowed = set(allowed_cards) if allowed_cards is not None else None
-    controls = []
-    for card in CANONICAL_CARD_CONTROLS_V1:
-        if allowed is not None and card.code not in allowed:
-            continue
-        controls.append(
-            '<label class="card-choice">'
-            f'<input type="checkbox" name="{_e(name)}" value="{_e(card.code)}"'
-            f'{_checked(card.code in selected)}>'
-            f'<span>{_e(localized_card_name(card.code))} <code>{_e(card.code)}</code></span></label>'
-        )
+    # Guided native POST order is retained in Request arrays: do not use set-display sorting.
+    groups = tuple(
+        (_m(f"task.card.suit.{suit}"), tuple(
+            card.code for card in CANONICAL_CARD_CONTROLS_V1
+            if card.code[0] == suit and (allowed is None or card.code in allowed)))
+        for suit in "CSHD"
+    )
     target = f' data-validation-group="{_e(name)}"' if feedback_target else ""
     boundary = f'<!-- validation-messages:{_e(name)} -->' if feedback_target else ""
     count_target = f' data-validation-card-count="{_e(name)}"' if feedback_target else ""
     return (
-        f'<fieldset class="card-palette"{target} {_field_attributes(messages, name)}>'
+        f'<fieldset class="card-palette compact-cards" data-balanced-grid{target} {_field_attributes(messages, name)}>'
         f'<legend>{_e(legend)}</legend><p{count_target}>{_t("guided.cards_selected", count=len(selected))}</p>'
-        '<div class="card-grid">'
-        + "".join(controls)
-        + f"</div>{_field_errors(messages, name)}{boundary}</fieldset>"
+        + compact_card_groups(groups, mode="set", name=name, selected=selected,
+                              card_label=localized_card_name)
+        + f"{_field_errors(messages, name)}{boundary}</fieldset>"
     )
 
 

@@ -644,7 +644,10 @@ def test_invalid_review_deal_retains_safe_submitted_cards(
     )
     assert status == 400
     assert b"Check the submitted form" in body
-    assert f'value="{deck[0]}" checked'.encode() in body
+    from test_session_recorded_review_web import Forms
+
+    assert Forms(body.decode()).find(REVIEW_UPDATE_DEAL_ACTION_ROUTE_PATH)["values"][
+        "forehand_hand"] == list(deck[:9])
     with server.app_context.lock:
         state = server.app_context.review_state
     assert state.revision == 2

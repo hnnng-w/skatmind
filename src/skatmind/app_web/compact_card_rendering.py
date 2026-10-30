@@ -6,7 +6,7 @@ from html import escape
 
 from skatmind.deck import get_full_deck
 
-from .stateful_localization import card_name, translated
+from .stateful_localization import card_name, text, translated
 
 _SYMBOLS = {"C": "♣", "S": "♠", "H": "♥", "D": "♦"}
 _DISPLAY_RANKS = ("J", "A", "10", "K", "Q", "9", "8", "7")
@@ -46,18 +46,17 @@ def card_set_display_order(cards):
     return tuple(card for _, group in card_display_groups(cards) for card in group)
 
 
-def compact_card_selector(locale, *, mode, cards=None, selected=(), game_type=None, capacity=1,
-                          name="cards", legend_key=None, guidance_key=None, guidance_values=None,
-                          balanced_grid=False):
+def compact_card_groups(groups, *, mode, name, selected, card_label):
+    """Render caller-ordered, localized suit groups without set sorting or form behavior."""
     if mode not in {"set", "play"}:
         raise ValueError("Card selector mode must be set or play.")
-    cards = tuple(get_full_deck() if cards is None else cards)
-    selected = tuple(selected or ())
-    groups = []
-    for key, group in card_display_groups(cards, game_type):
+    rendered = []
+    for heading, group in groups:
+        if not group:
+            continue
         choices = []
         for card in group:
-            label = escape(card_name(locale, card), quote=True)
+            label = escape(card_label(card), quote=True)
             choices.append(
                 '<label class="compact-card"><input type="'
                 + ("checkbox" if mode == "set" else "radio")
@@ -65,9 +64,20 @@ def compact_card_selector(locale, *, mode, cards=None, selected=(), game_type=No
                 + (' checked' if card in selected else '')
                 + (' required' if mode == "play" else '')
                 + '>' + _card_face(card) + '</label>')
-        groups.append('<div class="compact-card-group"><h4>' + translated(locale, key)
-                      + '</h4><div class="compact-card-choices">'
-                      + ''.join(choices) + '</div></div>')
+        rendered.append('<div class="compact-card-group"><h4>' + escape(heading, quote=True)
+                        + '</h4><div class="compact-card-choices">'
+                        + ''.join(choices) + '</div></div>')
+    return '<div class="compact-card-groups">' + ''.join(rendered) + '</div>'
+
+
+def compact_card_selector(locale, *, mode, cards=None, selected=(), game_type=None, capacity=1,
+                          name="cards", legend_key=None, guidance_key=None, guidance_values=None,
+                          balanced_grid=False):
+    cards = tuple(get_full_deck() if cards is None else cards)
+    selected = tuple(selected or ())
+    groups = compact_card_groups(
+        ((text(locale, key), group) for key, group in card_display_groups(cards, game_type)),
+        mode=mode, name=name, selected=selected, card_label=lambda card: card_name(locale, card))
     summary = ''
     if mode == "set":
         codes = escape(', '.join(card for card in card_set_display_order(cards)
@@ -84,5 +94,5 @@ def compact_card_selector(locale, *, mode, cards=None, selected=(), game_type=No
             locale, guidance_key or "compact.capacity_" + mode,
             **(guidance_values if guidance_values is not None else
                {} if guidance_key else {"capacity": capacity})) + '</p>'
-        '<div class="compact-card-groups">' + ''.join(groups) + '</div>'
+        + groups
         + summary + '<p class="compact-rejected"></p></fieldset>')

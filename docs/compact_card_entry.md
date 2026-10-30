@@ -13,11 +13,20 @@ Suit symbols and ranks have localized full accessible Card names. Submitted
 values remain exact canonical codes. Selection is presentation only.
 
 Issue #248 supersedes the former undeclared-Jacks/trump-first and Null-specific
-**display** ordering. Every compact selector now uses four printed suits, **C/S/H/D**,
+**display** ordering. Session/Match compact selectors use four printed suits, **C/S/H/D**,
 each in **J/A/10/K/Q/9/8/7** order. Filtered palettes omit empty suits and contain
 only the already authorized subset. Printed-suit headings do not assert follow-suit
 legality. DOM and keyboard order agree; `game_type` remains callable-compatible.
 Canonical deck order, trump/Null strengths and legal membership are independent.
+
+Issue #304 shares the neutral `compact_card_groups` presentation with all eight
+guided Analyze/Review palettes. The guided adapter deliberately retains its
+different **A/10/K/Q/J/9/8/7** rank order, because native POST order becomes retained
+Historical/Position arrays. It supplies the allowed groups and localized names,
+and retains its fieldset, legend, count and validation contracts. It opts into the
+existing balanced grid without the Session/Match selection summary or transport.
+See [guided Card palettes](guided_card_palettes.md) for the complete boundary and
+source-tree verification evidence.
 
 The default shared **5em** interactive width accommodates the native control, suit and
 two-digit rank; tiles wrap without stretching per suit. Normal Session set entry
@@ -47,16 +56,18 @@ default Play, change-submit or selection request. The updater tolerates the abse
 | Current/completed Tricks, history, correction before/after traces | Chronological order, never set-sorted |
 
 Only existing read-only symbol consumers share face styling. Plain-text summaries,
-legacy/guided/standalone editors keep their presentation
+legacy/standalone editors keep their presentation
 kind. No producer, source array, Report, Request, Result or download is sorted.
 
 Normal active Session deal, known Skat, discard, and Play use the component.
 Normal Match perspective-hand, original-Skat, discard evidence, and single Play
 use it. Issue #297 places the three optional source editors before next-Play entry
 inside the current Game. Unknown evidence does not block observed Plays.
-Session corrections, public hands, events, advanced ordered Play, guided Analyze/Review,
+Session corrections, public hands, events, advanced ordered Play,
 and standalone surfaces retain their meanings. Shared legacy `card_select` and
 `card_palette` were not globally replaced.
+Guided single-Card selects and ordered Trick entry retain their existing presentation;
+only guided multi-Card palettes use the #304 adapter.
 
 Issue #249 reuses this component for unified Match replacement only, with narrow
 optional field/legend/guidance parameters. It submits singular `card`, offers the
