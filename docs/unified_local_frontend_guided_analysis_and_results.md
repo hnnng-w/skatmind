@@ -141,7 +141,10 @@ Full localized accessible Card names accompany the compact visual faces.
 The maintainer accepted #303 A–C on
 `038130df1296675b96a83c4631d7ecb754ebadd1`, including the native saved-name picker,
 JavaScript-disabled operation and zoom. That acceptance remains within #303's
-scope. The newly changed palette layout needs its own installed targeted acceptance.
+scope. The maintainer subsequently accepted #304 A–D on
+`3d4681b35d6fe7a41cc2a7ed3e5d63def80cfbf6`, including its native operation and
+enlarged browser zoom. Issue #305's separate active-Play/footer boundary requires
+its own exact-commit CI and installed targeted acceptance.
 See [Issue #304 verification](guided_card_palettes.md) for measured geometry,
 complete module commands, operation accounting and remaining gates.
 
@@ -337,6 +340,38 @@ winner, and next-leader replay to the existing observed-trace and rule helpers.
 It appends one chronological Card at a time and can undo only the final play.
 Back preserves valid entered facts; a completed Play step can return to Review
 options without re-entry.
+
+### Active Play selection and wizard navigation (Issue #305)
+
+Active step 5 uses compact native radios in one singular `card` group inside the
+existing append form. `build_historical_play_view_v1()` still owns the actor and
+legal membership. The guided presentation adapter filters those Cards into printed
+**C/S/H/D** groups, with **A/10/K/Q/J/9/8/7** ranks and empty groups omitted. It
+does not derive legality or effective trump suits. Every initial group is empty,
+including a singleton. Pointer, Space and arrow-key selection only change the
+native choice; the explicit Record played Card button appends one chronological
+Play. Native Tab enters and leaves the group rather than visiting every radio.
+
+The group has one `field-card` identity, full localized accessible Card names and
+an explicit feedback boundary outside its tiles. Existing feedback rendering links
+to the group, associates its error text and focuses the initial error summary.
+Rejected unavailable Cards cannot add tiles. Enhanced language return carries one
+offered choice or an explicit empty selection. Native language return retains its
+existing accepted/rejected-state contract; it does not transport an unsent choice.
+Append, Undo and Back still invalidate old language bindings. Back from step 6
+with all 30 Plays renders no Card selector and retains the card-free Continue path.
+
+The shared manual wizard footer retains Reset alone at step 1 and Back at steps
+2–7. Back has the existing secondary role. Footer-scoped start alignment and
+zero child-form margins prevent the taller Reset form from stretching Back or
+adding duplicate spacing. Content-driven height, existing minimum targets and
+natural wrapping retain readable translated text. Back and Reset remain independent
+native forms; unchecked required Reset consent belongs only to Reset.
+
+This active-Play change is separate from #304's accepted eight checkbox palettes.
+See [Issue #305 verification](manual_review_play_and_navigation.md) for the exact
+module inventory, regression-first failures, browser measurements, operation
+accounting and remaining gates.
 
 The bounded manual editor emits only `normal_completion` after exactly 30 legal
 plays. It does not remove broader Historical support. Existing shortened endings,

@@ -1,5 +1,12 @@
 # Guided suit-grouped Card palettes (Issue #304)
 
+**Accepted baseline:** the maintainer accepted #304 A–D at
+`3d4681b35d6fe7a41cc2a7ed3e5d63def80cfbf6`, including all eight checkbox palettes,
+restricted Discards, native operation and enlarged browser zoom. The implementation
+and pending-gate statements below are historical developer evidence. Issue #305's
+[active-Play palette and footer correction](manual_review_play_and_navigation.md)
+is a separate boundary and does not reopen that acceptance.
+
 ## Boundary and implementation
 
 The clean starting checkout was `bug/304-guided-card-palettes` at

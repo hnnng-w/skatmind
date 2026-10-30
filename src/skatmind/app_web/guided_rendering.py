@@ -164,6 +164,27 @@ def _card_palette(
     )
 
 
+def _review_play_palette(
+    legal_cards: tuple[str, ...], messages: dict[str, tuple[str, ...]],
+) -> str:
+    # The authoritative view supplies membership; printed suits retain guided order.
+    groups = tuple(
+        (_m(f"task.card.suit.{suit}"), tuple(
+            card.code for card in CANONICAL_CARD_CONTROLS_V1
+            if card.code[0] == suit and card.code in legal_cards))
+        for suit in "CSHD"
+    )
+    return (
+        '<fieldset class="card-palette compact-cards" data-balanced-grid '
+        f'data-validation-group="card" {_field_attributes(messages, "card")}>'
+        f'<legend>{_t("task.card.choose")}</legend>'
+        + compact_card_groups(groups, mode="play", name="card", selected=(),
+                              card_label=localized_card_name)
+        + _field_errors(messages, "card")
+        + '<!-- validation-messages:card --></fieldset>'
+    )
+
+
 def _card_select(
     name: str,
     current: str | None,
@@ -479,7 +500,7 @@ def _review_back_and_reset(state: ProcessLocalFrontendWorkflowStateV1, draft: Hi
     if draft.step > 1:
         back = (
             f'<form method="post" action="{REVIEW_BACK_ACTION_ROUTE_PATH}">{_revision(state)}'
-            f'<button type="submit">{_t("guided.review.back")}</button></form>'
+            f'<button type="submit" class="secondary">{_t("guided.review.back")}</button></form>'
         )
     reset = (
         f'<form class="reset-form" method="post" action="{REVIEW_RESET_ACTION_ROUTE_PATH}">{_revision(state)}'
@@ -579,7 +600,7 @@ def _review_step(
             f'<button type="submit">{_t("common.action.continue")}</button></form>'
             if view.is_complete
             else f'''<form method="post" action="{REVIEW_APPEND_PLAY_ACTION_ROUTE_PATH}">{_revision(state)}
-             {_field_group(messages, "card", _card_select("card", None, label=_m("task.card.choose"), include_empty=False, allowed_cards=view.legal_cards, field_id="legal-card"))}
+             {_review_play_palette(view.legal_cards, messages)}
             <button type="submit">{_t("task.command.record_play")}</button></form>'''
         )
         body = f'''<section id="workflow-form"><h2>{_t("guided.review.step.5")}</h2>

@@ -28,6 +28,15 @@ existing balanced grid without the Session/Match selection summary or transport.
 See [guided Card palettes](guided_card_palettes.md) for the complete boundary and
 source-tree verification evidence.
 
+Issue #305 separately adopts the neutral renderer for **active manual Review
+step 5**. It offers exactly the authoritative legal subset as required singular
+`card` radios, initially empty even for a singleton. It retains guided
+**C/S/H/D, A/10/K/Q/J/9/8/7** order and the balanced layout. Selection alone has no
+effect; the existing Record played Card button appends once. A complete 30-Play
+page retains its card-free Continue form. See
+[manual Review Play and navigation](manual_review_play_and_navigation.md) for
+feedback, language return, independent Back/Reset and measured browser evidence.
+
 The default shared **5em** interactive width accommodates the native control, suit and
 two-digit rank; tiles wrap without stretching per suit. Normal Session set entry
 (Issues #275/#278) and Play (Issue #281), plus normal Match entry (Issue #294),
@@ -66,8 +75,9 @@ inside the current Game. Unknown evidence does not block observed Plays.
 Session corrections, public hands, events, advanced ordered Play,
 and standalone surfaces retain their meanings. Shared legacy `card_select` and
 `card_palette` were not globally replaced.
-Guided single-Card selects and ordered Trick entry retain their existing presentation;
-only guided multi-Card palettes use the #304 adapter.
+Other guided single-Card selects and ordered Trick entry retain their existing
+presentation. The eight multi-Card palettes use the #304 adapter; the active manual
+Review Play uses its separate #305 adapter.
 
 Issue #249 reuses this component for unified Match replacement only, with narrow
 optional field/legend/guidance parameters. It submits singular `card`, offers the

@@ -493,13 +493,17 @@ def test_manual_historical_legal_card_selector_keeps_its_association_and_options
         ProcessLocalFrontendWorkflowStateV1(draft=draft), locale=locale)
     tree = Hierarchy(page)
     assert_ids_and_labels(tree)
-    select = tree.by_id("legal-card")
-    assert select["attrs"]["name"] == "card"
-    label, control = children(tree, select["parents"][-1])
-    assert control is select and label["attrs"]["for"] == "legal-card"
-    assert label["text"] == text(locale, "task.card.choose")
-    first = next(card for card in CARDS if card in view.legal_cards)
-    assert_card_select(tree, select, locale, first, allowed=view.legal_cards, empty=False)
+    group = tree.by_id("field-card")
+    assert group["tag"] == "fieldset"
+    assert descendants(tree, group, "legend")[0]["text"] == text(locale, "task.card.choose")
+    controls = descendants(tree, group, "input")
+    assert [n["attrs"]["value"] for n in controls] == [c for c in CARDS if c in view.legal_cards]
+    for control in controls:
+        assert control["attrs"]["name"] == "card" and control["attrs"]["type"] == "radio"
+        assert control["attrs"]["aria-label"] == card_name(locale, control["attrs"]["value"])
+        assert control["parents"][-1]["tag"] == "label"
+        assert "required" in control["attrs"] and "checked" not in control["attrs"]
+    assert not descendants(tree, group, "select")
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))
@@ -517,11 +521,13 @@ def test_manual_review_card_feedback_keeps_native_label_control_and_target(local
     tree = Hierarchy(apply_validation_feedback_to_html_v1(
         page, definition, feedback, locale=locale))
     assert_accessibility_references(tree)
-    control = tree.by_id("legal-card")
-    label, rendered_control, error = children(tree, control["parents"][-1])
-    assert rendered_control is control
-    assert label["attrs"]["for"] == control["attrs"]["id"]
-    assert error["attrs"]["id"] == control["attrs"]["aria-describedby"]
+    group = tree.by_id("field-card")
+    legend, tiles, error = children(tree, group)
+    assert legend["text"] == text(locale, "task.card.choose")
+    assert tiles["attrs"]["class"] == "compact-card-groups"
+    assert error["attrs"]["id"] == group["attrs"]["aria-describedby"]
+    assert group["attrs"]["tabindex"] == "-1"
     view = build_historical_play_view_v1(draft)
-    first = next(card for card in CARDS if card in view.legal_cards)
-    assert_card_select(tree, control, locale, first, allowed=view.legal_cards, empty=False)
+    controls = descendants(tree, group, "input")
+    assert [n["attrs"]["value"] for n in controls] == [c for c in CARDS if c in view.legal_cards]
+    assert all(n["attrs"]["type"] == "radio" and "checked" not in n["attrs"] for n in controls)
