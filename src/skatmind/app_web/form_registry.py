@@ -726,6 +726,8 @@ _FORMS: list[FrontendFormDefinitionV1] = [
         active="review",
         wizard_step=2,
         success="/review",
+        label_overrides={name: "validation.field.review_" + name for name in (
+            "forehand_hand", "middlehand_hand", "rearhand_hand", "skat")},
     ),
     _definition(
         "review.declaration",

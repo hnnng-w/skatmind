@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from skatmind.api.v1 import ExecutionOptionsV1, RequestDocumentV1, WorkflowV1
+from skatmind.app_web.form_registry import get_frontend_form_by_key_v1
 from skatmind.app_web.historical_form import (
     HISTORICAL_FORM_STEPS,
     HISTORICAL_GAME_ID,
@@ -32,6 +33,7 @@ from skatmind.app_web.historical_form_parsing import (
     parse_historical_deal_form_v1,
     parse_historical_play_form_v1,
 )
+from skatmind.app_web.validation_mapping import map_form_field_errors_v1
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE_PATH = PROJECT_ROOT / "examples" / "historical_grand_normal_completion.json"
@@ -201,6 +203,29 @@ def test_invalid_deal_retains_safe_submitted_card_selections() -> None:
     assert retained.players[0].initial_hand == tuple(players[0]["initial_hand"][:-1])
     assert retained.players[1].initial_hand == tuple(players[1]["initial_hand"])
     assert retained.skat == tuple(game["skat"])
+    count, = error.value.errors
+    assert count.field == "forehand_hand"
+    assert (count.deal_count.field, count.deal_count.actual, count.deal_count.required) == (
+        "forehand_hand", 9, 10)
+    # Field and count survive independently of English exception prose.
+    messages = (replace(count, message="Unrelated diagnostic prose."),)
+    issue, = map_form_field_errors_v1(messages, get_frontend_form_by_key_v1("review.deal"))
+    assert issue.field_key == "forehand_hand"
+    assert issue.message_key == "validation.review.deal_count"
+    assert issue.interpolation_values() == {"actual": "9", "required": "10"}
+    other, = map_form_field_errors_v1(messages, get_frontend_form_by_key_v1("review.discards"))
+    assert other.message_key != issue.message_key
+
+
+@pytest.mark.parametrize("raw", (
+    {"rearhand_hand": "H7"}, {"rearhand_hand": [7]}, {"rearhand_hand": []},
+    {"unknown": ["H7"]},
+))
+def test_malformed_deal_mapping_is_not_an_ordinary_count_failure(raw):
+    draft = update_historical_players_v1(create_historical_form_draft_v1())
+    with pytest.raises(HistoricalFormInputError) as error:
+        parse_historical_deal_form_v1(draft, raw)
+    assert all(item.deal_count is None for item in error.value.errors)
 
 @pytest.mark.parametrize(
     "game_type",

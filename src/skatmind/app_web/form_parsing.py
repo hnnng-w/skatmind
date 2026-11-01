@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from .historical_deal_feedback import HistoricalDealCountV1
 from .position_form_feedback import PositionFormFeedbackV1
 
 
@@ -58,12 +59,17 @@ class FormFieldErrorV1:
     field: str
     message: str
     position_feedback: PositionFormFeedbackV1 | None = None
+    deal_count: HistoricalDealCountV1 | None = None
 
     def __post_init__(self) -> None:
         if type(self.field) is not str or not self.field:
             raise ValueError("Form error field must be non-empty text.")
         if type(self.message) is not str or not self.message:
             raise ValueError("Form error message must be non-empty text.")
+        if self.deal_count is not None and (
+                type(self.deal_count) is not HistoricalDealCountV1
+                or self.field != self.deal_count.field or self.position_feedback is not None):
+            raise ValueError("Deal count feedback must match its diagnostic field.")
         if self.position_feedback is not None and (
                 type(self.position_feedback) is not PositionFormFeedbackV1
                 or self.field != ("hand" if self.position_feedback.reason == "empty_hand"

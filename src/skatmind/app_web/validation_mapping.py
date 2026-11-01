@@ -87,6 +87,9 @@ def map_form_field_errors_v1(
     definition: FrontendFormDefinitionV1,
 ) -> tuple[FrontendValidationIssueV1, ...]:
     return tuple(
+        _issue(error.deal_count.field, "validation.review.deal_count",
+               actual=error.deal_count.actual, required=error.deal_count.required)
+        if definition.form_key == "review.deal" and error.deal_count is not None else
         FrontendValidationIssueV1(
             field_key=error.position_feedback.fields[0],
             message_key=error.position_feedback.message_key,

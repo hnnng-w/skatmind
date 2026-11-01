@@ -17,6 +17,7 @@ _GUIDED_MODULES = (
     "form_state",
     "guided_contracts",
     "guided_rendering",
+    "historical_deal_feedback",
     "historical_form",
     "historical_form_parsing",
     "information_architecture",

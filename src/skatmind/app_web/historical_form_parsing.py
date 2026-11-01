@@ -13,6 +13,7 @@ from .form_parsing import (
     parse_form_mapping_v1,
     parse_integer_text_v1,
 )
+from .historical_deal_feedback import HistoricalDealCountError
 from .historical_form import (
     HISTORICAL_PLAYER_IDS,
     HistoricalFormDraftV1,
@@ -143,6 +144,12 @@ def parse_historical_deal_form_v1(
             rearhand_hand=hands[2],
             skat=skat,
         )
+    except HistoricalDealCountError as error:
+        raise HistoricalFormInputError(tuple(
+            FormFieldErrorV1(count.field,
+                f"{count.actual} cards selected; exactly {count.required} cards required.",
+                deal_count=count)
+            for count in error.counts), retained) from error
     except ValueError as error:
         raise HistoricalFormInputError(
             (FormFieldErrorV1("_form", str(error)),),

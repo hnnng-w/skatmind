@@ -86,6 +86,17 @@ def assert_palette(page, locale, field, action, *, allowed=CARDS, selected=(), f
     assert not any(n["attrs"].get("class") in {
         "compact-selection", "compact-count", "compact-selected"}
         for n in descendants(tree, palette, "p") + descendants(tree, palette, "span"))
+    if action == DEAL_ACTION:
+        assert palette["attrs"]["data-validation-group"] == field
+        label = "task.skat" if field == "skat" else "creation.seat." + field.removesuffix("_hand")
+        assert [n["text"] for n in descendants(tree, palette, "legend")] == [text(locale, label)]
+        captions = [n for n in descendants(tree, palette, "p")
+                    if n["attrs"].get("class") != "field-error"]
+        assert len(captions) == 1
+        assert captions[0]["text"] == text(locale, "guided.review.cards_required",
+                                           count=2 if field == "skat" else 10)
+        assert "data-validation-card-count" not in captions[0]["attrs"]
+        assert page.count(f'<!-- validation-messages:{field} -->') == 1
     if feedback:
         assert palette["attrs"]["data-validation-group"] == field
         counts = [n for n in descendants(tree, palette, "p")
@@ -175,7 +186,7 @@ def test_rejected_deal_preserves_selections_and_native_language_return(
     assert_ids_and_labels(tree)
     summary = next(n for n in tree.nodes if n["attrs"].get("class") == "error-summary")
     for link in descendants(tree, summary, "a"):
-        # Historical deal-wide diagnostics may target the whole form.
+        # Duplicate distribution remains deal-wide; count errors target a palette.
         assert tree.visible(tree.by_id(link["attrs"]["href"][1:]))
     for language in (locale, "en" if locale == "de" else "de"):
         if language != locale:

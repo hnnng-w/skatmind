@@ -16,6 +16,8 @@ from skatmind.rules import get_legal_cards
 from skatmind.search_budget_profiles import HISTORICAL_REVIEW_SEARCH_BUDGET_PROFILE
 from skatmind.simulation import DEFAULT_IMMEDIATE_ANALYSIS_SAMPLE_COUNT
 
+from .historical_deal_feedback import HistoricalDealCountError, HistoricalDealCountV1
+
 HISTORICAL_FORM_STEPS = (
     "players",
     "deal",
@@ -245,11 +247,11 @@ def update_historical_players_v1(
     return replace(draft, step=2, players=players)
 
 
-def _card_tuple(value: object, name: str, expected_count: int) -> tuple[str, ...]:
+def _card_tuple(value: object, name: str, expected_count: int | None) -> tuple[str, ...]:
     if not isinstance(value, (list, tuple)):
         raise ValueError(f"{name} must be a Card list or tuple.")
     cards = tuple(value)
-    if len(cards) != expected_count:
+    if expected_count is not None and len(cards) != expected_count:
         raise ValueError(f"{name} must contain exactly {expected_count} cards.")
     if any(type(card) is not str for card in cards):
         raise ValueError(f"{name} must contain only Card strings.")
@@ -272,15 +274,26 @@ def update_historical_deal_v1(
     """Stores one exact 10/10/10/2 deal over the canonical 32-card deck."""
 
     _require_step(draft, 2)
+    # Diagnose malformed/duplicate Cards before ordinary deal-size omissions.
+    # Discards retain their existing count-first validation through _card_tuple.
     hands = (
-        _card_tuple(forehand_hand, "forehand_hand", 10),
-        _card_tuple(middlehand_hand, "middlehand_hand", 10),
-        _card_tuple(rearhand_hand, "rearhand_hand", 10),
+        _card_tuple(forehand_hand, "forehand_hand", None),
+        _card_tuple(middlehand_hand, "middlehand_hand", None),
+        _card_tuple(rearhand_hand, "rearhand_hand", None),
     )
-    skat_cards = _card_tuple(skat, "skat", 2)
+    skat_cards = _card_tuple(skat, "skat", None)
     dealt_cards = tuple(card for hand in hands for card in hand) + skat_cards
     if len(dealt_cards) != len(set(dealt_cards)):
         raise ValueError("The initial hands and skat contain duplicate cards.")
+    counts = tuple(
+        HistoricalDealCountV1(field, len(cards), required)
+        for field, cards, required in (
+            ("forehand_hand", hands[0], 10), ("middlehand_hand", hands[1], 10),
+            ("rearhand_hand", hands[2], 10), ("skat", skat_cards, 2))
+        if len(cards) != required
+    )
+    if counts:
+        raise HistoricalDealCountError(counts)
     if set(dealt_cards) != set(get_full_deck()):
         missing = sorted(set(get_full_deck()).difference(dealt_cards))
         raise ValueError(

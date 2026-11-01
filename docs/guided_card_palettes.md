@@ -7,6 +7,28 @@ and pending-gate statements below are historical developer evidence. Issue #305'
 [active-Play palette and footer correction](manual_review_play_and_navigation.md)
 is a separate boundary and does not reopen that acceptance.
 
+## Manual deal feedback and captions (Issue #306)
+
+Manual Review step 2 now uses static localized requirements: ten cards for each
+hand and two for the Skat. These replace the server-rendered selected-count
+paragraphs, which could disagree with pending or rejected native checkbox values.
+They are requirements, not live counts, in either JavaScript mode. Only step 2
+changes; Analyze and Discards retain their established behavior.
+
+All four deal palettes now opt into the existing group-feedback marker and inline
+message boundary. `_card_palette(required_count=...)` deliberately separates the
+requirement caption from group targeting: it emits no selected-count restoration
+marker for these requirements. The accepted suit groups, responsive tracks, Card
+order, native form ownership and selection controls remain as documented below.
+No compact selected-code list or script dependency is added.
+
+Exact rejection counts come from authoritative validation as private structured
+field/actual/required facts. Summary links reach the labelled, focusable palette;
+inline explanations sit outside Card tiles. The full boundary, HTTP regression,
+browser evidence and remaining acceptance gates are in
+[Manual deal validation](manual_review_deal_validation.md). The following #304
+implementation and acceptance evidence is retained as historical evidence.
+
 ## Boundary and implementation
 
 The clean starting checkout was `bug/304-guided-card-palettes` at

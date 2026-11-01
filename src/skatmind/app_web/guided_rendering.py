@@ -141,6 +141,7 @@ def _card_palette(
     allowed_cards: tuple[str, ...] | None = None,
     messages: dict[str, tuple[str, ...]] | None = None,
     feedback_target: bool = False,
+    required_count: int | None = None,
 ) -> str:
     messages = messages or {}
     selected = set(selected_cards)
@@ -154,10 +155,13 @@ def _card_palette(
     )
     target = f' data-validation-group="{_e(name)}"' if feedback_target else ""
     boundary = f'<!-- validation-messages:{_e(name)} -->' if feedback_target else ""
-    count_target = f' data-validation-card-count="{_e(name)}"' if feedback_target else ""
+    count_target = (f' data-validation-card-count="{_e(name)}"'
+                    if feedback_target and required_count is None else "")
+    caption = (_t("guided.cards_selected", count=len(selected)) if required_count is None
+               else _t("guided.review.cards_required", count=required_count))
     return (
         f'<fieldset class="card-palette compact-cards" data-balanced-grid{target} {_field_attributes(messages, name)}>'
-        f'<legend>{_e(legend)}</legend><p{count_target}>{_t("guided.cards_selected", count=len(selected))}</p>'
+        f'<legend>{_e(legend)}</legend><p{count_target}>{caption}</p>'
         + compact_card_groups(groups, mode="set", name=name, selected=selected,
                               card_label=localized_card_name)
         + f"{_field_errors(messages, name)}{boundary}</fieldset>"
@@ -543,10 +547,10 @@ def _review_step(
         body = (
             f'<form id="workflow-form" method="post" action="{REVIEW_UPDATE_DEAL_ACTION_ROUTE_PATH}">{_revision(state)}'
             f'<h2>{_t("guided.review.step.2")}</h2><p>{_t("guided.review.deal_help")}</p>'
-            + _card_palette("forehand_hand", draft.players[0].initial_hand, legend=_m("creation.seat.forehand"), messages=messages)
-            + _card_palette("middlehand_hand", draft.players[1].initial_hand, legend=_m("creation.seat.middlehand"), messages=messages)
-            + _card_palette("rearhand_hand", draft.players[2].initial_hand, legend=_m("creation.seat.rearhand"), messages=messages)
-            + _card_palette("skat", draft.skat, legend=_m("task.skat"), messages=messages)
+            + _card_palette("forehand_hand", draft.players[0].initial_hand, legend=_m("creation.seat.forehand"), messages=messages, feedback_target=True, required_count=10)
+            + _card_palette("middlehand_hand", draft.players[1].initial_hand, legend=_m("creation.seat.middlehand"), messages=messages, feedback_target=True, required_count=10)
+            + _card_palette("rearhand_hand", draft.players[2].initial_hand, legend=_m("creation.seat.rearhand"), messages=messages, feedback_target=True, required_count=10)
+            + _card_palette("skat", draft.skat, legend=_m("task.skat"), messages=messages, feedback_target=True, required_count=2)
             + f'<button type="submit">{_t("guided.review.validate_deal")}</button></form>'
         )
     elif draft.step == 3:

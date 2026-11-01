@@ -16,6 +16,35 @@ remains unchanged.
 
 ## Contract Identity
 
+### Manual Review deal count feedback (Issue #306)
+
+The private manual `review.deal` boundary retains immutable field, actual-count
+and required-count facts from `update_historical_deal_v1`. Input shape, canonical
+Card membership and within/across-group duplicate checks precede ordinary count
+feedback. Every unequal group count is reported in canonical hand/Skat order;
+acceptance still requires exactly 10/10/10/2 unique Cards forming the full deck.
+Wrong-step and stale-revision rejection remain authoritative.
+
+`HistoricalFormInputError` carries the count facts in `FormFieldErrorV1`, rather
+than collapsing them to `_form`. Only `review.deal` maps those facts to the new
+localized count message and scoped seat/Skat labels. No field or count is inferred
+from exception prose, and the global required-message heuristic is unchanged.
+
+The existing feedback renderer targets each unique labelled fieldset, supplies
+ARIA error associations and initial summary focus, and inserts explanations
+outside individual Card labels. Language return re-renders the diagnostic and
+safe checks without advancing accepted state. Native language return retains the
+rejected submission; optional enhanced return may also carry safe pending changes.
+The diagnostic describes the rejected POST until another explicit validation.
+
+Step-2 captions are static requirements and deliberately omit
+`data-validation-card-count`, so safe-value restoration cannot overwrite them.
+They make no live selection-count claim. Rejection and passive navigation do not
+execute analysis or write recordings; explicit locale changes still save the
+frontend profile. See [the scoped implementation and evidence](manual_review_deal_validation.md).
+
+### Shared private contract
+
 The private contract identity is:
 
 ```text
