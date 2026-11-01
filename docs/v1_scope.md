@@ -676,7 +676,7 @@ These areas are not required for the intended product:
 * Official federation list or report formats.
 * Public Match, Corpus, or Learning Dataset-v2 APIs or Schemas.
 * Player Catalog, Dataset-v2, Tactical, or Coaching derived persistence.
-* Automatic Report capture, Historical Report import, and database deployment.
+* Database deployment; general Historical Report import beyond the #308 contract.
 * Broader Player Ratings, tactical-truth classification, and causal attribution.
 * Cross-machine latency guarantees, dedicated production Budget profiles, and
   pre-v1 persisted-document migration tooling.
@@ -1017,3 +1017,35 @@ or any unresolved rule ambiguity affects a required settlement.
 Post-v1.0 and not-required areas do not block the first major release. Remaining
 implementation details for required areas must be approved and recorded before
 their implementation begins.
+
+## Approved automatic Learning integration (Issue #308)
+
+The maintainer-approved v1 direction is automatic aggregation of eligible saved
+games and existing executed analysis evidence into understandable reviews and
+evidence-backed hints. One explicit create/update action derives the Learning
+review; passive viewing runs no new card analysis. Ordinary use requires neither
+manual Snapshot selection nor Report JSON transfer. Independent manual collections
+retain their own selected versions and immutable copies.
+
+The [integration and evidence-lifetime contract](automatic_learning_integration_contract.md)
+provides the source-grounded support matrix, exact source/owner/publication rules,
+durable original-source and executed-Report retention, bounded storage/restart,
+truthful output qualification, and dependency-ordered implementation plan.
+The existing Match-based path is the starting slice; Session and manual Historical
+Review support have separate adapter stages. This documentation does not implement
+them or generalize Match-only support to every recording family.
+
+This approved direction supersedes the earlier blanket classification of automatic
+Report capture as not required for v1, only within this bounded local integration.
+It does not require persisted copies of all ten derived downloads, public Corpus
+APIs, a database or general Historical-to-Teacher conversion. Historical milestone
+and technical-audit rows above remain records of their original scopes.
+
+Using accumulated Learning data to adapt future automatic card recommendations is
+an intended later development goal. It is not required for v1 and is not permanently
+excluded; its training method and architecture remain unspecified. Current explicit
+analysis methods and opponent-profile application retain their existing behavior.
+
+Accepted #292–#307 scopes and evidence remain intact. #208 stays open, UAT-01 is not
+globally accepted, formal UAT-02–12 remain paused, and release preparation is not
+authorized by #308.

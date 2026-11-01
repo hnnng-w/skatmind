@@ -778,3 +778,25 @@ See [Learning Corpus identity and Catalogs](learning_corpus_identity_and_catalog
 [Learning Corpus Tactical Cross-game Coaching](learning_corpus_tactical_cross_game_coaching.md),
 [Match analysis and exports](match_analysis_and_exports.md), and
 [Unified local frontend contract](unified_local_frontend_contract.md).
+
+## Approved automatic workflow and durable evidence (Issue #308)
+
+The [automatic Learning integration contract](automatic_learning_integration_contract.md)
+defines the approved v1 direction and recommended future implementation, separately
+from the implemented manual workflow and its historical records above. Ordinary
+Learning will gather eligible saved games and executed evidence without manual
+Current selection or Report transfer, then derive a review through one explicit
+create/update action. Passive viewing must not execute card analysis.
+
+The recommendation uses a separate automatic owner/store. Existing independent
+collections retain explicit Current selection, immutable-copy semantics, manual
+attachment and preparation. Automatic correction/deletion reconciliation must not
+change their Catalogs. Durable evidence needs exact original sources and complete
+executed Reports; ordinary Decision, selected-decision whole-game and Historical
+Reports require different validation boundaries. Already-lost process-local Reports
+cannot be recovered, and derived downloads need not all be persisted.
+
+The initial automatic stages support managed Matches, including safe partial
+evidence. Sessions and manual Historical Review require the separately specified
+adapters. This documentation introduces no automatic behavior or persistence
+format. Existing qualified-focus rules and accepted #292–#307 scopes remain intact.

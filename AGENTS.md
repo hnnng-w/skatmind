@@ -982,13 +982,13 @@ joins and Summary counts; the separate Tactical family leaves Dataset version `2
 unchanged. Issue #196 adds the separate exact Coaching join without changing
 Dataset version `2` and brings the current authenticated download set from nine
 to ten.
-Deletion,
-garbage collection, Player Catalog or Human Evidence persistence,
+Corpus deletion/garbage collection, Player Catalog or Human Evidence persistence,
 persisted aliases/assertions, merge/split operations, all-revision views,
-public Human or Strategy Teacher Evidence API transport, automatic Report
-capture, Historical Report import, Dataset-v2 persistence, task builders,
-persisted partition artifacts, and model training remain absent and are not v1
-requirements. Session State itself contains no path
+public Human or Strategy Teacher Evidence API transport, Dataset-v2 persistence,
+task builders, persisted partition artifacts and model training are not v1 gates.
+Automatic Learning and durable eligible Report reuse are approved v1 direction
+under Issue #308's contract below; implementation remains future work.
+Session State itself contains no path
 or fingerprint; those values belong only to the private persistence boundary.
 No learned model, model-training workflow, hosted website, browser extension,
 remote browser deployment, four-player support, or claim of complete official
@@ -1115,3 +1115,25 @@ Actions, perform UAT, or change UAT findings. See
 [Faster complete validation](docs/faster_validation.md) for the coverage map,
 24-hour/current-integration-cycle reuse policy, force-full path, serial exceptions,
 required settings, and acceptance procedure.
+
+## Approved automatic Learning direction (Issue #308)
+
+The [automatic Learning integration contract](docs/automatic_learning_integration_contract.md)
+separates the implemented Match-based manual collection paths from the approved
+v1 direction and recommended implementation stages. Ordinary Learning must gather
+eligible saved games and existing executed evidence without manual Snapshot
+selection or Report JSON transfer, then derive a review through one explicit
+create/update action. Passive viewing must execute no new card analysis.
+
+The plan introduces separate automatic ownership and durable original-source/
+Report retention, preserving independent manual collections, exact version and
+owner/final-delivery validation, and existing qualified-focus rules. Session and
+manual Historical Review support require their own adapters; Match-only stages
+must not be described as support for every recording family. Recommendation
+adaptation from accumulated Learning data is an intended later goal, not a v1
+requirement or permanent exclusion. Existing explicit analysis and opponent-
+profile behavior remains the baseline.
+
+Issue #308 is documentation only. Preserve accepted #292–#307 scopes and their
+historical evidence. #208 stays open, UAT-01 is not globally accepted, formal
+UAT-02–12 remain paused, and release preparation is not authorized.

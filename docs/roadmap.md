@@ -2093,3 +2093,35 @@ and #238–#247 remain intact. See [installed Card evidence](compact_card_entry.
 `v1-supported-platform-matrix` gate manual #248 closure; #208, R06 and other findings
 remain open, UAT-01 unaccepted, UAT-02–12 paused, B-09/B-07 open and B-06 closed.
 No release-readiness claim follows.
+
+## Approved automatic Learning integration sequence (Issue #308)
+
+The approved v1 direction is automatic gathering of eligible saved games and
+existing executed evidence, followed by one explicit create/update action for a
+readable Learning review. Passive viewing runs no new card analysis. The
+[integration contract](automatic_learning_integration_contract.md) distinguishes
+implemented capabilities, source-family support, recommended choices and later
+recommendation-adaptation work.
+
+Recommended dependency order:
+
+1. S1: separate private source identities, bounded durable objects and manifest.
+2. S2 and S3, each after S1: ordinary Match Decision evidence and separate selected-
+   Match whole-game evidence retention/resume.
+3. S4, after both evidence paths: atomic automatic Match membership/preparation,
+   including partial sources, correction, deletion and interruption handling.
+4. S5: concise bilingual native create/update/review, freshness and maintenance,
+   preserving independent manual collections.
+5. S6: Session-native source/Checkpoint/execution adapter and coverage/comparisons.
+6. S7: saved manual Historical Review and retained Historical execution adapters.
+
+Each stage has focused technical verification, persistence/compatibility effects
+and a short installed acceptance scenario in the contract. Match-only completion
+does not establish all-family Learning support. Recommendation adaptation from
+accumulated data remains an intended later goal, not a v1 requirement or permanent
+exclusion. No training architecture is chosen here.
+
+This is a documentation plan, not implemented automatic Learning or acceptance
+evidence. Historical records and accepted #292–#307 scopes remain intact; #208 stays
+open, UAT-01 is not globally accepted, formal UAT-02–12 remain paused, and release
+preparation is not authorized.

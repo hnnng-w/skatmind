@@ -2112,3 +2112,24 @@ This project is not a full official Skat rules engine, tournament system, genera
 hidden-information solver, or complete-contract solver.
 
 It is intended as an experimental analysis and simulation tool.
+
+## Approved automatic Learning direction
+
+For v1, Learning should automatically bring together eligible saved games and
+existing executed analysis evidence, with one explicit create/update action for
+understandable reviews and evidence-backed hints. Passive viewing must not run
+new card analyses. Independent manual Learning collections retain their selected
+versions and copied sources.
+
+This is approved direction, not implemented automatic behavior. The current
+Match-based collection, ordinary Decision evidence and separate whole-game
+debrief paths have different source and lifetime boundaries. The
+[automatic Learning integration contract](docs/automatic_learning_integration_contract.md)
+documents those boundaries, durable evidence/restart and correction/deletion
+rules, and the ordered Match, Session and manual Historical Review stages.
+
+Using accumulated Learning data to adapt future automatic card recommendations
+remains an intended later goal, not a v1 requirement or permanent exclusion.
+Issue #308 changes documentation only; accepted #292–#307 scopes remain intact,
+#208 stays open, formal UAT-02–12 remain paused, and release preparation is not
+authorized.
