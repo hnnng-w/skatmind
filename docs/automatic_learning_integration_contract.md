@@ -10,6 +10,12 @@ new Learning output. The inspected baseline is
 The complete current [Issue #308](https://github.com/hnnng-w/skatmind/issues/308)
 had no comments when inspected.
 
+Implementation follow-up: Issue #309 implements only the private S1 storage
+foundation described in [Automatic Learning private store](automatic_learning_store.md).
+That separate implementation does not change #308's historical documentation-only
+acceptance or claim completion of the automatic Learning workflow. S2–S7 remain
+subsequent work.
+
 The maintainer has approved the following **v1 product direction**:
 
 * Learning automatically brings together eligible saved games and existing
