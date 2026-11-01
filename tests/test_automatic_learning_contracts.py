@@ -1,7 +1,13 @@
 from dataclasses import FrozenInstanceError, replace
 
 import pytest
-from automatic_learning_helpers import evidence_fixture, generation_fixture, source_fixture
+from automatic_learning_helpers import (
+    evidence_fixture,
+    generation_fixture,
+    manifest_wire_bytes,
+    mismatched_binding_fixture,
+    source_fixture,
+)
 
 from skatmind.automatic_learning_codec import canonical_json, decode_json, fingerprint
 from skatmind.automatic_learning_contracts import (
@@ -11,10 +17,13 @@ from skatmind.automatic_learning_contracts import (
     AUTOMATIC_LEARNING_MAX_OBJECT_BYTES,
     AUTOMATIC_LEARNING_MAX_TOTAL_BYTES,
     EntityReferenceV1,
+    EvidenceEntryV1,
     ExclusionV1,
     IdentityScopeV1,
     ManifestV1,
+    ObjectEntryV1,
     OriginBindingV1,
+    SourceRecordV1,
 )
 from skatmind.automatic_learning_objects import (
     StoredObjectV1,
@@ -194,3 +203,29 @@ def test_storage_envelope_strictness(changes):
     with pytest.raises(ValueError):
         replace(obj, **changes)
     assert StoredObjectV1.from_bytes(obj.raw) == obj
+
+
+@pytest.mark.parametrize("case", ("source_kind", "evidence_class"))
+def test_known_binding_mismatch_rejected_by_manifest_construction(case):
+    data, _objects, diagnostic = mismatched_binding_fixture(case)
+    # Build the typed entries separately to exercise the manifest's cross-record boundary.
+    sources = tuple(SourceRecordV1.from_dict(item) for item in data["sources"])
+    evidence = tuple(EvidenceEntryV1.from_dict(item) for item in data["evidence"])
+    objects = tuple(ObjectEntryV1.from_dict(item) for item in data["objects"])
+    with pytest.raises(ValueError) as error:
+        ManifestV1(space_id=data["space_id"], revision=1, sources=sources,
+                   evidence=evidence, objects=objects)
+    assert str(error.value) == diagnostic
+
+
+@pytest.mark.parametrize("case", ("source_kind", "evidence_class"))
+@pytest.mark.parametrize("codec_version", (1, 999))
+def test_known_binding_mismatch_rejected_by_strict_codec(case, codec_version):
+    data, _objects, diagnostic = mismatched_binding_fixture(case, codec_version=codec_version)
+    raw = manifest_wire_bytes(data)
+    wire = decode_json(raw)
+    assert wire["content_fingerprint"] == fingerprint("manifest_v1", wire["manifest"])
+    for load in (lambda: ManifestV1.from_dict(data), lambda: resume_manifest(raw)):
+        with pytest.raises(ValueError) as error:
+            load()
+        assert str(error.value) == diagnostic

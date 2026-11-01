@@ -9,6 +9,7 @@ from skatmind.automatic_learning_contracts import (
     EvidenceEntryV1,
     GenerationV1,
     IdentityScopeV1,
+    ManifestV1,
     NamedValueV1,
     SituationV1,
     SourceKeyV1,
@@ -98,3 +99,36 @@ def commit_fixture(store, *, generation=False):
     manifest, objects = indexed_manifest(store, generation=generation)
     assert store.update_manifest(manifest, expected_manifest=old.fingerprint).status == "saved"
     return manifest, objects
+
+
+def manifest_wire_bytes(data):
+    """Fingerprint wire data without constructing or serializing a typed manifest."""
+    return canonical_json({
+        "document_kind": "skatmind_automatic_learning_manifest", "version": 1,
+        "content_fingerprint": fingerprint("manifest_v1", data), "manifest": data,
+    }) + b"\n"
+
+
+def mismatched_binding_fixture(case, *, space_id="synthetic", codec_version=1):
+    """Keep objects/references exact; introduce the contradiction only in wire data."""
+    source, obj = source_fixture()
+    source_data = source.to_dict()
+    if case == "source_kind":
+        obj = replace(obj, kind="session_source", codec_version=codec_version)
+        source_data["object_ref"] = obj.reference.to_dict()
+        evidence_data, objects = [], (obj,)
+        diagnostic = "Source family and stored kind disagree."
+    elif case == "evidence_class":
+        entry, envelope = evidence_fixture(source, obj)
+        envelope = replace(envelope, codec_version=codec_version)
+        entry_data = entry.to_dict()
+        entry_data["envelope"] = envelope.reference.to_dict()
+        entry_data["evidence_class"] = "rollout"
+        evidence_data, objects = [entry_data], (obj, envelope)
+        diagnostic = "Evidence family and stored kind disagree."
+    else:
+        raise ValueError("Unknown mismatch fixture case.")
+    data = ManifestV1(space_id=space_id, revision=1).to_dict()
+    data.update(sources=[source_data], evidence=evidence_data,
+                objects=[obj.entry.to_dict() for obj in objects])
+    return data, objects, diagnostic

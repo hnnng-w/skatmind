@@ -7,14 +7,21 @@ from automatic_learning_helpers import (
     commit_fixture,
     evidence_fixture,
     indexed_manifest,
+    manifest_wire_bytes,
+    mismatched_binding_fixture,
     source_fixture,
 )
 
 import skatmind.automatic_learning_io as io
 import skatmind.automatic_learning_store as storage
-from skatmind.automatic_learning_codec import canonical_json, decode_json
-from skatmind.automatic_learning_contracts import ManifestV1
-from skatmind.automatic_learning_objects import manifest_bytes
+from skatmind.automatic_learning_codec import canonical_json, decode_json, fingerprint
+from skatmind.automatic_learning_contracts import (
+    EvidenceEntryV1,
+    ManifestV1,
+    ObjectEntryV1,
+    SourceRecordV1,
+)
+from skatmind.automatic_learning_objects import manifest_bytes, resume_manifest
 from skatmind.automatic_learning_store import (
     StoreConflictError,
     UnsupportedEvidenceError,
@@ -348,3 +355,134 @@ def test_windows_junctions_rejected_without_following_targets(tmp_path, director
         assert target.is_dir()
     finally:
         junction.rmdir()
+
+
+def _unchecked_manifest_for_boundary_test(data):
+    """Inject an internally inconsistent value to reach publication's defensive revalidation."""
+    manifest = ManifestV1(space_id=data["space_id"], revision=data["revision"])
+    for name, record in (("sources", SourceRecordV1), ("evidence", EvidenceEntryV1),
+                         ("objects", ObjectEntryV1)):
+        object.__setattr__(manifest, name, tuple(record.from_dict(item) for item in data[name]))
+    return manifest
+
+
+def _store_bytes(root):
+    return {path.relative_to(root): path.read_bytes() for path in root.rglob("*") if path.is_file()}
+
+
+@pytest.mark.parametrize("case", ("source_kind", "evidence_class"))
+def test_known_binding_mismatch_still_rejected_by_publication(store, case):
+    original = store.snapshot().manifest
+    data, objects, diagnostic = mismatched_binding_fixture(case, space_id=original.space_id)
+    for obj in objects:
+        assert store.publish_object(obj) == "saved"
+        assert store.read_object(obj.reference) == obj
+    requested = _unchecked_manifest_for_boundary_test(data)
+    before = _store_bytes(store.root)
+    with pytest.raises(ValueError) as error:
+        manifest_bytes(requested)
+    assert str(error.value) == diagnostic
+    with pytest.raises(ValueError) as error:
+        store.update_manifest(requested, expected_manifest=original.fingerprint)
+    assert str(error.value) == diagnostic
+    assert store.snapshot().manifest == original
+    assert _store_bytes(store.root) == before
+
+
+@pytest.mark.parametrize("case", ("source_kind", "evidence_class"))
+def test_known_binding_mismatch_blocks_resume_and_unchanged_update_without_repair(store, case):
+    original = store.snapshot().manifest
+    data, objects, diagnostic = mismatched_binding_fixture(case, space_id=original.space_id)
+    for obj in objects:
+        assert store.publish_object(obj) == "saved"
+    # The malformed wire fixture never goes through the strengthened manifest constructor.
+    (store.root / "manifest.json").write_bytes(manifest_wire_bytes(data))
+    before = _store_bytes(store.root)
+    requested = _unchecked_manifest_for_boundary_test(data)
+    for operation in (
+        lambda: resume_automatic_learning_store_v1(store.root),
+        store.snapshot,
+        lambda: store.update_manifest(
+            requested, expected_manifest=fingerprint("manifest_v1", data),
+        ),
+    ):
+        with pytest.raises(ValueError) as error:
+            operation()
+        assert str(error.value) == diagnostic
+        assert _store_bytes(store.root) == before
+
+
+@pytest.mark.parametrize("family,evidence_class", (
+    ("match", "decision"), ("session", "decision"),
+    ("match", "rollout"), ("session", "rollout"),
+    ("match", "historical"), ("historical_review", "historical"),
+))
+def test_known_binding_combinations_publish_and_resume_without_admission(
+    store, family, evidence_class,
+):
+    original = store.snapshot().manifest
+    source, obj = source_fixture(family=family)
+    entry, envelope = evidence_fixture(source, obj, evidence_class=evidence_class)
+    for item in (obj, envelope):
+        store.publish_object(item)
+    requested = replace(original, revision=1, sources=(source,), evidence=(entry,),
+                        objects=(obj.entry, envelope.entry))
+    assert manifest_bytes(requested) == manifest_wire_bytes(requested.to_dict())
+    assert resume_manifest(manifest_bytes(requested)) == requested
+    result = store.update_manifest(requested, expected_manifest=original.fingerprint)
+    assert result.status == "saved"
+    before = _store_bytes(store.root)
+    resumed = resume_automatic_learning_store_v1(store.root)
+    snapshot = resumed.snapshot()
+    assert snapshot.manifest == requested
+    assert all(item.storage_status == "valid" for item in snapshot.objects)
+    assert all(item.consumption_status == "unsupported" for item in snapshot.objects)
+    assert snapshot.available_evidence_ids == snapshot.trusted_binding_ids == ()
+    assert resumed.update_manifest(requested, expected_manifest=requested.fingerprint).status == (
+        "unchanged"
+    )
+    with pytest.raises(UnsupportedEvidenceError):
+        resumed.read_evidence(entry.identity)
+    assert _store_bytes(store.root) == before
+
+
+@pytest.mark.parametrize("source_kind,envelope_kind,codec_version", (
+    ("match_source", "match_decision", 999),
+    ("future_source", "match_decision", 1),
+    ("match_source", "future_envelope", 1),
+    ("future_source", "future_envelope", 999),
+))
+def test_future_bindings_remain_retained_unsupported_and_byte_preserved(
+    store, source_kind, envelope_kind, codec_version,
+):
+    original = store.snapshot().manifest
+    source, obj = source_fixture()
+    obj = replace(obj, kind=source_kind, codec_version=codec_version)
+    source = replace(source, object_ref=obj.reference)
+    entry, envelope = evidence_fixture(source, obj)
+    envelope = replace(envelope, kind=envelope_kind, codec_version=codec_version)
+    entry = replace(entry, envelope=envelope.reference)
+    for item in (obj, envelope):
+        store.publish_object(item)
+    requested = replace(original, revision=1, sources=(source,), evidence=(entry,),
+                        objects=(obj.entry, envelope.entry))
+    if source_kind == "match_source" and envelope_kind == "match_decision":
+        assert store.update_manifest(requested, expected_manifest=original.fingerprint).status == (
+            "saved"
+        )
+    else:
+        # Preserve the existing stricter policy for newly introduced unfamiliar kinds.
+        with pytest.raises(ValueError, match="family and stored kind disagree"):
+            store.update_manifest(requested, expected_manifest=original.fingerprint)
+        (store.root / "manifest.json").write_bytes(manifest_wire_bytes(requested.to_dict()))
+    before = _store_bytes(store.root)
+    resumed = resume_automatic_learning_store_v1(store.root)
+    snapshot = resumed.snapshot()
+    assert snapshot.manifest == requested
+    assert all(item.storage_status == "valid" for item in snapshot.objects)
+    assert all(item.consumption_status == "unsupported" for item in snapshot.objects)
+    assert snapshot.available_evidence_ids == snapshot.trusted_binding_ids == ()
+    assert resumed.update_manifest(requested, expected_manifest=requested.fingerprint).status == (
+        "unchanged"
+    )
+    assert _store_bytes(store.root) == before

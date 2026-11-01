@@ -26,6 +26,16 @@ REPORT_KINDS = {
     ("match", "historical"): "match_historical",
     ("historical_review", "historical"): "historical_review",
 }
+_RESERVED_BINDING_KINDS = frozenset((
+    *SOURCE_KINDS.values(), *REPORT_KINDS.values(), "generation_descriptor",
+))
+
+
+def _require_compatible_known_kind(kind: str, expected: str | None, diagnostic: str) -> None:
+    # Future codecs do not erase a known kind's family/class meaning. Unknown
+    # kinds remain retainable as unsupported, without semantic admission.
+    if kind in _RESERVED_BINDING_KINDS and kind != expected:
+        raise ValueError(diagnostic)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -354,6 +364,10 @@ class ManifestV1(Record):
         scopes = {}
         for source in self.sources:
             key = source.source_version.source
+            _require_compatible_known_kind(
+                source.object_ref.kind, SOURCE_KINDS[key.family],
+                "Source family and stored kind disagree.",
+            )
             if key in scopes and scopes[key] != source.scope:
                 raise ValueError("Corrections must retain their logical identity scope.")
             scopes[key] = source.scope
@@ -368,6 +382,10 @@ class ManifestV1(Record):
             if source is None:
                 raise ValueError("Evidence requires its original source version.")
             family = source.source_version.source.family
+            _require_compatible_known_kind(
+                entry.envelope.kind, REPORT_KINDS.get((family, entry.evidence_class)),
+                "Evidence family and stored kind disagree.",
+            )
             if entry.situation is not None and (
                 (family == "session") != (entry.situation.checkpoint_fingerprint is not None)
             ):

@@ -76,6 +76,7 @@ class StoredObjectV1:
 
 
 def manifest_bytes(manifest: ManifestV1) -> bytes:
+    manifest = ManifestV1.from_dict(manifest.to_dict())
     return canonical_json({
         "document_kind": "skatmind_automatic_learning_manifest",
         "version": 1, "content_fingerprint": manifest.fingerprint,

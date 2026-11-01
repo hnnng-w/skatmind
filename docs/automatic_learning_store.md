@@ -332,6 +332,146 @@ whitespace failure; the corrected wrapper accepts `0`/`1` only with empty output
 and passed for all twelve new files. This was a check-wrapper correction, not a
 source whitespace defect.
 
+## Strict-resume consistency correction (Issue #309 follow-up)
+
+This is a bounded S1 correction on the expected/actual branch
+`feat/309-automatic-learning-store`, starting at
+`b2d0bb95c9029666e0c3934f03df7178132811d4` with a clean worktree. The maintainer
+reported that branch CI run `41352058480` passed all 23 jobs for that commit.
+That evidence does not cover this subsequent correction. The historical S1
+execution record above and #308's documentation-only acceptance remain unchanged.
+
+### Confirmed finding and correction
+
+Before Product edits, an external synthetic reproduction on development CPython
+**3.13.7** confirmed both published-code findings:
+
+1. A Match `SourceRecordV1` referenced an exact object with known kind
+   `session_source`.
+2. A Match `EvidenceEntryV1` used evidence class `rollout` while referencing its
+   exact known `match_decision` envelope.
+
+Both had valid object bytes, dependency references and manifest fingerprints.
+Normal publication rejected both, but manifest construction, `resume_manifest`
+and full `resume_automatic_learning_store_v1` accepted them. After resume, the
+unchanged update returned `unchanged`. The reproduction also verified that all
+disposable store bytes remained unchanged by those operations.
+
+`ManifestV1` now shares a private known-kind compatibility check for its source
+and evidence bindings. Existing codec and publication paths already reconstruct
+this contract. `manifest_bytes` also revalidates the contract before serialization,
+including defensively supplied inconsistent in-memory values. Known contradictory
+bindings fail with the existing value-free diagnostics:
+
+* `Source family and stored kind disagree.`
+* `Evidence family and stored kind disagree.`
+
+A future codec version does not erase a known kind's family/class meaning.
+Unfamiliar future kinds and compatible known kinds with unfamiliar codec versions
+remain retainable as unsupported. The existing stricter publication restriction
+on **newly introduced unfamiliar kinds** remains unchanged; retaining such an
+already archived unsupported entry does not admit genuine Report evidence.
+
+Malformed wire regression fixtures calculate their fingerprints independently of
+the strengthened manifest constructor/serializer. Tests cover constructor/codec
+rejection, defensive serialization and publication rejection, full resume and
+the formerly accepted unchanged-update path. Rejected loading preserves the exact
+manifest, object files and directory inventory. Positive cases cover all six
+reserved source-family/evidence-class combinations plus unfamiliar source kinds,
+envelope kinds and codec versions. All remain outside semantic Report/trusted
+binding admission. Valid canonical manifest bytes are preserved.
+
+The two Product edits are confined to `automatic_learning_contracts.py` and
+`automatic_learning_objects.py`. Store transactions, identity rules, dependency
+closure, no-clobber/CAS, post-commit preservation, quotas, candidates, reader pins,
+cleanup and existing recording/manual-Corpus persistence are unchanged. No S2–S7
+adapter, UI, public API, storage feature or migration is introduced.
+
+### Follow-up validation inventory and evidence
+
+The complete affected inventory is exactly:
+
+* `tests/test_automatic_learning_contracts.py`
+* `tests/test_automatic_learning_store.py`
+* `tests/test_automatic_learning_lifecycle.py`
+* `tests/test_automatic_learning_managed_service.py`
+
+The contract is consumed only by the private object/IO/store modules. The only
+existing integration caller is `app_web/automatic_learning.py`, covered by the
+managed-service test, including its unchanged Session/Match/manual-Corpus byte
+checks. Import/caller inspection found no additional affected test module or
+exclusive module. The broader initial S1 compatibility inventory above is
+historical evidence, not a reason to rerun unrelated modules for this fix.
+
+All commands use development CPython 3.13 and a 7,200,000 ms harness timeout.
+The baseline reproduction script, pytest XML and disposable stores are outside
+the repository under `%TEMP%\opencode`. No real managed data, installed UAT,
+installed service smoke, browser retest, local Full or unrelated suite was used.
+**Locally validated; new exact-commit hosted CI and maintainer installed service
+acceptance pending.** Starting/current HEAD remains
+`b2d0bb95c9029666e0c3934f03df7178132811d4`; all six intended changed files remain
+unstaged/uncommitted. The changed-file inventory is:
+
+* `src/skatmind/automatic_learning_contracts.py`
+* `src/skatmind/automatic_learning_objects.py`
+* `tests/automatic_learning_helpers.py`
+* `tests/test_automatic_learning_contracts.py`
+* `tests/test_automatic_learning_store.py`
+* `docs/automatic_learning_store.md`
+
+| Invocation | Actual result | Elapsed |
+| --- | --- | ---: |
+| External pre-Product-edit baseline reproduction | 2 passed, confirming both gaps and publication rejection | 5.64 s |
+| New rejection regressions before Product edits | 8 expected failures, 2 publication-rejection passes, 86 deselected | 1.00 s |
+| Focused corrected negative/positive compatibility cases | 20 passed, 76 deselected | 3.72 s |
+| Four complete automatic-Learning modules, two file-grouped workers | **125 passed, 3 skipped** | **14.47 s** |
+| Explicit `.\scripts\check.ps1 -Mode Quick` | **Passed** | **28.377 s** |
+
+The final suite comprises **128 distinct repository tests**, including all 20 new
+regression/compatibility cases. The focused 20 are repeated coverage within that
+complete pass, and the initial red 10 are a subset of those 20. The two external
+baseline reproduction cases are separate historical-defect evidence, not extra
+corrected-suite coverage. The three complete-suite skips are the existing actual
+symlink checks unavailable to this Windows account; actual Windows junction tests
+passed. The final complete pass had no failures or warnings. No exclusive module
+was affected, and the workers exited before Quick.
+
+One standalone targeted Ruff invocation found three test-only line-length issues;
+they were corrected before the complete-module pass. The final Quick Ruff stage
+passed in 0.229 s, packaged-schema parity in 0.129 s, and input examples in 2.846 s.
+Quick's reported total wall time was 28.377 s; the remaining overhead is not
+attributed to an individual stage. No other intermediate failure occurred in this
+follow-up. The expected pre-correction regression failures are recorded separately
+above. Final `git diff --check` and changed-file review passed.
+
+Commands below use `$E` only to abbreviate the exact external path; module order,
+flags, arguments and evidence filenames match the actual invocations:
+
+```powershell
+$E = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode'
+py -3.13 -c "import sys; print(sys.executable); print(sys.version)"
+py -3.13 -m pytest "$E\test_309_strict_resume_baseline.py" -q -s -p no:cacheprovider --basetemp "$E\309-resume-baseline" --junitxml "$E\309-resume-baseline.xml"
+py -3.13 -m pytest tests/test_automatic_learning_contracts.py tests/test_automatic_learning_store.py -k known_binding_mismatch -q -p no:cacheprovider --basetemp "$E\309-resume-red" --junitxml "$E\309-resume-red.xml"
+py -3.13 -m pytest tests/test_automatic_learning_contracts.py tests/test_automatic_learning_store.py -k "known_binding_mismatch or known_binding_combinations or future_bindings" -q -p no:cacheprovider --basetemp "$E\309-resume-focused" --junitxml "$E\309-resume-focused.xml"
+py -3.13 -m ruff check src/skatmind/automatic_learning_contracts.py src/skatmind/automatic_learning_objects.py tests/automatic_learning_helpers.py tests/test_automatic_learning_contracts.py tests/test_automatic_learning_store.py
+py -3.13 -m pytest tests/test_automatic_learning_contracts.py tests/test_automatic_learning_store.py tests/test_automatic_learning_lifecycle.py tests/test_automatic_learning_managed_service.py -q -n 2 --dist=loadfile --max-worker-restart=0 -p no:cacheprovider --basetemp "$E\309-resume-complete" --junitxml "$E\309-resume-complete.xml"
+function python { & 'C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe' @args }
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+```
+
+Quick logs are in `%TEMP%\skatmind-check-xgtho0m4`. Its source digest is
+`0a02cc8e919c70ed3b1c649599605556672a81f78d6450f8c40bce39f2dbe474`; these final
+documentation-only results were appended after that check. Local Full was not run
+under the explicit follow-up validation boundary. New hosted CI and installed
+service acceptance were not performed or claimed.
+
+Keep #309 open for new exact-commit branch/main `check` and
+`v1-supported-platform-matrix` evidence and maintainer installed service
+acceptance. Accepted #292–#307 scopes and #308's documentation acceptance remain
+intact. #208 remains open; UAT-01 is not globally accepted, formal UAT-02–12 remain
+paused, and release preparation is not authorized.
+
 ## Maintainer-only installed service smoke (documented, not executed here)
 
 After exact-commit hosted gates, use an independently installed build's CPython
