@@ -48,8 +48,19 @@ Paths below are relative to `src/skatmind/` unless linked otherwise.
 | `match_analysis_contracts.py`, `match_analysis_report_source_export.py`, `match_analysis_report_source_codec.py`, `learning_corpus_strategy_teacher_builder.py` | Exact executed ordinary Match Decision Report wrapper; strict resume and Current-Snapshot reconciliation; method-specific retained Result validation | Durable original-source envelope and automatic capture at successful Report publication |
 | `match_rollout_review.py`, `match_debrief.py`, `app_web/debrief_frontend.py` | Selected Match whole-game rollout; exact original Snapshot plus separately reconciled selected target; complete-only debrief comparison; explicit native incorporation | Durable rollout codec/source retention; automatic inclusion without the manual incorporation step |
 | `session_persistence_codec.py`, `session_decision_observation.py`, `session_checkpoint_review.py`, `app_web/session_recorded_review.py`, `session_rollout_review.py` | Strict accepted-Log and saved-Checkpoint resume; observed own-Play mapping; frozen-request review and separate derived rollout; source/generation/attempt checks | Session-native Learning references and durable executed evidence; no existing Session-to-Corpus adapter |
-| `app_web/workflow_state.py`, `app_web/execution.py`, `app_web/historical_form.py` | Manual guided/imported Review Request and successful Request/options/Result/download tuple; revision-safe process-local publication | Saved Historical-review source identity, version/correction lifecycle, retained execution codec and Learning projection |
+| `app_web/workflow_state.py`, `app_web/execution.py`, `app_web/historical_form.py` | Manual guided/imported Review Request and successful Request/options/Result/download tuple; revision-safe process-local publication; guided creation reuses fixed Game/Player identifiers | Saved Historical-review source identity and private guided-identity namespace, version/correction lifecycle, retained execution codec and Learning projection |
 | `corpus_web/preparation.py`, `corpus_web/downloads.py`, `app_web/learning_result_projection.py`, `app_web/learning_result_rendering.py` | Explicit no-analysis artifact derivation; atomic prepared families; exact owner/generation/fingerprint checks; concise retained Learning review | Automatic-source orchestration, durable preparation recipe and source freshness across all represented families |
+
+The existing guided producer in
+[`app_web/historical_form.py`](../src/skatmind/app_web/historical_form.py) uses
+`HISTORICAL_GAME_ID = "frontend-historical-review"` and `HISTORICAL_PLAYER_IDS`
+containing `frontend-forehand`, `frontend-middlehand` and `frontend-rearhand`.
+`HistoricalFormDraftV1` requires those Player IDs; `create_historical_form_draft_v1`
+reuses them for every new draft. `update_historical_players_v1` changes labels
+only, and `build_historical_request_v1` copies the fixed IDs into the Request.
+These literals identify a Game and its participants within that guided input;
+they do not establish shared Game or person identity across independent Reviews.
+S7 must retain their source-local scope as specified in section 4.1.
 
 Relevant existing contracts are [Corpus persistence](learning_corpus_persistence_and_import.md),
 [browser workflows](learning_corpus_browser_workflows.md),
@@ -176,9 +187,11 @@ independent-copy semantics.
 Recommend a private source manifest with four separate concepts:
 
 * **Logical source key:** family plus stable Product identity (`match_id`,
-  `session_id`, or an S7 generated saved-review ID). Player aggregation uses
-  existing stable Player IDs. Display labels, aliases and media titles never
-  establish identity.
+  `session_id`, or an S7 generated saved-review ID). Cross-source Player
+  aggregation requires an explicit validated retained identity binding, including
+  the identity scope in which an existing stable Player ID is meaningful. Guided
+  Historical placeholders alone supply no such binding. Labels, names, aliases,
+  seats, media titles and matching placeholder strings never establish it.
 * **Source version:** exact strict persistence content fingerprint and source
   contract version, plus the numeric revision as descriptive context. Match
   selection points to its exact Snapshot ID. Equal revision numbers do not imply
@@ -186,10 +199,31 @@ Recommend a private source manifest with four separate concepts:
 * **Situation key:** source-version-scoped Game and Decision reference, actor,
   observed Card and information cutoff. Session keys additionally retain exact
   Checkpoint and observed accepted-Play identity. Manual Historical keys retain
-  canonical Game ID, actual-play index and stable actor under the saved source.
+  the original Game ID, actual-play index and actor under the saved source and
+  its applicable private identity scope.
 * **Execution key:** exact original-source binding plus genuine complete Report
   or execution-envelope fingerprint. A separate semantic fingerprint follows the
   method's existing normalization. It is not a replacement execution identity.
+
+For **app-produced guided Historical Reviews**, New creates an independent
+generated saved-source identity and private identity namespace. On save, logical
+Game and Player keys are scoped as `(saved_review_source_key, original_game_id)`
+and `(saved_review_source_key, original_player_id)`. Reopening or correcting a
+saved Review retains that source identity/namespace and replaces only its source
+version. Repeated guided placeholder literals in independent saved sources alone
+establish neither duplicate Games nor cross-review person identity, and cause no
+ambiguity blocker. Without an explicit validated retained cross-source Player
+binding, those participants remain source-local even when labels or seats match.
+This introduces no identity-management UI or additional ordinary Player-selection
+step.
+
+Retain the app-produced guided origin and private scope outside the executed
+payloads. Preserve the exact original Request/Result identifiers, fingerprints
+and byte payloads; do not rewrite them with namespaced IDs. Trusted guided origin
+comes from the retained validated producer/source binding, never from an ID's
+literal value or string prefix. Imported identity/origin claims retain the strict
+reconciliation and ambiguity rules in section 4.2, including when their IDs happen
+to match guided placeholders; matching text does not establish trusted guided origin.
 
 Private managed locators and fresh file/root stamps resolve authority and guard
 delivery; they are not semantic identities or canonical export fields. Do not
@@ -206,10 +240,12 @@ the saved authority even when its revision decreases. Filesystem timestamps may
 detect a concurrent write; they never choose the correct version.
 
 For manual Review, S7 introduces one saved-review head with optimistic version
-replacement. Reopening it and explicitly applying a correction updates that
-head. A new independent manual review gets a new local source identity. Imported
-Historical Game IDs remain explicit identity claims and must be reconciled,
-not regenerated to hide conflicts.
+replacement. Reopening it and explicitly applying a correction retains its
+source identity and private namespace while replacing the head's source version.
+A new independent guided Review gets its own source identity/namespace even
+though its raw Game/Player IDs repeat. Imported Historical Game and Player IDs
+remain explicit identity claims in their declared scope and must be reconciled,
+not regenerated or treated as guided-local merely to hide conflicts.
 
 | Situation | Required automatic behavior |
 | --- | --- |
@@ -220,7 +256,8 @@ not regenerated to hide conflicts.
 | Distinct runs of one Decision | Retain distinct exact Reports, including elapsed-only variants; existing semantic deduplication prevents multiplied Decision/focus counts |
 | Equal display names, different stable IDs | Keep separate and disambiguate captions; no Player or Game merge |
 | One Game explicitly represented through two families | Use a validated origin link to give it one coverage contribution and one Decision lineage; keep Reports separate |
-| Repeated Historical Game ID or conflicting claimed origin without a verified link | Mark ambiguity; do not count both as independent Games or silently prefer Match/Session/Review |
+| Repeated app-produced guided Game/Player placeholders across independent saved Reviews | Keep separate source-scoped Games and participants; repeated literals alone cause neither duplicate-ID ambiguity nor a Player merge |
+| Repeated Historical Game identity claim in a shared/imported scope, or conflicting claimed origin without a verified link | Mark ambiguity; do not count both as independent Games or silently prefer Match/Session/Review; a placeholder-like spelling does not exempt an imported claim |
 
 Recommend retaining origin links when a future app-owned conversion/export is
 saved as another family. No such general cross-family adapter exists today.
@@ -404,6 +441,11 @@ the actual execution Result/warnings/artifacts. Retain source-time Player
 bindings; labels or today's profile do not reconstruct them. Validate the strict
 input/output contracts and exact retained Game/Decision/method relationships.
 Use existing retained review/coaching fields only when executed and present.
+
+For guided sources, retain the validated producer origin and source-local
+Game/Player scope beside these exact payloads, plus any explicit validated
+cross-source identity binding. Resume must restore that scope without changing
+original executed IDs or bytes or inferring identity from labels/placeholders.
 
 A Historical Result is not a bundle of genuine Match Decision Reports. Do not
 manufacture their options, seeds, elapsed times or Report IDs from a Historical
@@ -739,7 +781,8 @@ and S3; S2 and S3 may be implemented independently after S1.
   corrected and deleted without Report transfer. Per-game historical findings are
   visibly separate from selected-decision rollout and recurring Match focuses.
 * **Components/contracts:** guided/imported Historical completion and publication,
-  generated private source ID/head, strict saved-review codec, retained historical
+  generated private source ID/head and guided-identity namespace, strict
+  saved-review codec with validated producer/scope bindings, retained historical
   execution codec, Match Historical publication/materialization binding, native
   saved-source navigation/correction/deletion and review projection. Preserve
   accepted #303–#307 entry/validation behavior.
@@ -749,19 +792,36 @@ and S3; S2 and S3 may be implemented independently after S1.
   Session/Match/manual Corpus layouts. Successful Review saves source plus execution
   atomically; failed save retains process-local success with an honest warning.
   Unfinished drafts/imports are not saved Games. Reopen correction replaces its
-  exact head; New starts an independent identity. No existing public Historical
-  Request/Result or persistence format is reinterpreted.
+  source version under the same source identity/namespace; New starts an
+  independent source identity/namespace despite repeated guided placeholders.
+  Private Learning scoping leaves original executed Request/Result IDs and byte
+  payloads exact. Imported identity/origin reconciliation stays strict. No existing
+  public Historical Request/Result or persistence format is reinterpreted, and no
+  identity-management UI or additional ordinary Player-selection step is added.
 * **Focused verification:** normal and parser-supported shortened Historical inputs,
   effective options/external context, no-review-options coverage, no synthetic
-  Decision Reports, duplicate Game/origin ambiguity, edited input/new version,
+  Decision Reports, genuine imported Game/origin ambiguity, edited input/new version,
   restart and no-analysis reconstruction, failed/interrupted saving/update,
   deletion and cross-family atomic delivery. Exercise genuine retained Historical
-  tuples, not fabricated summary-only Reports.
+  tuples, not fabricated summary-only Reports. Add two independent guided Reviews
+  with different people in the same seats and identical raw placeholder IDs:
+  both contribute distinct Games without a duplicate-ID blocker or Player merge.
+  Correct one reopened saved source and assert only its version/contribution is
+  replaced; repeated ingestion of that same saved source is idempotent. Verify
+  exact retained Request/Result IDs/bytes and reject imported-origin shortcuts
+  based on a matching placeholder literal or prefix.
 * **Installed scenario:** in German and English with JavaScript disabled, complete
   the normal manual Review, run it explicitly once, restart and Update Learning.
   Reopen/correct that saved input and verify replacement; repeated exact ingestion
   adds no duplicate contribution. Delete it and Update. Inspect historical method
   context and confirm missing analysis options produce no invented comparisons.
+  Also save two independent guided Reviews with different people in the same seats.
+  Confirm their raw Game/Player placeholder IDs repeat but Learning includes two
+  distinct Games and separate participants, without a duplicate-ID blocker. Reopen
+  and correct only one saved Review; Update replaces only that contribution under
+  its retained source identity. Re-ingest the same saved source and confirm no
+  additional contribution. Check that its original executed Request/Result IDs
+  and downloads remain exact. Run this case in both locales without JavaScript.
 
 ## 9. Tradeoffs, later adaptation and acceptance boundary
 
