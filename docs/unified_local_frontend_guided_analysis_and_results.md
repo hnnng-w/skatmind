@@ -477,6 +477,193 @@ R11's recorded context slice. Issue #251 repairs the candidate layout described
 below; Issue #252 addresses download/detail organization below. Issue #253 adds the
 single-decision method/information explanation below; other R11 findings stay open.
 
+### Ordinary Historical Result and Overbid statuses (Issue #307)
+
+The ordinary Summary projects `historical_game_summary.game_result_summary.status`
+and `historical_game_summary.overbid_summary.status` through the existing trusted
+`Result` and `Overbid` field identities. Nine paired private catalog entries use
+Issue #307's exact approved German/English copy. The mapper and renderer remain
+the existing authorities; no calculation or exported token is translated.
+
+| Retained status | English display / meaning |
+| --- | --- |
+| `final_decided` | Result determined; neutral about which party won |
+| `currently_decided` | Decided on the current evidence |
+| `final_undecided` | Final result; winner undetermined; not a draw claim |
+| `in_progress` | Outcome unresolved; not a background execution indicator |
+| `final_adjudicated` | Determined by adjudication |
+| `unknown_bid_value` | Cannot assess: bid value missing |
+| `unknown_game_value` | Cannot assess: game value unavailable |
+| `overbid` | Overbid |
+| `not_overbid` | Not overbid |
+
+Producer inspection covers `game_result.get_card_point_result_status`,
+`overbid.build_overbid_summary`, and structured ending adjudication. In particular,
+`declarer_concession.adjudicate_declarer_concession` sets `final_adjudicated` with
+a defender winner and without assigning unplayed points. Defender concession,
+accepted exposure, open play, open-card throwing and party-wide Claim adjudication
+also distinguish adjudicated outcomes from pre-existing decisions. The wording
+does not assert normal completion or a particular winning party.
+
+Existing `final`, `complete`, and generic `unknown` mappings remain. Literal Player
+names are not enum lookups. Genuinely unfamiliar values retain the localized
+technical-details fallback and escaped exact value. Known entries no longer need
+incidental fallback-only duplicate rows. Existing dedicated technical details,
+including exact `Result status`, and canonical exports remain intact. Other enum
+families retain their current behavior, including existing Winner fallbacks.
+
+The strict inventory is **2,133 keys per locale**, including **25 `result.value.*`
+keys** (nine additions to 2,124 / 16). Only the exact catalog-count assertion changes;
+package discovery/resource expectations need no adjustment. Static routes, POST
+routes and forms remain **9 / 73 / 125**, and packaged schemas remain **72**.
+
+#### Regression and validation evidence
+
+Expected and actual initial branch: `bug/307-manual-review-status-labels`.
+Expected and actual starting HEAD: `4e975af17f44cfb1c769319a1e9d8cb7abf6a707`;
+the initial worktree and index were clean. Product edits are only the two catalogs.
+
+`test_manual_review_status_labels.py` separates real HTTP execution from controlled
+presentation fixtures. Its genuine supported Request adapts the repository's
+completed Grand example to Anna/Bea/Clara, Anna declaring at 18, D8/D7 discards,
+and 30 legal Plays. Bea wins the first 15-point Trick; Anna wins the remaining
+nine. Execution retains **105/15 points, declarer victory and settlement 72**.
+This equivalent synthetic Request is not the maintainer's original installed file.
+
+The pre-Product run reproduced both incorrect ordinary cells in delivered German
+and English HTML: **26 expected failures / 22 passes in 5.71s**. The first repaired
+run had **129 passes / six failures in 18.50s**: a new test incorrectly assumed an
+existing plural `defenders` Winner translation. The assertion was corrected to
+require the actual unchanged Winner fallback and exact technical value, retaining
+both winning-party Result cases. The four complete focused modules then passed
+**135 tests in 22.14s**. No skips occurred in these runs.
+
+The **20 complete affected modules passed 413 distinct tests in 123.30s**, with
+no skips. Earlier passing tests overlap this inventory. Focused Ruff initially
+found 11 unbound-loop references in the new synchronous browser helper and five
+long test lines; explicit server/script parameters and line wrapping corrected
+them. The final complete new regression module passed **48 tests in 6.55s** after
+also asserting the literal Player table column. These are repeats within the 413,
+not additional distinct coverage. Focused Ruff then passed. The final complete
+documentation-sensitive rename module passed **eight tests in 2.44s**, also repeats.
+
+Pre-change canonical SHA-256 values are pinned in the regression:
+
+* Request: `cc27919d83201943c934c7d5713a6a8abcd36d1a248b814f9963d5b418141d16`
+* Result: `827059c49d1f2181c1a413b734328a65f030494a554c80a3d606047d6487d3d8`
+
+Validation uses process-selected **CPython 3.13.7**, pytest **9.0.3**, xdist **3.8.0**,
+Windows 11 and PowerShell 5.1. Every validation tool invocation has an explicit
+**7,200,000 ms tool timeout**. Test caches, temporary homes, browser profiles and
+probe evidence are outside the repository under `$E` below. Quick selects its own
+external log directory, reported in the completion handoff. Explicit Quick passed
+Ruff, schema parity and input examples; `git diff --check` passed and the index
+remained empty. Local Full was not run.
+
+```powershell
+$E = 'C:/Users/HENNIN~1/AppData/Local/Temp/opencode'
+$B = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+
+py -3.13 -m pytest tests/test_manual_review_status_labels.py -q --tb=short `
+  -o cache_dir="$E/307-red-cache" --basetemp="$E/307-red-tmp" --junitxml="$E/307-red.xml"
+
+# The first repaired run used green; the corrected complete rerun used green2.
+$suffix = 'green2'
+py -3.13 -m pytest tests/test_manual_review_status_labels.py `
+  tests/test_guided_frontend_result_presentation.py tests/test_analysis_download_details.py `
+  tests/test_frontend_localization_foundation.py -q --tb=short --durations=10 `
+  -o cache_dir="$E/307-$suffix-cache" --basetemp="$E/307-$suffix-tmp" `
+  --junitxml="$E/307-$suffix.xml"
+
+$modules = @(
+  'tests/test_manual_review_status_labels.py',
+  'tests/test_guided_frontend_result_presentation.py',
+  'tests/test_analysis_download_details.py',
+  'tests/test_candidate_comparison_layout.py',
+  'tests/test_guided_frontend_web.py',
+  'tests/test_guided_frontend_execution.py',
+  'tests/test_guided_frontend_json_transfer.py',
+  'tests/test_guided_frontend_contracts.py',
+  'tests/test_session_recorded_review_web.py',
+  'tests/test_task_first_stateful_rendering.py',
+  'tests/test_frontend_language_switching.py',
+  'tests/test_language_switch_context.py',
+  'tests/test_task_first_language_preservation.py',
+  'tests/test_language_view_continuity.py',
+  'tests/test_language_view_script.py',
+  'tests/test_frontend_localization_foundation.py',
+  'tests/test_complete_frontend_localization.py',
+  'tests/test_packaging_and_distribution.py',
+  'tests/test_guided_frontend_packaging.py',
+  'tests/test_skatmind_rename.py'
+)
+py -3.13 -m pytest @modules -q --tb=short --durations=15 `
+  -n 2 --dist=loadfile --max-worker-restart=0 `
+  -o cache_dir="$E/307-affected-cache" --basetemp="$E/307-affected-tmp" `
+  --junitxml="$E/307-affected.xml"
+
+py -3.13 scripts/verify_manual_review_status_labels.py --browser $B --output "$E/307-browser"
+py -3.13 scripts/verify_manual_review_status_labels.py --browser $B --output "$E/307-browser-final"
+
+py -3.13 -m pytest tests/test_manual_review_status_labels.py -q --tb=short --durations=10 `
+  -o cache_dir="$E/307-final-status-cache" --basetemp="$E/307-final-status-tmp" `
+  --junitxml="$E/307-final-status.xml"
+py -3.13 -m ruff check tests/test_manual_review_status_labels.py `
+  tests/test_guided_frontend_result_presentation.py tests/test_frontend_localization_foundation.py `
+  scripts/verify_manual_review_status_labels.py
+
+# Final documentation-sensitive complete module, after parallel workers exit.
+py -3.13 -m pytest tests/test_skatmind_rename.py -q --tb=short `
+  -o cache_dir="$E/307-final-rename-cache" --basetemp="$E/307-final-rename-tmp" `
+  --junitxml="$E/307-final-rename.xml"
+
+git diff --check
+function python { & py -3.13 @args }
+.\scripts\check.ps1 -Mode Quick
+git diff --cached --stat
+git status --short --branch
+git rev-parse HEAD
+```
+
+The 20-module inventory follows the changed catalog/projection fixture, its direct
+download and candidate-table test consumers, guided HTTP/execution/import/state
+boundaries, shared Session Result rendering, native/enhanced language return,
+strict localization, source package resources, and rename policy. Match/Corpus
+rollout callers use separate rollout projections and do not acquire these status
+fields. None of the four exclusive modules in `scripts/validation_pytest.py` is
+affected: transport rejection, standalone Corpus and Match action placement are
+unchanged. No exclusive worker or arbitrary full-regression run is selected.
+Local Full is not run under this approved issue routine.
+
+#### Disposable browser observations and acceptance boundary
+
+`$E/307-browser-final/report.json` records four successful cells: German/English with
+JavaScript disabled/enabled in actual headless Microsoft Edge **156.0.4314.50**.
+The final probe passed in **53.062s** after the helper's explicit-parameter cleanup;
+the earlier `$E/307-browser/report.json` also passed all four cells. The observations
+and operation counts below are per run, not summed across these repeats.
+Each uses the native Request file input and explicit Run button, checks delivered
+HTML against actual ordinary DOM cells, and captures screenshots with technical
+details closed. Every cell exercises native language return; enabled cells also
+return with script enabled. Home/Review navigation and post-server-restart import
+of the downloaded Request retain the same result and exact download bytes.
+
+The probe records **20 ordinary Summary observations and 24 native downloads**.
+Eight imports and eight explicit executions (initial plus restarted in each cell)
+are separate from 12 deliberate language-profile saves/atomic replacements. All
+passive phases have **zero POSTs, executions or persistent replacements** and
+retain exact state identity and managed-file snapshots. The source hashes,
+delivered HTML, screenshots, downloaded JSON and phase accounting are retained in
+the evidence directory. No installed UAT environment or real managed data is used.
+
+Completion status: **Locally validated; exact-commit hosted CI and installed
+targeted acceptance pending.** Quick is partial validation, not a distribution,
+installation-matrix or full-regression certification. The maintainer must verify
+exact-commit branch/main `check` and `v1-supported-platform-matrix` gates and a
+narrow installed retest using the already exported Request. Keep **#307 and #208
+open**, preserve accepted **#292–#306** scopes, and keep formal **UAT-02–12 paused**.
+Release preparation is not authorized.
+
 ### Single-decision method and information scope (Issue #253)
 
 `analysis_explanation.py` provides one private frozen scalar projection. It reads

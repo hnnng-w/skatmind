@@ -272,6 +272,7 @@ def _position_document(*, status: str = "partial") -> dict[str, object]:
 
 
 def _historical_document() -> dict[str, object]:
+    """Controlled presentation fixture; not an executed Historical Result."""
     return {
         "input_file": "C:/private/history.json",
         "historical_game_summary": {
@@ -316,7 +317,7 @@ def _historical_document() -> dict[str, object]:
             "schneider_status": "none",
             "schwarz_status": "none",
             "game_result_summary": {
-                "status": "final",
+                "status": "final_decided",
                 "winner": "declarer",
                 "game_end_reason": "party_wide_all_remaining_tricks_claim",
             },
@@ -530,7 +531,7 @@ def test_historical_projection_covers_outcome_reviews_and_bounded_families() -> 
         "Declarer points": "72",
         "Defender points": "48",
         "Winner": "declarer",
-        "Result": "final",
+        "Result": "final_decided",
         "Overbid": "not_overbid",
         "Settlement": "36",
         "Hand game": "Yes",
