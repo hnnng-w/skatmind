@@ -62,7 +62,7 @@ def project_match_rollout_form(active, preparation):
             "missing": missing_rollout_settlement_inputs(root)}
 
 
-def execute_unified_match_rollout(active, values):
+def execute_unified_match_rollout(active, values, *, app_context=None):
     """Capture under the workspace lock, evaluate unlocked, then verify ownership again."""
     values = dict(values)
     with active.capture.lock:
@@ -87,6 +87,9 @@ def execute_unified_match_rollout(active, values):
         attempt = object()
         active.rollout_attempt = attempt
         active.rollout_notice = None
+        active.pending_evidence = None
+        active.evidence_notice = None
+        active.rollout_evidence_binding = None
         generation = active.capture.report_store.generation
         workspace = active.workspace
         _, settings, submitted = parse_recorded_rollout_form_v1(values)
@@ -101,8 +104,30 @@ def execute_unified_match_rollout(active, values):
         options = MatchDecisionAnalysisOptionsV1(recommendation_method="whole_game_rollout",
             use_profile_presets=False, rollout_settings=settings,
             settlement_supplements=supplements)
+        document = archive_owner = None
+        if app_context is not None:
+            from .match_evidence_retention import capture_original_document
+
+            document = capture_original_document(app_context, active)
+            archive_owner = app_context.saved_match_analyses
+    captured = []
+    def observe(invocation, execution):
+        captured.append((invocation, execution))
+
+    def source_guard():
+        if (active.rollout_attempt is not attempt or active.workspace is not workspace
+                or active.capture.report_store.generation != generation
+                or match_rollout_binding(active, decision) != selection):
+            return False
+        if app_context is not None:
+            with app_context.lock:
+                if (app_context.managed_stateful.active_match is not active
+                        or app_context.saved_match_analyses is not archive_owner):
+                    return False
+        return True
+
     value = execute_match_decision_analysis_v1(workspace, match_position=position,
-        decision_index=decision, options=options)
+        decision_index=decision, options=options, execution_observer=observe)
     report = build_match_analysis_report_v1(value)
     with active.capture.lock:
         active.require_attached()
@@ -111,9 +136,7 @@ def execute_unified_match_rollout(active, values):
         except RecordingOpenConflict:
             active.capture.report_store.clear()
             raise
-        if (active.rollout_attempt is not attempt or active.workspace is not workspace
-                or active.capture.report_store.generation != generation
-                or match_rollout_binding(active, decision) != selection):
+        if not source_guard():
             raise RecordingOpenConflict()
         complete = (value.result is not None
                     and value.result.document["whole_game_rollout_result"]["status"] == "complete")
@@ -129,4 +152,10 @@ def execute_unified_match_rollout(active, values):
             active.capture.report_store.put(report)
         active.selected_review_decision = decision
         active.review_selection_native_ready = True
-    return report, report if complete or retained is None else retained
+    display_report = report if complete or retained is None else retained
+    if document is not None and value.status == "executed" and len(captured) == 1:
+        from .match_evidence_retention import retain_published_rollout
+
+        retain_published_rollout(app_context, active, document, attempt, workspace, report,
+            *captured[0], source_guard=source_guard, display_report=display_report)
+    return report, display_report

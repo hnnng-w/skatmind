@@ -631,8 +631,16 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
     ) -> None:
         guard = getattr(self, "_retained_delivery_guard", None)
         self._retained_delivery_guard = None
-        if status < HTTPStatus.BAD_REQUEST and guard is not None:
-            guard()
+        # A valid executed incomplete rollout is delivered with HTTP 400. Its
+        # retained evidence and save capability still require final authorization.
+        if guard is not None:
+            try:
+                guard()
+            except (RecordingOpenConflict, OSError, ValueError, SkatMindError):
+                # Do not re-enter the rejected form's stale Report/receipt renderer.
+                self._rendered_language_source = None
+                self._send_common_error(HTTPStatus.CONFLICT)
+                return
         rejected = status >= HTTPStatus.BAD_REQUEST
         if rejected:
             self.close_connection = True
@@ -2368,10 +2376,15 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             card_bindings=card_bindings,
         ))
         body += saved_analyses_link(locale)
-        if report_id is not None:
+        receipt_id = report_id
+        binding = active.rollout_evidence_binding
+        if (binding is not None and state.get("rollout_notice") is binding.report.value
+                and report_id == binding.display_report.report_id):
+            receipt_id = binding.report.report_id
+        if receipt_id is not None:
             self._retained_delivery_guard = live_retention_delivery_guard(
-                self.server.app_context, active, report_id)
-            body = retention_feedback(self.server.app_context, active, report_id, locale) + body
+                self.server.app_context, active, receipt_id)
+            body = retention_feedback(self.server.app_context, active, receipt_id, locale) + body
         if draft is not None:
             self._native_declaration_values = draft
             from .validation_rendering import _FORM_BLOCK, _replace_safe_values
@@ -3178,7 +3191,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         elif path == "/matches/review-whole-game":
             self._match_review_return = True
             self._rollout_execution_started = True
-            report, retained = execute_unified_match_rollout(active, values)
+            report, retained = execute_unified_match_rollout(
+                active, values, app_context=self.server.app_context)
             if report.value.status != "executed":
                 raise ValueError("Selected Match decision is unavailable.")
             rollout = report.value.result.document["whole_game_rollout_result"]

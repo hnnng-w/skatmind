@@ -239,6 +239,7 @@ class AutomaticLearningStoreV1:
             decode_match_decision,
             decode_match_source,
         )
+        from .automatic_match_rollout_evidence import decode_match_rollout
         from .errors import SkatMindError
 
         entries = {entry.reference: entry for entry in manifest.objects}
@@ -266,9 +267,13 @@ class AutomaticLearningStoreV1:
                         entry = evidence[ref]
                         source_ref = source_by_version[entry.source_version_id].object_ref
                         if source_ref in decoded:
-                            value = decode_match_decision(objects[ref], entry, decoded[source_ref])
-                            admitted[entry.identity] = value
-                            status = "available"
+                            adapter = {("decision", "match_decision"): decode_match_decision,
+                                       ("rollout", "match_rollout"): decode_match_rollout}.get(
+                                           (entry.evidence_class, ref.kind))
+                            if adapter is not None:
+                                value = adapter(objects[ref], entry, decoded[source_ref])
+                                admitted[entry.identity] = value
+                                status = "available"
                 except UnsupportedMatchEvidence:
                     pass
                 except (ValueError, TypeError, KeyError, AttributeError,

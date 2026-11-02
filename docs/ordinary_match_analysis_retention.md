@@ -694,3 +694,14 @@ documented installed targeted acceptance remain required. Keep #310 and #208
 open; accepted #292–#309 scopes and historical evidence remain preserved. UAT-01
 is not globally accepted, formal UAT-02–12 remain paused, and release preparation
 is not authorized.
+
+## Separate S3 follow-up (Issue #311)
+
+At Issue #311's baseline the maintainer identifies S1/S2 as accepted. The original
+implementation and CI-follow-up records in this document remain point-in-time
+history. [Selected Match whole-game retention](match_rollout_analysis_retention.md)
+documents the separate S3 codec, shared byte-identical Match source, incomplete
+attempt ownership, family-aware saved inspection and two rollout exports. Ordinary
+methods, their three downloads and Teacher rejection of rollout remain intact.
+S3 reuses `/matches/retry-saving` with a distinct rollout pending binding; route/form
+counts stay 74/126. S3's new hosted and installed acceptance remains pending.

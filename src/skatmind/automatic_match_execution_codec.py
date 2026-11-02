@@ -1,4 +1,4 @@
-"""Closed private codec for the original ordinary Match Application execution.
+"""Closed private codec for original Match Application executions and rollout Reports.
 
 Only the explicitly listed immutable contracts can be reconstructed. Wire values
 never name Python modules or select arbitrary constructors. Mapping order is
@@ -27,6 +27,12 @@ from .field_provenance import (
 )
 from .field_provenance_coverage import FieldProvenanceCoverageSummary
 from .field_provenance_policy import InformationUseContext
+from .match_analysis_contracts import (
+    MatchAnalysisReportV1,
+    MatchDecisionAnalysisOptionsV1,
+    MatchDecisionAnalysisResultV1,
+)
+from .match_decision_review_preparation import MatchDecisionOpponentProfileBindingV1
 from .v1_information_provenance_enforcement import validate_v1_retained_stage_linkage
 from .v1_information_provenance_serialization import (
     V1InformationProvenanceArtifactCheckpoint,
@@ -39,6 +45,7 @@ from .v1_information_provenance_sources import (
     V1InformationProvenanceSources,
     validate_v1_information_provenance_sources,
 )
+from .whole_game_rollout_contracts import WholeGameRolloutSettingsV1
 
 _TYPES = {cls.__name__: cls for cls in (
     RequestDocumentV1, ResultDocumentV1, ApplicationArtifact, ApplicationExecutionOptions,
@@ -50,6 +57,8 @@ _TYPES = {cls.__name__: cls for cls in (
     V1InformationProvenanceArtifactCheckpoint, V1InformationProvenanceSerializationCheckpoint,
     V1InformationProvenanceSourceBinding, V1InformationProvenanceSourceMetadata,
     V1InformationProvenanceSources,
+    MatchAnalysisReportV1, MatchDecisionAnalysisOptionsV1, MatchDecisionAnalysisResultV1,
+    MatchDecisionOpponentProfileBindingV1, WholeGameRolloutSettingsV1,
 )}
 
 
@@ -107,6 +116,8 @@ def _decode(value):
             ordered = (*supplied, *(name for name in kwargs if name not in supplied))
             kwargs["_replace_state"] = (
                 tuple(supplied), tuple((name, kwargs[name]) for name in ordered))
+        if cls is MatchAnalysisReportV1:
+            kwargs.pop("report_id")  # Constructor recomputes it; exact re-encoding checks it.
         result = cls(**kwargs)
     return result
 

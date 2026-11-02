@@ -1,5 +1,12 @@
 # Retained Match post-game debriefs
 
+Separate S3 follow-up: [Issue #311 durable rollout retention](match_rollout_analysis_retention.md)
+re-enters this complete-only evidence contract with the exact original Snapshot.
+Executed incomplete attempts use separate strict availability admission. Saved
+analyses expose archive-owned Request/Result downloads, not new manual incorporation
+or automatic membership actions. Existing explicit compatible-target reconciliation
+and the historical debrief implementation records below remain intact.
+
 Issue #289 adds a private player-facing post-game review from completed selected-
 Decision whole-game rollout Reports. The starting branch is
 `feature/289-learning-debrief`, at

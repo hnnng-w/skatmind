@@ -100,12 +100,31 @@ def test_passive_absent_store_does_not_initialize(localized_server, monkeypatch)
     assert not root.exists()
 
 
-def test_rollout_does_not_enter_ordinary_archive(localized_server):
+def test_rollout_enters_separate_family_and_rejects_ordinary_teacher(localized_server):
     from test_match_rollout_web import form
+
+    from skatmind.app_web.saved_match_analyses import archive_store
+    from skatmind.automatic_match_evidence import build_match_capture_candidate
+    from skatmind.learning_corpus_strategy_teacher_builder import validate_original_match_teacher_v1
+    from skatmind.match_analysis_report_source_export import (
+        build_match_analysis_report_source_export_v1,
+    )
+
     browser, path, page = open_alex(localized_server)
     response = browser.submit(form(page), objective="played_game_goal", requested_worlds="1")
     assert response[0] == 303
-    assert not (localized_server.app_context.managed_home.root / "automatic-learning").exists()
+    store = archive_store(localized_server.app_context)
+    assert store is not None
+    entry, = store.snapshot().manifest.evidence
+    assert entry.evidence_class == "rollout" and entry.envelope.kind == "match_rollout"
+    value = store.read_evidence(entry.identity)
+    with pytest.raises(ValueError):
+        build_match_analysis_report_source_export_v1(value.report)
+    with pytest.raises(ValueError):
+        validate_original_match_teacher_v1(value.report, value.source.snapshot)
+    with pytest.raises(ValueError):
+        build_match_capture_candidate(value.source.document, value.report,
+                                      value.invocation, value.execution)
 
 
 def test_restart_and_reload_preserve_original_and_expire_live_urls(localized_server, monkeypatch):

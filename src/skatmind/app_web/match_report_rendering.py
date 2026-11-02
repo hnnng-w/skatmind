@@ -59,13 +59,16 @@ def render_match_reports_v1(state, locale, *, materialization_form="", results=T
         content += paragraph(locale, "match_rollout.source")
         presentation = localized_render(build_rollout_presentation)(
             rollout, rollout.result.to_dict()["document"], "match_decision", locale=locale)
+        request_route, result_route = (state["rollout_archive_downloads"] if retained_archive else (
+            f'/matches/api/v1/reports/{report["report_id"]}/rollout-request.json',
+            f'/matches/api/v1/reports/{report["report_id"]}.json'))
         content += render_result_presentation_v1(presentation, locale=locale,
             request_download_available=True, result_download_available=True,
-            request_download_route=f'/matches/api/v1/reports/{report["report_id"]}/rollout-request.json',
-            result_download_route=f'/matches/api/v1/reports/{report["report_id"]}.json',
+            request_download_route=request_route,
+            result_download_route=result_route,
             recorded_context=state.get("decision_context"), recorded_context_locale=locale,
             identity_prefix="match-rollout-result")
-        if rollout.result.document["whole_game_rollout_result"]["status"] == "complete":
+        if not retained_archive and rollout.result.document["whole_game_rollout_result"]["status"] == "complete":
             from .debrief_rendering import link
             from .stateful_localization import text
             from .task_first_rendering import disclosure

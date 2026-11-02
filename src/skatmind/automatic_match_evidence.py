@@ -120,6 +120,15 @@ def _source_record(document, reference):
         revision=document.workspace.revision)
 
 
+def build_managed_match_source(document):
+    """Canonical shared S2/S3 source; preserve the historical codec-2 header/bytes."""
+    snapshot = build_learning_corpus_match_snapshot_v1(document)
+    obj = StoredObjectV1(area="sources", kind="match_source",
+        codec_version=MATCH_ARCHIVE_CODEC, payload=canonical_json({**_metadata(),
+            "document": document.to_dict(), "snapshot": snapshot.to_dict()}))
+    return obj, _source_record(document, obj.reference), snapshot
+
+
 def decode_match_source(obj, record):
     if (obj.kind, obj.codec_version) != ("match_source", MATCH_ARCHIVE_CODEC):
         raise UnsupportedMatchEvidence("Unsupported original Match source codec.")
@@ -157,11 +166,7 @@ def build_match_capture_candidate(document, report, invocation, execution):
     if report.value.options.recommendation_method not in ORDINARY_METHODS:
         raise ValueError("Only ordinary executed Match Decisions can be retained.")
     validate_execution(invocation, execution)
-    snapshot = build_learning_corpus_match_snapshot_v1(document)
-    source_object = StoredObjectV1(area="sources", kind="match_source",
-        codec_version=MATCH_ARCHIVE_CODEC, payload=canonical_json({**_metadata(),
-            "document": document.to_dict(), "snapshot": snapshot.to_dict()}))
-    source = _source_record(document, source_object.reference)
+    source_object, source, snapshot = build_managed_match_source(document)
     teacher = validate_original_match_teacher_v1(report, snapshot)
     artifact = build_match_report_result_export_v1(report)
     stem = artifact.filename.removesuffix(".json")

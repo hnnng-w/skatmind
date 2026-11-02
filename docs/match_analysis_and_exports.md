@@ -1,5 +1,14 @@
 # Match analysis and exports
 
+## Separate selected whole-game retention (Issue #311, S3)
+
+Managed rollout executions now join Saved analyses as a separate retained family,
+with exact original-source context and the existing Result/effective Request
+download bytes. Incomplete attempts and save-only retry preserve an earlier
+completed comparison. See [S3 retention](match_rollout_analysis_retention.md) for
+strict admission, restart navigation, compatibility, validation and pending gates.
+The S2 and earlier live-store records below remain their historical scope records.
+
 ## Current ordinary Match retention (Issue #310, S2)
 
 The managed unified frontend now retains genuine ordinary Decision analyses at

@@ -1,5 +1,11 @@
 # Selected Match decision whole-game review
 
+Separate S3 follow-up: [Issue #311 retention](match_rollout_analysis_retention.md)
+retains managed executions and their exact original source across restart, with
+family-owned Saved analyses downloads and separate incomplete attempts. The
+historical execution/acceptance records below remain intact; the live eight-Report
+store and existing manual debrief behavior retain their own lifetime.
+
 Issue #288 adds one explicit whole-game action for a safely prepared Match
 decision. The implementation starts from `1cf0ac06ee96731593406771261b3dc4ad1339e8`
 on `feature/288-match-whole-game-review`. It reuses the existing rollout evaluator,

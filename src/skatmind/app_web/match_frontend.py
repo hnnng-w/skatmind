@@ -92,6 +92,7 @@ class UnifiedMatchContextV1:
     declaration_draft_return: object | None = field(default=None, repr=False)
     declaration_draft_authorization: object | None = field(default=None, repr=False)
     pending_evidence: object | None = field(default=None, repr=False)
+    rollout_evidence_binding: object | None = field(default=None, repr=False)
     evidence_notice: tuple[str, str, str | None] | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
@@ -301,6 +302,7 @@ def execute_unified_match_analysis_v1(
         context.rollout_attempt = attempt
         context.pending_evidence = None
         context.evidence_notice = None
+        context.rollout_evidence_binding = None
         if decision_binding is not None:
             from .match_decision_selection import require_bound_match_decision
 

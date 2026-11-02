@@ -1,4 +1,4 @@
-"""Separate process-owned access to indexed original ordinary Match evidence."""
+"""Process-owned access to family-specific original Match evidence."""
 
 import hashlib
 import hmac
@@ -87,11 +87,20 @@ def saved_analyses_link(locale):
 
 
 def retention_feedback(context, active, report_id, locale):
-    from .match_evidence_retention import require_pending_owner
+    from .match_evidence_retention import require_capture_owner, require_pending_owner
 
     notice = active.evidence_notice
     if notice is None or notice[0] != report_id:
         return ""
+    binding = active.rollout_evidence_binding
+    if binding is not None and binding.report.report_id == report_id:
+        try:
+            with active.capture.lock:
+                with context.lock:
+                    require_capture_owner(context, active, binding)
+        except RecordingOpenConflict:
+            # Navigation expires the receipt/retry, not the earlier live comparison.
+            return ""
     status = notice[1]
     if status == "saved":
         try:
@@ -112,7 +121,14 @@ def retention_feedback(context, active, report_id, locale):
             return ""
     elif status not in {"saved", "unknown"}:
         status = "unavailable"
-    body = '<div role="status">' + paragraph(locale, "saved_analysis." + status) + '</div>'
+    report = active.capture.report_store.get(report_id)
+    if active.rollout_notice is not None and active.rollout_notice[0].report_id == report_id:
+        report = active.rollout_notice[0]
+    prefix = ("saved_analysis.rollout." if (binding is not None
+              and binding.report.report_id == report_id) or (report is not None
+              and report.value.options.recommendation_method == "whole_game_rollout")
+              else "saved_analysis.")
+    body = '<div role="status">' + paragraph(locale, prefix + status) + '</div>'
     if retry:
         body += (f'<form method="post" action="{RETRY_MATCH_ROUTE}">'
             f'<input type="hidden" name="managed_handle" value="{active.handle}">'
@@ -124,7 +140,7 @@ def retention_feedback(context, active, report_id, locale):
 
 def live_retention_delivery_guard(context, active, report_id):
     """Bind the new receipt/retry presentation through final HTML delivery."""
-    from .match_evidence_retention import require_pending_owner
+    from .match_evidence_retention import require_capture_owner, require_pending_owner
     from .recorded_review_opening import require_recording_fresh_v1
 
     with active.capture.lock:
@@ -135,6 +151,13 @@ def live_retention_delivery_guard(context, active, report_id):
         fingerprint = active.capture.content_fingerprint
         generation = active.capture.report_store.generation
         report = active.capture.report_store.get(report_id)
+        binding = active.rollout_evidence_binding
+        if binding is not None and binding.report.report_id == report_id:
+            try:
+                with context.lock:
+                    require_capture_owner(context, active, binding)
+            except RecordingOpenConflict:
+                return None
 
     def guard():
         with active.capture.lock:
@@ -146,6 +169,10 @@ def live_retention_delivery_guard(context, active, report_id):
                         or active.capture.report_store.get(report_id) is not report):
                     raise RecordingOpenConflict()
                 require_recording_fresh_v1(active, "matches")
+                if binding is not None and binding.report.report_id == report_id:
+                    if active.rollout_evidence_binding is not binding:
+                        raise RecordingOpenConflict()
+                    require_capture_owner(context, active, binding)
                 if pending is not None:
                     require_pending_owner(context, active, pending)
         if notice[1] == "saved":
@@ -161,9 +188,17 @@ def _caption(value, locale):
     actor = report.value.profile_binding.acting_player_id
     label = next(player.player_label or player.player_id for player in definition.participants
                  if player.player_id == actor)
-    return text(locale, "saved_analysis.caption", match=definition.title or report.match_id,
+    caption = text(locale, "saved_analysis.caption", match=definition.title or report.match_id,
         game=report.match_position, decision=report.decision_index, actor=label,
         method=text(locale, "saved_analysis.method." + report.value.options.recommendation_method))
+    if value.entry.evidence_class == "rollout":
+        result = report.value.result.document["whole_game_rollout_result"]
+        status = result["status"]
+        caption += " · " + text(locale, "saved_analysis.rollout.caption",
+            objective=text(locale, "rollout.objective." + result["objective"]),
+            status=text(locale, "saved_analysis.rollout.cancelled" if status == "cancelled"
+                        else "result.value." + status))
+    return caption
 
 
 def render_saved_analysis(value, route, locale):
@@ -173,6 +208,10 @@ def render_saved_analysis(value, route, locale):
         "decision_context": match_decision_context(report, workspace),
         "analysis_explanation": match_analysis_explanation(report, workspace),
         "download_availability": {"report_result": False}}
+    rollout = value.entry.evidence_class == "rollout"
+    if rollout:
+        state["rollout_report"] = report.value
+        state["rollout_archive_downloads"] = (route + "/request.json", route + "/result.json")
     body = ('<section id="saved-analysis" tabindex="-1"><h2>'
             + escape(_caption(value, locale)) + '</h2>')
     body += paragraph(locale, "saved_analysis.captured", revision=workspace.revision,
@@ -180,9 +219,10 @@ def render_saved_analysis(value, route, locale):
         report=report.report_id[:12])
     body += paragraph(locale, "saved_analysis.historical")
     body += render_match_reports_v1(state, locale, retained_archive=True)
-    body += analysis_downloads(request_href=route + "/request.json",
-        result_href=route + "/result.json", report_source_href=route + "/strategy-source.json",
-        locale=locale)
+    if not rollout:
+        body += analysis_downloads(request_href=route + "/request.json",
+            result_href=route + "/result.json", report_source_href=route + "/strategy-source.json",
+            locale=locale)
     return body + '</section>' + saved_analyses_link(locale)
 
 
@@ -246,7 +286,7 @@ def handle_saved_analysis_get(handler, path):
                 title=text(locale, "saved_analysis.title"), content=body,
                 feedback_identity=scope,
                 untranslated_workflow_body=False)
-    except (OSError, ValueError, SkatMindError, RecordingOpenConflict):
+    except (OSError, ValueError, KeyError, SkatMindError, RecordingOpenConflict):
         handler._retained_delivery_guard = None
         handler._rendered_language_source = None
         handler._content_page("/matches", return_to=SAVED_MATCH_ROUTE,
@@ -256,7 +296,7 @@ def handle_saved_analysis_get(handler, path):
 
 
 def handle_retry_saving(handler, values):
-    from .match_evidence_retention import save_pending_match
+    from .match_evidence_retention import PendingMatchRolloutSave, save_pending_match
 
     context = handler.server.app_context
     try:
@@ -275,4 +315,5 @@ def handle_retry_saving(handler, values):
             content=paragraph(locale, "saved_analysis.expired") + saved_analyses_link(locale),
             untranslated_workflow_body=False)
         return
-    handler._redirect(f"/matches/reports/{pending.report.report_id}")
+    display = pending.display_report if type(pending) is PendingMatchRolloutSave else pending.report
+    handler._redirect(f"/matches/reports/{display.report_id}")

@@ -20,6 +20,13 @@ strict original-source admission, saved-analysis access and save-only retry.
 Exact-commit hosted CI and installed targeted acceptance remain pending. S3–S7
 remain later work; this does not implement automatic Learning review preparation.
 
+Separate implementation follow-up: Issue #311 implements the bounded
+[selected Match whole-game retention stage S3](match_rollout_analysis_retention.md).
+S1/S2 are maintainer-accepted at its baseline; the preceding status statements are
+historical records. S3 adds strict original rollout execution retention, separate
+incomplete attempts, save-only retry and family-aware Saved analyses. S4–S7 remain
+subsequent stages; new exact-commit CI and narrow installed acceptance are pending.
+
 The maintainer has approved the following **v1 product direction**:
 
 * Learning automatically brings together eligible saved games and existing

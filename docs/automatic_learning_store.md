@@ -9,6 +9,12 @@ S1 opaque codec-1 fixtures remain non-consumable. The S1 service descriptions be
 describe the original foundation; the linked S2 document is authoritative for the
 new `read_evidence` admission and optional final commit guard.
 
+Separate S3 follow-up: [Issue #311 rollout retention](match_rollout_analysis_retention.md)
+adds explicit `rollout`/`match_rollout` admission. Both Match families deliberately
+reuse the original codec-2 `match_source` bytes/header and one SourceVersion record.
+Store format, S1 opaque behavior, quotas and transaction lifetime remain unchanged.
+The historical S1/S2 descriptions and validation records below are preserved.
+
 ## Scope and acceptance
 
 This implements S1 of the accepted
