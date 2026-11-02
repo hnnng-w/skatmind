@@ -662,6 +662,24 @@ def _extract_evidence(
     )
 
 
+def validate_original_match_teacher_v1(report, snapshot):
+    """Pure complete Teacher reconciliation against an explicit original Snapshot.
+
+    The caller must independently establish whole-Workspace origin. This helper
+    creates neither a manual collection nor an automatic generation.
+    """
+    from skatmind.learning_corpus_match_snapshot import validate_learning_corpus_match_snapshot_v1
+    from skatmind.learning_corpus_strategy_teacher import (
+        build_learning_corpus_strategy_teacher_report_source_v1,
+    )
+
+    validate_learning_corpus_match_snapshot_v1(snapshot)
+    source = build_learning_corpus_strategy_teacher_report_source_v1(
+        report=report, match_snapshot_id=snapshot.match_snapshot_id)
+    source._validate(verify_identities=True, validate_report=True)
+    return _extract_evidence(source, snapshot)
+
+
 def _collection_material(values: Mapping[str, object]) -> dict[str, Any]:
     return {
         "learning_corpus_strategy_teacher_collection_version": (

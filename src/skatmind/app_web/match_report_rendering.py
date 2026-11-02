@@ -14,9 +14,10 @@ from .stateful_localization import translated
 from .task_first_rendering import cards_summary, paragraph, technical_details
 
 
-def render_match_reports_v1(state, locale, *, materialization_form="", results=True):
+def render_match_reports_v1(state, locale, *, materialization_form="", results=True,
+                            retained_archive=False):
     """Present retained validated report projections, with their actual Game/decision."""
-    content = paragraph(locale, "task.match.reports_help") if results else ""
+    content = paragraph(locale, "task.match.reports_help") if results and not retained_archive else ""
     for report in state["reports"] if results else ():
         if report["match_position"] not in {None, state["selected_position"]}:
             continue

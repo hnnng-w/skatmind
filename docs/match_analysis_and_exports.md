@@ -1,5 +1,22 @@
 # Match analysis and exports
 
+## Current ordinary Match retention (Issue #310, S2)
+
+The managed unified frontend now retains genuine ordinary Decision analyses at
+validated producer publication, bound to their complete original Workspace and
+execution. **Saved analyses / Gespeicherte Analysen** reopens exact retained
+executions after restart; an explicitly offered save-only retry distinguishes
+persistence failure from successful analysis. Existing Result and Report-for-Learning
+download bytes/filenames are preserved, with an additive retained Request download.
+See [ordinary Match analysis retention](ordinary_match_analysis_retention.md) for
+strict admission, owner/final-delivery checks, native routes, verification and
+pending hosted/installed gates.
+
+The historical ephemeral-report descriptions below continue to describe the live
+eight-Report store and standalone transports. Its URLs still expire on invalidation
+or eviction; archived evidence uses separate ownership/routes. This stage adds no
+rollout/Historical/Session retention or automatic Learning review preparation.
+
 ## Current selected-decision whole-game path (Issue #288)
 
 The unified selected-decision frontend now uses explicit whole-game rollout as its

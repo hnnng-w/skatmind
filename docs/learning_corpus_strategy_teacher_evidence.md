@@ -1,5 +1,14 @@
 # Learning Corpus Strategy Teacher Evidence
 
+Issue #310 reuses the complete pure validator against an explicitly retained
+original Match Snapshot through `validate_original_match_teacher_v1`. The separate
+[S2 archive](ordinary_match_analysis_retention.md) independently validates the complete
+original Workspace binding, restores original external/profile context and checks
+the genuine execution/download tuple. This helper creates no manual collection or
+automatic generation. Existing manual Current-Snapshot reconciliation and
+upload/transfer behavior below remain unchanged; they do not establish automatic
+whole-Workspace origin.
+
 Issue #175 adds private internal method-bound Strategy Teacher Evidence for the
 `v0.16.0 - Learning-ready behavior and communication data` milestone. It
 imports no report into Corpus persistence and creates no training label. It

@@ -1,5 +1,14 @@
 # Automatic Learning private store (Issue #309, S1)
 
+Current follow-up: the maintainer identifies #309, its strict-resume correction
+and installed service acceptance as complete at the #310 starting baseline.
+Historical pending-status records below remain point-in-time records. Issue #310
+adds only the [S2 ordinary Match adapters, capture, access and retry](ordinary_match_analysis_retention.md)
+on this unchanged storage format. Its typed object codecs use version `2`;
+S1 opaque codec-1 fixtures remain non-consumable. The S1 service descriptions below
+describe the original foundation; the linked S2 document is authoritative for the
+new `read_evidence` admission and optional final commit guard.
+
 ## Scope and acceptance
 
 This implements S1 of the accepted

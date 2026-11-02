@@ -13,8 +13,12 @@ had no comments when inspected.
 Implementation follow-up: Issue #309 implements only the private S1 storage
 foundation described in [Automatic Learning private store](automatic_learning_store.md).
 That separate implementation does not change #308's historical documentation-only
-acceptance or claim completion of the automatic Learning workflow. S2–S7 remain
-subsequent work.
+acceptance or claim completion of the automatic Learning workflow. S2–S7 remained
+subsequent work in that historical S1 record. Issue #310 now implements the bounded
+[ordinary Match retention stage S2](ordinary_match_analysis_retention.md), including
+strict original-source admission, saved-analysis access and save-only retry.
+Exact-commit hosted CI and installed targeted acceptance remain pending. S3–S7
+remain later work; this does not implement automatic Learning review preparation.
 
 The maintainer has approved the following **v1 product direction**:
 

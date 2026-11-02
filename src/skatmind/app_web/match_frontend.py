@@ -91,6 +91,8 @@ class UnifiedMatchContextV1:
     rollout_notice: tuple[MatchAnalysisReportV1, int] | None = field(default=None, repr=False)
     declaration_draft_return: object | None = field(default=None, repr=False)
     declaration_draft_authorization: object | None = field(default=None, repr=False)
+    pending_evidence: object | None = field(default=None, repr=False)
+    evidence_notice: tuple[str, str, str | None] | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.category_root, Path) or not isinstance(self.path, Path):
@@ -291,11 +293,14 @@ def execute_unified_match_analysis_v1(
     values: Mapping[str, object],
     *,
     decision_binding: Mapping[str, object] | None = None,
+    app_context=None,
 ) -> MatchCaptureWebResultV1:
     with context.capture.lock:
         context.require_attached()
         attempt = object()
         context.rollout_attempt = attempt
+        context.pending_evidence = None
+        context.evidence_notice = None
         if decision_binding is not None:
             from .match_decision_selection import require_bound_match_decision
 
@@ -306,22 +311,46 @@ def execute_unified_match_analysis_v1(
             context.path,
             expected_kind="file",
         )
+        original = None
+        if app_context is not None and values.get("operation") == "analyze_decision":
+            from .match_evidence_retention import capture_original_document
+
+            original = capture_original_document(app_context, context)
+        source_scope = (context.capture.content_fingerprint,
+                        context.capture.report_store.generation, context.position_generation,
+                        context.review_decision_generation)
     def source_guard():
         from .match_decision_selection import require_bound_match_decision
         from .recorded_review_opening import RecordingOpenConflict
 
         try:
             context.require_attached()
-            require_bound_match_decision(context, decision_binding)
-            return context.rollout_attempt is attempt
+            if decision_binding is not None:
+                require_bound_match_decision(context, decision_binding)
+            if app_context is not None:
+                from .recorded_review_opening import require_recording_fresh_v1
+                with app_context.lock:
+                    if app_context.managed_stateful.active_match is not context:
+                        return False
+                require_recording_fresh_v1(context, "matches")
+            return (context.rollout_attempt is attempt and source_scope == (
+                context.capture.content_fingerprint, context.capture.report_store.generation,
+                context.position_generation, context.review_decision_generation))
         except (RecordingOpenConflict, ValueError):
             return False
+
+    def published(workspace, report, invocation, execution):
+        from .match_evidence_retention import retain_published_match
+
+        retain_published_match(app_context, context, original, attempt, workspace,
+                               report, invocation, execution, source_guard=source_guard)
 
     result = execute_match_capture_web_analysis_v1(
         context.capture,
         values,
         browser_form=True,
-        source_guard=source_guard if decision_binding is not None else None,
+        source_guard=source_guard,
+        **({"publication_observer": published} if original is not None else {}),
     )
     with context.capture.lock:
         context.require_attached()

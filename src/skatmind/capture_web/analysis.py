@@ -263,6 +263,7 @@ def execute_match_capture_web_analysis_v1(
     *,
     browser_form: bool = False,
     source_guard: Callable[[], bool] | None = None,
+    publication_observer=None,
 ) -> MatchCaptureWebResultV1:
     """Executes one explicit report operation outside the Capture context lock."""
     operation = _text(values, "operation")
@@ -305,6 +306,7 @@ def execute_match_capture_web_analysis_v1(
     elif operation == "analyze_historical_game":
         historical_options = _historical_options(values, browser_form=browser_form)
 
+    captured_execution = []
     try:
         if operation == "prepare_materialization":
             value = prepare_match_materialization_report_v1(workspace)
@@ -316,6 +318,9 @@ def execute_match_capture_web_analysis_v1(
                 match_position=position,
                 decision_index=decision_index,
                 options=decision_options,
+                **({"execution_observer": lambda invocation, execution:
+                    captured_execution.append((invocation, execution))}
+                    if publication_observer is not None else {}),
             )
         else:
             assert historical_options is not None
@@ -354,7 +359,7 @@ def execute_match_capture_web_analysis_v1(
                 state=_browser_state(context, position=position),
             )
         context.report_store.put(report)
-        return MatchCaptureWebResultV1(
+        result = MatchCaptureWebResultV1(
             operation=operation,
             status="applied",
             http_status=200,
@@ -365,6 +370,10 @@ def execute_match_capture_web_analysis_v1(
                 selected_report_id=report.report_id,
             ),
         )
+    if (publication_observer is not None and operation == "analyze_decision"
+            and report.value.status == "executed" and len(captured_execution) == 1):
+        publication_observer(workspace, report, *captured_execution[0])
+    return result
 
 
 def get_current_match_analysis_report_v1(

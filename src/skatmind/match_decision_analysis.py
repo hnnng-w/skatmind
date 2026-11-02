@@ -551,6 +551,7 @@ def execute_match_decision_analysis_v1(
     decision_index: int,
     options: MatchDecisionAnalysisOptionsV1,
     dependencies: ApplicationWorkflowDependencies | None = None,
+    execution_observer=None,
 ) -> MatchDecisionAnalysisResultV1:
     """Executes the existing Position Application once for one explicit Decision."""
     if type(workspace) is not MatchWorkspaceV1:
@@ -612,7 +613,7 @@ def execute_match_decision_analysis_v1(
             request_document=prepared.request.document,
             result_document=result_document,
         )
-    return MatchDecisionAnalysisResultV1(
+    value = MatchDecisionAnalysisResultV1(
         status="executed",
         match_id=match_id,
         workspace_revision=workspace.revision,
@@ -626,3 +627,6 @@ def execute_match_decision_analysis_v1(
         request=prepared.request,
         result=result,
     )
+    if execution_observer is not None:
+        execution_observer(invocation, execution)
+    return value

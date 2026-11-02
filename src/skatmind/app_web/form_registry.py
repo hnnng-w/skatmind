@@ -1513,6 +1513,9 @@ _FORMS.append(_definition(
     label_overrides={"declarer_player_id": "validation.field.declaration_declarer",
         **{name: "validation.field.cards" for name in EVIDENCE_FIELDS}},
 ))
+_FORMS.append(_definition(
+    "match.retry_saving", "/matches/retry-saving", page="/matches/current", active="matches",
+    body_limit=8192, value_free=True, success="contextual"))
 FRONTEND_FORM_REGISTRY = tuple(_FORMS)
 UNIFIED_FRONTEND_POST_ROUTES = tuple(
     dict.fromkeys(
@@ -1544,6 +1547,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             "/matches/transfer-workspace",
             "/matches/review-whole-game",
             "/matches/select-decision",
+            "/matches/retry-saving",
             "/matches/transfer-report",
             *RECOVERY_ROUTES,
             "/learning/create",

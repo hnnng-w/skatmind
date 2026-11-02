@@ -119,6 +119,8 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
     """
     if not is_safe_frontend_return_path_v1(route):
         raise ValueError("Language origin must be a safe HTML route.")
+    if route == "/matches/saved-analyses" or route.startswith("/matches/saved-analyses/"):
+        return LanguageSourceV1(route, (context.saved_match_analyses,), ())
     from .learning_outcome_navigation import LEARNING_PREPARED_PATTERN, resolve_prepared_scope
 
     prepared_view = LEARNING_PREPARED_PATTERN.fullmatch(route)
@@ -312,6 +314,14 @@ def validate_language_page_v1(
 
 
 def _require_files(context: AppWebContextV1, route: str) -> None:
+    if route.startswith("/matches/saved-analyses/"):
+        from .saved_match_analyses import resolve_saved_analysis
+
+        try:
+            resolve_saved_analysis(context, route.rsplit("/", 1)[1])
+        except (OSError, ValueError, RuntimeError) as error:
+            raise LanguageContextConflict from error
+        return
     if route == "/recordings/delete":
         from .recording_deletion import (
             RecordingDeletionConflict,

@@ -12,6 +12,7 @@ from .frontend_profile_state import (
 )
 from .language_context import LanguageContextV1
 from .player_seat_setup import SeatSetupV1
+from .saved_match_analyses import SavedMatchAnalyses
 from .settings_forms import SettingsEditorV1
 from .state import build_browser_safe_application_state_v1
 from .workflow_state import ProcessLocalFrontendWorkflowStateV1
@@ -57,6 +58,7 @@ class AppWebContextV1:
     setup_serial: int = 0
     recording_deletion: RecordingDeletionState = field(
         default_factory=_new_recording_deletion_state, repr=False)
+    saved_match_analyses: SavedMatchAnalyses = field(default_factory=SavedMatchAnalyses, repr=False)
 
     def __post_init__(self) -> None:
         from .stateful_context import ManagedStatefulContextV1

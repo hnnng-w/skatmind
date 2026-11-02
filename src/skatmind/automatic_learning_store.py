@@ -1,4 +1,4 @@
-"""Private automatic archive transactions; no evaluator or family admission adapters.
+"""Private automatic archive transactions with explicit no-execution admission.
 
 Cooperating owners share reservations and pins. A nonblocking local OS lease
 serializes other processes during mutations and while candidates/readers live.
@@ -219,12 +219,67 @@ class AutomaticLearningStoreV1:
             return self._read(reference)
 
     def read_evidence(self, evidence_id: str):
-        """S1 has no typed execution adapters; a valid hash never enables consumption."""
+        """Admit only an indexed exact original dependency closure through typed codecs."""
         digest(evidence_id)
         with self._coordinator.lock:
-            if evidence_id not in {entry.identity for entry in self._manifest().evidence}:
+            manifest = self._manifest()
+            if evidence_id not in {entry.identity for entry in manifest.evidence}:
                 raise ValueError("Evidence is not indexed.")
-            raise UnsupportedEvidenceError("No compatible typed execution adapter is installed.")
+            objects, storage = self._object_states(manifest)
+            _statuses, admitted = self._admission(manifest, objects, storage)
+            if self._manifest().fingerprint != manifest.fingerprint:
+                raise StoreConflictError("Evidence manifest changed during validation.")
+            if evidence_id not in admitted:
+                raise UnsupportedEvidenceError("Indexed evidence is unavailable or unsupported.")
+            return admitted[evidence_id]
+
+    def _admission(self, manifest, objects, storage):
+        from .automatic_match_evidence import (
+            UnsupportedMatchEvidence,
+            decode_match_decision,
+            decode_match_source,
+        )
+        from .errors import SkatMindError
+
+        entries = {entry.reference: entry for entry in manifest.objects}
+        sources = {entry.object_ref: entry for entry in manifest.sources}
+        evidence = {entry.envelope: entry for entry in manifest.evidence}
+        source_by_version = {entry.source_version.identity: entry for entry in manifest.sources}
+        consumption, decoded, admitted = {}, {}, {}
+
+        def classify(ref):
+            if ref in consumption:
+                return consumption[ref]
+            dependencies = [classify(dep) for dep in entries[ref].dependencies]
+            if storage[ref] != "valid":
+                status = storage[ref]
+            elif any(value in ("missing", "corrupt", "dependency_unavailable")
+                     for value in dependencies):
+                status = "dependency_unavailable"
+            else:
+                status = "unsupported"
+                try:
+                    if ref in sources:
+                        decoded[ref] = decode_match_source(objects[ref], sources[ref])
+                        status = "available"
+                    elif ref in evidence:
+                        entry = evidence[ref]
+                        source_ref = source_by_version[entry.source_version_id].object_ref
+                        if source_ref in decoded:
+                            value = decode_match_decision(objects[ref], entry, decoded[source_ref])
+                            admitted[entry.identity] = value
+                            status = "available"
+                except UnsupportedMatchEvidence:
+                    pass
+                except (ValueError, TypeError, KeyError, AttributeError,
+                        RecursionError, SkatMindError):
+                    status = "corrupt"
+            consumption[ref] = status
+            return status
+
+        for ref in entries:
+            classify(ref)
+        return consumption, admitted
 
     def _object_states(self, manifest):
         objects, status = {}, {}
@@ -252,24 +307,10 @@ class AutomaticLearningStoreV1:
     def snapshot(self) -> ResumeV1:
         with self._coordinator.lock:
             manifest = self._manifest()
-            _objects, storage = self._object_states(manifest)
+            objects, storage = self._object_states(manifest)
             entries = {entry.reference: entry for entry in manifest.objects}
-            consumption = {}
-
-            def classify(ref):
-                if ref not in consumption:
-                    dependencies = [classify(dep) for dep in entries[ref].dependencies]
-                    if storage[ref] != "valid":
-                        consumption[ref] = storage[ref]
-                    elif any(value in ("missing", "corrupt", "dependency_unavailable")
-                             for value in dependencies):
-                        consumption[ref] = "dependency_unavailable"
-                    else:
-                        # Reserved kinds are not installed source/Report validators.
-                        consumption[ref] = "unsupported"
-                return consumption[ref]
-
-            states = tuple(ObjectStatusV1(ref, storage[ref], classify(ref)) for ref in entries)
+            consumption, admitted = self._admission(manifest, objects, storage)
+            states = tuple(ObjectStatusV1(ref, storage[ref], consumption[ref]) for ref in entries)
             files = io.scan_files(self.root)
             indexed = {io.object_path(self.root, ref) for ref in entries}
             orphan_names, temporary_names = [], []
@@ -287,6 +328,7 @@ class AutomaticLearningStoreV1:
             return ResumeV1(
                 manifest, states, tuple(sorted(orphan_names)), tuple(sorted(temporary_names)),
                 retained, retained > self.limits.total_bytes,
+                tuple(entry.identity for entry in manifest.evidence if entry.identity in admitted),
             )
 
     def _quota(self, *, extra: tuple[ObjectRefV1, ...] = (), candidates=None):
@@ -452,21 +494,25 @@ class AutomaticLearningStoreV1:
     def update_manifest(
         self, requested: ManifestV1, *, expected_manifest: str,
         candidate: CandidateV1 | None = None,
+        commit_guard=None,
     ) -> WriteResultV1:
         """Dependencies first, flushed same-directory CAS last; never rolls back a commit."""
         try:
             return self._update_manifest(
                 requested, expected_manifest=expected_manifest, candidate=candidate,
+                commit_guard=commit_guard,
             )
         except StoreBusyError:
             return WriteResultV1("conflict", self._manifest().fingerprint)
 
-    def _update_manifest(self, requested, *, expected_manifest, candidate):
+    def _update_manifest(self, requested, *, expected_manifest, candidate, commit_guard=None):
         digest(expected_manifest)
         if type(requested) is not ManifestV1:
             raise ValueError("Expected an exact manifest.")
         with self._guard():
             current = self._manifest()
+            if commit_guard is not None and not commit_guard():
+                return WriteResultV1("conflict", current.fingerprint)
             if current.fingerprint != expected_manifest:
                 return WriteResultV1("conflict", current.fingerprint)
             if candidate is not None:
@@ -504,7 +550,8 @@ class AutomaticLearningStoreV1:
             self._coordinator.epoch += 1
             try:
                 latest = self._manifest()  # Immediately before atomic replacement.
-                if latest.fingerprint != expected_manifest:
+                if (latest.fingerprint != expected_manifest
+                        or commit_guard is not None and not commit_guard()):
                     return WriteResultV1("conflict", latest.fingerprint)
                 os.replace(temporary, self.root / "manifest.json")
                 # COMMIT BOUNDARY: no cleanup of manifest or rollback after this line.

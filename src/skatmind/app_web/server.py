@@ -267,6 +267,16 @@ from .rendering import (
     render_language_return_v1,
     suppress_learning_result_autofocus_v1,
 )
+from .saved_match_analyses import (
+    RETRY_MATCH_ROUTE,
+    SAVED_MATCH_PATTERN,
+    SAVED_MATCH_ROUTE,
+    handle_retry_saving,
+    handle_saved_analysis_get,
+    live_retention_delivery_guard,
+    retention_feedback,
+    saved_analyses_link,
+)
 from .security import (
     APP_WEB_BIND_HOST,
     app_web_security_headers_v1,
@@ -446,6 +456,7 @@ _STATEFUL_POST_ROUTES = {
     "/matches/api/v1/analysis",
     "/matches/review-whole-game",
     MATCH_DECISION_SELECTION_ROUTE,
+    RETRY_MATCH_ROUTE,
     "/matches/transfer-workspace",
     "/matches/transfer-report",
     *RECOVERY_ROUTES,
@@ -489,6 +500,7 @@ _COMMON_ERROR_MESSAGE_KEYS = {
 
 def _is_stateful_get_route(path: str) -> bool:
     return (
+        path == SAVED_MATCH_ROUTE or SAVED_MATCH_PATTERN.fullmatch(path) is not None or
         path
         in {
             DELETION_PAGE,
@@ -617,6 +629,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         content_type: str,
         extra_headers: tuple[tuple[str, str], ...] = (),
     ) -> None:
+        guard = getattr(self, "_retained_delivery_guard", None)
+        self._retained_delivery_guard = None
+        if status < HTTPStatus.BAD_REQUEST and guard is not None:
+            guard()
         rejected = status >= HTTPStatus.BAD_REQUEST
         if rejected:
             self.close_connection = True
@@ -2064,6 +2080,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             return_to=route,
             title=title,
             content=deletion_notice(self.server.app_context, route, self._frontend_state().locale)
+            + (saved_analyses_link(self._frontend_state().locale) if family == "matches" else "")
             + render_managed_category_landing_v1(
                 discovery.view,
                 profile=profile_state.document,
@@ -2350,6 +2367,11 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             recovery=recovery,
             card_bindings=card_bindings,
         ))
+        body += saved_analyses_link(locale)
+        if report_id is not None:
+            self._retained_delivery_guard = live_retention_delivery_guard(
+                self.server.app_context, active, report_id)
+            body = retention_feedback(self.server.app_context, active, report_id, locale) + body
         if draft is not None:
             self._native_declaration_values = draft
             from .validation_rendering import _FORM_BLOCK, _replace_safe_values
@@ -2595,6 +2617,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         return False
 
     def _stateful_get(self, path: str) -> bool:
+        if handle_saved_analysis_get(self, path):
+            return True
         prepared = LEARNING_PREPARED_PATTERN.fullmatch(path)
         if prepared is not None:
             try:
@@ -3115,7 +3139,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                                 raise RecordingOpenConflict()
                         require_match_review_binding_v1(active, values)
                     result = execute_unified_match_analysis_v1(
-                        active, values, decision_binding=decision_binding)
+                        active, values, decision_binding=decision_binding,
+                        app_context=self.server.app_context)
                     with active.capture.lock:
                         try:
                             require_recording_fresh_v1(active, "matches")
@@ -3124,7 +3149,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                             raise
             else:
                 result = execute_unified_match_analysis_v1(
-                    active, values, decision_binding=decision_binding)
+                    active, values, decision_binding=decision_binding,
+                    app_context=self.server.app_context)
         elif path == MATCH_DECISION_SELECTION_ROUTE:
             supplied_return = values.get("return_to", "")
             self._match_review_return = (
@@ -3520,7 +3546,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             )
             return
         values = self._text_form(body, content_type)
-        if path == OPEN_RECORDING_ROUTE:
+        if path == RETRY_MATCH_ROUTE:
+            handle_retry_saving(self, values)
+        elif path == OPEN_RECORDING_ROUTE:
             self._redirect(open_recording_for_review_v1(self.server.app_context, values))
         elif path in RECOVERY_ROUTES:
             try:
