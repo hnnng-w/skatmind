@@ -469,3 +469,228 @@ All tracked changes and nine new files were reviewed. `git diff --check` and
 `git diff --cached --stat` was empty. Final branch/HEAD match the starting values;
 the worktree contains exactly the 30 intended files listed above. No unrelated
 work was removed or overwritten, and no Git/GitHub publication action occurred.
+
+## CI follow-up — run 41405865697 (2026-11-02)
+
+This bounded follow-up starts on the expected/actual branch
+`feat/310-match-decision-evidence` at the expected/actual commit
+`1dc216ff7d4c2f0b30988d96466803b76e7b9975`, with a clean worktree. Starting and
+current HEAD remain identical. The earlier implementation execution records,
+including their 40-module inventory and pending-status statements, remain
+point-in-time history; they are not rewritten as evidence for this correction.
+
+### Authenticated hosted evidence
+
+The actual logs and both regression artifacts were retrieved using existing
+authenticated, read-only `gh` access for
+[run 41405865697](https://github.com/hnnng-w/skatmind/actions/runs/41405865697).
+Run metadata and artifact `workflow_run` identities both confirm commit
+`1dc216ff7d4c2f0b30988d96466803b76e7b9975`. This establishes the observed hosted
+failure inventory rather than inferring it from the known stale assertion.
+
+| Job | ID | Actual result |
+| --- | --- | --- |
+| regression (ubuntu) | `125147704783` | pytest parallel phase failed |
+| regression (windows) | `125147704814` | pytest parallel phase failed |
+| check | `125172199014` | Aggregate prerequisite rejection, not an independent pytest failure |
+
+There were **20 successful jobs and three failed jobs**. Both builds, standards,
+generated outputs, all installation cells/aggregations and the final
+`v1-supported-platform-matrix` job passed for that original commit. These results
+do not accept the subsequent correction's exact commit.
+
+Retrieved artifacts:
+
+* `regression-ubuntu`, ID **13125896523**, 1,369,299 compressed bytes;
+* `regression-windows`, ID **13125769456**, 1,329,673 compressed bytes.
+
+Both contain `pytest-collection.json/.log`, `pytest-parallel.json/.log`,
+`summary.json` and pytest cache evidence. Their JSON inventories and per-test phase
+reports were reconciled, not just their terminal summaries:
+
+| Hosted phase | Ubuntu | Windows Server 2025 |
+| --- | --- | --- |
+| CPython | 3.13.15 | 3.13.15 |
+| Complete collection | 11,905 collected; exit 0 | 11,905 collected; exit 0 |
+| Collection stage wall time | 17.920 s | 21.733 s |
+| Parallel selection | 11,810; both workers collected the identical ordered list | 11,810; both workers collected the identical ordered list |
+| Parallel outcomes | **11,798 passed, 8 failed, 4 skipped** | **11,802 passed, 8 failed, 0 skipped** |
+| Parallel pytest console time | 2,866.87 s | 4,001.23 s |
+| Parallel runner stage wall time | 2,867.815 s; exit 1 | 4,002.167 s; exit 1 |
+| Exclusive phase | **Not run** | **Not run** |
+| Runner total wall time | 2,885.790 s | 4,024.196 s |
+
+All 11,810 selected node IDs have execution reports on each platform. The 95
+collected exclusive cases were not executed after the parallel failure:
+`test_early_rejection_observer.py` (6), `test_local_learning_corpus_web.py` (27),
+`test_unified_rejection_transport.py` (37), and
+`test_match_analysis_action_placement.py` (25). Neither artifact nor job log has an
+exclusive execution stage. Thus the executed parallel failure list is complete,
+but this run supplies no exclusive-phase pass or failure evidence.
+
+Ubuntu's four skips are Windows-only junction cases: two
+`test_windows_junctions_rejected_without_following_targets` variants (`root`,
+`sources`), `test_actual_file_boundaries_fail_before_import[junction]`, and
+`test_real_junction_root_is_not_followed`. Windows identifies itself as
+`Windows-2025Server-10.0.26100-SP0`, image `win25-vs2026` version
+`20261021.278.1`; it is not Windows 11 acceptance. Ubuntu's image is `ubuntu24`
+version `20261026.354.1`. Both regression summaries report source digest
+`0448bcb5e9750424f0409753c701d6ace3c9837079729f214a2242912fb7dd2b`.
+
+### Exact failing tests and actual causes
+
+Both platforms report the same **eight distinct failing cases**:
+
+```text
+tests/test_direct_match_evidence.py::test_exact_new_and_legacy_registry_identity[set_perspective_hand-perspective_hand_selected-exact]
+tests/test_direct_match_evidence.py::test_exact_new_and_legacy_registry_identity[set_perspective_hand-perspective_hand_unknown-unknown]
+tests/test_direct_match_evidence.py::test_exact_new_and_legacy_registry_identity[set_original_skat-original_skat_selected-exact]
+tests/test_direct_match_evidence.py::test_exact_new_and_legacy_registry_identity[set_original_skat-original_skat_unknown-unknown]
+tests/test_direct_match_evidence.py::test_exact_new_and_legacy_registry_identity[set_discarded_cards-discarded_cards_selected-exact]
+tests/test_direct_match_evidence.py::test_exact_new_and_legacy_registry_identity[set_discarded_cards-discarded_cards_unknown-unknown]
+tests/test_direct_match_evidence.py::test_exact_new_and_legacy_registry_identity[set_discarded_cards-discarded_cards_empty-known_empty]
+tests/test_app_cli.py::test_app_help_imports_no_product_families
+```
+
+1. **Stale exact registry count**, `tests/test_direct_match_evidence.py:159`:
+   `AssertionError: assert 126 == 125` in all seven variants. Independent local
+   registry inspection confirms **74 POST routes / 126 forms**, including exactly
+   `match.retry_saving -> /matches/retry-saving`. The original 40-module local
+   inventory omitted this complete affected module.
+2. **Additional hosted import-boundary regression**, `tests/test_app_cli.py:197`:
+   the isolated `run_cli(["app", "--help"])` subprocess exits `1` because
+   `assert loaded == [], loaded` finds Product modules. The full error lists
+   Application, Capture, Match and Session modules, including
+   `skatmind.application.execution`, `skatmind.capture_web.analysis`,
+   `skatmind.match_decision_analysis` and `skatmind.session_transitions`.
+   Source inspection identifies the new eager chain:
+   `cli.app -> app_web.context -> app_web.saved_match_analyses -> capture_web.state`
+   and the saved-view/recording imports. This occurs before argument parsing can
+   finish help. This second affected CLI module was also absent from the original
+   local inventory.
+
+The aggregate `check` log records `NEEDS_JSON.regression.result = failure` and
+`Final gate rejected. Validation decision: mode=full
+reason=gate_prerequisites_invalid lookup=gate_prerequisites`, exit `1`.
+That is expected propagation of the two failed regression jobs, not a third
+independent Product defect. Node deprecation/runner notices are not the pytest
+cause. No further failures appear in either completed parallel execution.
+
+### Reproduction and bounded correction
+
+Before editing, development **CPython 3.13.7** reproduced all seven stale-count
+failures and separately reproduced the additional isolated CLI help failure with
+the same loaded-Product-module assertion.
+
+Exactly three repository files change in this follow-up:
+
+* `tests/test_direct_match_evidence.py`: change the exact count from `125` to
+  `126`. All seven variants, form-key/body-limit/safe-field assertions,
+  legacy-identity checks and rollout identity assertion remain intact.
+* `src/skatmind/app_web/context.py`: move the saved-analysis type import under
+  `TYPE_CHECKING` and instantiate it through `_new_saved_match_analyses`, matching
+  the existing `_new_recording_deletion_state` factory pattern. Actual app-context
+  construction still creates the same fresh `SavedMatchAnalyses`; help imports
+  no longer load its Product dependencies. No source/owner/admission guard or
+  persistence behavior is changed.
+* `docs/ordinary_match_analysis_retention.md`: append this follow-up, including
+  the two omitted affected modules and actual hosted/local evidence.
+
+Product code **does change**, narrowly at the lazy import boundary, to repair a
+separately verified hosted failure. This is not a production change to accommodate
+the stale count, and no failing test was weakened.
+
+### Follow-up coverage, commands and evidence locations
+
+The complete follow-up inventory is **four modules**, derived from the two
+confirmed failures and the context-factory edit:
+
+* `tests/test_direct_match_evidence.py` — all 38 direct-evidence/registry cases;
+* `tests/test_app_cli.py` — all 29 help, dispatch and startup-boundary cases;
+* `tests/test_unified_local_app_contracts.py` — all 34 cases, including actual
+  `AppWebContextV1.create` construction;
+* `tests/test_saved_match_analyses_web.py` — all 16 native HTTP cases, including
+  fresh-context restart ownership, exact downloads, absence of passive archive
+  initialization and save-only retry.
+
+The first two belong in S2's corrected affected-module inventory. The historical
+40-module execution count above stays unchanged. This follow-up does not repeat
+all 40 modules. None of these four is exclusive; the two file-grouped workers
+finished before Quick. The import-only runtime correction and exact-count update
+need no new browser/UAT sequence; existing HTTP regressions cover context creation.
+
+Evidence root (outside the repository):
+`C:\Users\HENNIN~1\AppData\Local\Temp\opencode\310-ci-followup`.
+Raw full job logs are `job-125147704783.log`, `job-125147704814.log` and
+`job-125172199014.log`; metadata is in `run.json` and `artifacts.json`.
+The exact downloaded artifacts are extracted under `regression-ubuntu/` and
+`regression-windows/`. `ubuntu-findings.json` and `windows-findings.json` retain
+the reconciled node IDs, worker inventories, outcome counts and missing exclusive
+phase. Full errors remain in the original artifact/job logs.
+
+Read-only retrieval and evidence analysis used:
+
+```powershell
+$E = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode\310-ci-followup'
+gh auth status
+gh run view 41405865697 --repo hnnng-w/skatmind --json headSha,headBranch,status,conclusion,url,jobs --jq '{headSha,headBranch,status,conclusion,url,jobs:[.jobs[] | {name,databaseId,conclusion,steps:[.steps[] | {name,number,conclusion}]}]}'
+gh api repos/hnnng-w/skatmind/actions/runs/41405865697/artifacts --jq '{total_count,artifacts:[.artifacts[] | {id,name,size_in_bytes,expired,workflow_run}]}'
+gh run download 41405865697 --repo hnnng-w/skatmind --name regression-ubuntu --dir "$E\regression-ubuntu"
+gh run download 41405865697 --repo hnnng-w/skatmind --name regression-windows --dir "$E\regression-windows"
+gh run view 41405865697 --repo hnnng-w/skatmind --job 125172199014 --log-failed
+py -3.13 "$E\fetch_ci_logs.py"
+py -3.13 "$E\inspect_ci_artifacts.py"
+```
+
+The external fetch helper saves unfiltered `gh run view --json` metadata and
+`gh api repos/hnnng-w/skatmind/actions/jobs/{job_id}/logs` response bytes for the
+three listed jobs. It uses only authenticated read operations and prints content
+digests. The inspection helper reconciles downloaded JSON reports without running
+pytest. An initial metadata-only jq filter lost a string literal through native
+PowerShell quoting (`function not defined: failure/0`); the unfiltered step query
+above succeeded. This was not an authentication or CI execution failure.
+
+All local pytest/Quick invocations use the agreed **7,200,000 ms** tool timeout:
+
+```powershell
+py -3.13 -m pytest tests/test_direct_match_evidence.py -k test_exact_new_and_legacy_registry_identity -q -p no:cacheprovider --basetemp "$E\red" --junitxml "$E\red.xml"
+py -3.13 -m pytest tests/test_app_cli.py::test_app_help_imports_no_product_families -q -p no:cacheprovider --basetemp "$E\cli-red" --junitxml "$E\cli-red.xml"
+py -3.13 -m pytest tests/test_direct_match_evidence.py tests/test_app_cli.py tests/test_unified_local_app_contracts.py tests/test_saved_match_analyses_web.py -q -n 2 --dist=loadfile --max-worker-restart=0 -p no:cacheprovider --basetemp "$E\complete" --junitxml "$E\complete.xml"
+function python { & 'C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe' @args }
+.\scripts\check.ps1 -Mode Quick
+```
+
+| Local invocation | Actual result | Console wall time |
+| --- | --- | ---: |
+| Pre-edit stale-count reproduction | **7 failed**, 31 deselected, as expected | 2.20 s |
+| Pre-edit CLI help reproduction | **1 failed**, as expected | 1.17 s |
+| Four complete affected modules after correction | **117 passed**, no skips/failures | 165.20 s |
+| Final explicit `.\scripts\check.ps1 -Mode Quick` | **Passed**, exit 0 | 24.057 s |
+
+There are **117 distinct passing tests** in the follow-up. The eight red
+reproductions are repeated cases within that complete pass, not additional tests.
+Local Full, unrelated suites, new browser/UAT runs, distribution build/install and
+hosted reruns were not performed. No real managed/installed UAT data was accessed.
+Quick used development CPython 3.13.7 on Windows 11. Its stages passed: Ruff
+**1.023 s**, packaged-schema parity **0.066 s**, and input examples **1.817 s**.
+The **24.057 s** total is the runner's reported wall time, not the sum of stage
+times. Logs are in
+`C:\Users\Henning-DT\AppData\Local\Temp\skatmind-check-f0yfzr77`; checked source
+digest: `387682d7ef1c4559338d47245b282f4b0f60ff4dde512886dd66f895e32f1eaa`.
+Only this documentation receipt was added after Quick. Quick does not certify
+hosted full regression, generated outputs, distributions or installed acceptance.
+
+Every changed file was reviewed and `git diff --check` passed. `git status --short`
+shows exactly the three intended modified files above, with no new repository
+files or unrelated changes. `git diff --cached --stat` is empty. Branch and HEAD
+still match the starting baseline; all edits remain unstaged/uncommitted. No
+branch, commit, push, Actions rerun or GitHub publication operation occurred.
+
+**Locally validated; new exact-commit hosted CI and installed targeted acceptance
+pending.**
+
+New exact-commit hosted `check` and `v1-supported-platform-matrix` gates and the
+documented installed targeted acceptance remain required. Keep #310 and #208
+open; accepted #292–#309 scopes and historical evidence remain preserved. UAT-01
+is not globally accepted, formal UAT-02–12 remain paused, and release preparation
+is not authorized.
