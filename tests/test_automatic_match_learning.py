@@ -757,3 +757,165 @@ def test_replaced_category_root_cannot_rebind_existing_service_owner(tmp_path):
     assert service.update().status == "conflict"
     with pytest.raises(ValueError):
         service.download("player_catalog")
+
+
+@pytest.mark.parametrize("interval", ("before_consume", "after_consume"))
+def test_unchanged_reuse_rejects_newer_generation_receipt(tmp_path, monkeypatch, interval):
+    """Deterministic A/B interleaving around consume, with genuine saved sources."""
+    from test_automatic_match_learning_evidence import forbid_execution
+
+    import skatmind.app_web.automatic_match_learning as module
+    import skatmind.automatic_learning_io as io
+
+    app, service = setup_service(tmp_path)
+    save(app)
+    initial = service.update()
+    assert initial.status == "prepared" and service.inspect().status == "current"
+    old_installed = service._installed
+    old_manifest = service.store.snapshot().manifest
+    analyses = forbid_execution(monkeypatch)
+    builds, writes, newer = [], [], []
+    original_build, original_write = module.build_automatic_match_bundle, io.write_temporary
+    original_consume = service.consume
+
+    def build(*args, **kwargs):
+        builds.append("build")
+        return original_build(*args, **kwargs)
+
+    def write(directory, raw):
+        value = original_write(directory, raw)
+        writes.append(directory.name)
+        return value
+
+    def complete_newer_update():
+        # A has selected old_installed, but is paused outside consume's attempt capture
+        # (or immediately after its final guard for the second interval).
+        assert service._installed is old_installed
+        attempt_a = service.attempt
+        save(app, "second")  # Accepted Match persistence, not a fabricated inventory.
+        result_b = service.update()
+        assert result_b.status == "prepared" and service.attempt is not attempt_a
+        assert len(result_b.generation.recipe.source_version_ids) == 2
+        assert len(initial.generation.recipe.source_version_ids) == 1
+        assert service._installed is not old_installed
+        manifest_b = service.store.snapshot().manifest
+        assert manifest_b.current_generation == service._installed.reference
+        assert manifest_b.previous_generation == old_manifest.current_generation
+        assert len(builds) == 1
+        assert sorted(writes) == ["automatic-learning", "generations", "sources"]
+        newer.append((result_b, service._installed, manifest_b,
+                      {p: p.read_bytes() for p in app.managed_home.root.rglob("*.json")}))
+
+    def interleaved(projector, **kwargs):
+        if interval == "before_consume":
+            complete_newer_update()
+        value = original_consume(projector, **kwargs)
+        if interval == "after_consume":
+            complete_newer_update()
+        return value
+
+    monkeypatch.setattr(module, "build_automatic_match_bundle", build)
+    monkeypatch.setattr(io, "write_temporary", write)
+    monkeypatch.setattr(service, "consume", interleaved)
+    result_a = service.update()
+    (result_b, installed_b, manifest_b, bytes_b), = newer
+    assert service._installed is installed_b
+    assert service._installed.bundle is installed_b.bundle
+    assert service.store.snapshot().manifest == manifest_b
+    assert service.inspect().generation == result_b.generation
+    assert service.inspect().status == "current"
+    assert {p: p.read_bytes() for p in app.managed_home.root.rglob("*.json")} == bytes_b
+    assert len(builds) == 1
+    assert sorted(writes) == ["automatic-learning", "generations", "sources"]
+    assert analyses == []
+    assert result_a.status == "conflict"
+    assert result_a.generation is None and not result_a.committed
+
+
+@pytest.mark.parametrize("interval", ("before_consume", "after_consume"))
+@pytest.mark.parametrize("change", ("attempt", "owner", "installed", "manifest"))
+def test_unchanged_reuse_binds_original_authorization(tmp_path, monkeypatch, interval, change):
+    """Controlled independent changes to each fast-path authorization component."""
+    import skatmind.app_web.automatic_match_learning as module
+    import skatmind.automatic_learning_io as io
+    from skatmind.automatic_learning_contracts import ExclusionV1, SourceKeyV1
+
+    app, service = setup_service(tmp_path)
+    save(app)
+    assert service.update().status == "prepared"
+    installed = service._installed
+    original_consume = service.consume
+    expected = []
+
+    def changed():
+        if change == "attempt":
+            service.attempt = object()
+        elif change == "owner":
+            app.automatic_match_learning = object()
+        elif change == "installed":
+            # Equal values are insufficient: the selected process-local bundle owner changed.
+            service._installed = replace(installed)
+        else:
+            before = service.store.snapshot().manifest
+            requested = replace(before, revision=before.revision + 1,
+                exclusions=(ExclusionV1(source=SourceKeyV1(family="match", product_id="absent"),
+                                        reason="explicit"),))
+            assert service.store.update_manifest(
+                requested, expected_manifest=before.fingerprint).status == "saved"
+        expected.append((service._installed, service.store.snapshot().manifest,
+                         {p: p.read_bytes() for p in app.managed_home.root.rglob("*.json")}))
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Superseded reuse must not prepare or write")
+
+    def interleaved(projector, **kwargs):
+        if interval == "before_consume":
+            changed()
+        with monkeypatch.context() as patch:
+            patch.setattr(io, "write_temporary", forbidden)
+            value = original_consume(projector, **kwargs)
+        if interval == "after_consume":
+            changed()
+        monkeypatch.setattr(io, "write_temporary", forbidden)
+        return value
+
+    monkeypatch.setattr(module, "build_automatic_match_bundle", forbidden)
+    monkeypatch.setattr(service, "consume", interleaved)
+    result = service.update()
+    (installed_after, manifest_after, bytes_after), = expected
+    assert service._installed is installed_after
+    assert service.store.snapshot().manifest == manifest_after
+    assert {p: p.read_bytes() for p in app.managed_home.root.rglob("*.json")} == bytes_after
+    assert result.status == "conflict"
+    assert result.generation is None and not result.committed
+
+
+def test_unchanged_reuse_preserves_bundle_identity_without_work(tmp_path, monkeypatch):
+    from test_automatic_match_learning_evidence import forbid_execution
+
+    import skatmind.app_web.automatic_match_learning as module
+    import skatmind.automatic_learning_io as io
+
+    app, service = setup_service(tmp_path)
+    save(app)
+    prepared = service.update()
+    assert prepared.status == "prepared"
+    installed = service._installed
+    manifest = service.store.snapshot().manifest
+    before = {p: p.read_bytes() for p in app.managed_home.root.rglob("*.json")}
+    analyses = forbid_execution(monkeypatch)
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Unchanged reuse must perform no preparation, reservation or writes")
+
+    monkeypatch.setattr(module, "build_automatic_match_bundle", forbidden)
+    monkeypatch.setattr(io, "write_temporary", forbidden)
+    monkeypatch.setattr(service.store, "begin_candidate", forbidden)
+    monkeypatch.setattr(service.store, "publish_object", forbidden)
+    monkeypatch.setattr(service.store, "update_manifest", forbidden)
+    reused = service.update()
+    assert reused.status == "reused" and reused.generation == prepared.generation
+    assert service._installed is installed and service._installed.bundle is installed.bundle
+    assert service.store.snapshot().manifest == manifest
+    assert {p: p.read_bytes() for p in app.managed_home.root.rglob("*.json")} == before
+    assert analyses == []

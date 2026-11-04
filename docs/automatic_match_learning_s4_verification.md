@@ -442,3 +442,167 @@ remain `feat/312-automatic-match-learning`; expected/actual starting and current
 remain `9b9b66c3289c222f284d737d122f15c4b5f5c124`. Changes are unstaged/uncommitted.
 No unresolved local finding remains. Exact-commit hosted branch/main gates and the
 documented installed service scenario are still pending; **keep Issue #312 open**.
+
+## Review follow-up: unchanged-update supersession receipt
+
+### Reviewed baseline and historical CI
+
+This narrow Issue-#312 correction starts on the expected/actual branch
+`feat/312-automatic-match-learning`, at expected/actual HEAD
+`b1fe6b331b75792b3dc3fb25d09da421b5cdea1e`, with a clean worktree and no baseline
+substitution. Starting/current HEAD remain equal; the correction is unstaged and
+uncommitted. The earlier implementation and validation sections above remain
+point-in-time records.
+
+Authenticated read-only inspection of
+[branch run 41746088422](https://github.com/hnnng-w/skatmind/actions/runs/41746088422)
+confirmed `headSha=b1fe6b331b75792b3dc3fb25d09da421b5cdea1e`, the expected branch,
+completed/success status and **all 23 jobs successful**, including both regression
+jobs, `check` and `v1-supported-platform-matrix`. This remains historical validation
+of that exact reviewed commit. It does not validate this subsequent correction;
+new exact-commit hosted branch/main gates remain required.
+
+```powershell
+git status --short
+git branch --show-current
+git rev-parse HEAD
+py -3.13 -c "import sys; print(sys.executable); print(sys.version)"
+gh run view 41746088422 --json headSha,headBranch,status,conclusion,url,jobs
+```
+
+### Confirmed interleaving and bounded correction
+
+An unchanged Update A selected an existing one-source generation, then called
+`consume()`, which captured whichever attempt was active when consumption started.
+An accepted second Match save and newer Update B could finish in that interval.
+Consumption then validated B's two-source state, while A returned `reused` with
+its captured older generation. A corresponding stale receipt was also possible
+when B completed after consumption returned but before A returned its receipt.
+The impact was a stale success/generation receipt; the regression verified no
+rollback, replacement or corruption of B's manifest, installed bundle or bytes.
+
+The supplied external probe used CPython **3.12.14** and controlled Package-version
+metadata for an uninstalled tree. That evidence is a control-flow diagnostic,
+not supported-runtime validation, and was not rerun or treated as acceptance.
+Before editing Product code, the new deterministic regression reproduced stale
+`reused` receipts on development **CPython 3.13.7**, using actual source-tree
+Package metadata and genuine disposable saved Workspaces. A wrapper around
+`consume()` establishes the exact interleaving; it uses no timing sleeps. B saves
+the second Match through accepted persistence and executes the real S4 preparation.
+
+The correction is confined to the unchanged-input branch of `update()`:
+
+1. Retain the exact installed object whose immutable reference and generation
+   match the captured manifest and previous descriptor.
+2. Use existing guarded consumption to obtain the authorized bundle identity.
+3. Immediately before returning the reuse receipt, hold the existing app → source
+   coordinator → archive guard order and require the originating update attempt,
+   same installed object, same consumed bundle and exact captured manifest.
+4. A mismatch raises the existing `StoreConflictError`, yielding the existing
+   `conflict` result with no generation or commit claim. It publishes and clears
+   nothing, preserving a newer successful update.
+
+`consume()` and `download()` themselves, explicit outdated access, slow-path
+supersession, restart reconstruction and post-commit authority handling retain their
+existing implementations. No inventory, evidence, recipe, engine, UI, Schema,
+dependency or identity-management change is part of this follow-up.
+
+### Complete affected inventory and validation
+
+Exactly **three tracked files** change:
+
+* `src/skatmind/app_web/automatic_match_learning.py` — captured-state reuse receipt guard;
+* `tests/test_automatic_match_learning.py` — eleven deterministic regression cases;
+* `docs/automatic_match_learning_s4_verification.md` — this appended follow-up.
+
+The complete affected test inventory is exactly the two S4 modules below. The
+service branch is private, with no ordinary UI/startup caller. Its existing
+consume/download helper and all shared storage/preparation modules are unchanged.
+Together the modules cover retained S2/S3 ownership, manual-source compatibility,
+exact bytes and genuine retained evidence through the changed service caller.
+Neither module is exclusive in `scripts/validation_pytest.py`; no exclusive module
+or additional historical browser suite is affected. Both complete modules ran
+with two file-grouped workers.
+
+Development interpreter:
+`C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe`,
+**CPython 3.13.7**. Every validation tool invocation used timeout **7,200,000 ms**.
+All pytest XML and disposable source-tree fixtures are outside the repository:
+
+```powershell
+$E = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode'
+py -3.13 -m pytest tests/test_automatic_match_learning.py -k unchanged_reuse -q -p no:cacheprovider --basetemp "$E\312-reuse-red" --junitxml "$E\312-reuse-red.xml"
+py -3.13 -m pytest tests/test_automatic_match_learning.py -k unchanged_reuse -q -p no:cacheprovider --basetemp "$E\312-reuse-focused" --junitxml "$E\312-reuse-focused.xml"
+py -3.13 -m ruff check src/skatmind/app_web/automatic_match_learning.py tests/test_automatic_match_learning.py
+py -3.13 -m pytest tests/test_automatic_match_learning.py tests/test_automatic_match_learning_evidence.py -q -n 2 --dist=loadfile --max-worker-restart=0 -p no:cacheprovider --basetemp "$E\312-reuse-complete" --junitxml "$E\312-reuse-complete.xml"
+function python { & 'C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe' @args }
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+git diff --cached --stat
+git status --short
+git branch --show-current
+git rev-parse HEAD
+```
+
+| Invocation | Actual outcome | Console seconds |
+| --- | --- | ---: |
+| Pre-Product-edit regression (`312-reuse-red`) | **8 failed**, 3 passed, 60 deselected | **11.21** |
+| Corrected focused regression (`312-reuse-focused`) | **11 passed**, 60 deselected | **9.93** |
+| Standalone targeted Ruff | Passed | Not separately timed |
+| Both complete S4 modules (`312-reuse-complete`) | **94 passed, 1 skipped** | **966.08** |
+| Explicit `.\scripts\check.ps1 -Mode Quick` | **Passed**, exit 0 | **2.663** |
+
+There are **95 distinct tests** in the complete pass, including all eleven new
+cases. The focused cases are repeats, not additional distinct coverage. Across
+the three pytest invocations there were **108 passing executions, eight expected
+pre-correction failures and one skip event**. Every failing regression subsequently
+passed. The sole skip is the existing actual-symlink case unavailable to this
+Windows account; actual junction/hardlink cases passed. No unexpected failure or
+warning occurred in the corrected focused or complete passes.
+
+### Operation assertions and remaining acceptance
+
+The two A/B cases cover both sides of consumption. After initial fixture preparation,
+each B performs exactly **one** bundle build and **one each** source-object,
+generation-object and manifest temporary write, following one accepted second-Match
+save. Superseded A adds **zero** preparation/analysis/archive writes. B's exact
+manifest, installed/bundle identity, current two-source generation and complete
+disposable JSON byte inventory remain identical after A rejects.
+
+Eight controlled component cases independently change attempt, app owner, installed
+object identity or manifest identity before/after consumption. The two manifest
+cases deliberately execute one exclusion CAS as fixture interleaving; A performs
+no write or preparation. Equal installed values with a different object identity
+are insufficient authorization. The normal unchanged case explicitly prohibits
+preparation, execution, reservations, object publication and manifest writes, while
+asserting the same generation value, identical installed/bundle objects and unchanged
+manifest/recording/archive bytes. All eleven new cases require **zero fixture card
+analyses**. The unchanged evidence module's full pass separately executes its existing
+**16 explicit retained-evidence fixture analyses**, with S4 execution guards still
+asserting zero new Application/evaluator/Search/rollout/Historical calls.
+
+Local Full, unrelated suites, distribution checks/builds/installations, installed
+UAT and the accepted browser matrix were not run. No real managed data was accessed.
+No Git/GitHub publication, Actions trigger or release operation occurred. New
+exact-commit hosted CI and maintainer installed-service acceptance remain pending;
+keep **#312 open**. Accepted #292–#311 scopes and #308's documentation acceptance
+remain intact. #208 stays open, UAT-01 is not globally accepted, formal UAT-02–12
+remain paused, and release preparation is not authorized.
+
+### Follow-up completion receipt
+
+**Locally validated; new exact-commit hosted CI and maintainer installed-service
+acceptance pending.** Explicit Quick passed on development CPython 3.13.7 /
+`Windows-11-10.0.26300-SP0`: Ruff **0.094 s**, packaged-schema parity **0.060 s**,
+input examples **1.864 s**, all exit `0`, total **2.663 s**. Logs:
+`C:\Users\Henning-DT\AppData\Local\Temp\skatmind-check-t_d55d11`.
+Checked source digest:
+`8d21ec8970914d65d05600699bce4c8a034075666f06968ca96a201425cc37ae`.
+Only documentation receipt/wording updates followed Quick. It does not certify
+full regression, generated outputs, distributions, installations or new hosted CI.
+
+All three intended changed files were reviewed; `git diff --check` passed and
+`git diff --cached --stat` is empty. No new/unrelated files are present. Branch and
+starting/current HEAD remain the exact values recorded in this follow-up. The
+stale reuse receipt finding is corrected with no remaining concrete local finding.
+Keep #312 open for new exact-commit branch/main gates and installed-service acceptance.

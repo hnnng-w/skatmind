@@ -237,12 +237,19 @@ class AutomaticMatchLearningServiceV1:
             previous = (None if before.current_generation is None else
                         admit_generation(store.read_object(before.current_generation), before))
             same = previous is not None and previous.input_fingerprint == identity
-            if (same and self._installed is not None
-                    and self._installed.reference == before.current_generation
-                    and self._installed.generation == previous):
+            installed = self._installed
+            if (same and installed is not None
+                    and installed.reference == before.current_generation
+                    and installed.generation == previous):
                 # Consumption does full before/after authorization, including storage pins.
-                self.consume(lambda _bundle: None)
-                return AutomaticMatchServiceResult("reused", previous)
+                consumed = self.consume(lambda bundle: bundle)
+                # consume captures its own attempt. Authorize this update's receipt
+                # against its original state, including changes around that call.
+                with self.app.lock, self.coordinator.lock, store._guard():
+                    if (not self._owner(attempt) or self._installed is not installed
+                            or consumed is not installed.bundle or store._manifest() != before):
+                        raise StoreConflictError("Automatic reuse was superseded.")
+                    return AutomaticMatchServiceResult("reused", previous)
             selected_ids = tuple(value[1].source_version.identity for value in sources)
             catalog_revision = (0 if previous is None else previous.recipe.catalog_revision)
             if previous is None and sources or previous is not None and (
