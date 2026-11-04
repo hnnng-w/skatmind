@@ -65,6 +65,7 @@ class AppWebContextV1:
         default_factory=_new_recording_deletion_state, repr=False)
     saved_match_analyses: SavedMatchAnalyses = field(
         default_factory=_new_saved_match_analyses, repr=False)
+    automatic_match_learning: object | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         from .stateful_context import ManagedStatefulContextV1

@@ -27,6 +27,14 @@ historical records. S3 adds strict original rollout execution retention, separat
 incomplete attempts, save-only retry and family-aware Saved analyses. S4–S7 remain
 subsequent stages; new exact-commit CI and narrow installed acceptance are pending.
 
+Separate S4 follow-up: Issue #312 implements the private
+[automatic Match membership and preparation service](automatic_match_learning_s4_verification.md).
+The maintainer identifies S1–S3 as accepted at its baseline. S4 gathers complete
+bounded saved-Match membership and exact retained evidence, composes isolated
+existing artifacts and publishes guarded current/previous generations. Ordinary
+S5 UI and S6/S7 adapters remain subsequent work; S4 does not complete this contract.
+Earlier acceptance and pending-status paragraphs remain point-in-time history.
+
 The maintainer has approved the following **v1 product direction**:
 
 * Learning automatically brings together eligible saved games and existing

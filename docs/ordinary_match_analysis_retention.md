@@ -1,5 +1,12 @@
 # Ordinary Match analysis retention (Issue #310, S2)
 
+Current S4 follow-up: [Issue #312's private automatic Match service](automatic_match_learning_s4_verification.md)
+selects only exact-current-source typed S2 evidence and prepares the existing
+Teacher/Dataset/Tactical/Coaching families. S2 retention, save-only retry and its
+three native downloads retain their contracts and separate reservation ownership.
+The maintainer identifies #310 as accepted at the S4 baseline; historical acceptance
+records below are preserved. S5–S7 remain subsequent work.
+
 ## Status and boundary
 
 S2 implements durable capture, strict restart admission, exact retrieval and a

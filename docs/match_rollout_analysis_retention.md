@@ -1,5 +1,12 @@
 # Selected Match whole-game analysis retention (Issue #311, S3)
 
+Current S4 follow-up: [Issue #312's private automatic Match service](automatic_match_learning_s4_verification.md)
+selects exact-current-source S3 evidence for separate complete debrief comparisons
+and executed incomplete availability. Rollouts do not enter the ten Match exports
+as Teacher labels or qualify recurring complete-Search focuses. S3 native downloads,
+retry ownership and archived original-source lifetime remain intact. The maintainer
+identifies #311 as accepted at the S4 baseline; the records below remain historical.
+
 ## Delivery and acceptance boundary
 
 S3 retains explicitly executed managed selected-Decision whole-game analyses,

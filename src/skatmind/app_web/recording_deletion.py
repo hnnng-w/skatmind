@@ -308,7 +308,18 @@ def apply_recording_deletion(app, values):
                 raise RecordingDeletionConflict() from error
             try:
                 # One narrow removal, no retry, permission changes, recursion or rollback.
-                preview.path.unlink()
+                if preview.family == "matches":
+                    from skatmind.match_source_coordination import match_source_coordinator
+
+                    coordinator = match_source_coordinator(preview.path.parent)
+                    with coordinator.lock:
+                        if _digest(preview.path.parent, preview.path) != (
+                                preview.root_identity, preview.file_identity, preview.digest):
+                            raise RecordingDeletionConflict()
+                        preview.path.unlink()
+                        coordinator.generation += 1
+                else:
+                    preview.path.unlink()
             except OSError as error:
                 raise RecordingDeletionRefused() from error
             active = preview.active

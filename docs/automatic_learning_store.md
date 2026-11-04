@@ -15,6 +15,14 @@ reuse the original codec-2 `match_source` bytes/header and one SourceVersion rec
 Store format, S1 opaque behavior, quotas and transaction lifetime remain unchanged.
 The historical S1/S2 descriptions and validation records below are preserved.
 
+Separate S4 follow-up: [Issue #312](automatic_match_learning_s4_verification.md)
+adds a distinct preparation reservation owner and **generation object codec 2**
+with an exact input ledger and strict service-level semantic recipe admission.
+Manifest/storage envelope version `1`, S2/S3 source/evidence bytes, existing quotas,
+pins and cleanup semantics remain intact. Codec-1 generation descriptors remain
+storage-only. Current/previous replacement is one manifest CAS; derived artifacts
+stay process-local and restart reconstruction is explicit.
+
 ## Scope and acceptance
 
 This implements S1 of the accepted

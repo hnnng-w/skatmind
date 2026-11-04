@@ -302,10 +302,10 @@ class AutomaticLearningStoreV1:
                 status[ref] = "corrupt"
         for ref in manifest.generations:
             if (status[ref] == "valid" and ref.kind == "generation_descriptor"
-                    and ref.codec_version == 1):
+                    and ref.codec_version in (1, 2)):
                 try:
                     validate_generation(objects[ref], manifest)
-                except (ValueError, RecursionError):
+                except (ValueError, KeyError, TypeError, RecursionError):
                     status[ref] = "corrupt"
         return objects, status
 
@@ -491,7 +491,7 @@ class AutomaticLearningStoreV1:
                 raise ValueError("Evidence family and stored kind disagree.")
         for ref in manifest.generations:
             if states[ref] == "valid" and (ref not in current.generations or (
-                ref.kind == "generation_descriptor" and ref.codec_version == 1
+                ref.kind == "generation_descriptor" and ref.codec_version in (1, 2)
             )):
                 validate_generation(objects[ref], manifest)
         return manifest

@@ -1137,3 +1137,11 @@ profile behavior remains the baseline.
 Issue #308 is documentation only. Preserve accepted #292–#307 scopes and their
 historical evidence. #208 stays open, UAT-01 is not globally accepted, formal
 UAT-02–12 remain paused, and release preparation is not authorized.
+
+Issue #312 implements the private Match-only S4 service described in
+[`docs/automatic_match_learning_s4_verification.md`](docs/automatic_match_learning_s4_verification.md),
+following maintainer-accepted S1–S3. It provides explicit saved-source membership,
+retained-evidence preparation, guarded generation publication and explicit restart
+reconstruction. S5 UI and S6/S7 adapters remain subsequent work. Keep #312 open for
+exact-commit hosted gates and maintainer installed service acceptance; the earlier
+#308 documentation-only acceptance and accepted #292–#311 scopes remain intact.
