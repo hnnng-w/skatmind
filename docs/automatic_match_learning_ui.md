@@ -485,3 +485,320 @@ the 33 intended files above; the index is empty and branch/HEAD remain unchanged
 No concrete local failure remains. Quick does not certify full regression,
 generated outputs, distributions or installations. New exact-commit hosted gates
 and maintainer installed targeted UI acceptance remain pending; **keep #313 open**.
+
+## Issue #313 review correction — source-history release and exact entry language binding
+
+### Reviewed baseline and historical CI
+
+This bounded correction starts on the expected/actual branch
+`feat/313-automatic-learning-review`, at expected/actual HEAD
+`8259f7a1a70cc8b8db896aa1e67b6602f42c63cc`, with a clean index and worktree.
+Starting/current HEAD remain equal; the correction is unstaged and uncommitted.
+There is no substituted baseline or unrelated work.
+
+Read-only inspection of [Actions run 41871675685](https://github.com/hnnng-w/skatmind/actions/runs/41871675685)
+confirmed that exact `headSha`, branch, completed/success status and **all 23 jobs
+successful**, including both hosted regression jobs, `check` and
+`v1-supported-platform-matrix`. This is historical validation of the starting
+commit, **not validation of these subsequent corrections**. The initial S5 record
+above and accepted #292–#312 evidence remain intact. The reviewer's isolated
+CPython-3.12 AST/control-flow diagnostic was not run or treated as supported Product
+or HTTP evidence.
+
+### Finding A: source-only retention gap and correction
+
+Before Product edits, genuine delivered HTTP forms created a review from one saved
+Match with no executed analysis, then performed three saved corrections and three
+explicit Updates. All four exact source versions remained indexed after native
+preview/confirmation of **both** previously offered maintenance modes. The new
+regression then failed because no emitted form could release that history.
+
+Cause: the UI supplied only `remove_evidence_ids`; S1 deliberately treats every
+indexed source record as a protected root until `release_source_version_ids` is
+explicitly supplied. Retiring a generation alone does not release those roots.
+
+The existing cleanup route now offers a **separate `obsolete_sources` mode**, with
+its own explicit preview and destructive confirmation. Ordinary orphan cleanup and
+old-Report removal retain their original consent meanings; the two removal families
+cannot be combined through the controller flags.
+
+Eligibility is derived from S4's complete captured inventory and exact version IDs:
+
+* A current saved version remains protected even if explicitly excluded from Learning.
+* An incomplete scan fails existing capture/delivery validation. Any invalid,
+  unsupported or ambiguous inventory entry conservatively blocks source release;
+  it is not evidence of deletion. The preview explains a zero-release outcome.
+* Retained evidence's original source IDs, non-retirable dependency edges, and
+  retained binding endpoints protect source records/objects. Unsupported or corrupt
+  archived sources are not consumed to invent display captions.
+* Only eligible available obsolete Match sources are passed to the existing S1
+  `release_source_version_ids` parameter. S1 still performs graph retirement,
+  reference-first publication, pin/candidate protection and physical deletion.
+  **The storage foundation and S4 service were not modified.**
+
+Exact decoded archived source captions are captured under reader protection, then
+those pins are released **before** the final cleanup preview is created. The frozen
+confirmation retains title, Match identity, numeric revision and full source-version
+fingerprint, plus exact released/retained source counts and S1's object/Report counts.
+Both catalogs explain lost historical reuse and dependent-generation retirement.
+Rendering, language return and confirmation do not acquire new pins or regenerate
+the plan. The original preview, manifest CAS, coordinator epoch, one-use consent
+and final source checks remain authoritative.
+
+An explicitly released source can retire the current or prior dependent generation;
+the whole affected installed bundle is invalidated. Rebuilding remains an explicit
+Create/Update action. A pre-existing reader can keep released physical objects alive
+until a later explicit orphan cleanup. Interrupted physical source deletion retains
+committed reference removal and the existing truthful partial-cleanup receipt.
+Recordings, retained Report dependencies, manual copies and external downloads are
+outside the new release effect.
+
+The tiny-quota HTTP regression uses valid `StoreLimitsV1(total_bytes=retained_bytes
++ 256)`, explicitly asserted below **1,000,000 bytes**, instead of a large fixture.
+Its requested Update hits quota before preparation/publication. Native source-release
+confirmation performs one manifest write, retires the old generation, and allows a
+subsequent explicit Update to succeed with one source, one generation and one manifest
+write. No silent eviction, preparation, repair or retry was introduced.
+
+### Finding B: original entry authority and correction
+
+Before Product edits, the delivered native `/learning/automatic` language form
+returned **303** after either a saved-source correction or an actual manifest
+exclusion change, while service, attempt and installed bundle references were
+unchanged. Unchanged native return also passed as a positive control. The first
+manifest fixture attempted a revision-only update, which S1 correctly treated as
+`unchanged`; it was corrected to a genuine exclusion CAS and reproduced the 303
+gap before Product edits.
+
+Cause: the root URL had no retained view token and language validation called a
+fresh `capture_delivery()`. That proved the newly observed state, not the original
+rendered entry. Tokenized review/download authorization was a separate boundary;
+this finding does not establish stale download disclosure or unwanted preparation.
+
+`LanguageSourceV1` now retains the exact immutable `automatic_view` supplied by the
+renderer. Submission and return resolve that original token/object through the
+existing controller/S4 delivery guard. The root entry's language return uses that
+same view; it never calls fresh capture as a substitute. The mutable controller
+`landing_view` slot was removed, and the automatic entry on `/learning` also uses
+its per-page binding. A newer tab cannot replace an older submitted page's authority.
+
+Unchanged native/enhanced return, disclosure/view restoration, receipt behavior and
+cleared destructive consent retain their existing mechanisms. Tokenized result,
+evidence, download and confirmation checks remain in place. A narrow server branch
+uses the existing complete localized language-conflict response directly for rejected
+automatic entry contexts. This avoids refreshing the manual discovery list during
+rejection and invalidating an otherwise correctly bound second tab.
+
+Regression checks cover source and manifest changes before submission, a newer tab,
+explicit prohibition of recapture during valid language return, enhanced disclosure
+restoration, and changes after a valid save, before return, during rendering and at
+the final byte-delivery hook. Pre-save rejection has **zero Profile writes**. Each
+post-save conflict has exactly **one deliberate Profile save**, retains the saved
+locale, and delivers a complete localized conflict/recovery response.
+
+### Correction inventory and affected-module selection
+
+Exactly **11 intended files** change:
+
+1. `src/skatmind/app_web/automatic_learning_controller.py`
+2. `src/skatmind/app_web/automatic_learning_http.py`
+3. `src/skatmind/app_web/automatic_learning_rendering.py`
+4. `src/skatmind/app_web/language_context.py`
+5. `src/skatmind/app_web/server.py`
+6. `src/skatmind/app_web/locales/de.json`
+7. `src/skatmind/app_web/locales/en.json`
+8. `tests/test_frontend_localization_foundation.py`
+9. `tests/test_automatic_learning_source_release.py` (new)
+10. `tests/test_automatic_learning_entry_language.py` (new)
+11. `docs/automatic_match_learning_ui.md` (this appended correction record)
+
+Five new catalog keys bring each locale from **2,237 to 2,242**. The exact assertion
+was updated. Registered POST routes remain **79**, registered form definitions
+**131**, canonical routes **nine**, packaged Schemas **72**, and automatic canonical
+downloads **ten**. The added native maintenance form uses the existing registered
+shared route; no registry assertion was weakened. No public schema, export bytes,
+persistence recipe, analysis method, focus rule, dependency or Package version changed.
+
+The final affected inventory is **18 complete modules / 425 distinct tests:
+422 passed, three skipped**, including **25 passing new correction regressions**.
+The skips are the existing automatic-store actual-symlink cases unavailable to this
+Windows account. Direct S5 HTTP/evidence callers cover ordinary and changed cleanup
+paths; complete S1 store/lifecycle modules cover source release, shared dependencies
+and readers. Shared language/feedback modules cover native/enhanced return; catalog,
+registry, source-packaging and app-help sentinels cover the affected resource/import
+boundary. S4's algorithms and the other historical browser scenarios were not rerun
+as an unrelated acceptance suite.
+
+Only `test_unified_rejection_transport.py` is an affected exclusive module: the
+server's rejected-language response integration changed. It ran serially after both
+parallel workers exited. The other three exclusive modules cover unchanged drainage,
+standalone Corpus and Match action-placement code and were not run for this correction.
+
+### Exact validation commands and results
+
+Development interpreter: CPython **3.13.7** at
+`C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe`.
+Every validation tool call used timeout **7,200,000 ms**. All XML, fixtures, browser
+profiles/screenshots and accounting are outside the repository. These are source-tree
+developer checks, not installed acceptance.
+
+```powershell
+git status --short --branch
+git rev-parse HEAD
+git diff --cached --stat
+git diff --stat
+gh run view 41871675685 --json headSha,headBranch,status,conclusion,url,jobs
+$E = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode'
+$env:PYTHONDONTWRITEBYTECODE = '1'
+py -3.13 -c "import sys; print(sys.executable); print(sys.version)"
+$A = 'tests/test_automatic_learning_source_release.py'
+$B = 'tests/test_automatic_learning_entry_language.py'
+py -3.13 -m pytest $A $B -q -p no:cacheprovider --basetemp "$E\313-review-red" --junitxml "$E\313-review-red.xml"
+py -3.13 -m pytest $A $B -q -p no:cacheprovider --basetemp "$E\313-review-red-2" --junitxml "$E\313-review-red-2.xml"
+py -3.13 -m pytest $A $B -q -p no:cacheprovider --basetemp "$E\313-review-focused-1" --junitxml "$E\313-review-focused-1.xml"
+py -3.13 -m pytest $A $B -q -n 2 --dist=loadfile --max-worker-restart=0 -p no:cacheprovider --basetemp "$E\313-review-new" --junitxml "$E\313-review-new.xml"
+$Affected = @(
+ 'tests/test_automatic_learning_source_release.py',
+ 'tests/test_automatic_learning_entry_language.py',
+ 'tests/test_automatic_learning_ui.py',
+ 'tests/test_automatic_learning_ui_evidence.py',
+ 'tests/test_automatic_learning_store.py',
+ 'tests/test_automatic_learning_lifecycle.py',
+ 'tests/test_language_switch_context.py',
+ 'tests/test_language_view_continuity.py',
+ 'tests/test_frontend_language_switching.py',
+ 'tests/test_task_first_language_preservation.py',
+ 'tests/test_operation_feedback_language.py',
+ 'tests/test_frontend_validation_preservation.py',
+ 'tests/test_frontend_localization_foundation.py',
+ 'tests/test_complete_frontend_localization.py',
+ 'tests/test_guided_frontend_packaging.py',
+ 'tests/test_packaging_and_distribution.py',
+ 'tests/test_app_cli.py'
+)
+py -3.13 -m pytest @Affected -q -n 2 --dist=loadfile --max-worker-restart=0 -p no:cacheprovider --basetemp "$E\313-review-affected" --junitxml "$E\313-review-affected.xml"
+py -3.13 -m pytest tests/test_unified_rejection_transport.py -q -p no:cacheprovider --basetemp "$E\313-review-exclusive" --junitxml "$E\313-review-exclusive.xml"
+py -3.13 "$E\313-review-accounting.py"
+py -3.13 "$E\313-review-browser.py" "$E\313-review-browser-1"
+```
+
+| Correction evidence prefix | Actual outcome | Console seconds |
+| --- | --- | ---: |
+| `313-review-red` | 3 failed, 1 passed: A gap, B source gap, and the revision-only manifest fixture mistake | 21.85 |
+| `313-review-red-2` | 3 expected pre-Product failures, 1 unchanged positive control passed | 21.50 |
+| `313-review-focused-1` | 4 passed after initial corrections | 22.97 |
+| `313-review-new` | 24 passed, 1 failed: rejection refreshed discovery and invalidated the second `/learning` tab | 378.45 |
+| `313-review-affected` | **385 passed, 3 skipped**, all 17 complete parallel modules | **1268.02** |
+| `313-review-exclusive` | **37 passed**, complete exclusive module after worker exit | **19.32** |
+
+All seven intermediate failed executions were resolved. Across six pytest
+invocations: **452 passing executions, seven failures, three skip events**;
+repeats are not additional distinct coverage. The external `313-review-accounting.json`
+reconciles final identities and module inventory. Targeted Ruff initially found
+12 import-order/line-length findings; all were corrected. The final explicit Quick
+receipt is appended below. No local Full, distribution build/install, installed
+matrix, unrelated suite or timing-only repetition was run.
+
+### Browser and operation evidence
+
+The bounded follow-up completed on its **first run in 87.599 seconds**, using
+Microsoft Edge **156.0.4314.58**, headless, on the disposable source-tree server.
+Evidence: `$E\313-review-browser-1\evidence.json` and **nine screenshots**.
+The external harness is `$E\313-review-browser.py`, reusing the repository's
+dependency-free DevTools transport. It starts no distribution or UAT environment.
+
+Both locales were exercised with JavaScript disabled: exact source/version previews,
+native cancellation, explicit confirmation, unchanged language return and stale
+original-entry language rejection. Enhanced return separately preserved the same
+preview identity, cleared checked destructive consent, restored an open root-entry
+disclosure, and rejected an enhanced stale context. Native initial confirmation/error
+focus was sampled before verifier scrolling. Full fingerprints wrap at a 390-pixel
+viewport: client and scroll width both **375 pixels**. This is 100%-zoom reflow
+evidence, not genuine enlarged-zoom acceptance.
+
+The first release reduced indexed source history from four versions to one; the
+second removed one subsequent obsolete version while preserving the current one.
+Two independent manual JSON files and their selected version remained byte-identical;
+the active manual owner was unchanged. The final editable recording matched the
+latest deliberate fixture save. No Report was executed for this source-only browser
+scenario and no historical S5 download/restart matrix was repeated.
+
+Measured browser counters, excluding initial fixture setup:
+
+| Explicit work | Actual count |
+| --- | ---: |
+| Requested Create/Update preparations | 5 |
+| Source payload writes | 5 |
+| Generation payload writes | 5 |
+| Manifest writes | 8: initial authority + five generation publications + two cleanups |
+| Explicit cleanup source-object deletions | 4 |
+| Explicit cleanup generation-object deletions | 4 |
+| Deliberate language Profile saves | 9 |
+| Deliberate other-tab/source-history fixture recording saves | 6 |
+| Analysis, passive preparation/import/recording/archive writes, or stale-rejection Profile saves | **0** |
+
+Fixture setup separately created one initial recording, saved the initial English
+Profile once and imported one independent manual copy. Payload-write counters are
+distinct from OS lease/pin activity. Before/after checkpoints assert that passive
+viewing, cancellation, disclosure use and stale rejection add no Product work.
+Valid language changes account for Profile writes separately.
+
+The new shared-evidence HTTP fixture executes **two genuine tiny Immediate analyses**
+before guards are installed, sharing one exact original Workspace. It verifies
+that releasing an unrelated obsolete version preserves retained evidence/source
+bytes and the independent manual copy, including after one Report is explicitly
+removed as a separate fixture operation. Its two complete module runs execute four
+fixture analyses in total; the new language/source-only regressions and browser
+scenario execute none. Existing affected suites retain their own fixture execution
+accounting and are not claimed to have zero fixture analyses.
+
+### Remaining acceptance
+
+Both reviewed causes are corrected locally. Preserve the successful starting-commit
+CI as history. New exact-commit hosted `check` and `v1-supported-platform-matrix`
+evidence and maintainer installed targeted acceptance remain required. The installed
+follow-up should repeat only these changed paths with disposable data: source-only
+history and explicit release/quota recovery; protected retained evidence/current
+sources; original-entry language rejection before save and honest conflict after a
+valid save; unchanged native/enhanced return and exact consent in both locales.
+These are maintainer instructions only, not performed installed acceptance.
+
+Keep **#313 and #208 open**. Accepted #292–#312 behavior, independent manual ownership,
+ten automatic exports, exact S2/S3 evidence and #312's reuse-supersession correction
+remain intact. S6/S7, recommendation adaptation and release work remain outside this
+correction. UAT-01 is not globally accepted, formal UAT-02–12 remain paused, and
+release preparation is not authorized.
+
+### Correction completion receipt
+
+**Locally validated; new exact-commit hosted CI and maintainer installed targeted
+acceptance pending. Keep #313 and #208 open.** Explicit
+`.\scripts\check.ps1 -Mode Quick` passed with exit **0** on development CPython
+3.13.7 / `Windows-11-10.0.26300-SP0`, total **29.420 s**: Ruff **0.476 s**,
+packaged-schema parity **0.201 s**, input examples **5.673 s**. The total includes
+runner setup and is not the sum of stage-only timings. Logs:
+`C:\Users\Henning-DT\AppData\Local\Temp\skatmind-check-sg8w7wst`.
+Checked source digest:
+`1e76ee8cf0d61c0c717471c6a0efe4bcdb21debc19ece5cb1bdb922d032a2239`.
+Only this documentation receipt followed Quick.
+
+```powershell
+$env:PYTHONDONTWRITEBYTECODE = '1'
+$env:PYTHONPYCACHEPREFIX = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode\313-review-pycache'
+function python { & 'C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe' @args }
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+git diff --no-index --check -- NUL tests/test_automatic_learning_source_release.py
+git diff --no-index --check -- NUL tests/test_automatic_learning_entry_language.py
+git diff --cached --stat
+git status --short
+git branch --show-current
+git rev-parse HEAD
+```
+
+All changed/new files were reviewed; tracked and new-file whitespace checks passed.
+The final worktree contains exactly the 11 intended correction files, with no staged
+changes. Branch and starting/current HEAD remain the exact values above. Both
+confirmed findings have passing supported-runtime HTTP regressions and bounded
+browser follow-up; no concrete local issue remains. Quick does not certify full
+regression, generated outputs, distributions, hosted gates or installed acceptance.

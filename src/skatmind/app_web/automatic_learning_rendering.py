@@ -68,6 +68,8 @@ def maintenance(view, locale):
         hidden("view", view.token) + hidden("mode", "orphans"), "automatic.cleanup")
     body += form(locale, AUTOMATIC_PAGE + "/cleanup-preview",
         hidden("view", view.token) + hidden("mode", "old_evidence"), "automatic.old_evidence")
+    body += form(locale, AUTOMATIC_PAGE + "/cleanup-preview",
+        hidden("view", view.token) + hidden("mode", "obsolete_sources"), "automatic.obsolete_sources")
     return disclosure(locale, "automatic.maintenance", body)
 
 
@@ -226,6 +228,18 @@ def render_confirmation(value, locale):
         body += '<ul>' + ''.join('<li>' + (escape(_caption(retained, locale)) if retained else
             translated(locale, "automatic.unavailable_report", report=entry.identity[:12]))
             + '</li>' for entry, retained in value.evidence) + '</ul>'
+        if value.kind == "obsolete_sources":
+            retained = sum(row.source_version.source.family == "match"
+                           for row in value.cleanup.manifest.sources)
+            body += paragraph(locale, "automatic.source_release_count",
+                              sources=len(value.sources), retained=retained)
+            if value.source_release_blocked:
+                body += paragraph(locale, "automatic.source_release_blocked")
+            body += '<ul>' + ''.join('<li>' + translated(locale, "automatic.source_release_caption",
+                name=snapshot.workspace.match_definition.title or snapshot.match_id,
+                identity=snapshot.match_id, revision=snapshot.workspace_revision,
+                version=record.source_version.content_fingerprint) + '</li>'
+                for record, snapshot in value.sources) + '</ul>'
         if value.cleanup.manifest.generations != value.view.binding.resumed.manifest.generations:
             body += paragraph(locale, "automatic.retire_generation")
     fields = hidden("confirmation", value.token)

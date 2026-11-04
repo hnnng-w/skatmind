@@ -32,6 +32,8 @@ class AutomaticConfirmation:
     source: object = None
     cleanup: object = None
     evidence: tuple = ()
+    sources: tuple = ()
+    source_release_blocked: bool = False
 
 
 @dataclass(slots=True)
@@ -40,7 +42,6 @@ class AutomaticLearningController:
     service: object = None
     views: dict = field(default_factory=OrderedDict)
     confirmation: AutomaticConfirmation | None = None
-    landing_view: AutomaticView | None = None
     operation_feedback: PendingOperationFeedback = field(default_factory=PendingOperationFeedback)
 
     def bind(self, app):
@@ -109,7 +110,11 @@ class AutomaticLearningController:
             self.confirmation = AutomaticConfirmation(secrets.token_hex(32), view, kind, source)
             return self.confirmation
 
-    def preview_cleanup(self, view, *, old_evidence=False):
+    def preview_cleanup(self, view, *, old_evidence=False, obsolete_sources=False):
+        from skatmind.automatic_match_evidence import decode_match_source
+
+        if old_evidence and obsolete_sources:
+            raise ValueError("Source release and Report removal require separate consent.")
         self.service.validate_delivery(view.binding)
         if view.binding.resumed is None:
             raise StoreConflictError("Automatic storage has not been created.")
@@ -117,24 +122,35 @@ class AutomaticLearningController:
         current = {record.source_version.identity for _obj, record, _snapshot
                    in view.binding.inventory.sources}
         entries = tuple(row for row in manifest.evidence
-                        if old_evidence and row.source_version_id not in current)
+                         if old_evidence and row.source_version_id not in current)
+        release_blocked = obsolete_sources and any(row.status not in ("selected", "explicit")
+                                                   for row in view.binding.inventory.rows)
+        releases = (() if not obsolete_sources or release_blocked else
+                    _releasable_sources(view))
         # Capture typed captions/effects BEFORE preview. All reader pins end here.
         captions = []
         available = view.binding.resumed.available_evidence_ids
-        refs = tuple(row.envelope for row in entries if row.identity in available)
+        refs = (tuple(row.envelope for row in entries if row.identity in available)
+                + tuple(row.object_ref for row in releases))
         with self.service.store.pin_objects(refs, expected_manifest=manifest.fingerprint):
             for entry in entries:
                 value = (self.service.store.read_evidence(entry.identity)
                          if entry.identity in available else None)
                 captions.append((entry, value))
+            source_captions = tuple((record, decode_match_source(
+                self.service.store.read_object(record.object_ref), record).snapshot)
+                for record in releases)
         self.service.validate_delivery(view.binding)
         preview = self.service.store.preview_cleanup(expected_manifest=manifest.fingerprint,
-            remove_evidence_ids=tuple(row.identity for row in entries))
+            remove_evidence_ids=tuple(row.identity for row in entries),
+            release_source_version_ids=tuple(row.source_version.identity for row in releases))
         with self.lock:
             self.operation_feedback.begin()
             self.confirmation = AutomaticConfirmation(secrets.token_hex(32), view,
+                "obsolete_sources" if obsolete_sources else
                 "old_evidence" if old_evidence else "cleanup", cleanup=preview,
-                evidence=tuple(captions))
+                evidence=tuple(captions), sources=source_captions,
+                source_release_blocked=release_blocked)
             return self.confirmation
 
     def require_confirmation(self, token):
@@ -203,6 +219,29 @@ class AutomaticLearningController:
         with self.lock:
             self.operation_feedback.publish(attempt, self.feedback_source(), (message, ()))
         return current
+
+
+def _releasable_sources(view):
+    """Conservative eligibility only; S1 owns graph retirement and physical cleanup.
+
+    The caller requires a complete, valid, unambiguous live inventory. Explicitly
+    excluded live versions still count as current. Retained evidence and every
+    non-retirable dependency edge protect their original source records/objects.
+    """
+    manifest = view.binding.resumed.manifest
+    live = {row.source_version_id for row in view.binding.inventory.rows}
+    retained = {row.source_version_id for row in manifest.evidence}
+    dependencies = {dependency for entry in manifest.objects
+                    if entry.reference not in manifest.generations
+                    for dependency in entry.dependencies}
+    bound_sources = {entity.source for row in manifest.bindings
+                     for entity in (row.subject, row.target) if entity is not None}
+    available = {row.reference for row in view.binding.resumed.objects
+                 if row.consumption_status == "available"}
+    return tuple(row for row in manifest.sources if row.source_version.source.family == "match"
+        and row.source_version.identity not in live | retained
+        and row.object_ref not in dependencies and row.source_version.source not in bound_sources
+        and row.object_ref in available)
 
 
 def source_keys(view):

@@ -1701,6 +1701,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         definition = getattr(self, "_current_form_definition", None)
         if type(definition) is not FrontendFormDefinitionV1:
             return False
+        if isinstance(error, LanguageContextConflict):
+            route = getattr(self, "_profile_action_return_to", "")
+            if route == "/learning" or automatic_html_route(route):
+                # A rejected automatic language context must not refresh/rebind the
+                # entry or disturb another tab's correctly captured source binding.
+                self._language_conflict_page(route)
+                return True
         if definition.form_key.startswith("deletion."):
             from .recording_deletion import current_deletion_preview
             pending = current_deletion_preview(self.server.app_context)

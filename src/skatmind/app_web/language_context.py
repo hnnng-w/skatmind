@@ -29,6 +29,7 @@ class LanguageSourceV1:
     route: str
     references: tuple[object, ...]
     values: tuple[object, ...]
+    automatic_view: object | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,7 +112,8 @@ class LanguageContextV1:
         return page
 
 
-def capture_language_source_v1(context: AppWebContextV1, route: str) -> LanguageSourceV1:
+def capture_language_source_v1(context: AppWebContextV1, route: str, *,
+                               automatic_view=None) -> LanguageSourceV1:
     """Snapshot immutable source references under existing locks, with no I/O.
 
     Never acquire a Product lock while holding the app or profile lock. Retained
@@ -125,7 +127,8 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
         service = controller.service
         return LanguageSourceV1(route, (controller, service,
             None if service is None else service.attempt,
-            None if service is None else service._installed, controller.confirmation), ())
+            None if service is None else service._installed, controller.confirmation), (),
+            automatic_view=automatic_view)
     if route == "/matches/saved-analyses" or route.startswith("/matches/saved-analyses/"):
         return LanguageSourceV1(route, (context.saved_match_analyses,), ())
     from .learning_outcome_navigation import LEARNING_PREPARED_PATTERN, resolve_prepared_scope
@@ -194,7 +197,7 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
                 references.append(learning)
             if route == "/learning":
                 automatic = context.automatic_learning_ui
-                references.extend((automatic, automatic.landing_view))
+                references.append(automatic)
                 if automatic.service is not None:
                     references.extend((automatic.service, automatic.service.attempt,
                                        automatic.service._installed))
@@ -303,20 +306,21 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
                     references.append(match.workspace)
                     references.extend(match.capture.report_store.list())
                     values.append(match.capture.report_store.generation)
-    return LanguageSourceV1(route, tuple(references), tuple(values))
+    return LanguageSourceV1(route, tuple(references), tuple(values), automatic_view=automatic_view)
 
 
 def validate_language_source_v1(
     context: AppWebContextV1, source: LanguageSourceV1, *, check_files: bool = False,
 ) -> None:
-    current = capture_language_source_v1(context, source.route)
+    current = capture_language_source_v1(context, source.route,
+                                         automatic_view=source.automatic_view)
     if (current.values != source.values or len(current.references) != len(source.references)
             or any(a is not b for a, b in zip(current.references, source.references, strict=True))):
         raise LanguageContextConflict
     if automatic_html_route(source.route) or source.route == "/learning":
-        _require_files(context, source.route)
+        _require_files(context, source.route, automatic_view=source.automatic_view)
     if check_files:
-        _require_files(context, source.route)
+        _require_files(context, source.route, automatic_view=source.automatic_view)
         # Filesystem validation holds no app lock. Recheck the active binding afterward.
         validate_language_source_v1(context, source)
 
@@ -330,14 +334,15 @@ def validate_language_page_v1(
     validate_language_source_v1(context, page.source, check_files=check_files)
 
 
-def _require_files(context: AppWebContextV1, route: str) -> None:
-    if route == "/learning":
+def _require_files(context: AppWebContextV1, route: str, *, automatic_view=None) -> None:
+    if automatic_view is not None:
         controller = context.automatic_learning_ui
-        if controller.landing_view is not None:
-            try:
-                controller.service.validate_delivery(controller.landing_view.binding)
-            except (OSError, ValueError) as error:
-                raise LanguageContextConflict from error
+        try:
+            if controller.resolve(automatic_view.token) is not automatic_view:
+                raise LanguageContextConflict
+        except (OSError, ValueError) as error:
+            raise LanguageContextConflict from error
+    if route == "/learning":
         return
     if automatic_html_route(route):
         from .automatic_learning_routes import AUTOMATIC_CONFIRMATION, AUTOMATIC_VIEW
@@ -349,8 +354,10 @@ def _require_files(context: AppWebContextV1, route: str) -> None:
                 controller.require_confirmation(confirmation[1])
             elif view:
                 controller.resolve(view[1])
-            elif controller.service is not None:
-                controller.service.capture_delivery()
+            elif automatic_view is None:
+                # The root entry has no token in its URL. Only its delivered page
+                # binding authorizes language return; fresh state cannot replace it.
+                raise LanguageContextConflict
         except (OSError, ValueError) as error:
             raise LanguageContextConflict from error
         return

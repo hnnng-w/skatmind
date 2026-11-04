@@ -79,7 +79,7 @@ def authorize_response(handler, controller, view, *, confirmation=None):
 def send_page(handler, controller, view, route, body, *, status=200, confirmation=None):
     authorize_response(handler, controller, view, confirmation=confirmation)
     handler._rendered_language_source = capture_language_source_v1(
-        handler.server.app_context, route)
+        handler.server.app_context, route, automatic_view=view)
     handler._operation_feedback_delivery = (controller, "automatic", controller.feedback_source(),
                                              status >= 400)
     handler._content_page("/learning",
@@ -90,11 +90,20 @@ def send_page(handler, controller, view, route, body, *, status=200, confirmatio
         untranslated_workflow_body=False, task_first=True)
 
 
+def _entry_view(handler, controller):
+    pending = getattr(handler, "_language_return", None)
+    original = None if pending is None else pending[0].source.automatic_view
+    if original is not None:
+        if controller.resolve(original.token) is not original:
+            raise StoreConflictError("Automatic language entry changed.")
+        return original
+    return controller.capture()
+
+
 def send_landing(handler, manual_body, *, status=200):
     try:
         controller = automatic_controller(handler.server.app_context)
-        view = controller.capture()
-        controller.landing_view = view
+        view = _entry_view(handler, controller)
         with controller.service.delivery_reader(view.binding):
             send_page(handler, controller, view, "/learning",
                 render_entry(view, handler._frontend_state().locale, landing=True) + manual_body,
@@ -117,7 +126,7 @@ def handle_get(handler, path):
             send_page(handler, controller, value.view, path, render_confirmation(value, locale),
                       confirmation=value)
             return True
-        view = controller.capture() if match is None else controller.resolve(match[1])
+        view = _entry_view(handler, controller) if match is None else controller.resolve(match[1])
         with controller.service.delivery_reader(view.binding):
             if match is None:
                 body = render_entry(view, locale)
@@ -185,10 +194,11 @@ def handle_post(handler, path, values):
                 confirmation = controller.preview_exclusion(view, _index(values["source"]))
                 destination = AUTOMATIC_PAGE + "/confirmation/" + confirmation.token
             elif action == "cleanup-preview":
-                if values["mode"] not in ("orphans", "old_evidence"):
+                if values["mode"] not in ("orphans", "old_evidence", "obsolete_sources"):
                     raise ValueError("Unsupported cleanup mode.")
                 confirmation = controller.preview_cleanup(view,
-                    old_evidence=values["mode"] == "old_evidence")
+                    old_evidence=values["mode"] == "old_evidence",
+                    obsolete_sources=values["mode"] == "obsolete_sources")
                 destination = AUTOMATIC_PAGE + "/confirmation/" + confirmation.token
             else:
                 destination = open_recording(handler, controller, view, _index(values["situation"]))
