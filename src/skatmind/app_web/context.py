@@ -32,6 +32,11 @@ def _new_saved_match_analyses() -> SavedMatchAnalyses:
     return SavedMatchAnalyses()
 
 
+def _new_automatic_learning_ui():
+    from .automatic_learning_controller import AutomaticLearningController
+    return AutomaticLearningController()
+
+
 @dataclass(slots=True)
 class AppWebContextV1:
     """Process-local private context for one managed application home."""
@@ -66,6 +71,7 @@ class AppWebContextV1:
     saved_match_analyses: SavedMatchAnalyses = field(
         default_factory=_new_saved_match_analyses, repr=False)
     automatic_match_learning: object | None = field(default=None, repr=False)
+    automatic_learning_ui: object = field(default_factory=_new_automatic_learning_ui, repr=False)
 
     def __post_init__(self) -> None:
         from .stateful_context import ManagedStatefulContextV1

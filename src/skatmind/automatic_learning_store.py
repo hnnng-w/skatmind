@@ -49,6 +49,10 @@ class StoreLimitError(ValueError):
     """Publication cannot fit; no eviction or truncation is performed."""
 
 
+class StoreManifestError(ValueError):
+    """Top-level authority could not be read/validated; never reset it as empty."""
+
+
 class UnsupportedEvidenceError(ValueError):
     """Storage integrity is not semantic evidence admission."""
 
@@ -201,9 +205,13 @@ class AutomaticLearningStoreV1:
 
     def _manifest(self):
         self._check_root()
-        return resume_manifest(io.read_bounded(
-            self.root / "manifest.json", AUTOMATIC_LEARNING_MAX_OBJECT_BYTES,
-        ))
+        try:
+            return resume_manifest(io.read_bounded(
+                self.root / "manifest.json", AUTOMATIC_LEARNING_MAX_OBJECT_BYTES,
+            ))
+        except (OSError, ValueError) as error:
+            # Keep existing private diagnostics; browser classification uses this type only.
+            raise StoreManifestError(str(error)) from error
 
     def _read(self, ref):
         self._check_root()
@@ -698,20 +706,21 @@ class AutomaticLearningStoreV1:
             for path, (stamp, owned) in files.items()
         ))
 
-    def commit_cleanup(self, preview: CleanupPreviewV1) -> WriteResultV1:
+    def commit_cleanup(self, preview: CleanupPreviewV1, *, commit_guard=None) -> WriteResultV1:
         """Remove references first. Interrupted physical deletion leaves harmless orphans."""
         try:
-            return self._commit_cleanup(preview)
+            return self._commit_cleanup(preview, commit_guard=commit_guard)
         except StoreBusyError:
             return WriteResultV1("conflict", self._manifest().fingerprint)
 
-    def _commit_cleanup(self, preview):
+    def _commit_cleanup(self, preview, *, commit_guard=None):
         if type(preview) is not CleanupPreviewV1 or preview.owner is not self.owner:
             raise StoreConflictError("Cleanup preview belongs to a different owner.")
         with self._guard():
             current = self._manifest()
             if (current.fingerprint != preview.expected_manifest
-                    or self._coordinator.epoch != preview.epoch):
+                    or self._coordinator.epoch != preview.epoch
+                    or commit_guard is not None and not commit_guard()):
                 return WriteResultV1("conflict", current.fingerprint)
             protected = self._protected(preview.manifest)
             files = io.scan_files(self.root)
@@ -724,6 +733,7 @@ class AutomaticLearningStoreV1:
             if preview.manifest != current:
                 result = self.update_manifest(
                     preview.manifest, expected_manifest=current.fingerprint,
+                    commit_guard=commit_guard,
                 )
                 if result.status == "conflict":
                     return result

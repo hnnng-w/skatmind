@@ -16,6 +16,7 @@ class LearningFocusDisplay:
     games: int
     matches: int
     references: tuple[str, ...]
+    reference_urls: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,7 +53,7 @@ def _reference_caption(value, snapshots, labels, players, locale):
 
 
 def project_learning_focuses(report, snapshots, locale, *, profile=None, labels=None,
-                            player_id=None):
+                            player_id=None, reference_urls=None):
     """Keep retained Player order, focus priority and exact membership, with no selection rule."""
     if report is None:
         return ()
@@ -74,13 +75,30 @@ def project_learning_focuses(report, snapshots, locale, *, profile=None, labels=
         focus.qualifying_decision_count, focus.distinct_game_count, focus.distinct_match_count,
         tuple(_reference_caption(decisions[identity], snapshots, labels, players, locale)
               if identity in decisions else text(locale, "learning.result.reference_unavailable")
-              for identity in focus.decision_summary_ids))
+               for identity in focus.decision_summary_ids),
+         tuple(reference_urls.get(decisions[identity].decision_reference_id, "")
+               for identity in focus.decision_summary_ids) if reference_urls else ())
         for player in report.player_reports if player_id is None or player.player_id == player_id
         for focus in player.focus_areas)
 
 
-def _explanation(report):
+def _explanation(report, player_id=None):
     # These summarize retained facts, never recalculate consensus or focus eligibility.
+    if player_id is not None:
+        player = next((row for row in report.player_reports if row.player_id == player_id), None)
+        if player is None or not player.exact_teacher_assessment_count:
+            return "no_analysis"
+        if player.retained_focus_area_count:
+            return "available"
+        if player.mixed_count:
+            return "mixed"
+        if player.teacher_covered_decision_count == 1:
+            return "one_decision"
+        scopes = {row.assessment_scope for row in report.teacher_assessments
+                  if row.acting_player_id == player_id}
+        if "complete_search" not in scopes:
+            return "immediate" if scopes == {"immediate_only"} else "limited"
+        return "no_recurrence"
     if report.focus_area_count:
         return "available"
     if not report.joined_teacher_evidence_count:
@@ -95,11 +113,13 @@ def _explanation(report):
     return "no_recurrence"
 
 
-def project_learning_result(bundle, snapshots, state, locale, *, profile=None, recorded=()):
+def project_learning_result(bundle, snapshots, state, locale, *, profile=None, recorded=(),
+                            labels=None, player_id=None, reference_urls=None):
     """Caller captures under the Corpus lock and revalidates source before HTML delivery."""
     prepared, _tactical, coaching = bundle
     report = coaching.tactical_cross_game_coaching_report
-    labels = snapshot_labels(state, locale, profile, recorded, snapshots)
+    if labels is None:
+        labels = snapshot_labels(state, locale, profile, recorded, snapshots)
     players = _players(snapshots, locale)
     sources = tuple(labels.get(s.match_snapshot_id,
         text(locale, "learning.result.reference_unavailable")) for s in snapshots)
@@ -107,8 +127,9 @@ def project_learning_result(bundle, snapshots, state, locale, *, profile=None, r
         decision=_reference_caption(e, snapshots, labels, players, locale),
         method=text(locale, "task.value." + e.options.recommendation_method))
         for number, e in enumerate(prepared.strategy_teacher_evidence.evidences, 1))
-    return LearningResultDisplay(_explanation(report),
-        project_learning_focuses(report, snapshots, locale, profile=profile, labels=labels),
+    return LearningResultDisplay(_explanation(report, player_id),
+        project_learning_focuses(report, snapshots, locale, profile=profile, labels=labels,
+                                player_id=player_id, reference_urls=reference_urls),
         sources, analyses,
         tuple((name, getattr(report, name)) for name in (
             "joined_teacher_evidence_count", "unjoined_teacher_evidence_count",

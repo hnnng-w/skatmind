@@ -1,5 +1,10 @@
 # Concise, actionable Learning results (Issue #300)
 
+Scoped follow-up: [Issue #313's automatic Match review](automatic_match_learning_ui.md)
+reuses the pure result/focus presentation with explicit automatic links and download
+bases. Its separate owner and delivery bindings do not activate a manual collection.
+The #300 implementation and evidence below remain historical manual-workflow facts.
+
 ## Checkout and implemented presentation
 
 The verified starting checkout was clean, on

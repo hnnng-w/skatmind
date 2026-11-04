@@ -14,7 +14,10 @@ def render_learning_focuses(focuses, locale):
         body += paragraph(locale, "learning.result.focus_scope", decisions=focus.decisions,
                           games=focus.games, matches=focus.matches)
         body += disclosure(locale, "learning.result.supporting_decisions", '<ul>' + ''.join(
-            '<li>' + escape(caption) + '</li>' for caption in focus.references) + '</ul>')
+            '<li>' + ('<a href="' + escape(focus.reference_urls[index], quote=True) + '">'
+                     + escape(caption) + '</a>' if focus.reference_urls
+                     and focus.reference_urls[index] else escape(caption)) + '</li>'
+            for index, caption in enumerate(focus.references)) + '</ul>')
         body += '</article>'
     if body:
         body = '<div class="learning-focuses"><p>' + translated(

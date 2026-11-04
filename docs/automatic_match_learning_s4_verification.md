@@ -606,3 +606,18 @@ All three intended changed files were reviewed; `git diff --check` passed and
 starting/current HEAD remain the exact values recorded in this follow-up. The
 stale reuse receipt finding is corrected with no remaining concrete local finding.
 Keep #312 open for new exact-commit branch/main gates and installed-service acceptance.
+
+## Maintainer acceptance and S5 follow-up
+
+The maintainer accepted #292–#312 before the S5 starting commit
+`521b61b638e651348bd3b938d88e87f4af17b36e`. The supplied #313 baseline records #312's
+corrected branch run `41795408129`, main run `41818546725`, and installed service
+acceptance in three independent process phases with 614 verified installed files.
+The earlier pending paragraphs above remain point-in-time history.
+
+[Issue #313](automatic_match_learning_ui.md) now supplies the separate automatic
+browser/controller, small admitted-input display capture, and explicit final-delivery
+binding around this service. Its ordinary requests use lazy binding, rather than
+calling `open()` on each GET. The accepted reuse-supersession correction, separate
+S2/S3 reservations, wire recipe and canonical export bytes remain intact. #313's
+new hosted and installed UI gates are separate pending acceptance work.

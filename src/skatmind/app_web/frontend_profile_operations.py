@@ -4,6 +4,7 @@ import re
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
+from .automatic_learning_routes import automatic_html_route
 from .frontend_profile_codec import build_local_frontend_profile_v1
 from .frontend_profile_contracts import (
     FrontendInterfacePreferencesV1,
@@ -54,6 +55,7 @@ _SAFE_STATIC_HTML_ROUTES = {
     "/matches/current",
     "/matches/saved-analyses",
     "/learning",
+    "/learning/collections",
     "/learning/current",
     "/about",
     "/settings",
@@ -101,6 +103,7 @@ def is_safe_frontend_return_path_v1(value: object) -> bool:
         or _SAFE_SAVED_MATCH.fullmatch(value) is not None
         or _SAFE_DEBRIEF.fullmatch(value) is not None
         or _SAFE_LEARNING_PREPARED.fullmatch(value) is not None
+        or automatic_html_route(value)
     )
 
 

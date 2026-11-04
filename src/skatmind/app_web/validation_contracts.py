@@ -21,6 +21,7 @@ FRONTEND_VALIDATION_ACTIVE_FAMILIES = (
     "sessions",
     "matches",
     "learning",
+    "automatic",
 )
 
 _MESSAGE_KEY = re.compile(r"validation\.[a-z0-9_.]+\Z")

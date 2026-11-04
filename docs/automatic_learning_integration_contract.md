@@ -35,6 +35,17 @@ existing artifacts and publishes guarded current/previous generations. Ordinary
 S5 UI and S6/S7 adapters remain subsequent work; S4 does not complete this contract.
 Earlier acceptance and pending-status paragraphs remain point-in-time history.
 
+Separate S5 follow-up: Issue #313 implements the [ordinary bilingual automatic
+Match review and maintenance UI](automatic_match_learning_ui.md) over
+maintainer-accepted #292–#312. It adds the automatic-first Learning entry, native
+Player/source/situation/evidence navigation, exact guarded downloads, stable-source
+exclusion/re-inclusion and exact cleanup preview/confirmation. Passive viewing
+does not prepare or analyze. Independent manual collections retain their existing
+ownership and contracts. This completes the implemented Match UI slice, with new
+exact-commit hosted CI and maintainer installed UI acceptance pending; S6/S7 remain
+subsequent work. The historical stage descriptions below remain the governing
+requirements, not a claim that #308 itself implemented them.
+
 The maintainer has approved the following **v1 product direction**:
 
 * Learning automatically brings together eligible saved games and existing

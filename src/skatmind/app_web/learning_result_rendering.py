@@ -79,7 +79,8 @@ def _coaching_status(prepared):
     return status if supported else "unknown"
 
 
-def render_learning_result(prepared, locale, *, display=None):
+def render_learning_result(prepared, locale, *, display=None, included_links=None,
+                           download_base="/learning/downloads", choose_route="/review/recorded"):
     """No source access, execution, state mutation or receipt delivery."""
     def number(key):
         value = _count(prepared.get(key))
@@ -104,8 +105,8 @@ def render_learning_result(prepared, locale, *, display=None):
         body += paragraph(locale, "learning.result.coaching." + (
             coaching if display is None else "unknown"))
     if coverage in ("complete", "partial") and not (consistent and display.focuses):
-        body += '<p><a class="button-link" href="/review/recorded">' + translated(
-            locale, "learning.result.choose_decision") + '</a></p>'
+        body += ('<p><a class="button-link" href="' + escape(choose_route, quote=True) + '">'
+                 + translated(locale, "learning.result.choose_decision") + '</a></p>')
     body += '</div>'
     inputs = ''
     if display is not None:
@@ -116,9 +117,10 @@ def render_learning_result(prepared, locale, *, display=None):
                 for label in display.analysis_sources) + '</ul>'
     else:
         inputs += paragraph(locale, "learning.result.reference_unavailable")
-    inputs += '<p><a href="#insight-versions">' + translated(
-        locale, "task.learning.selected") + '</a> · <a href="#learning-sources">' + translated(
-        locale, "task.learning.attach_file") + '</a></p>'
+    inputs += (included_links if included_links is not None else
+        '<p><a href="#insight-versions">' + translated(locale, "task.learning.selected")
+        + '</a> · <a href="#learning-sources">' + translated(
+            locale, "task.learning.attach_file") + '</a></p>')
     body += disclosure(locale, "learning.result.included_data", inputs).replace(
         '<details ', '<details id="learning-result-inputs" ', 1)
     details = paragraph(locale, "learning.result.matches", count=number("cross_game_match_count"))
@@ -161,7 +163,8 @@ def render_learning_result(prepared, locale, *, display=None):
     for group, kinds in _DOWNLOAD_GROUPS:
         details += '<h4>' + translated(locale, "learning.result.group." + group) + '</h4><ul>'
         for kind in kinds:
-            details += (f'<li><a href="/learning/downloads/{kind.replace("_", "-")}.json" download>'
+            href = escape(download_base) + '/' + kind.replace("_", "-") + '.json'
+            details += (f'<li><a href="{href}" download>'
                 + translated(locale, "task.download." + kind) + ' (JSON)</a></li>')
         details += '</ul>'
     details += '</div>' + technical_details(locale, learning_result_technical_facts(prepared))

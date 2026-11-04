@@ -10,6 +10,7 @@ from skatmind.capture_web.contracts import (
 from skatmind.corpus_web.contracts import LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES
 from skatmind.session_commands import SESSION_COMMAND_KINDS
 
+from .automatic_learning_routes import AUTOMATIC_BODY_LIMIT, AUTOMATIC_PAGE, AUTOMATIC_POST_ROUTES
 from .card_entry_http import CARD_ENTRY_ROUTES, MATCH_CARD_OPERATIONS, MATCH_EVIDENCE_FORMS
 from .compact_declaration_form import DECLARATION_FIELDS
 from .debrief_frontend import DEBRIEF_POST_ROUTES
@@ -1516,6 +1517,12 @@ _FORMS.append(_definition(
 _FORMS.append(_definition(
     "match.retry_saving", "/matches/retry-saving", page="/matches/current", active="matches",
     body_limit=8192, value_free=True, success="contextual"))
+_FORMS.extend(_definition("automatic." + action, route,
+    ("confirm_apply",) if action == "confirm" else (), page=AUTOMATIC_PAGE,
+    active="automatic", success="contextual", body_limit=AUTOMATIC_BODY_LIMIT,
+    value_free=action != "confirm") for route in AUTOMATIC_POST_ROUTES
+    for action in (route.rsplit("/", 1)[1],))
+
 FRONTEND_FORM_REGISTRY = tuple(_FORMS)
 UNIFIED_FRONTEND_POST_ROUTES = tuple(
     dict.fromkeys(
@@ -1527,6 +1534,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             *CORRECTION_ROUTES,
             OPEN_RECORDING_ROUTE,
             *DELETION_POST_ROUTES,
+            *AUTOMATIC_POST_ROUTES,
             *DEBRIEF_POST_ROUTES,
             "/sessions/create",
             "/sessions/import",

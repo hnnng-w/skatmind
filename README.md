@@ -2121,9 +2121,9 @@ understandable reviews and evidence-backed hints. Passive viewing must not run
 new card analyses. Independent manual Learning collections retain their selected
 versions and copied sources.
 
-This is approved direction, not implemented automatic behavior. The current
-Match-based collection, ordinary Decision evidence and separate whole-game
-debrief paths have different source and lifetime boundaries. The
+Issue #308 recorded the direction before implementation. Match-based independent
+collections, ordinary Decision evidence and separate whole-game debriefs retain
+their distinct source and lifetime boundaries. The
 [automatic Learning integration contract](docs/automatic_learning_integration_contract.md)
 documents those boundaries, durable evidence/restart and correction/deletion
 rules, and the ordered Match, Session and manual Historical Review stages.
@@ -2133,3 +2133,12 @@ remains an intended later goal, not a v1 requirement or permanent exclusion.
 Issue #308 changes documentation only; accepted #292–#307 scopes remain intact,
 #208 stays open, formal UAT-02–12 remain paused, and release preparation is not
 authorized.
+
+Issue #313 now provides the [automatic Match Learning browser workflow](docs/automatic_match_learning_ui.md)
+over maintainer-accepted S1–S4. Open Learning and explicitly Create/Update a review
+from saved managed Matches and retained analyses. View Player focuses, supporting
+situations and exact downloads; source exclusions and previewed storage maintenance
+are secondary. Viewing runs no card analysis or preparation. Independent collections
+remain available through their own controls. This implements the Match-only S5
+slice; Session and manual Historical Review adapters remain S6/S7. New exact-commit
+hosted gates and maintainer installed UI acceptance for #313 remain pending.

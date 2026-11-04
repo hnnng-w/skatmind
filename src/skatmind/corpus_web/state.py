@@ -14,6 +14,11 @@ def _prepared_state(context: LearningCorpusWebContextV1) -> dict[str, Any] | Non
     coaching = context.tactical_coaching_prepared_artifacts
     if prepared is None or tactical is None or coaching is None:
         return None
+    return prepared_state_values(prepared, tactical, coaching)
+
+
+def prepared_state_values(prepared, tactical, coaching):
+    """Pure minimized display facts from an admitted complete prepared tuple."""
     dataset = prepared.learning_dataset
     summary = prepared.cross_game_summary
     readiness = {

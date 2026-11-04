@@ -8,6 +8,7 @@ import time
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
+from .automatic_learning_routes import automatic_html_route
 from .frontend_profile_codec import build_local_frontend_profile_v1
 from .frontend_profile_operations import is_safe_frontend_return_path_v1
 from .workflow_state import StaleFrontendWorkflowRevisionError
@@ -119,6 +120,12 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
     """
     if not is_safe_frontend_return_path_v1(route):
         raise ValueError("Language origin must be a safe HTML route.")
+    if automatic_html_route(route):
+        controller = context.automatic_learning_ui
+        service = controller.service
+        return LanguageSourceV1(route, (controller, service,
+            None if service is None else service.attempt,
+            None if service is None else service._installed, controller.confirmation), ())
     if route == "/matches/saved-analyses" or route.startswith("/matches/saved-analyses/"):
         return LanguageSourceV1(route, (context.saved_match_analyses,), ())
     from .learning_outcome_navigation import LEARNING_PREPARED_PATTERN, resolve_prepared_scope
@@ -178,12 +185,19 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
             references.extend((managed.discoveries.get("sessions"),
                                managed.discoveries.get("matches"), session, match))
             values.extend((managed.generations["sessions"], managed.generations["matches"]))
-        family = {"/sessions": "sessions", "/matches": "matches", "/learning": "corpora"}.get(route)
+        family = {"/sessions": "sessions", "/matches": "matches", "/learning": "corpora",
+                  "/learning/collections": "corpora"}.get(route)
         if family is not None:
             references.append(managed.discoveries.get(family))
             values.append(managed.generations[family])
             if family == "corpora":
                 references.append(learning)
+            if route == "/learning":
+                automatic = context.automatic_learning_ui
+                references.extend((automatic, automatic.landing_view))
+                if automatic.service is not None:
+                    references.extend((automatic.service, automatic.service.attempt,
+                                       automatic.service._installed))
         feedback_family = ("recordings" if route == "/review/recorded" else
             "sessions" if route.startswith("/sessions") else
             "matches" if route.startswith("/matches") else
@@ -253,7 +267,8 @@ def capture_language_source_v1(context: AppWebContextV1, route: str) -> Language
                 references.append(report)
         # Transfer forms also depend on the exact selected target collection.
         references.append(learning)
-    if learning_page or (route == "/learning" and learning is not None) or (
+    if learning_page or (route in ("/learning", "/learning/collections")
+                        and learning is not None) or (
             learning is not None and route.startswith(
                 ("/matches/position/", "/matches/review/", "/matches/reports/"))):
         if learning is None:
@@ -298,6 +313,8 @@ def validate_language_source_v1(
     if (current.values != source.values or len(current.references) != len(source.references)
             or any(a is not b for a, b in zip(current.references, source.references, strict=True))):
         raise LanguageContextConflict
+    if automatic_html_route(source.route) or source.route == "/learning":
+        _require_files(context, source.route)
     if check_files:
         _require_files(context, source.route)
         # Filesystem validation holds no app lock. Recheck the active binding afterward.
@@ -314,6 +331,29 @@ def validate_language_page_v1(
 
 
 def _require_files(context: AppWebContextV1, route: str) -> None:
+    if route == "/learning":
+        controller = context.automatic_learning_ui
+        if controller.landing_view is not None:
+            try:
+                controller.service.validate_delivery(controller.landing_view.binding)
+            except (OSError, ValueError) as error:
+                raise LanguageContextConflict from error
+        return
+    if automatic_html_route(route):
+        from .automatic_learning_routes import AUTOMATIC_CONFIRMATION, AUTOMATIC_VIEW
+        controller = context.automatic_learning_ui
+        try:
+            confirmation = AUTOMATIC_CONFIRMATION.fullmatch(route)
+            view = AUTOMATIC_VIEW.fullmatch(route)
+            if confirmation:
+                controller.require_confirmation(confirmation[1])
+            elif view:
+                controller.resolve(view[1])
+            elif controller.service is not None:
+                controller.service.capture_delivery()
+        except (OSError, ValueError) as error:
+            raise LanguageContextConflict from error
+        return
     if route.startswith("/matches/saved-analyses/"):
         from .saved_match_analyses import resolve_saved_analysis
 

@@ -1145,3 +1145,14 @@ retained-evidence preparation, guarded generation publication and explicit resta
 reconstruction. S5 UI and S6/S7 adapters remain subsequent work. Keep #312 open for
 exact-commit hosted gates and maintainer installed service acceptance; the earlier
 #308 documentation-only acceptance and accepted #292–#311 scopes remain intact.
+
+Scoped S5 follow-up: the maintainer accepted #292–#312 before Issue #313, including
+#312's corrected exact-commit branch/main gates and its three-phase installed
+service scenario with 614 verified installed files. Earlier pending paragraphs are
+point-in-time history. Issue #313 implements the private Match-only bilingual
+automatic review, native source/evidence navigation, exact delivery bindings,
+source-exception confirmation and explicit previewed storage maintenance described
+in [Automatic Match Learning UI](docs/automatic_match_learning_ui.md). Independent
+manual collections keep their own owner and contracts. S6/S7 remain future work.
+Keep #313 open for new exact-commit hosted gates and maintainer installed targeted
+UI acceptance; #208 and the paused formal UAT/release boundaries remain unchanged.

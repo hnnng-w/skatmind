@@ -144,6 +144,10 @@ class AutomaticMatchBundle:
     coverage: tuple[NamedValueV1, ...]
     skipped: tuple[SkippedSituationV1, ...]
     fingerprints: tuple[NamedValueV1, ...]
+    # Admitted generation inputs, retained only for private presentation/navigation.
+    # Neither field changes the recipe, fingerprints or canonical exports.
+    sources: tuple = ()
+    evidence: tuple = ()
 
     def download(self, kind):
         return next(value for value in self.downloads if value.kind == kind)
@@ -222,7 +226,9 @@ def build_automatic_match_bundle(sources, evidence, *, corpus_id, dataset_id, ca
             ("rollout_availability", [item.entry.to_dict() for item in availability]),
             ("coverage", [row.to_dict() for row in coverage])))
     return AutomaticMatchBundle(prepared, tactical, coaching, debrief, tuple(availability),
-                                downloads, coverage, tuple(skipped), fingerprints)
+                                downloads, coverage, tuple(skipped), fingerprints,
+                                tuple((record, snapshot) for _obj, record, snapshot in sources),
+                                evidence)
 
 
 def generation_object(generation, sources, evidence):

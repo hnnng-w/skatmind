@@ -31,6 +31,8 @@ MESSAGE_PARAMETERS = {
     "report_attached": (), "report_already_attached": (),
     "debrief_added": ("binding",),
     "evidence_removed": (), "evidence_empty": (), "unchanged": (), "rewind": (),
+    "automatic_prepared": (), "automatic_rebuilt": (), "automatic_reused": (),
+    "automatic_maintained": (), "automatic_partial_cleanup": (),
 }
 
 
@@ -135,6 +137,8 @@ def continue_operation_feedback(presentation, remaining_ms):
 
 
 def feedback_lock(active):
+    if hasattr(active, "feedback_source"):
+        return active.lock
     if hasattr(active, "capture"):
         return active.capture.lock
     if hasattr(active, "corpus"):
@@ -144,6 +148,8 @@ def feedback_lock(active):
 
 def feedback_source(active) -> FeedbackSource:
     """Caller owns the existing Product lock. No I/O, replay, hashing or projection."""
+    if hasattr(active, "feedback_source"):
+        return active.feedback_source()
     if hasattr(active, "capture"):
         game = active.workspace.slots[active.selected_position - 1].observed_game
         return FeedbackSource((active, active.workspace, game), (
@@ -160,6 +166,8 @@ def feedback_source(active) -> FeedbackSource:
 
 
 def feedback_players(active):
+    if hasattr(active, "feedback_source"):
+        return ()
     return (active.workspace.match_definition.participants if hasattr(active, "capture")
             else () if hasattr(active, "corpus") else active.state.players)
 
@@ -203,9 +211,10 @@ def deliver_operation_feedback(handler, content, *, status):
     active, family, rendered_source, suppressed = delivery
     with feedback_lock(active):
         with app.lock:
-            current = getattr(app.managed_stateful, "active_" + family)
+            current = (app.automatic_learning_ui if family == "automatic" else
+                       getattr(app.managed_stateful, "active_" + family))
             feedback_family = {"session": "sessions", "match": "matches",
-                               "learning": "learning"}[family]
+                               "learning": "learning", "automatic": "automatic"}[family]
             feedback = app.form_feedback.current(feedback_family, active_identity=active)
         source = feedback_source(active)
         if current is not active or not rendered_source.matches(source):

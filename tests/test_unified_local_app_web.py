@@ -359,6 +359,11 @@ def test_stateful_landing_empty_states_explain_scope_prerequisite_and_next_actio
             "Use Create Match below",
         ),
         "/learning": (
+            "Uses saved managed Matches and their retained analyses",
+            "Independent collections",
+            "Creates an empty collection. Add saved Matches afterward",
+        ),
+        "/learning/collections": (
             "No learning collections yet",
             "saved Match versions you choose to examine together",
             "Creates an empty collection. Add saved Matches afterward",

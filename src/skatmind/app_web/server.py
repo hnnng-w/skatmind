@@ -24,6 +24,13 @@ from skatmind.corpus_web.uploads import parse_learning_corpus_multipart_upload_v
 from skatmind.errors import SkatMindError, SkatMindInvariantError, SkatMindWorkflowError
 from skatmind.match_workspace_persistence_codec import resume_match_workspace_document_v1
 
+from .automatic_learning_routes import (
+    AUTOMATIC_BODY_LIMIT,
+    AUTOMATIC_PAGE,
+    AUTOMATIC_POST_ROUTES,
+    AUTOMATIC_VIEW,
+    automatic_html_route,
+)
 from .card_entry_http import (
     CARD_ENTRY_ROUTES,
     MATCH_CARD_OPERATIONS,
@@ -432,6 +439,7 @@ _SESSION_DOWNLOAD_ROUTES = {
     "/sessions/downloads/rollout-result.json",
 }
 _STATEFUL_POST_ROUTES = {
+    *AUTOMATIC_POST_ROUTES,
     MATCH_RECORDING_INPUT_ROUTE,
     *DEBRIEF_POST_ROUTES,
     *CORRECTION_ROUTES,
@@ -500,6 +508,7 @@ _COMMON_ERROR_MESSAGE_KEYS = {
 
 def _is_stateful_get_route(path: str) -> bool:
     return (
+        automatic_html_route(path) or AUTOMATIC_VIEW.fullmatch(path) is not None or
         path == SAVED_MATCH_ROUTE or SAVED_MATCH_PATTERN.fullmatch(path) is not None or
         path
         in {
@@ -510,6 +519,7 @@ def _is_stateful_get_route(path: str) -> bool:
             "/matches/api/v1/state",
             "/matches/downloads/workspace.json",
             "/learning/current",
+            "/learning/collections",
             LEARNING_REFRESH_ROUTE,
             "/learning/api/v1/state",
         }
@@ -639,6 +649,11 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             except (RecordingOpenConflict, OSError, ValueError, SkatMindError):
                 # Do not re-enter the rejected form's stale Report/receipt renderer.
                 self._rendered_language_source = None
+                recovery = getattr(self, "_retained_delivery_recovery", None)
+                if recovery is not None:
+                    self._retained_delivery_recovery = None
+                    recovery()
+                    return
                 self._send_common_error(HTTPStatus.CONFLICT)
                 return
         rejected = status >= HTTPStatus.BAD_REQUEST
@@ -1076,6 +1091,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         feedback_identity: object | None = None,
         last_valid_result_retained: bool = False,
         untranslated_workflow_body: bool = True,
+        task_first: bool | None = None,
     ) -> None:
         with self.server.app_context.lock:
             state = self.server.app_context.browser_state
@@ -1093,7 +1109,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             extra_stylesheets=extra_stylesheets,
             extra_scripts=extra_scripts,
             untranslated_workflow_body=untranslated_workflow_body,
-            task_first=feedback_identity is not None,
+            task_first=feedback_identity is not None if task_first is None else task_first,
         )
         families = (
             (feedback_family, "local_settings", "profile")
@@ -1353,6 +1369,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self,
         definition: FrontendFormDefinitionV1,
     ) -> object | None:
+        if definition.active_context_requirement == "automatic":
+            return self.server.app_context.automatic_learning_ui
         if definition.originating_page == DELETION_PAGE:
             from .recording_deletion import current_deletion_preview
             return current_deletion_preview(self.server.app_context)
@@ -1555,6 +1573,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         status: int,
     ) -> None:
         page = definition.originating_page
+        if page == AUTOMATIC_PAGE:
+            from .automatic_learning_http import recovery
+            recovery(self, status=status)
+            return
         if page == DELETION_PAGE:
             render_deletion_page(self, status=status)
             return
@@ -2060,6 +2082,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         family: str,
         *,
         status: int = HTTPStatus.OK,
+        independent: bool = False,
     ) -> None:
         route = {
             "sessions": "/sessions",
@@ -2072,7 +2095,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 discovery = self.server.app_context.managed_stateful.discoveries.get(family)
         if discovery is None:
             discovery = self._refresh_category(family)
-        self._rendered_language_source = capture_language_source_v1(self.server.app_context, route)
+        return_route = "/learning/collections" if independent else route
+        self._rendered_language_source = capture_language_source_v1(
+            self.server.app_context, return_route)
         title = {
             "sessions": "Sessions",
             "matches": "Match capture",
@@ -2083,9 +2108,21 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             learning = self.server.app_context.managed_stateful.active_learning
         overview = (None if family != "corpora" or learning is None else
                     collection_scope(self.server.app_context, learning))
+        if family == "corpora" and not independent:
+            from .automatic_learning_http import send_landing
+            from .rendering import _empty_state
+            manual = render_managed_category_landing_v1(discovery.view,
+                profile=profile_state.document, profile_generation=profile_state.generation,
+                locale=self._frontend_state().locale,
+                active_overview=(None if overview is None else (overview.owner.handle,
+                    f"/learning/debrief/{overview.scope_id}/all")))
+            if not discovery.view.items:
+                manual = _empty_state("learning_collections", self._frontend_state()) + manual
+            send_landing(self, manual, status=status)
+            return
         self._content_page(
             route,
-            return_to=route,
+            return_to=return_route,
             title=title,
             content=deletion_notice(self.server.app_context, route, self._frontend_state().locale)
             + (saved_analyses_link(self._frontend_state().locale) if family == "matches" else "")
@@ -2630,6 +2667,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         return False
 
     def _stateful_get(self, path: str) -> bool:
+        from .automatic_learning_http import handle_get
+        if handle_get(self, path):
+            return True
         if handle_saved_analysis_get(self, path):
             return True
         prepared = LEARNING_PREPARED_PATTERN.fullmatch(path)
@@ -2671,6 +2711,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             return True
         if path == "/learning":
             self._managed_category_page("corpora")
+            return True
+        if path == "/learning/collections":
+            self._managed_category_page("corpora", independent=True)
             return True
         if path == "/sessions/current":
             self._session_page()
@@ -3497,6 +3540,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         body: bytes,
         content_type: str,
     ) -> None:
+        if path in AUTOMATIC_POST_ROUTES:
+            from .automatic_learning_http import handle_post
+            handle_post(self, path, self._text_form(body, content_type))
+            return
         if path == MATCH_RECORDING_INPUT_ROUTE:
             dispatch_recording_input(self, self._urlencoded_form(body, content_type))
             return
@@ -3737,7 +3784,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     self._profile_operation(parsed.path, body, content_type)
                 return
             if parsed.path in _STATEFUL_POST_ROUTES:
-                if parsed.path in DELETION_POST_ROUTES:
+                if parsed.path in AUTOMATIC_POST_ROUTES:
+                    max_bytes = AUTOMATIC_BODY_LIMIT
+                elif parsed.path in DELETION_POST_ROUTES:
                     max_bytes = DELETION_BODY_LIMIT
                 elif parsed.path == LEARNING_ADD_ROUTE or parsed.path in DEBRIEF_POST_ROUTES:
                     max_bytes = LEARNING_ENTRY_BODY_LIMIT

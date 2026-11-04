@@ -6,7 +6,7 @@ accepted writers order Product -> optional app -> source barrier. No Corpus lock
 is held with a Product lock.
 """
 
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, replace
 
 from skatmind import automatic_learning_io as io
@@ -15,6 +15,7 @@ from skatmind.automatic_learning_store import (
     AutomaticLearningStoreV1,
     StoreConflictError,
     StoreLimitError,
+    StoreManifestError,
 )
 from skatmind.automatic_match_preparation import (
     ADAPTERS,
@@ -44,6 +45,19 @@ class AutomaticMatchServiceResult:
     status: str
     generation: AutomaticMatchGeneration | None = None
     committed: bool = False
+    failure: str | None = None
+    attempt: object = None
+
+
+@dataclass(frozen=True, slots=True)
+class AutomaticDeliveryBinding:
+    owner: object
+    attempt: object
+    installed: object
+    result: AutomaticMatchServiceResult
+    resumed: object
+    inventory: object
+    epoch: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -198,6 +212,10 @@ class AutomaticMatchLearningServiceV1:
         if any(sources[key].source_version.source not in live
                for key in generation.recipe.source_version_ids):
             return AutomaticMatchServiceResult("deleted", generation), resumed, inventory
+        blocked = {row.source for row in inventory.rows if row.status != "selected"}
+        if any(sources[key].source_version.source in blocked
+               for key in generation.recipe.source_version_ids):
+            return AutomaticMatchServiceResult("excluded", generation), resumed, inventory
         _, _, _, identity = _selection(inventory, resumed)
         outdated = identity != generation.input_fingerprint or ref != manifest.current_generation
         valid_bundle = (installed is not None and installed.reference == ref
@@ -219,6 +237,8 @@ class AutomaticMatchLearningServiceV1:
             return AutomaticMatchServiceResult("unsupported")
         except (StoreConflictError, InventoryConflict):
             return AutomaticMatchServiceResult("conflict")
+        except StoreManifestError:
+            return AutomaticMatchServiceResult("excluded", failure="invalid_storage")
         except (OSError, ValueError, SkatMindError):
             return AutomaticMatchServiceResult("excluded")
 
@@ -249,7 +269,7 @@ class AutomaticMatchLearningServiceV1:
                     if (not self._owner(attempt) or self._installed is not installed
                             or consumed is not installed.bundle or store._manifest() != before):
                         raise StoreConflictError("Automatic reuse was superseded.")
-                    return AutomaticMatchServiceResult("reused", previous)
+                    return AutomaticMatchServiceResult("reused", previous, attempt=attempt)
             selected_ids = tuple(value[1].source_version.identity for value in sources)
             catalog_revision = (0 if previous is None else previous.recipe.catalog_revision)
             if previous is None and sources or previous is not None and (
@@ -310,6 +330,8 @@ class AutomaticMatchLearningServiceV1:
             return AutomaticMatchServiceResult("unsupported")
         except StoreLimitError:
             return AutomaticMatchServiceResult("quota")
+        except StoreManifestError:
+            return AutomaticMatchServiceResult("failed", failure="invalid_storage")
         except (OSError, ValueError, SkatMindError) as error:
             if store is not None and requested is not None and obj is not None:
                 try:
@@ -343,7 +365,7 @@ class AutomaticMatchLearningServiceV1:
                     or store._manifest() != requested):
                 return AutomaticMatchServiceResult("reconstruction_needed", generation, True)
             self._installed = _Installed(obj.reference, generation, bundle, inventory)
-        return AutomaticMatchServiceResult(status, generation, True)
+        return AutomaticMatchServiceResult(status, generation, True, attempt=attempt)
 
     def consume(self, projector, *, allow_outdated=False):
         """Project/serialize unlocked, then validate immediately before delivery.
@@ -374,3 +396,42 @@ class AutomaticMatchLearningServiceV1:
 
     def download(self, kind, *, allow_outdated=False):
         return self.consume(lambda bundle: bundle.download(kind), allow_outdated=allow_outdated)
+
+    def capture_delivery(self):
+        """Capture exact HTML/control authority, including absent-store membership."""
+        attempt, installed = self.attempt, self._installed
+        result, resumed, inventory = self._inspect()
+        if inventory is None:
+            inventory = capture_match_inventory(self.home)
+        binding = AutomaticDeliveryBinding(self, attempt, installed, result, resumed,
+                                            inventory, self.coordinator.generation)
+        self.validate_delivery(binding)
+        return binding
+
+    def validate_delivery(self, binding):
+        """After serialization, immediately before headers; a projection is not authority."""
+        result, resumed, inventory = self._inspect()
+        if inventory is None:
+            inventory = capture_match_inventory(self.home)
+        with self.app.lock, self.coordinator.lock, ExitStack() as stack:
+            if self.store is not None:
+                stack.enter_context(self.store._guard())
+            if (binding.owner is not self or not self._owner(binding.attempt)
+                    or self.attempt is not binding.attempt
+                    or self._installed is not binding.installed
+                    or result != binding.result or resumed != binding.resumed
+                    or inventory != binding.inventory
+                    or self.coordinator.generation != binding.epoch
+                    or not inventory_still_current(self.home, binding.inventory)
+                    or resumed is not None and self.store._manifest() != resumed.manifest):
+                raise StoreConflictError("Automatic delivery binding changed.")
+
+    @contextmanager
+    def delivery_reader(self, binding):
+        """Keep the dependency closure pinned through HTTP delivery, outside projectors."""
+        with ExitStack() as stack:
+            if binding.installed is not None and binding.result.status in ("current", "outdated"):
+                stack.enter_context(self.store.pin_objects((binding.installed.reference,),
+                    expected_manifest=binding.resumed.manifest.fingerprint))
+            self.validate_delivery(binding)
+            yield
