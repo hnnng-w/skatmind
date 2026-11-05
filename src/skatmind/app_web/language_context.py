@@ -309,20 +309,23 @@ def capture_language_source_v1(context: AppWebContextV1, route: str, *,
     return LanguageSourceV1(route, tuple(references), tuple(values), automatic_view=automatic_view)
 
 
-def validate_language_source_v1(
-    context: AppWebContextV1, source: LanguageSourceV1, *, check_files: bool = False,
-) -> None:
+def _require_language_identity(context: AppWebContextV1, source: LanguageSourceV1) -> None:
+    """Recheck retained process identities without repeating filesystem validation."""
     current = capture_language_source_v1(context, source.route,
                                          automatic_view=source.automatic_view)
     if (current.values != source.values or len(current.references) != len(source.references)
             or any(a is not b for a, b in zip(current.references, source.references, strict=True))):
         raise LanguageContextConflict
-    if automatic_html_route(source.route) or source.route == "/learning":
-        _require_files(context, source.route, automatic_view=source.automatic_view)
-    if check_files:
+
+
+def validate_language_source_v1(
+    context: AppWebContextV1, source: LanguageSourceV1, *, check_files: bool = False,
+) -> None:
+    _require_language_identity(context, source)
+    if check_files or automatic_html_route(source.route) or source.route == "/learning":
         _require_files(context, source.route, automatic_view=source.automatic_view)
         # Filesystem validation holds no app lock. Recheck the active binding afterward.
-        validate_language_source_v1(context, source)
+        _require_language_identity(context, source)
 
 
 def validate_language_page_v1(
@@ -335,26 +338,27 @@ def validate_language_page_v1(
 
 
 def _require_files(context: AppWebContextV1, route: str, *, automatic_view=None) -> None:
-    if automatic_view is not None:
-        controller = context.automatic_learning_ui
-        try:
-            if controller.resolve(automatic_view.token) is not automatic_view:
-                raise LanguageContextConflict
-        except (OSError, ValueError) as error:
-            raise LanguageContextConflict from error
-    if route == "/learning":
-        return
-    if automatic_html_route(route):
+    if route == "/learning" or automatic_html_route(route):
         from .automatic_learning_routes import AUTOMATIC_CONFIRMATION, AUTOMATIC_VIEW
         controller = context.automatic_learning_ui
         try:
             confirmation = AUTOMATIC_CONFIRMATION.fullmatch(route)
             view = AUTOMATIC_VIEW.fullmatch(route)
             if confirmation:
-                controller.require_confirmation(confirmation[1])
-            elif view:
+                retained = controller.require_confirmation(confirmation[1])
+                if automatic_view is not None:
+                    with controller.lock:
+                        if (retained.view is not automatic_view or
+                                controller.views.get(automatic_view.token) is not automatic_view):
+                            raise LanguageContextConflict
+            elif automatic_view is not None:
+                if view is not None and view[1] != automatic_view.token:
+                    raise LanguageContextConflict
+                if controller.resolve(automatic_view.token) is not automatic_view:
+                    raise LanguageContextConflict
+            elif view is not None:
                 controller.resolve(view[1])
-            elif automatic_view is None:
+            elif route != "/learning":
                 # The root entry has no token in its URL. Only its delivered page
                 # binding authorizes language return; fresh state cannot replace it.
                 raise LanguageContextConflict

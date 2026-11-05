@@ -89,15 +89,23 @@ def test_ten_generation_downloads_and_final_delivery(localized_server, monkeypat
 def test_cleanup_preview_does_not_invalidate_itself_and_reader_requires_new_consent(
     localized_server,
 ):
+    from automatic_learning_helpers import source_fixture
+
     app = localized_server.app_context
     save(app)
     browser = Browser(localized_server)
-    page = create(browser)
+    create(browser)
+    store = app.automatic_match_learning.store
+    _record, first = source_fixture(content="first consent fixture")
+    store.publish_object(first)  # Storage-only orphan; this preview has a real effect.
+    page = browser.page("/learning/automatic")
     preview = follow(browser, browser.submit(Forms(page).find(PREVIEW)))
     confirmation = Forms(preview).find("/learning/automatic/confirm")
     assert "confirm_apply" not in confirmation["values"]
     response = browser.submit(confirmation, confirm_apply="on")
     assert response[0] == 303, response[2].decode()
+    _record, second = source_fixture(content="second consent fixture")
+    store.publish_object(second)
     page = browser.page("/learning/automatic")
     preview = follow(browser, browser.submit(Forms(page).find(PREVIEW)))
     confirmation = Forms(preview).find("/learning/automatic/confirm")
@@ -105,6 +113,7 @@ def test_cleanup_preview_does_not_invalidate_itself_and_reader_requires_new_cons
     response = browser.submit(confirmation, confirm_apply="on")
     assert response[0] == 409 and b'</html>' in response[2]
     assert b'checked' not in response[2]
+    assert store.read_object(second.reference) == second
 
 
 def route_of(page):
@@ -270,6 +279,10 @@ def test_bounded_rejected_forms_deliver_complete_native_response(localized_serve
     page = create(browser)
     values = Forms(page).find(UPDATE)["values"]
     if defect == "consent":
+        from automatic_learning_helpers import source_fixture
+        _record, orphan = source_fixture()
+        localized_server.app_context.automatic_match_learning.store.publish_object(orphan)
+        page = browser.page("/learning/automatic")
         preview = follow(browser, browser.submit(Forms(page).find(PREVIEW)))
         response = browser.submit(Forms(preview).find("/learning/automatic/confirm"))
     else:

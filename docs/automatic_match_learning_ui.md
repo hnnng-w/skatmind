@@ -1,5 +1,20 @@
 # Automatic Match Learning review and maintenance UI (Issue #313, S5)
 
+## Current acceptance status
+
+The maintainer has completed **installed functional acceptance A–F** for
+`90369f58884259f247cdeb4c45cb79dd4e5d295d`, including the verified **618 package
+files**. Earlier A–C-only and D–F-pending statements below are historical records;
+they no longer describe acceptance of that baseline. The earlier E3 conflict was
+overcome through a fresh preview. Its exact trigger was not established, and no
+Product diagnosis is inferred here.
+
+That acceptance does **not** cover the subsequent uncommitted performance and
+maintenance/recovery readability work. New exact-commit hosted CI and a narrow
+installed retest of those changes remain pending. Keep #313 and #208 open; formal
+UAT-02–12 remain paused and release preparation is not authorized. The final combined
+working-tree record is appended after the historical records below.
+
 ## Baseline, scope and acceptance
 
 Expected and actual branch: `feat/313-automatic-learning-review`. Expected/actual
@@ -802,3 +817,595 @@ changes. Branch and starting/current HEAD remain the exact values above. Both
 confirmed findings have passing supported-runtime HTTP regressions and bounded
 browser follow-up; no concrete local issue remains. Quick does not certify full
 regression, generated outputs, distributions, hosted gates or installed acceptance.
+
+## Issue #313 performance follow-up — automatic Learning language changes
+
+### Baseline, installed acceptance and reported observation
+
+Expected/actual branch: `feat/313-automatic-learning-review`. Expected/actual
+starting and current HEAD: `90369f58884259f247cdeb4c45cb79dd4e5d295d`. The starting
+index/worktree were clean. No baseline deviation or unrelated work was present.
+All changes below remain unstaged and uncommitted.
+
+The maintainer completed **installed functional acceptance A–C on that exact
+commit**, with **618 verified installed package files**: automatic creation and
+navigation, bilingual native behavior, keyboard and genuine enlarged zoom,
+independent manual collection inspection, actual restart, explicit reconstruction,
+unchanged reuse and identical downloads. Preserve this as historical acceptance
+of `90369f5`; it does not accept this subsequent working-tree correction.
+
+The maintainer additionally reported language changes taking **at least 20 seconds**.
+That is a reported installed observation, not a timing reproduced against installed
+data here. Local synthetic measurements were slower at baseline, as recorded below.
+Installed **D–F remain pending**, as does the narrow installed performance retest.
+No installed/UAT build or real managed home was accessed, built or started.
+
+### Equivalent source-owned fixture and measurement method
+
+Development runtime: **CPython 3.13.7**, executable
+`C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe`, on
+Windows 11. Every validation tool invocation used timeout **7,200,000 ms**.
+The disposable home and all evidence are under
+`C:\Users\HENNIN~1\AppData\Local\Temp\opencode` (`$E` below).
+
+The fixture has two distinct saved managed Matches:
+
+* the genuine synthetic `alex_workspace(count=3)` partial Match, preserving its
+  original Match/Game/Decision identity, with the observed Decision at Match
+  position **2**, Decision **3**, actor **alex**;
+* `_complete_workspace` with a distinct `performance-complete` Match definition,
+  preserving its helper-created Game/Decision references and all **30** Plays;
+* three genuine executions on the partial Match's same original Decision:
+  Immediate (`immediate_sample_count=1`), complete settlement rollout (two worlds,
+  seed zero, supplied matadors), and executed unavailable settlement rollout
+  (same source, missing supplements);
+* an independent manual collection with both original selected copies and explicit
+  process-local prepared artifacts; one explicitly prepared automatic review.
+
+Assertions establish **two sources, two observed Games, 33 recorded Decisions,
+31 reconstructed records and two skips**, one ordinary binding, one complete
+rollout Report and one incomplete rollout attempt. The indexed archive has **six
+objects / 3,701,247 bytes**. No Report was manufactured from a summary or injected
+Search result.
+
+Initial fixture construction performed **three analyses, two recording saves,
+two manual imports, one manual preparation and one automatic preparation**. It
+took **33.719 s**, outside the language timings. The corrected run reopened the
+same persisted fixture in a fresh process, strictly admitted its archive, and
+explicitly rebuilt manual/automatic artifacts: **zero new analyses**, one preparation
+per family, **25.412 s** outside the timings. Those setup times describe different
+setup work and are not a before/after startup benchmark.
+
+`313-language-benchmark.py` submits the actual emitted native language form through
+HTTP, measures the POST separately from its redirected GET with `perf_counter`,
+and also records their combined elapsed time. Each result/entry/About route has
+three unprofiled `de -> en -> de` rounds: the first measured pair is reported
+separately, and the four samples in rounds 1–2 provide the repeated-view medians.
+The fixture preparation and page acquisition needed to obtain the form are excluded.
+“First” therefore means the first measured language pair after preparation/page
+load, not cold startup. No per-function profiler is installed during those samples;
+lightweight operation counters and forbidden-work guards remain identical.
+
+A separate pair per route installs nested inclusive/self timers in the **actual
+HTTP handler threads**. Recorded server thread IDs differ from the client thread.
+Timers cover language validation, view resolution, S4 delivery/inspection, archive
+snapshot/object-state/admission/read paths, ordinary and rollout codecs, source
+Snapshot reconstruction, live inventory construction, Profile persistence, rendering
+and final delivery. Inclusive rows overlap; they must not be summed as independent
+costs. Profiling the waiting client was not used for attribution.
+
+### Measured latency before and after
+
+Seconds; each column is its own median of the four repeated unprofiled samples.
+
+| Native view | Before POST | Before GET | Before combined | Corrected POST | Corrected GET | Corrected combined |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Tokenized automatic result | 28.811 | 38.387 | **67.227** | 0.438 | 1.722 | **2.154** |
+| Automatic entry | 14.338 | 24.671 | **38.876** | 0.430 | 1.665 | **2.092** |
+| About control | 0.0198 | 0.0031 | **0.0230** | 0.0217 | 0.0053 | **0.0276** |
+
+The measured combined reduction is **96.80%** for the result and **94.62%** for
+entry. The ordinary control remains in the tens-of-milliseconds range; no control
+improvement is claimed.
+
+| View | Before first pair, en / de | Corrected first pair, en / de | All six unprofiled totals, before range | Corrected range |
+| --- | --- | --- | --- | --- |
+| Result | 65.066 / 68.144 | 2.147 / 2.155 | 65.066–68.144 | 2.112–2.202 |
+| Entry | 37.847 / 37.388 | 2.243 / 2.234 | 37.388–40.468 | 2.072–2.243 |
+| About | 0.0354 / 0.0313 | 0.0343 / 0.0236 | 0.0179–0.0354 | 0.0236–0.0348 |
+
+Raw samples, including each POST/GET pair in both directions and separate profiled
+samples, are in `313-language-before.json` and `313-language-after.json`. Local
+synthetic latency is not installed latency or a cross-machine response-time promise.
+
+### Attribution and bounded correction
+
+Profiling confirmed the static count: a successful result language POST/GET invoked
+S4 delivery validation **10 + 13 = 23 times**; entry invoked **5 + 8 = 13**.
+In the representative baseline result-to-English POST, `store.snapshot` accounted
+for **27.548 of 28.474 seconds**. Its disjoint object-state and typed-admission
+stages took **12.280 s** and **14.892 s** respectively. The latter included
+**11.664 s** in rollout admission and **3.086 s** in ordinary Report admission.
+Profile persistence took **0.028 s**; result/shell rendering in the GET was about
+**0.0013 s** combined. Live inventory construction was a much smaller contributor
+(about **0.335 s** across that POST's ten checks).
+
+| Work per successful result POST + GET | Baseline | Corrected |
+| --- | ---: | ---: |
+| S4 `validate_delivery` / `_inspect` | 23 | **9** (3 POST + 6 GET) |
+| Full archive `snapshot` / typed `_admission` | 23 | **0 on unchanged receipt hits** |
+| Ordinary Report decodes | 23 | **0** |
+| Rollout Report decodes | 46 | **0** |
+| Archived source decodes | 46 | **0** |
+| Instrumented source Snapshot reconstructions | 92 | **18 live-source reconstructions** |
+| Stored-object envelope reads/decodes | 190 | **24** |
+| `automatic_learning_io.read_bounded` calls | 444 | **178** |
+
+Entry also now uses **3 + 6** delivery checks; the About control uses none. The
+read counts above include automatic archive and managed-source reads, not Profile
+persistence I/O. They are deterministic work observations, not elapsed-time gates.
+
+The Product patch is deliberately limited to three modules:
+
+1. **Language validation:** `_require_language_identity` performs the cheap retained
+   process-identity comparison before and after one filesystem validation. The
+   `check_files` path no longer performs duplicate automatic checks and recursive
+   filesystem revalidation. The original automatic view and URL/confirmation binding
+   are reconciled once per logical check, rather than resolving the same view twice.
+   Confirmation still checks its exact cleanup preview and coordinator epoch.
+2. **One bounded archive delivery receipt:** S4 retains only its latest process-local,
+   store-owner-specific `_DeliverySnapshotReceipt`, holding a strictly admitted
+   snapshot, exact indexed object bytes, manifest context, limits and complete storage
+   inventory fingerprint. It is limited to **64 indexed objects and 16 MiB of indexed
+   bytes**. Larger archives use the strict snapshot path without truncation, eviction
+   or partial admission. This is not a general cache or new persistence feature.
+3. **Fresh authority at every check:** `_snapshot_for_delivery` rereads the manifest,
+   checks owned roots, rereads **every indexed object's bounded bytes**, scans the
+   complete storage inventory and rereads the manifest before a hit is accepted.
+   It compares exact bytes, not just names, size, mtime or manifest. A new receipt
+   is seeded only by strict snapshot admission bracketed by matching byte/inventory
+   reads. Changed bytes, bindings, owner or limits re-enter strict admission;
+   unreadable/storage-invalid objects are not retained in a receipt. Canonical but
+   semantically quarantined input retains its strictly validated unavailable status,
+   never an earlier available classification.
+
+The measurements justify the narrow receipt: reducing 23 checks to nine alone
+would still repeat the dominant multi-second archive work. No decoded/admitted
+value is trusted merely because an earlier request validated it. Normal `snapshot`,
+`read_evidence`, strict store construction/resume and all publication paths remain
+unchanged. Restart gets a fresh owner and strict admission; reconstruction remains
+an explicit action. The receipt is neither serialized nor shared with S2/S3 save
+reservation owners.
+
+All meaningful boundaries remain: before accepting the language action, immediately
+before Profile save, after a valid save, when accepting the redirected return,
+after rendering, and immediately before HTTP headers. Final delivery, source/root
+checks, complete live inventory reconstruction, reader pins, exact maintenance
+consent and reference-first cleanup remain active. The original view is never replaced
+by a latest/fresh view. No TTL, timeout extension, Product sleep, passive analysis,
+preparation, import, archive write, cleanup or recommendation change was added.
+
+The corrected GET's remaining measured cost is chiefly reader-pin stored-envelope
+validation (**about 0.94–0.98 s** across its stored-object reads in result samples)
+and the retained fresh manifest/live-inventory/byte checks (**about 0.83–0.85 s**
+across six delivery validations, overlapping some read rows). These costs are kept;
+the material local improvement does not imply that cold admission, large-archive
+fallback or installed latency is solved by the same numbers.
+
+### Complete affected modules, regressions and commands
+
+Exactly **six intended files** change:
+
+1. `src/skatmind/app_web/language_context.py`
+2. `src/skatmind/app_web/automatic_match_learning.py`
+3. `src/skatmind/automatic_learning_store.py`
+4. `tests/test_automatic_learning_language_work.py` (new)
+5. `tests/test_automatic_learning_delivery_receipt.py` (new)
+6. `docs/automatic_match_learning_ui.md` (this appended record)
+
+No catalog, registry, resource, schema, public API, persistence recipe, canonical
+export, analysis method, qualification rule, dependency or Package version changes.
+Current inventories remain 79 POST routes, 131 form definitions, 2,242 keys per
+locale, nine canonical routes, 72 packaged Schemas and ten automatic downloads.
+
+The affected set follows the actual patch: both S4 modules; all four requested S5
+HTTP/maintenance modules; shared native/enhanced language and feedback callers;
+store/lifecycle/managed-root checks; ordinary/rollout admission, retention and saved
+analysis callers; app-help import behavior. **All 23 complete modules passed:
+624 passed, four skipped out of 628 distinct tests**, including **22 new regressions**.
+The skips are existing unavailable actual-symlink cases (three store, one S4 inventory).
+
+New stable assertions require three POST and six GET validations, no repeated typed
+admission on unchanged bounded receipts, and fresh byte reads. They cover changed
+source/ordinary/rollout/generation bytes with preserved size/mtime, missing dependencies,
+changed semantic source bindings with unchanged object bytes, foreign owners, changed
+limits/inventory, both receipt bounds, mutation during receipt seeding, live-source
+same-metadata changes, and an in-memory attempt change immediately after filesystem
+validation. Existing original-tab/new-tab, post-save/render/final-delivery conflicts,
+supersession, source release, stale consent, manual coexistence and exact export
+checks ran in the complete modules.
+
+None of this affected set is exclusive in `scripts/validation_pytest.py`. Early
+rejection/drainage, standalone Corpus transport and Match action-placement code were
+not changed; unrelated exclusive modules were not automatically rerun. No local Full,
+distribution build/install/matrix, installed acceptance, Actions trigger or unrelated
+suite was run.
+
+```powershell
+$E = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode'
+$env:PYTHONDONTWRITEBYTECODE = '1'
+git status --short --branch
+git rev-parse HEAD
+git diff --cached --stat
+git diff --stat
+# Baseline: before Product edits. The create phase executes exactly three fixture analyses.
+py -3.13 "$E\313-language-benchmark.py" "$E\313-language-fixture" "$E\313-language-before.json" create
+py -3.13 "$E\313-language-summary.py" "$E\313-language-before.json"
+$Work = 'tests/test_automatic_learning_language_work.py'
+$Receipt = 'tests/test_automatic_learning_delivery_receipt.py'
+py -3.13 -m pytest $Work $Receipt -q -p no:cacheprovider --basetemp "$E\313-performance-red" --junitxml "$E\313-performance-red.xml"
+py -3.13 -m pytest $Work $Receipt -q -p no:cacheprovider --basetemp "$E\313-performance-focused" --junitxml "$E\313-performance-focused.xml"
+# Corrected fresh process, same persisted source/evidence bytes, zero new fixture analyses.
+py -3.13 "$E\313-language-benchmark.py" "$E\313-language-fixture" "$E\313-language-after.json" reuse
+py -3.13 "$E\313-language-summary.py" "$E\313-language-after.json"
+py -3.13 -m pytest $Work $Receipt -q -n 2 --dist=loadfile --max-worker-restart=0 -p no:cacheprovider --basetemp "$E\313-performance-guards" --junitxml "$E\313-performance-guards.xml"
+$Affected = @(
+ 'tests/test_automatic_learning_language_work.py',
+ 'tests/test_automatic_learning_delivery_receipt.py',
+ 'tests/test_automatic_learning_entry_language.py',
+ 'tests/test_automatic_learning_ui.py',
+ 'tests/test_automatic_learning_ui_evidence.py',
+ 'tests/test_automatic_learning_source_release.py',
+ 'tests/test_language_switch_context.py',
+ 'tests/test_language_view_continuity.py',
+ 'tests/test_frontend_language_switching.py',
+ 'tests/test_task_first_language_preservation.py',
+ 'tests/test_operation_feedback_language.py',
+ 'tests/test_automatic_match_learning.py',
+ 'tests/test_automatic_match_learning_evidence.py',
+ 'tests/test_automatic_learning_store.py',
+ 'tests/test_automatic_learning_lifecycle.py',
+ 'tests/test_automatic_learning_managed_service.py',
+ 'tests/test_automatic_match_evidence.py',
+ 'tests/test_automatic_match_rollout_evidence.py',
+ 'tests/test_saved_match_analyses_web.py',
+ 'tests/test_saved_match_rollouts_web.py',
+ 'tests/test_match_evidence_retention.py',
+ 'tests/test_match_rollout_retention.py',
+ 'tests/test_app_cli.py'
+)
+py -3.13 -m pytest @Affected -q -n 2 --dist=loadfile --max-worker-restart=0 -p no:cacheprovider --basetemp "$E\313-performance-affected" --junitxml "$E\313-performance-affected.xml"
+py -3.13 "$E\313-language-browser.py" "$E\313-language-browser-1"
+py -3.13 "$E\313-language-browser.py" "$E\313-language-browser-2"
+py -3.13 "$E\313-performance-accounting.py"
+```
+
+| Pytest evidence | Actual outcome | Console seconds |
+| --- | --- | ---: |
+| `313-performance-red` | 4 expected failures, 1 control passed | 11.48 |
+| `313-performance-focused` | 5 passed | 9.10 |
+| `313-performance-guards` | 21 passed | 546.11 |
+| `313-performance-affected` | **624 passed, 4 skipped** | **2643.85** |
+
+All four red failures were corrected: duplicate result/entry checks, lack of the
+cheap post-filesystem identity recheck, and the absent bounded receipt path. The final
+module pass additionally includes the semantic manifest-binding regression added
+after the focused guard run. Across four invocations: **651 passing executions,
+four expected pre-correction failures and four skip events**. Repeats are not extra
+distinct coverage. Targeted Ruff initially found five import-order/line-length
+findings; all were corrected. The final explicit Quick receipt follows below.
+
+### Browser, operation and byte accounting
+
+The bounded source-tree follow-up uses Microsoft Edge **156.0.4314.58** and the same
+disposable persisted fixture. Native result and entry switches ran `de -> en -> de`
+with JavaScript disabled; enhanced result switches preserved the open Included data
+disclosure and restored the selected language-button focus. It checks original
+manual owner/store/prepared/source-store identities and all **12** recording, manual
+and archive JSON files remain byte-identical. The six explicit language changes
+perform exactly **six Profile saves**, with zero analysis, preparation, import,
+recording/archive write or cleanup during the browser interactions.
+
+`313-language-browser-2\evidence.json` and six screenshots record the passing run.
+It took **84.444 s including 47.564 s of explicit fixture reconstruction**, which
+executes no new analysis. Browser-control-to-loaded-page samples were approximately
+**3.86–4.49 s** for native switches and **4.04–4.14 s** for enhanced switches. These
+include DevTools/keyboard/browser work and are not interchangeable with the isolated
+HTTP benchmark. No new installed or genuine-zoom acceptance is claimed.
+
+The first browser attempt completed all four native switches and the first enhanced
+switch, then failed a harness assertion that expected the one-use language-return
+meta marker to remain in the DOM. The existing enhancement intentionally removes
+that marker after restoration. The verifier was corrected to assert persisted
+disclosure state and actual restored focus; no Product fix or weakening was needed.
+That attempt saved five deliberate locales and executed zero analyses. Both attempts
+performed their explicit manual/automatic reconstruction outside interaction counters.
+
+Each HTTP measurement pass contains **18 unprofiled + six profiled language changes**
+and exactly **24 deliberate Profile saves**. Both assert zero passive Product work,
+unchanged manual object identities and unchanged recording/manual/archive bytes.
+`313-performance-accounting.json` verifies that all **seven native S2/S3 export hashes**
+and all **ten prepared automatic download hashes** are identical before and after.
+The new receipt regression module separately uses three genuine fixture executions
+per complete run (six across its focused/final runs); these and the three initial
+benchmark executions are not counted as language work. Existing compatibility tests
+have their own fixture analyses and are not claimed as zero.
+
+Evidence lives outside the repository: `313-language-before.json`,
+`313-language-after.json`, `313-performance-accounting.json`, four pytest XML receipts,
+and the two browser evidence directories under `$E`. The benchmark, thread timers,
+summary/accounting scripts and browser harness are external verification files, not
+new Product commands or runtime dependencies.
+
+### Acceptance boundary
+
+Product code changed. The local measured improvement is material, with retained
+mutation/final-delivery tests passing; no concrete local regression remains. The
+reported installed latency is not closed by a source-tree timing claim. New
+exact-commit hosted CI and a narrow maintainer installed timing/functional retest
+remain required. Retest emitted native result/entry switches in both directions,
+enhanced restoration, and unchanged exports/independent manual state on that new
+installed commit. Preserve **A–C acceptance for `90369f5`**; **D–F remain pending**.
+
+Keep **#313 and #208 open**. Formal UAT-02–12 remain paused, UAT-01 is not globally
+accepted, and release preparation is not authorized. S6/S7, recommendation adaptation
+and a broader caching or performance subsystem are outside this follow-up.
+
+### Performance completion receipt
+
+**Locally validated; new exact-commit hosted CI and narrow maintainer installed
+retest pending. Keep #313 and #208 open; installed D–F remain pending.** Explicit
+`.\scripts\check.ps1 -Mode Quick` passed with exit **0** on development CPython
+3.13.7 / `Windows-11-10.0.26300-SP0`, total **32.857 s** including runner setup:
+Ruff **0.460 s**, packaged-schema parity **0.294 s**, input examples **7.718 s**.
+Logs: `C:\Users\Henning-DT\AppData\Local\Temp\skatmind-check-lyxn0fot`.
+Checked source digest:
+`07a07124a410cbb74dda7709d4d96ad07c9a55e3f9c5db0084b97763f09a5147`.
+Only this documentation receipt followed Quick.
+
+```powershell
+$env:PYTHONDONTWRITEBYTECODE = '1'
+$env:PYTHONPYCACHEPREFIX = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode\313-performance-pycache'
+function python { & 'C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe' @args }
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+git diff --no-index --check -- NUL tests/test_automatic_learning_language_work.py
+git diff --no-index --check -- NUL tests/test_automatic_learning_delivery_receipt.py
+git diff --cached --stat
+git status --short
+git branch --show-current
+git rev-parse HEAD
+```
+
+Changed/new Product, test and documentation files were reviewed. Tracked and new-file
+whitespace checks passed. Final status contains exactly the six intended files;
+the index is empty and branch/starting/current HEAD remain the values recorded in
+this follow-up. Historical CI and A–C installed acceptance were preserved, without
+claiming hosted or installed acceptance of these working-tree changes.
+
+## Final combined working-tree record — maintenance readability and A–F acceptance
+
+### Corrected current acceptance and preserved work
+
+The maintainer has now completed **installed functional acceptance A–F for
+`90369f58884259f247cdeb4c45cb79dd4e5d295d`**, including **618 verified package files**.
+D–F are no longer pending for that baseline. Earlier pending paragraphs above remain
+historical records of what was known at those points. The earlier E3 conflict was
+overcome by a fresh preview; **its exact trigger was not established**. This record
+does not infer a Product cause from that observation.
+
+The new performance/readability working tree is separate from baseline acceptance.
+New exact-commit hosted CI and a narrow installed retest of these changes remain
+pending. Keep #313 and #208 open, formal UAT-02–12 paused, and release preparation
+unauthorized. Baseline A–F acceptance does not imply global UAT-01 acceptance.
+
+Actual branch: `feat/313-automatic-learning-review`; starting/current HEAD:
+`90369f58884259f247cdeb4c45cb79dd4e5d295d`. The six authorized unstaged performance
+files were present at entry and preserved. No clean-worktree requirement, reset,
+staging, commit or publication was performed. There was no baseline deviation or
+unrelated work.
+
+The five performance Product/test files are **byte-identical to this follow-up's
+starting versions**, verified with `git hash-object` before and after. The shared
+document retains the earlier implementation, CI, performance measurements and
+verification records, adding an explicit current-status note and this final section.
+The prior HTTP measurements remain **67.227 -> 2.154 s** for result language changes
+and **38.876 -> 2.092 s** for entry. They were not rerun or recast as installed evidence.
+
+### Additional bounded presentation changes
+
+The additional Product change is confined to the private automatic renderer and
+paired catalogs. The existing HTTP recovery helper consumes the shortened catalog
+text without routing or operation changes.
+
+* Blocked source-release previews show the actual blocked state first. Reasons and
+  counts come only from the captured inventory's present `ambiguous`, `invalid` or
+  `unsupported` rows; absent hypothetical causes are not listed.
+* Actionable previews keep source names, captured revisions, stable display ordinals,
+  removal/retention counts, lost historical reuse and dependent-result retirement
+  visible before consent. Full fingerprints, Match identifiers and reference-list
+  implementation details are in a closed native Technical details disclosure.
+* A cleanup preview is effect-free **only when its captured physical-file list is
+  empty AND its complete resulting manifest equals its captured original manifest**.
+  Only then are destructive consent and confirmation omitted. Zero released sources
+  alone never establishes an effect-free plan.
+* A blocked release can still display and confirm permitted orphan cleanup. The
+  original mode, token, preview object and effects are retained; no replacement
+  preview is generated and no cleanup mode is silently substituted.
+* A reference-only change remains actionable when reader pins prevent physical
+  deletion. Its visible source/Report counts and retirement explanation precede
+  the original explicit consent form.
+* Recovery uses the requested short labels from the paired catalogs and the same
+  passive GET `/learning/automatic`. The explanation asks the user to inspect the
+  saved state before continuing. It attributes no exact cause to an unclassified
+  conflict and promises no absence of an already committed change.
+
+Owner, attempt, original view, generation, manifest/inventory validation, final
+delivery, reader protection, one-use consent, partial-commit handling and language
+return mechanisms were not changed. No Update, retry, cleanup, import or analysis
+runs automatically. No schema, canonical download, persistence recipe, analysis
+method, qualification rule, dependency or Package version changed.
+
+### Exact combined changed/new-file inventory
+
+**13 intended files**, all unstaged and uncommitted:
+
+| File | Working-tree scope |
+| --- | --- |
+| `src/skatmind/app_web/language_context.py` | Preserved performance work |
+| `src/skatmind/app_web/automatic_match_learning.py` | Preserved performance work |
+| `src/skatmind/automatic_learning_store.py` | Preserved performance work |
+| `tests/test_automatic_learning_language_work.py` | Preserved new performance tests |
+| `tests/test_automatic_learning_delivery_receipt.py` | Preserved new performance tests |
+| `docs/automatic_match_learning_ui.md` | Preserved history plus current acceptance and combined record |
+| `src/skatmind/app_web/automatic_learning_rendering.py` | Additional presentation only |
+| `src/skatmind/app_web/locales/de.json` | Paired concise presentation |
+| `src/skatmind/app_web/locales/en.json` | Paired concise presentation |
+| `tests/test_automatic_learning_maintenance_readability.py` | New additional HTTP/presentation tests |
+| `tests/test_automatic_learning_source_release.py` | Explicit effect-free expectations; original protection assertions retained |
+| `tests/test_automatic_learning_ui.py` | Real orphan effects for consent/race tests instead of confirming empty plans |
+| `tests/test_frontend_localization_foundation.py` | Exact current catalog count |
+
+Seven additional keys bring each locale to **2,249**. Registered POST routes remain
+**79**, registered forms **131**, canonical routes **nine**, packaged Schemas **72**,
+and automatic canonical downloads **ten**. No inventory assertion was weakened.
+
+### Additional validation scope and honest overlap accounting
+
+The prior performance evidence is reused for unchanged validation/admission paths:
+**23 complete modules, 624 passed and four skips / 628 distinct cases**. The two new
+performance/delivery regression files were inspected and byte-compared; they exercise
+unchanged code and were not automatically rerun. The before/after benchmark was not
+repeated.
+
+Additional validation ran **seven complete modules, 102 passed, no skips**:
+
+1. `tests/test_automatic_learning_maintenance_readability.py`
+2. `tests/test_automatic_learning_source_release.py`
+3. `tests/test_automatic_learning_ui.py`
+4. `tests/test_automatic_learning_ui_evidence.py`
+5. `tests/test_automatic_learning_entry_language.py`
+6. `tests/test_frontend_localization_foundation.py`
+7. `tests/test_complete_frontend_localization.py`
+
+This covers the changed renderer, native confirmations and recovery copy, source and
+retained-evidence effects, native language return, and strict catalog parity/counts.
+There are **15 new readability cases**. **61 cases overlap** the earlier performance
+inventory; those are repeat executions, not additional distinct coverage. The union
+of the preserved performance pass and the additional pass is **669 distinct cases:
+665 passed and four historical platform skips**. That is a reconciled evidence union,
+not a new Full run. The combined working tree adds 22 performance and 15 readability
+cases, not the sum of every repeated invocation.
+
+The source-release tests that formerly confirmed an empty plan now assert exact
+effect-free metadata, absent destructive controls and unchanged protected sources/
+evidence. Consent-race tests now use genuine removable storage-only orphan fixtures.
+No substantive source/evidence protection assertion was dropped. Reader-protected
+reference removal is explicitly checked with zero physical files but a changed
+manifest, and retains consent. Native language return preserves the exact preview
+and produces unchecked consent. Recovery navigation is guarded against analysis,
+preparation, import, recording/archive writes, Update and cleanup.
+
+No selected module is exclusive in `scripts/validation_pytest.py`. The additional
+patch changes no early-rejection/drainage, standalone Corpus transport or Match
+action-placement code, so no unrelated exclusive modules were rerun. All calls used
+development CPython **3.13.7**, timeout **7,200,000 ms**, and external fixtures/logs.
+
+```powershell
+$E = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode'
+$env:PYTHONDONTWRITEBYTECODE = '1'
+git status --short --branch
+git rev-parse HEAD
+git diff --cached --stat
+git diff --stat
+git hash-object -- src/skatmind/app_web/language_context.py src/skatmind/app_web/automatic_match_learning.py src/skatmind/automatic_learning_store.py tests/test_automatic_learning_language_work.py tests/test_automatic_learning_delivery_receipt.py
+$Readable = 'tests/test_automatic_learning_maintenance_readability.py'
+py -3.13 -m pytest $Readable -q -p no:cacheprovider --basetemp "$E\313-readability-red" --junitxml "$E\313-readability-red.xml"
+py -3.13 -m pytest $Readable -q -p no:cacheprovider --basetemp "$E\313-readability-focused" --junitxml "$E\313-readability-focused.xml"
+py -3.13 -m pytest $Readable -q -p no:cacheprovider --basetemp "$E\313-readability-focused-2" --junitxml "$E\313-readability-focused-2.xml"
+py -3.13 -m pytest $Readable tests/test_automatic_learning_source_release.py tests/test_automatic_learning_ui.py tests/test_automatic_learning_ui_evidence.py tests/test_automatic_learning_entry_language.py tests/test_frontend_localization_foundation.py tests/test_complete_frontend_localization.py -q -n 2 --dist=loadfile --max-worker-restart=0 -p no:cacheprovider --basetemp "$E\313-readability-affected" --junitxml "$E\313-readability-affected.xml"
+py -3.13 "$E\313-readability-browser.py" "$E\313-readability-browser-1"
+py -3.13 "$E\313-readability-accounting.py"
+```
+
+| Additional invocation | Actual result | Console seconds |
+| --- | --- | ---: |
+| `313-readability-red` | 4 expected failures: empty-plan consent and visible long fingerprints in both locales | 17.63 |
+| `313-readability-focused` | 15 failed, 15 diagnostic teardown errors: incomplete German catalog edit broke parity | 9.36 |
+| `313-readability-focused-2` | 15 passed after completing the paired catalog edit | 60.19 |
+| `313-readability-affected` | **102 passed**, all seven complete modules | **360.88** |
+
+All failures were resolved. Additional pytest execution accounting is **117 passing
+executions, 19 failures and 15 diagnostic teardown error entries**, with no skips.
+Teardown entries are not distinct tests. Targeted Ruff found five test line-length
+findings, all corrected before the final complete pass. The combined counts and
+unchanged performance file hashes are verified in `313-readability-accounting.json`.
+
+### Bounded additional browser/operation evidence
+
+A small source-tree native presentation probe passed on its first run in **16.961 s**,
+using Edge **156.0.4314.58**, JavaScript disabled. It inspected actionable source
+release, blocked/no-effect release, blocked release with an owned orphan, and passive
+recovery in both locales, producing **eight screenshots**. Initial confirmation/error
+focus was captured before verifier scrolling. An actually checked consent box was
+cleared on native language return while the original preview object/token remained.
+No performance benchmark or historical A–F scenario was repeated.
+
+Evidence: `$E\313-readability-browser-1\evidence.json` and screenshots; harness:
+`$E\313-readability-browser.py`. All data is disposable and source-owned. The probe
+executed zero card analyses, two explicit fixture preparations, two fixture recording
+saves and one duplicate-file fixture copy. Initial Profile setup was separate from
+**four deliberate language Profile saves**. One explicitly published storage-only
+orphan produced one fixture archive write. Passive preview/language/recovery viewing
+performed no Learning preparation, import, recording/archive or cleanup writes.
+The saved manifest and latest recording bytes remained unchanged; the orphan was
+still present at the end. Actual cleanup effects, reader-protected reference removal
+and retained-evidence/manual compatibility were verified by the complete HTTP modules.
+
+### Current completion and remaining gates
+
+Product presentation changed in this additional slice; the authorized performance
+implementation and evidence remain intact. There is no remaining concrete local
+readability finding. **Installed A–F acceptance is complete for `90369f5`**, not for
+the new uncommitted combined work. New exact-commit hosted CI and a narrow installed
+retest remain pending: native/enhanced language latency/restoration; blocked,
+effect-free, orphan-actionable and reference-only previews; visible source/revision/
+count information and closed technical details; cleared consent and passive recovery.
+The earlier E3 trigger remains unclassified, rather than being assigned a speculative
+diagnosis. Keep #313 and #208 open and formal UAT-02–12 paused. Release preparation
+is not authorized.
+
+### Final combined local-check receipt
+
+**Locally validated; new exact-commit hosted CI and a narrow installed retest of
+the uncommitted performance/readability changes remain pending.** Baseline A–F
+acceptance for `90369f5` is complete and is not reopened by this receipt.
+
+Explicit `.\scripts\check.ps1 -Mode Quick` passed on development CPython **3.13.7** /
+`Windows-11-10.0.26300-SP0`, exit **0**, total **25.124 s** including runner setup:
+Ruff **1.344 s**, packaged-schema parity **0.127 s**, input examples **3.711 s**.
+Logs: `C:\Users\Henning-DT\AppData\Local\Temp\skatmind-check-dk9xseur`.
+Checked source digest:
+`40f83771fb62530aec9528ca7d71436625ab7aa27b4b934f3ef26b69a9d7dce1`.
+Only documentation receipt/accounting corrections followed Quick; Product code and
+tests remained unchanged.
+
+```powershell
+$env:PYTHONDONTWRITEBYTECODE = '1'
+$env:PYTHONPYCACHEPREFIX = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode\313-readability-pycache'
+function python { & 'C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe' @args }
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+git diff --no-index --check -- NUL tests/test_automatic_learning_maintenance_readability.py
+git diff --cached --stat
+git status --short
+git branch --show-current
+git rev-parse HEAD
+```
+
+All combined changed/new files were reviewed, with unchanged performance code/tests
+verified by exact Git blob hashes. Tracked and new-file whitespace checks passed.
+The final index is empty; the branch and starting/current HEAD remain as recorded.
+Exactly the 13 intended files are present. No local Full, unrelated suite,
+distribution/UAT build, installation/matrix, real managed-data access, installed
+acceptance, Actions trigger or Git/GitHub publication was performed.

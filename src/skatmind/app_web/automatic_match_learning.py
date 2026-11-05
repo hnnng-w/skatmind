@@ -146,6 +146,7 @@ class AutomaticMatchLearningServiceV1:
         self.store = None
         self.archive = None
         self._installed = None
+        self._delivery_snapshot_receipt = None
 
     @classmethod
     def open(cls, app):
@@ -180,7 +181,8 @@ class AutomaticMatchLearningServiceV1:
 
     def _capture(self, store):
         epoch = self.coordinator.generation
-        resumed = store.snapshot()
+        resumed, self._delivery_snapshot_receipt = store._snapshot_for_delivery(
+            self._delivery_snapshot_receipt)
         inventory = capture_match_inventory(self.home, resumed.manifest.exclusions)
         with self.coordinator.lock:
             if epoch != self.coordinator.generation or not inventory_still_current(

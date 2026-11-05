@@ -46,7 +46,17 @@ def test_native_source_only_history_has_an_explicit_release_remedy(localized_ser
     saved = path.read_bytes()
     # Existing consent remains strictly orphan cleanup / Report removal respectively.
     for mode in ("orphans", "old_evidence"):
-        page = confirm(browser, follow(browser, browser.submit(cleanup_form(page, mode))))
+        preview = follow(browser, browser.submit(cleanup_form(page, mode)))
+        if mode == "orphans":
+            page = confirm(browser, preview)  # Retired generation files are unreferenced.
+        else:
+            value = localized_server.app_context.automatic_learning_ui.confirmation
+            assert value.cleanup.files == ()
+            assert value.cleanup.manifest == value.view.binding.resumed.manifest
+            assert 'name="confirm_apply"' not in preview
+            assert not any(f["action"] == "/learning/automatic/confirm"
+                           for f in Forms(preview).forms)
+            page = browser.page("/learning/automatic")
         assert store.snapshot().manifest.sources == before.manifest.sources
     preview = follow(browser, browser.submit(cleanup_form(page, "obsolete_sources")))
     page = confirm(browser, preview)
@@ -88,7 +98,8 @@ def test_small_quota_recovers_via_explicit_source_release(localized_server, monk
     assert counts == {}  # Reservation quota fails before preparation/publication.
     preview = follow(browser, browser.submit(cleanup_form(
         response[2].decode(), "obsolete_sources")))
-    assert counts == {} and 'dependent' in preview
+    from skatmind.app_web.stateful_localization import text
+    assert counts == {} and text("en", "automatic.retire_generation") in unescape(preview)
     page = confirm(browser, preview)
     assert counts == {"automatic-learning": 1}
     assert store.snapshot().manifest.current_generation is None
@@ -120,7 +131,12 @@ def test_release_requires_authoritative_inventory(localized_server, change):
     captured = service.app.automatic_learning_ui.confirmation
     assert len(captured.sources) == (2 if change == "deleted" else 0)
     assert captured.source_release_blocked is (change != "deleted")
-    confirm(browser, preview)
+    if change == "deleted":
+        confirm(browser, preview)
+    else:
+        assert captured.cleanup.files == () and captured.cleanup.manifest == original
+        assert 'name="confirm_apply"' not in preview
+        assert not any(f["action"] == "/learning/automatic/confirm" for f in Forms(preview).forms)
     remaining = service.store.snapshot().manifest
     if change == "deleted":
         assert remaining.sources == () and remaining.generations == ()
@@ -325,7 +341,11 @@ def test_shared_evidence_and_independent_manual_copy_keep_original_sources(
     page = browser.page("/learning/automatic")
     preview = follow(browser, browser.submit(cleanup_form(page, "obsolete_sources")))
     assert app.automatic_learning_ui.confirmation.sources == ()
-    confirm(browser, preview)
+    no_effect = app.automatic_learning_ui.confirmation
+    assert no_effect.cleanup.files == ()
+    assert no_effect.cleanup.manifest == no_effect.view.binding.resumed.manifest
+    assert 'name="confirm_apply"' not in preview
+    assert not any(f["action"] == "/learning/automatic/confirm" for f in Forms(preview).forms)
     retained = archive.read_evidence(shared_reports[1].evidence.identity)
     assert retained.downloads == native[shared_reports[1].evidence.identity]
     assert archive.read_object(source.record.object_ref).raw == shared_reports[0].objects[0].raw

@@ -76,6 +76,11 @@ class StoreLimitsV1:
 
 DEFAULT_LIMITS = StoreLimitsV1()
 
+# One optional S4 delivery receipt, never a general archive cache. Large archives
+# retain the strict snapshot path; no entries are evicted/truncated for admission.
+_DELIVERY_RECEIPT_MAX_OBJECTS = 64
+_DELIVERY_RECEIPT_MAX_BYTES = 16 * 1024 * 1024
+
 
 @dataclass(frozen=True, slots=True)
 class WriteResultV1:
@@ -100,6 +105,15 @@ class ResumeV1:
     over_limit: bool
     available_evidence_ids: tuple[str, ...] = ()
     trusted_binding_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class _DeliverySnapshotReceipt:
+    owner: object
+    limits: StoreLimitsV1
+    resumed: ResumeV1
+    objects: tuple[tuple[ObjectRefV1, bytes], ...]
+    inventory_fingerprint: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -343,6 +357,54 @@ class AutomaticLearningStoreV1:
                 retained, retained > self.limits.total_bytes,
                 tuple(entry.identity for entry in manifest.evidence if entry.identity in admitted),
             )
+
+    def _snapshot_for_delivery(self, receipt=None):
+        """Reuse one admitted snapshot only after fresh exact-byte/closure checks.
+
+        Caller retains at most one receipt. It is process/store-owner scoped and
+        bounded by both object count and bytes. Every invocation still checks owned
+        roots, the complete manifest, all indexed object bytes and the full storage
+        inventory. Restart or changed inputs re-enter strict snapshot admission;
+        unreadable/storage-invalid objects are not retained in a receipt. There is
+        no TTL, metadata-only hit or persisted cache. Existing snapshot,
+        read_evidence and publication paths remain strict.
+        """
+        with self._coordinator.lock:
+            manifest = self._manifest()
+            if (len(manifest.objects) > _DELIVERY_RECEIPT_MAX_OBJECTS or
+                    sum(entry.reference.size_bytes for entry in manifest.objects)
+                    > _DELIVERY_RECEIPT_MAX_BYTES):
+                return self.snapshot(), None
+
+            def read_objects():
+                self._check_root()
+                return tuple((entry.reference, io.read_bounded(
+                    io.object_path(self.root, entry.reference),
+                    min(entry.reference.size_bytes, self.limits.object_bytes)))
+                    for entry in manifest.objects)
+
+            try:
+                objects = read_objects()
+            except (OSError, ValueError):
+                return self.snapshot(), None
+            inventory = self._inventory_fingerprint(io.scan_files(self.root))
+            if (type(receipt) is _DeliverySnapshotReceipt and receipt.owner is self.owner
+                    and receipt.limits == self.limits and receipt.resumed.manifest == manifest
+                    and receipt.objects == objects and receipt.inventory_fingerprint == inventory):
+                if self._manifest() != manifest:
+                    raise StoreConflictError("Archive authority changed during delivery checks.")
+                return receipt.resumed, receipt
+
+            # Seed only from strict admission bracketed by matching exact input reads.
+            resumed = self.snapshot()
+            if any(row.storage_status != "valid" for row in resumed.objects):
+                return resumed, None
+            if (resumed.manifest != manifest or read_objects() != objects
+                    or self._inventory_fingerprint(io.scan_files(self.root)) != inventory
+                    or self._manifest() != manifest):
+                raise StoreConflictError("Archive changed while capturing delivery admission.")
+            return resumed, _DeliverySnapshotReceipt(self.owner, self.limits, resumed,
+                                                      objects, inventory)
 
     def _quota(self, *, extra: tuple[ObjectRefV1, ...] = (), candidates=None):
         files = io.scan_files(self.root)

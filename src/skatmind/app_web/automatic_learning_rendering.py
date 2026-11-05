@@ -1,6 +1,7 @@
 # ruff: noqa: E501 - Keep complete server-rendered elements legible.
 """Pure bilingual automatic review projection from captured admitted inputs."""
 
+from collections import Counter
 from dataclasses import dataclass
 from html import escape
 
@@ -219,32 +220,57 @@ def render_evidence(view, index, locale):
 def render_confirmation(value, locale):
     body = '<section class="panel automatic-learning"><h2 id="automatic-confirmation" tabindex="-1" autofocus>'
     body += translated(locale, "automatic.confirmation") + '</h2>'
-    body += paragraph(locale, "automatic.preview." + value.kind)
+    cleanup = value.cleanup
+    manifest_changed = (cleanup is not None
+                        and cleanup.manifest != value.view.binding.resumed.manifest)
+    actionable = cleanup is None or bool(cleanup.files) or manifest_changed
+    if value.source_release_blocked:
+        body += paragraph(locale, "automatic.source_release_blocked")
+        blockers = Counter(row.status for row in value.view.binding.inventory.rows)
+        for reason in ("ambiguous", "invalid", "unsupported"):
+            if blockers[reason]:
+                body += paragraph(locale, "automatic.source_release_blocker." + reason,
+                                  count=blockers[reason])
+    if not actionable:
+        body += paragraph(locale, "automatic.preview.no_changes")
+    elif value.source_release_blocked:
+        body += paragraph(locale, "automatic.preview.blocked_cleanup")
+    else:
+        meaning = (value.kind if cleanup is None or value.sources or cleanup.removed_evidence_ids
+                   else "cleanup")
+        body += paragraph(locale, "automatic.preview." + meaning)
     if value.source is not None:
         body += '<p>' + escape(value.source.product_id) + '</p>'
-    if value.cleanup is not None:
-        body += paragraph(locale, "automatic.cleanup_effect", objects=len(value.cleanup.files),
-                          reports=len(value.cleanup.removed_evidence_ids))
+    if cleanup is not None:
+        body += paragraph(locale, "automatic.cleanup_effect", objects=len(cleanup.files),
+                          reports=len(cleanup.removed_evidence_ids))
         body += '<ul>' + ''.join('<li>' + (escape(_caption(retained, locale)) if retained else
             translated(locale, "automatic.unavailable_report", report=entry.identity[:12]))
             + '</li>' for entry, retained in value.evidence) + '</ul>'
         if value.kind == "obsolete_sources":
             retained = sum(row.source_version.source.family == "match"
-                           for row in value.cleanup.manifest.sources)
+                           for row in cleanup.manifest.sources)
             body += paragraph(locale, "automatic.source_release_count",
                               sources=len(value.sources), retained=retained)
-            if value.source_release_blocked:
-                body += paragraph(locale, "automatic.source_release_blocked")
-            body += '<ul>' + ''.join('<li>' + translated(locale, "automatic.source_release_caption",
+            body += '<ul>' + ''.join('<li>' + translated(locale, "automatic.source_release_name",
+                name=snapshot.workspace.match_definition.title or snapshot.match_id,
+                revision=snapshot.workspace_revision, number=number) + '</li>'
+                for number, (_record, snapshot) in enumerate(value.sources, 1)) + '</ul>'
+        if cleanup.manifest.generations != value.view.binding.resumed.manifest.generations:
+            body += paragraph(locale, "automatic.retire_generation")
+        details = paragraph(locale, "automatic.preview.reference_change") if manifest_changed else ""
+        if value.sources:
+            details += '<ul>' + ''.join('<li>' + translated(locale, "automatic.source_release_caption",
                 name=snapshot.workspace.match_definition.title or snapshot.match_id,
                 identity=snapshot.match_id, revision=snapshot.workspace_revision,
                 version=record.source_version.content_fingerprint) + '</li>'
                 for record, snapshot in value.sources) + '</ul>'
-        if value.cleanup.manifest.generations != value.view.binding.resumed.manifest.generations:
-            body += paragraph(locale, "automatic.retire_generation")
-    fields = hidden("confirmation", value.token)
-    fields += '<label><input type="checkbox" name="confirm_apply" required>' + translated(
-        locale, "automatic.consent") + '</label>'
-    body += form(locale, AUTOMATIC_PAGE + "/confirm", fields, "automatic.confirm", destructive=True)
-    body += link(AUTOMATIC_PAGE, text(locale, "automatic.cancel")) + '</section>'
+        if details:
+            body += disclosure(locale, "task.technical", details, technical=True)
+    if actionable:
+        fields = hidden("confirmation", value.token)
+        fields += '<label><input type="checkbox" name="confirm_apply" required>' + translated(
+            locale, "automatic.consent") + '</label>'
+        body += form(locale, AUTOMATIC_PAGE + "/confirm", fields, "automatic.confirm", destructive=True)
+    body += link(AUTOMATIC_PAGE, text(locale, "automatic.cancel" if actionable else "automatic.recover")) + '</section>'
     return body
