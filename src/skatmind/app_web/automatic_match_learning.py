@@ -19,6 +19,7 @@ from skatmind.automatic_learning_store import (
     StoreLimitError,
     StoreManifestError,
 )
+from skatmind.automatic_match_continuity import basis_for_update, basis_from_generation
 from skatmind.automatic_match_preparation import (
     ADAPTERS,
     BUILDERS,
@@ -140,7 +141,7 @@ def _selection(inventory, resumed):
     return selected, outcomes, exclusions, identity
 
 
-def _requested_manifest(before, sources, obj):
+def _requested_manifest(before, sources, obj, generation):
     records = {row.source_version.identity: row for row in before.sources}
     entries = {row.reference: row for row in before.objects}
     for source_obj, record, _snapshot in sources:
@@ -162,10 +163,11 @@ def _requested_manifest(before, sources, obj):
 
     for ref in roots:
         visit(ref)
-    return replace(before, revision=before.revision + 1,
+    requested = replace(before, revision=before.revision + 1,
         objects=tuple(entries[ref] for ref in sorted(reached, key=lambda ref: ref.identity)),
         sources=tuple(records[key] for key in sorted(records)),
         current_generation=obj.reference, previous_generation=before.current_generation)
+    return replace(requested, match_basis=basis_from_generation(generation, requested))
 
 
 class AutomaticMatchLearningServiceV1:
@@ -327,16 +329,17 @@ class AutomaticMatchLearningServiceV1:
             if previous is None and sources or previous is not None and (
                     previous.recipe.source_version_ids != selected_ids):
                 catalog_revision += 1
-            old_records = {row.source_version.identity: row for row in before.sources}
-            old_match_ids = (() if previous is None else tuple(key for key in
-                previous.recipe.source_version_ids
-                if old_records[key].source_version.source.family == "match"))
             match_ids = tuple(row[1].source_version.identity for row in sources
                               if row[1].source_version.source.family == "match")
-            match_revision = (0 if previous is None else getattr(previous,
-                "match_catalog_revision", previous.recipe.catalog_revision))
+            selected_evidence = {row.evidence_id for row in outcomes if row.status == "selected"}
+            match_evidence_ids = tuple(sorted(row.identity for row in before.evidence
+                if row.identity in selected_evidence and row.source_version_id in match_ids))
+            basis = basis_for_update(store, before, previous, match_ids, match_evidence_ids)
+            old_match_ids = () if basis is None else basis.recipe.source_version_ids
+            match_revision = 0 if basis is None else basis.recipe.catalog_revision
             if match_ids != old_match_ids:
                 match_revision += 1
+            catalog_revision = (max(catalog_revision, match_revision) if mixed else match_revision)
             corpus_id, dataset_id = automatic_ids(before.space_id)
             with ExitStack() as stack:
                 refs = {value[1].object_ref for value in sources if value[1] in before.sources}
@@ -372,7 +375,8 @@ class AutomaticMatchLearningServiceV1:
                 if same and generation != previous:
                     raise ValueError("Reconstruction differs from the accepted generation.")
                 obj = generation_object(generation, sources, evidence)
-                requested = before if same else _requested_manifest(before, sources, obj)
+                requested = (before if same else
+                             _requested_manifest(before, sources, obj, generation))
                 admit_generation(obj, requested)
                 # All typed revalidation remains outside app/Product locks.
                 if store.snapshot() != resumed:

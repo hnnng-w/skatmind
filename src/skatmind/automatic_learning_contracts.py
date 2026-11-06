@@ -328,6 +328,22 @@ class GenerationV1(Record):
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class MatchSliceBasisV1(Record):
+    """Retirable Match-only recipe continuity, never an independently current result."""
+
+    space_id: str
+    recipe: GenerationV1
+    version: int = 1
+
+    def __post_init__(self):
+        self.validate()
+        text(self.space_id)
+        if (self.recipe.exclusions or self.recipe.evidence_ids or self.recipe.skipped_situations
+                or self.recipe.derived_fingerprints):
+            raise ValueError("Match continuity records only membership and recipe settings.")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ManifestV1(Record):
     space_id: str
     revision: int = 0
@@ -338,6 +354,7 @@ class ManifestV1(Record):
     exclusions: tuple[ExclusionV1, ...] = ()
     current_generation: ObjectRefV1 | None = None
     previous_generation: ObjectRefV1 | None = None
+    match_basis: MatchSliceBasisV1 | None = None
     version: int = 1
 
     def __post_init__(self):
@@ -361,6 +378,17 @@ class ManifestV1(Record):
                 raise ValueError("Evidence class limit exceeded.")
         objects = {entry.reference: entry for entry in self.objects}
         sources = {entry.source_version.identity: entry for entry in self.sources}
+        if self.match_basis is not None:
+            basis = self.match_basis
+            if (basis.space_id != self.space_id
+                    or any(key not in sources
+                           or sources[key].source_version.source.family != "match"
+                           for key in basis.recipe.source_version_ids)):
+                raise ValueError("Match continuity must have closed same-space Match references.")
+            logical = {sources[key].source_version.source
+                       for key in basis.recipe.source_version_ids}
+            if len(logical) != len(basis.recipe.source_version_ids):
+                raise ValueError("Match continuity selects at most one version per logical source.")
         scopes = {}
         for source in self.sources:
             key = source.source_version.source
@@ -418,6 +446,18 @@ class ManifestV1(Record):
     def generations(self):
         return tuple(ref for ref in (self.current_generation, self.previous_generation)
                      if ref is not None)
+
+    def to_dict(self):
+        result = Record.to_dict(self)
+        if self.match_basis is None:
+            result.pop("match_basis")  # Preserve canonical legacy manifest bytes/fingerprints.
+        return result
+
+    @classmethod
+    def from_dict(cls, value):
+        if type(value) is not dict:
+            raise ValueError("Invalid private manifest field set.")
+        return Record.from_dict.__func__(cls, {"match_basis": None, **value})
 
     @property
     def fingerprint(self):

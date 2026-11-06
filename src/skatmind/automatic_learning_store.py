@@ -733,6 +733,14 @@ class AutomaticLearningStoreV1:
 
             generations = [ref if ref is not None and not depends(ref) else None
                            for ref in (current.current_generation, current.previous_generation)]
+            from .automatic_match_continuity import basis_for_cleanup
+
+            basis = current.match_basis
+            if basis is None and tuple(generations) != (
+                    current.current_generation, current.previous_generation):
+                basis = basis_for_cleanup(self, current)
+            if basis is not None and released.intersection(basis.recipe.source_version_ids):
+                basis = None
             sources = tuple(entry for entry in current.sources
                             if entry.source_version.identity not in released)
             evidence = tuple(entry for entry in current.evidence if entry.identity not in removed)
@@ -749,12 +757,13 @@ class AutomaticLearningStoreV1:
 
             for ref in roots:
                 visit(ref)
-            changed = bool(removed or released)
+            changed = bool(removed or released or basis != current.match_basis)
             requested = replace(
                 current, revision=current.revision + int(changed),
                 sources=sources, evidence=evidence,
                 objects=tuple(entry for entry in current.objects if entry.reference in reached),
                 current_generation=generations[0], previous_generation=generations[1],
+                match_basis=basis,
             )
             protected = self._protected(requested)
             inventory = io.scan_files(self.root)

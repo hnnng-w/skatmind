@@ -1,6 +1,15 @@
 """Validate retained native rollout arithmetic and comparison without simulation."""
 
-from .input_loader import build_local_game_state_from_input
+from dataclasses import asdict
+
+from .bounded_search_information import build_live_search_information_view
+from .game_continuation import resolve_game_continuation
+from .input_loader import build_local_game_state_from_input, get_game_continuation_from_input
+from .ouvert_simulation import (
+    build_declared_ouvert_public_hand_constraint,
+    resolve_effective_public_hand_constraints,
+)
+from .rollout_derivation import rollout_source_fingerprint
 from .rules import get_legal_cards
 from .whole_game_rollout_contracts import (
     WholeGameRolloutCandidateV1,
@@ -10,7 +19,9 @@ from .whole_game_rollout_contracts import (
 from .whole_game_rollout_workflow import (
     compare_rollout_actual,
     parse_rollout_settings,
+    rollout_declaration,
     serialize_rollout_result,
+    unavailable_rollout_root,
 )
 
 
@@ -28,6 +39,38 @@ def validate_native_rollout(request, result):
         "tied_best_cards": tuple(raw["tied_best_cards"]),
         "work": WholeGameRolloutWorkV1(**raw["work"])})
     state = build_local_game_state_from_input(request)
+    declaration = rollout_declaration(request)
+    continuation = get_game_continuation_from_input(request)
+    continuation = (None if continuation is None else
+                    resolve_game_continuation(request, continuation))
+    public = resolve_effective_public_hand_constraints(tuple(value for value in (
+        build_declared_ouvert_public_hand_constraint(request),
+        None if continuation is None else continuation.public_hand_constraint)
+        if value is not None))
+    arguments = dict(state=state, declaration=declaration, left_hand_size=request["left_hand_size"],
+                     right_hand_size=request["right_hand_size"], public_hand_constraints=public)
+    unprepared = unavailable_rollout_root(**arguments, settings=settings)
+    if unprepared is None:
+        view = build_live_search_information_view(**arguments,
+                                                  skat_visibility=request["skat_visibility"])
+        expected_fingerprint = rollout_source_fingerprint(
+            "skatmind.whole_game_rollout.source.v1", asdict(view))
+        source, cutoff, game_type, side = (view.source, view.information_cutoff,
+                                          view.game_type, view.local_side)
+    else:
+        expected_fingerprint = unprepared.source_fingerprint
+        source, cutoff, game_type, side = (unprepared.source, unprepared.information_cutoff,
+                                          unprepared.game_type, unprepared.local_side)
+        if (typed.status, typed.stop_reason) != (unprepared.status, unprepared.stop_reason):
+            raise ValueError("Native rollout changed its unavailable preparation outcome.")
+    if (typed.source_fingerprint != expected_fingerprint
+            or (typed.source, typed.information_cutoff, typed.game_type, typed.local_side)
+            != (source, cutoff, game_type, side)):
+        raise ValueError("Native rollout changed its authoritative core source identity.")
+    expected_position = asdict(state)
+    if any(key not in expected_position or value != expected_position[key]
+           for key, value in result["position"].items()):
+        raise ValueError("Native rollout changed its prepared Position facts.")
     legal = get_legal_cards(state.hand, state.current_trick, state.game_type)
     if typed.candidates and {row.card for row in typed.candidates} != set(legal):
         raise ValueError("Native rollout changed its legal candidates.")

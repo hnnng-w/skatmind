@@ -110,6 +110,8 @@ def admit_generation(obj, manifest):
         raise ValueError("Match revision cannot exceed the outer membership revision.")
     if type(data["inventory"]) is not list or type(data["evidence_outcomes"]) is not list:
         raise ValueError("Mixed ledgers must be arrays.")
+    if any(type(row) is not dict for row in data["inventory"]):
+        raise ValueError("Mixed inventory entries must be objects.")
     rows = tuple((SessionInventoryRow if row.get("family") == "session" else
                   MatchInventoryRow).from_dict(row) for row in data["inventory"])
     outcomes = tuple(EvidenceOutcome.from_dict(row) for row in data["evidence_outcomes"])

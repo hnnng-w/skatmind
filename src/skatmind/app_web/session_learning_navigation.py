@@ -82,7 +82,8 @@ def render_session_page(view, kind, index, locale):
         evidence_caption(value, locale)) + '</p>' for i, value in matching)
     if view.binding.result.status == "current":
         body += form(locale, "/learning/automatic/recording", hidden("view", view.token)
-            + hidden("situation", "session-" + str(index)), "automatic.recording")
+            + hidden("situation", "session-" + str(index)),
+            "automatic.recording" if checkpoint is not None else "recorded_review.history")
     else:
         body += paragraph(locale, "automatic.recording_changed")
     body += disclosure(locale, "task.technical", '<p>' + escape(
@@ -97,7 +98,7 @@ def open_session_recording(handler, controller, view, index):
 
     if view.binding.result.status != "current":
         raise StoreConflictError("Prior Session review cannot open a current recording.")
-    _source_index, source, _decision, _player, _card, _checkpoint = decisions(
+    _source_index, source, decision, _player, _card, checkpoint = decisions(
         view.binding.installed.bundle)[index]
     app = handler.server.app_context
     root = app.managed_home.category("sessions").path
@@ -111,4 +112,5 @@ def open_session_recording(handler, controller, view, index):
         raise StoreConflictError("Session recording version changed.")
     controller.service.validate_delivery(view.binding)
     handler._activate_session(active)
-    return "/sessions/current#recorded-decisions"
+    anchor = "recorded-decision" if checkpoint is not None else "session-play"
+    return f"/sessions/current#{anchor}-{decision}"
