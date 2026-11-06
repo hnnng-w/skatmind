@@ -479,3 +479,131 @@ Local tests do not execute GitHub Actions. #279 stays open until the maintainer
 records the real graph's required jobs, timings, detected environments, aggregation
 behavior, and exact-commit reuse/main fallback. No overall UAT or release readiness
 claim follows from validation-tool acceptance.
+
+## Issue #315 correction after failed run 42276626496
+
+The bounded correction started on `feat/315-faster-regression-ci` at the expected
+commit `2ffd3be0bf753ec3d780cacf70ceb6c537ab87fd`, with a clean index and worktree.
+Authenticated read-only retrieval inspected the completed attempt-1 run
+[`42276626496`](https://github.com/hnnng-w/skatmind/actions/runs/42276626496),
+the failed logs for Ubuntu job `128094628924`, Windows job `128094629072`, and
+aggregate `check` job `128127873819`, plus regression artifacts `13536356585`
+(Ubuntu) and `13536779516` (Windows). Retrieval succeeded without missing evidence.
+
+The graph had 20 successful jobs and three failures: both regressions and `check`.
+All twelve installation cells, both matrix aggregates, and
+`v1-supported-platform-matrix` succeeded. The aggregate `check` log records
+`regression.result = failure` and
+`reason=gate_prerequisites_invalid lookup=gate_prerequisites`: this was correct
+fail-closed prerequisite propagation, before regression artifact validation.
+
+### Complete hosted failure inventory and phase boundary
+
+Both raw parallel reports contain exactly one failed call, with the same node ID:
+
+```text
+tests/test_v1_supported_platform_matrix.py::test_ci_preserves_final_gate_names_and_complete_platform_coverage
+```
+
+Both log tracebacks identify worker `gw2`, CPython 3.13.15, and the same assertion
+at line 346 (Windows uses backslashes in the traceback path):
+
+```text
+>       assert "--stage pytest --workers 2" in workers
+E       assert '--stage pytest --workers 2' in 'name: Check\n...'
+tests/test_v1_supported_platform_matrix.py:346: AssertionError
+```
+
+The quoted workflow value is abbreviated here; the retrieved logs retain pytest's
+full displayed assertion. There were no other failing test nodes or failed
+setup/teardown reports on either platform.
+
+| Raw evidence | Ubuntu | Windows |
+|---|---:|---:|
+| Complete collection / collection exit | 12,331 / 0 | 12,331 / 0 |
+| Parallel selected and executed node IDs | 12,236 | 12,236 |
+| Parallel passed / failed / skipped | 12,230 / 1 / 5 | 12,235 / 1 / 0 |
+| Parallel exit | 1 | 1 |
+| Matching worker collection reports | 4, each 12,236 IDs | 4, each 12,236 IDs |
+| Observed logical / process-usable CPUs | 4 / 4 | 4 / 4 |
+| Collection wall seconds | 13.217 | 17.406 |
+| Parallel wall seconds | 2,643.577 | 3,864.769 |
+| Validation entry-point wall seconds | 2,656.836 | 3,882.426 |
+| Exclusive phase | Not executed | Not executed |
+
+Raw reports match the selected parallel collection exactly, without duplicate or
+missing execution-phase records; Ubuntu's five skips comprise three setup skips
+and two call skips. The unexecuted 95 collected tests belong exactly to the four
+exclusive modules: early rejection (6), Corpus web (27), unified rejection (37),
+and Match analysis action placement (25). Both runners stopped after parallel exit
+1. There is no exclusive report/log, complete accounting, or performance sidecar.
+`pytest-performance.json` is intentionally written only after successful complete
+accounting; its absence here is expected, not a defect.
+
+The run therefore provided **no new execution** of
+`test_match_analysis_action_placement.py::test_actual_analysis_route_bounds_and_strict_fields`.
+The earlier local Windows `ConnectionAbortedError(10053)` and successful bounded
+diagnostic rerun above remain historical evidence with no newly established cause
+or fix. No additional Product failure was found in this run's executed tests.
+
+Workflow elapsed time was **66m28s**; Actions pytest-step times were **44m17s**
+(Ubuntu) and **64m42s** (Windows). These are **failed-run observations only**, not
+accepted complete-suite speedup evidence. The successful baseline from run
+42245301290 remains unchanged. In particular, the failed run omitted exclusive
+execution, collected 60 more tests than that baseline, and used a newer Windows
+image (`win25-vs2026` / `20261103.298.1`).
+
+### Narrow correction and local verification
+
+The earlier affected-module inventory **omitted the complete
+`tests/test_v1_supported_platform_matrix.py` module**. Its stale assertion still
+required `--stage pytest --workers 2` after the hosted workflow was approved and
+changed to four workers. Before editing, the exact failing node was reproduced
+on development CPython 3.13.7: **one failure in 0.44s**, at the same line 346.
+
+The only test change replaces that literal expectation with
+`--stage pytest --workers 4`. Every other substantive assertion in that test is
+retained: both final gate names and commands, build/cell/aggregation commands,
+Ubuntu and hosted Windows identities, the Windows-11/PowerShell-5.1 distinction,
+the exact shared Python pin, final-gate separation, triggers, and publication
+restriction. A related-expectation search across tests, scripts, and workflow
+configuration found no other stale hosted two-worker requirement. Existing local
+two-worker defaults and serial diagnosis remain intentional.
+
+The correction affects only this complete test module; it changes no helper,
+caller, validation-tool contract, workflow, or Product code. The prior validation
+runner, CI validator, recorded-reuse, and packaging-policy results are reused as
+unaffected evidence. No exclusive module is affected, and no transport diagnostic
+was repeated. The four-worker policy, file grouping, disabled worker restarts,
+complete accounting, all four exclusive assignments and phase ordering, 23-job
+graph, twelve cells, strict final gates and reuse eligibility, and diagnostic-only
+timing boundary remain unchanged.
+
+Exact effective local commands (after verifying the external cache parent exists):
+
+```powershell
+$env:PYTHONDONTWRITEBYTECODE = "1"
+& "C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe" -c "import sys; print(sys.version); assert sys.version_info[:3] == (3, 13, 7)"
+# Before editing: 1 failed in 0.44s.
+& "C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe" -m pytest -q -o "cache_dir=C:\Users\HENNIN~1\AppData\Local\Temp\opencode\issue315-correction-pytest-cache" tests/test_v1_supported_platform_matrix.py::test_ci_preserves_final_gate_names_and_complete_platform_coverage
+# After correction: 19 passed in 6.01s.
+& "C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe" -m pytest -q -o "cache_dir=C:\Users\HENNIN~1\AppData\Local\Temp\opencode\issue315-correction-pytest-cache" tests/test_v1_supported_platform_matrix.py
+function python { & "C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe" @args }
+.\scripts\check.ps1 -Mode Quick
+```
+
+Every validation tool invocation uses timeout **7,200,000 ms**. Local scope is the
+complete affected module plus explicit Quick; no local Full, distribution
+build/install, installed UAT, or extra exhaustive benchmark is part of this
+correction. Explicit Quick passed with exit 0 in **3.578s**: Ruff 0.133s,
+packaged-schema parity 0.122s, and input examples 2.952s. Its retained log directory
+is `C:\Users\Henning-DT\AppData\Local\Temp\skatmind-check-uv3059wi`. Only this
+documentation result was appended after Quick; the tested assertion is unchanged.
+Status: **locally validated; new exact-commit hosted CI pending**.
+
+Keep #315 open for new exact-commit hosted execution of both complete regression
+lanes, including the exclusive phase and strict accounting, all 23 jobs and both
+final gates, followed by exact-commit main-gate/reuse review. Accepted #279 behavior
+and #292–#313 Product scopes remain intact. #314 installed acceptance is separately
+pending. #208 stays open, formal UAT-02–12 remain paused, and release preparation
+is not authorized.

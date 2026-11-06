@@ -343,7 +343,7 @@ def test_ci_preserves_final_gate_names_and_complete_platform_coverage() -> None:
     workers, final_gates = workflow.split("  check:", 1)
     assert "  v1-supported-platform-matrix:" in final_gates
     assert "--gate check" in final_gates and "--gate matrix" in final_gates
-    assert "--stage pytest --workers 2" in workers
+    assert "--stage pytest --workers 4" in workers
     assert "--build-bundle" in workers and "--cell" in workers and "--aggregate" in workers
     assert "ubuntu_github_actions_cpython_3_13" in workers
     assert "windows_server_github_actions_cpython_3_13" in workers
