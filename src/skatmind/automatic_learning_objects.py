@@ -97,7 +97,7 @@ def resume_manifest(raw: bytes) -> ManifestV1:
 
 
 def validate_generation(obj: StoredObjectV1, manifest: ManifestV1) -> GenerationV1:
-    if obj.kind != "generation_descriptor" or obj.codec_version not in (1, 2):
+    if obj.kind != "generation_descriptor" or obj.codec_version not in (1, 2, 3):
         raise ValueError("Unsupported generation descriptor.")
     data = decode_json(obj.payload)
     # Codec 2 adds the S4 input ledger. This remains structural validation only;

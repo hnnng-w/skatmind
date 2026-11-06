@@ -12,6 +12,8 @@ from dataclasses import dataclass, replace
 from skatmind import automatic_learning_io as io
 from skatmind.automatic_learning_contracts import ExclusionV1, GenerationV1
 from skatmind.automatic_learning_store import (
+    _DELIVERY_RECEIPT_MAX_BYTES,
+    _DELIVERY_RECEIPT_MAX_OBJECTS,
     AutomaticLearningStoreV1,
     StoreConflictError,
     StoreLimitError,
@@ -23,19 +25,31 @@ from skatmind.automatic_match_preparation import (
     AutomaticMatchGeneration,
     EvidenceOutcome,
     UnsupportedGeneration,
-    admit_generation,
     automatic_ids,
     build_automatic_match_bundle,
-    generation_object,
     input_fingerprint,
 )
+from skatmind.automatic_mixed_preparation import (
+    MIXED_ADAPTERS,
+    MIXED_BUILDERS,
+    AutomaticMixedGeneration,
+    admit_generation,
+    build_mixed_bundle,
+    generation_object,
+)
 from skatmind.errors import SkatMindError
-from skatmind.match_source_coordination import match_source_coordinator
 
 from .automatic_match_inventory import (
     InventoryConflict,
-    capture_match_inventory,
-    inventory_still_current,
+)
+from .automatic_session_inventory import (
+    MixedSourceCoordinator,
+)
+from .automatic_session_inventory import (
+    capture_mixed_inventory as capture_match_inventory,
+)
+from .automatic_session_inventory import (
+    mixed_inventory_still_current as inventory_still_current,
 )
 from .saved_match_analyses import archive_store
 
@@ -68,6 +82,21 @@ class _Installed:
     inventory: object
 
 
+@dataclass(frozen=True, slots=True)
+class _MixedDeliveryReceipt:
+    archive: object
+    inventory: object
+    epoch: tuple
+
+
+def _bounded_delivery_inputs(resumed, inventory):
+    candidates = (*inventory.matches.physical[1], *inventory.sessions.physical[1])
+    count = len(resumed.manifest.objects) + len(candidates)
+    size = sum(row.reference.size_bytes for row in resumed.manifest.objects)
+    size += sum(physical[0][2] for _name, physical, _digest in candidates)
+    return count <= _DELIVERY_RECEIPT_MAX_OBJECTS and size <= _DELIVERY_RECEIPT_MAX_BYTES
+
+
 def _selection(inventory, resumed):
     manifest = resumed.manifest
     states = {row.reference: row.consumption_status for row in resumed.objects}
@@ -81,7 +110,7 @@ def _selection(inventory, resumed):
     # aggregate is hidden conservatively when its identity cannot be found alive.
     for source in manifest.sources:
         key = source.source_version.source
-        if key.family == "match" and key not in live and key not in exclusions:
+        if key.family in ("match", "session") and key not in live and key not in exclusions:
             exclusions[key] = ExclusionV1(source=key, reason="missing")
     selected = []
     for value in inventory.sources:
@@ -93,7 +122,14 @@ def _selection(inventory, resumed):
                 source=record.source_version.source, reason=reason)
         else:
             selected.append(value)
-    selected = tuple(selected)
+    # No origin validator is registered yet. Explicit unverified shared-game claims
+    # block both endpoints; equal names/cards/placeholder strings establish no link.
+    untrusted = {entity.source for binding in manifest.bindings
+                 if binding.kind == "cross_source_game"
+                 for entity in (binding.subject, binding.target) if entity is not None}
+    for key in untrusted:
+        exclusions[key] = ExclusionV1(source=key, reason="ambiguous")
+    selected = tuple(value for value in selected if value[1].source_version.source not in untrusted)
     ids = tuple(value[1].source_version.identity for value in selected)
     outcomes = tuple(EvidenceOutcome(evidence_id=entry.identity,
         status=(states[entry.envelope] if states[entry.envelope] != "available" else
@@ -140,8 +176,9 @@ class AutomaticMatchLearningServiceV1:
         self.home = app.managed_home
         self.archive_scope = app.saved_match_analyses
         self._roots = {root: io.checked_root(root) for root in (
-            self.home.root, self.home.category("matches").path)}
-        self.coordinator = match_source_coordinator(self.home.category("matches").path)
+            self.home.root, self.home.category("matches").path,
+            self.home.category("sessions").path)}
+        self.coordinator = MixedSourceCoordinator(self.home)
         self.attempt = None
         self.store = None
         self.archive = None
@@ -181,13 +218,22 @@ class AutomaticMatchLearningServiceV1:
 
     def _capture(self, store):
         epoch = self.coordinator.generation
-        resumed, self._delivery_snapshot_receipt = store._snapshot_for_delivery(
-            self._delivery_snapshot_receipt)
-        inventory = capture_match_inventory(self.home, resumed.manifest.exclusions)
+        previous = self._delivery_snapshot_receipt
+        resumed, archive = store._snapshot_for_delivery(
+            None if previous is None else previous.archive)
+        if (previous is not None and archive is not None and archive is previous.archive
+                and epoch == previous.epoch
+                and inventory_still_current(self.home, previous.inventory)):
+            inventory = previous.inventory
+        else:
+            inventory = capture_match_inventory(self.home, resumed.manifest.exclusions)
         with self.coordinator.lock:
             if epoch != self.coordinator.generation or not inventory_still_current(
                     self.home, inventory):
                 raise InventoryConflict("Managed Match sources changed during capture.")
+            self._delivery_snapshot_receipt = (
+                _MixedDeliveryReceipt(archive, inventory, epoch)
+                if archive is not None and _bounded_delivery_inputs(resumed, inventory) else None)
         return resumed, inventory, epoch
 
     def _inspect(self):
@@ -246,6 +292,7 @@ class AutomaticMatchLearningServiceV1:
 
     def update(self):
         reservation = store = None
+        commit_started = False
         requested = obj = bundle = generation = inventory = None
         with self.app.lock:
             if not self._owner():
@@ -273,10 +320,23 @@ class AutomaticMatchLearningServiceV1:
                         raise StoreConflictError("Automatic reuse was superseded.")
                     return AutomaticMatchServiceResult("reused", previous, attempt=attempt)
             selected_ids = tuple(value[1].source_version.identity for value in sources)
+            mixed = (bool(inventory.sessions.rows) or type(previous) is AutomaticMixedGeneration
+                     or any(row.source_version.source.family == "session"
+                            for row in before.sources))
             catalog_revision = (0 if previous is None else previous.recipe.catalog_revision)
             if previous is None and sources or previous is not None and (
                     previous.recipe.source_version_ids != selected_ids):
                 catalog_revision += 1
+            old_records = {row.source_version.identity: row for row in before.sources}
+            old_match_ids = (() if previous is None else tuple(key for key in
+                previous.recipe.source_version_ids
+                if old_records[key].source_version.source.family == "match"))
+            match_ids = tuple(row[1].source_version.identity for row in sources
+                              if row[1].source_version.source.family == "match")
+            match_revision = (0 if previous is None else getattr(previous,
+                "match_catalog_revision", previous.recipe.catalog_revision))
+            if match_ids != old_match_ids:
+                match_revision += 1
             corpus_id, dataset_id = automatic_ids(before.space_id)
             with ExitStack() as stack:
                 refs = {value[1].object_ref for value in sources if value[1] in before.sources}
@@ -292,15 +352,23 @@ class AutomaticMatchLearningServiceV1:
                     if not self._owner(attempt):
                         raise StoreConflictError("Automatic preparation attempt changed.")
                     reservation = store.begin_candidate(tuple(value[0] for value in sources))
-                bundle = build_automatic_match_bundle(sources, evidence, corpus_id=corpus_id,
-                    dataset_id=dataset_id, catalog_revision=catalog_revision)
+                if mixed:
+                    bundle = build_mixed_bundle(sources, evidence, mixed=True, corpus_id=corpus_id,
+                        dataset_id=dataset_id, catalog_revision=match_revision)
+                else:
+                    bundle = build_automatic_match_bundle(sources, evidence, corpus_id=corpus_id,
+                        dataset_id=dataset_id, catalog_revision=catalog_revision)
                 recipe = GenerationV1(source_version_ids=selected_ids,
                     evidence_ids=evidence_ids,
                     exclusions=exclusions, skipped_situations=bundle.skipped,
                     corpus_id=corpus_id, dataset_id=dataset_id, catalog_revision=catalog_revision,
-                    seed=0, partition_weights=(70, 15, 15), adapter_versions=ADAPTERS,
-                    builder_versions=BUILDERS, derived_fingerprints=bundle.fingerprints)
-                generation = AutomaticMatchGeneration(recipe, inventory.rows, outcomes, identity)
+                    seed=0, partition_weights=(70, 15, 15),
+                    adapter_versions=MIXED_ADAPTERS if mixed else ADAPTERS,
+                    builder_versions=MIXED_BUILDERS if mixed else BUILDERS,
+                    derived_fingerprints=bundle.fingerprints)
+                generation = (AutomaticMixedGeneration(recipe, inventory.rows, outcomes, identity,
+                    match_revision) if mixed else
+                    AutomaticMatchGeneration(recipe, inventory.rows, outcomes, identity))
                 if same and generation != previous:
                     raise ValueError("Reconstruction differs from the accepted generation.")
                 obj = generation_object(generation, sources, evidence)
@@ -321,9 +389,11 @@ class AutomaticMatchLearningServiceV1:
                     def guard():
                         return (self._owner(attempt) and self.coordinator.generation == epoch
                                 and inventory_still_current(self.home, inventory))
+                    commit_started = True
                     result = store.update_manifest(requested, expected_manifest=before.fingerprint,
                         candidate=reservation, commit_guard=guard)
                     if result.status == "conflict":
+                        commit_started = False
                         raise StoreConflictError("Automatic generation publication conflicted.")
                 # Read authority again: successful return alone does not mean still-current.
                 return self._install(store, requested, obj, generation, bundle, inventory,
@@ -335,7 +405,7 @@ class AutomaticMatchLearningServiceV1:
         except StoreManifestError:
             return AutomaticMatchServiceResult("failed", failure="invalid_storage")
         except (OSError, ValueError, SkatMindError) as error:
-            if store is not None and requested is not None and obj is not None:
+            if commit_started and store is not None and requested is not None and obj is not None:
                 try:
                     authority = store.snapshot().manifest
                     if authority == requested:

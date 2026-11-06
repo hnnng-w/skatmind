@@ -1049,3 +1049,13 @@ analysis methods and opponent-profile application retain their existing behavior
 Accepted #292–#307 scopes and evidence remain intact. #208 stays open, UAT-01 is not
 globally accepted, formal UAT-02–12 remain paused, and release preparation is not
 authorized by #308.
+
+Current implementation follow-up: S1–S5 are maintainer-accepted, including #313's
+bounded performance/readability correction. [Issue #314's S6 implementation](automatic_session_learning_s6_verification.md)
+adds saved Session-native coverage and retained own-decision comparisons to the
+common automatic generation. Match Dataset/Teacher/Tactical/Coaching and ten Match
+exports retain their scope. Existing recording/manual persistence and Public APIs
+remain unchanged. New exact-commit hosted gates and narrow installed acceptance
+remain pending for #314. S7 saved manual Historical Review integration remains
+subsequent work. This does not reopen accepted scopes, accept UAT-01 globally,
+resume formal UAT-02–12 or authorize release preparation.

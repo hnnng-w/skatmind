@@ -85,7 +85,10 @@ def source_exceptions(view, locale):
                                                 for row in manifest.exclusions)
         status = ("explicit" if explicit else exclusions.get(source,
                   rows[0].status if rows else "missing"))
-        body += '<li><p>' + escape(source.product_id) + ': ' + translated(
+        family = ("session_learning.count.sessions" if source.family == "session"
+                  else "automatic.count.matches")
+        name = source.product_id if len(source.product_id) <= 48 else source.product_id[:24] + "…"
+        body += '<li><p>' + translated(locale, family) + ' · ' + escape(name) + ': ' + translated(
             locale, "automatic.input." + status) + '</p>'
         if manifest is not None:
             body += form(locale, AUTOMATIC_PAGE + "/exclude-preview",
@@ -167,8 +170,15 @@ def render_review(view, selector, locale):
     inputs += paragraph(locale, "automatic.rollout_separate")
     inputs += source_exceptions(view, locale)
     state = prepared_state_values(bundle.prepared, bundle.tactical, bundle.coaching)
-    body += render_learning_result(state, locale, display=display, included_links=inputs,
-                                    download_base=view.base + "/downloads")
+    if bundle.sources or not hasattr(bundle, "session_sources"):
+        if hasattr(bundle, "session_sources"):
+            body += '<h3>' + translated(locale, "automatic.count.matches") + '</h3>'
+        body += render_learning_result(state, locale, display=display, included_links=inputs,
+                                        download_base=view.base + "/downloads")
+    else:
+        body += disclosure(locale, "learning.result.included_data", inputs)
+    from .session_learning_navigation import render_session_review
+    body += render_session_review(view, locale)
     body += update_form(view, locale) + maintenance(view, locale)
     body += link(AUTOMATIC_PAGE, text(locale, "automatic.back")) + '</section>'
     return AutomaticDisplay(body, text(locale, "automatic.title"))
@@ -248,21 +258,21 @@ def render_confirmation(value, locale):
             translated(locale, "automatic.unavailable_report", report=entry.identity[:12]))
             + '</li>' for entry, retained in value.evidence) + '</ul>'
         if value.kind == "obsolete_sources":
-            retained = sum(row.source_version.source.family == "match"
+            retained = sum(row.source_version.source.family in ("match", "session")
                            for row in cleanup.manifest.sources)
             body += paragraph(locale, "automatic.source_release_count",
                               sources=len(value.sources), retained=retained)
             body += '<ul>' + ''.join('<li>' + translated(locale, "automatic.source_release_name",
-                name=snapshot.workspace.match_definition.title or snapshot.match_id,
-                revision=snapshot.workspace_revision, number=number) + '</li>'
-                for number, (_record, snapshot) in enumerate(value.sources, 1)) + '</ul>'
+                name=_archive_source_name(record, snapshot),
+                revision=record.revision, number=number) + '</li>'
+                for number, (record, snapshot) in enumerate(value.sources, 1)) + '</ul>'
         if cleanup.manifest.generations != value.view.binding.resumed.manifest.generations:
             body += paragraph(locale, "automatic.retire_generation")
         details = paragraph(locale, "automatic.preview.reference_change") if manifest_changed else ""
         if value.sources:
             details += '<ul>' + ''.join('<li>' + translated(locale, "automatic.source_release_caption",
-                name=snapshot.workspace.match_definition.title or snapshot.match_id,
-                identity=snapshot.match_id, revision=snapshot.workspace_revision,
+                name=_archive_source_name(record, snapshot),
+                identity=record.source_version.source.product_id, revision=record.revision,
                 version=record.source_version.content_fingerprint) + '</li>'
                 for record, snapshot in value.sources) + '</ul>'
         if details:
@@ -274,3 +284,10 @@ def render_confirmation(value, locale):
         body += form(locale, AUTOMATIC_PAGE + "/confirm", fields, "automatic.confirm", destructive=True)
     body += link(AUTOMATIC_PAGE, text(locale, "automatic.cancel" if actionable else "automatic.recover")) + '</section>'
     return body
+
+
+def _archive_source_name(record, snapshot):
+    if record.source_version.source.family == "session":
+        name = snapshot.document.state.session_id
+        return name if len(name) <= 32 else record.source_version.source.identity[:12]
+    return snapshot.workspace.match_definition.title or snapshot.match_id

@@ -28,6 +28,9 @@ SAVED_MATCH_ROUTE = "/matches/saved-analyses"
 RETRY_MATCH_ROUTE = "/matches/retry-saving"
 SAVED_MATCH_PATTERN = re.compile(
     r"/matches/saved-analyses/([0-9a-f]{64})(?:/(request|result|strategy-source)\.json)?\Z")
+SAVED_SESSION_ROUTE = "/sessions/saved-analyses"
+SAVED_SESSION_PATTERN = re.compile(
+    r"/sessions/saved-analyses/([0-9a-f]{64})(?:/(request|result)\.json)?\Z")
 
 
 @dataclass(slots=True)
@@ -183,6 +186,9 @@ def live_retention_delivery_guard(context, active, report_id):
 
 
 def _caption(value, locale):
+    if value.entry.envelope.kind.startswith("session_"):
+        from .session_learning_rendering import evidence_caption
+        return evidence_caption(value, locale)
     report = value.report
     definition = value.source.document.workspace.match_definition
     actor = report.value.profile_binding.acting_player_id
@@ -202,6 +208,11 @@ def _caption(value, locale):
 
 
 def render_saved_analysis(value, route, locale):
+    if value.entry.envelope.kind.startswith("session_"):
+        from .session_learning_rendering import render_session_evidence, session_links
+        return (render_session_evidence(value, route, locale) + session_links(locale)
+                + '<p><a href="/learning/automatic">' + escape(text(locale, "automatic.back"))
+                + '</a></p>')
     workspace, report = value.source.document.workspace, value.report
     state = {"reports": [], "selected_report": _selected_report_details(report),
         "selected_position": report.match_position,
@@ -227,8 +238,12 @@ def render_saved_analysis(value, route, locale):
 
 
 def handle_saved_analysis_get(handler, path):
-    match = SAVED_MATCH_PATTERN.fullmatch(path)
-    if path != SAVED_MATCH_ROUTE and match is None:
+    session = path == SAVED_SESSION_ROUTE or path.startswith(SAVED_SESSION_ROUTE + "/")
+    route = SAVED_SESSION_ROUTE if session else SAVED_MATCH_ROUTE
+    family = "session" if session else "match"
+    area = "/sessions" if session else "/matches"
+    match = (SAVED_SESSION_PATTERN if session else SAVED_MATCH_PATTERN).fullmatch(path)
+    if path != route and match is None:
         return False
     context = handler.server.app_context
     scope = context.saved_match_analyses
@@ -237,6 +252,8 @@ def handle_saved_analysis_get(handler, path):
         store = archive_store(context)
         if match is not None:
             scope, store, manifest, value = resolve_saved_analysis(context, match[1])
+            if value.source.record.source_version.source.family != family:
+                raise RecordingOpenConflict()
             with store.pin_objects((value.entry.envelope,), expected_manifest=manifest.fingerprint):
                 handler._retained_delivery_guard = lambda: validate_saved_delivery(
                     context, scope, store, manifest, value)
@@ -246,50 +263,54 @@ def handle_saved_analysis_get(handler, path):
                     from .language_context import capture_language_source_v1
 
                     handler._rendered_language_source = capture_language_source_v1(context, path)
-                    handler._content_page("/matches", return_to=path,
+                    handler._content_page(area, return_to=path,
                         title=text(locale, "saved_analysis.title"),
                         content=render_saved_analysis(value, path, locale),
                         feedback_identity=scope,
                         untranslated_workflow_body=False)
             return True
         snapshot = None if store is None else store.snapshot()
+        entries = (() if snapshot is None else tuple(entry for entry in snapshot.manifest.evidence
+                   if entry.envelope.kind.startswith(family + "_")))
         body = ""
         refs = () if snapshot is None else tuple(
-            entry.envelope for entry in snapshot.manifest.evidence
+            entry.envelope for entry in entries
             if entry.identity in snapshot.available_evidence_ids)
         from contextlib import nullcontext
         with (nullcontext() if store is None else store.pin_objects(refs,
                 expected_manifest=snapshot.manifest.fingerprint)):
-            for entry in () if snapshot is None else snapshot.manifest.evidence:
+            for entry in entries:
                 if entry.identity not in snapshot.available_evidence_ids:
                     continue
                 value = store.read_evidence(entry.identity)
                 token = scope.token(snapshot.manifest.space_id, entry)
                 body += '<li><p>' + escape(_caption(value, locale)) + '</p>'
                 body += paragraph(locale, "saved_analysis.captured",
-                    revision=value.source.document.workspace.revision,
+                    revision=value.source.record.revision,
                     source=value.source.record.source_version.content_fingerprint[:12],
-                    report=value.report.report_id[:12])
-                body += (f'<a class="button-link secondary" href="{SAVED_MATCH_ROUTE}/{token}">'
+                    report=entry.identity[:12] if session else value.report.report_id[:12])
+                body += (f'<a class="button-link secondary" href="{route}/{token}">'
                          + escape(text(locale, "saved_analysis.open")) + '</a></li>')
             body = '<ul class="workflow-list">' + body + '</ul>' if body else paragraph(
                 locale, "saved_analysis.empty")
             if snapshot is not None:
-                if len(refs) != len(snapshot.manifest.evidence):
+                if len(refs) != len(entries):
                     body += paragraph(locale, "saved_analysis.excluded")
                 handler._retained_delivery_guard = lambda: validate_saved_delivery(
                     context, scope, store, snapshot.manifest)
             from .language_context import capture_language_source_v1
 
             handler._rendered_language_source = capture_language_source_v1(context, path)
-            handler._content_page("/matches", return_to=path,
+            body += ('<p><a href="/learning/automatic">'
+                     + escape(text(locale, "automatic.back")) + '</a></p>')
+            handler._content_page(area, return_to=path,
                 title=text(locale, "saved_analysis.title"), content=body,
                 feedback_identity=scope,
                 untranslated_workflow_body=False)
     except (OSError, ValueError, KeyError, SkatMindError, RecordingOpenConflict):
         handler._retained_delivery_guard = None
         handler._rendered_language_source = None
-        handler._content_page("/matches", return_to=SAVED_MATCH_ROUTE,
+        handler._content_page(area, return_to=route,
             title=text(locale, "saved_analysis.title"), status=409,
             content=paragraph(locale, "saved_analysis.blocked"), untranslated_workflow_body=False)
     return True

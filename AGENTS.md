@@ -1156,3 +1156,18 @@ in [Automatic Match Learning UI](docs/automatic_match_learning_ui.md). Independe
 manual collections keep their own owner and contracts. S6/S7 remain future work.
 Keep #313 open for new exact-commit hosted gates and maintainer installed targeted
 UI acceptance; #208 and the paused formal UAT/release boundaries remain unchanged.
+
+Scoped S6 follow-up: #313, including its installed functional acceptance and bounded
+performance/readability correction, is maintainer-accepted at
+`7eacaf250b7d7e1f23338d45a020a1a27557b3d2`. Earlier pending paragraphs are historical.
+Issue #314 adds native saved Session sources and genuine recorded-own-decision
+execution retention, one compatible mixed generation, bilingual comparisons and
+source-history maintenance. See
+[Session-native automatic Learning](docs/automatic_session_learning_s6_verification.md)
+for the exact boundary, validation and later installed scenario. Session evidence
+does not enter Match Dataset/Teacher/Tactical/Coaching or the ten Match downloads.
+Keep #314 open for new exact-commit branch/main gates and narrow maintainer installed
+acceptance. S7 remains subsequent work; recommendation adaptation remains a later
+goal. Accepted #292–#313 and #308's documentation acceptance remain intact. #208
+stays open, UAT-01 is not globally accepted, formal UAT-02–12 remain paused, and
+release preparation is not authorized.

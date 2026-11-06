@@ -359,6 +359,9 @@ def _execute_verified_request(
         validate_output_document(serialized["document"])
         for artifact in serialized["artifacts"]:
             validate_input_document(artifact["document"])
+    from skatmind.private_execution_capture import observe_native_execution
+
+    observe_native_execution(invocation, application_result, execution_result)
     return execution_result
 
 

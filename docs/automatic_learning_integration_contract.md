@@ -46,6 +46,14 @@ exact-commit hosted CI and maintainer installed UI acceptance pending; S6/S7 rem
 subsequent work. The historical stage descriptions below remain the governing
 requirements, not a claim that #308 itself implemented them.
 
+Separate S6 follow-up: #313 and S1–S5, including the bounded performance/readability
+correction, are maintainer-accepted at the #314 baseline. Issue #314 implements
+[native Session coverage and retained comparisons](automatic_session_learning_s6_verification.md)
+under one codec-3 mixed generation, preserving strict codec-2 Match admission and
+the independent Match slice. New exact-commit CI and narrow installed acceptance
+remain pending for S6. S7 remains subsequent work. The historical inventory and
+stage descriptions below retain their original meaning and #308 acceptance.
+
 The maintainer has approved the following **v1 product direction**:
 
 * Learning automatically brings together eligible saved games and existing

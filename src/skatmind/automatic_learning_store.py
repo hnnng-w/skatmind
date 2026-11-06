@@ -262,6 +262,7 @@ class AutomaticLearningStoreV1:
             decode_match_source,
         )
         from .automatic_match_rollout_evidence import decode_match_rollout
+        from .automatic_session_evidence import decode_session_execution, decode_session_source
         from .errors import SkatMindError
 
         entries = {entry.reference: entry for entry in manifest.objects}
@@ -283,15 +284,21 @@ class AutomaticLearningStoreV1:
                 status = "unsupported"
                 try:
                     if ref in sources:
-                        decoded[ref] = decode_match_source(objects[ref], sources[ref])
+                        family = sources[ref].source_version.source.family
+                        adapter = (decode_session_source if family == "session"
+                                   else decode_match_source)
+                        decoded[ref] = adapter(objects[ref], sources[ref])
                         status = "available"
                     elif ref in evidence:
                         entry = evidence[ref]
                         source_ref = source_by_version[entry.source_version_id].object_ref
                         if source_ref in decoded:
-                            adapter = {("decision", "match_decision"): decode_match_decision,
-                                       ("rollout", "match_rollout"): decode_match_rollout}.get(
-                                           (entry.evidence_class, ref.kind))
+                            adapters = {
+                                ("decision", "match_decision"): decode_match_decision,
+                                ("rollout", "match_rollout"): decode_match_rollout,
+                                ("decision", "session_decision"): decode_session_execution,
+                                ("rollout", "session_rollout"): decode_session_execution}
+                            adapter = adapters.get((entry.evidence_class, ref.kind))
                             if adapter is not None:
                                 value = adapter(objects[ref], entry, decoded[source_ref])
                                 admitted[entry.identity] = value
@@ -324,7 +331,7 @@ class AutomaticLearningStoreV1:
                 status[ref] = "corrupt"
         for ref in manifest.generations:
             if (status[ref] == "valid" and ref.kind == "generation_descriptor"
-                    and ref.codec_version in (1, 2)):
+                    and ref.codec_version in (1, 2, 3)):
                 try:
                     validate_generation(objects[ref], manifest)
                 except (ValueError, KeyError, TypeError, RecursionError):
@@ -561,7 +568,7 @@ class AutomaticLearningStoreV1:
                 raise ValueError("Evidence family and stored kind disagree.")
         for ref in manifest.generations:
             if states[ref] == "valid" and (ref not in current.generations or (
-                ref.kind == "generation_descriptor" and ref.codec_version in (1, 2)
+                ref.kind == "generation_descriptor" and ref.codec_version in (1, 2, 3)
             )):
                 validate_generation(objects[ref], manifest)
         return manifest

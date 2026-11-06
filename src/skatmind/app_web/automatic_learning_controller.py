@@ -9,8 +9,8 @@ from skatmind import automatic_learning_io as io
 from skatmind.automatic_learning_contracts import ExclusionV1
 from skatmind.automatic_learning_store import StoreConflictError
 
-from .automatic_match_inventory import inventory_still_current
 from .automatic_match_learning import AutomaticMatchLearningServiceV1
+from .automatic_session_inventory import mixed_inventory_still_current as inventory_still_current
 from .operation_feedback import FeedbackSource, PendingOperationFeedback
 
 
@@ -112,6 +112,7 @@ class AutomaticLearningController:
 
     def preview_cleanup(self, view, *, old_evidence=False, obsolete_sources=False):
         from skatmind.automatic_match_evidence import decode_match_source
+        from skatmind.automatic_session_evidence import decode_session_source
 
         if old_evidence and obsolete_sources:
             raise ValueError("Source release and Report removal require separate consent.")
@@ -137,8 +138,10 @@ class AutomaticLearningController:
                 value = (self.service.store.read_evidence(entry.identity)
                          if entry.identity in available else None)
                 captions.append((entry, value))
-            source_captions = tuple((record, decode_match_source(
-                self.service.store.read_object(record.object_ref), record).snapshot)
+            source_captions = tuple((record, decode_session_source(
+                self.service.store.read_object(record.object_ref), record)
+                if record.source_version.source.family == "session" else decode_match_source(
+                    self.service.store.read_object(record.object_ref), record).snapshot)
                 for record in releases)
         self.service.validate_delivery(view.binding)
         preview = self.service.store.preview_cleanup(expected_manifest=manifest.fingerprint,
@@ -238,7 +241,8 @@ def _releasable_sources(view):
                      for entity in (row.subject, row.target) if entity is not None}
     available = {row.reference for row in view.binding.resumed.objects
                  if row.consumption_status == "available"}
-    return tuple(row for row in manifest.sources if row.source_version.source.family == "match"
+    return tuple(row for row in manifest.sources
+        if row.source_version.source.family in ("match", "session")
         and row.source_version.identity not in live | retained
         and row.object_ref not in dependencies and row.source_version.source not in bound_sources
         and row.object_ref in available)
@@ -249,7 +253,7 @@ def source_keys(view):
     keys = {row.source for row in view.binding.inventory.rows if row.source is not None}
     if view.binding.resumed is not None:
         keys.update(row.source for row in view.binding.resumed.manifest.exclusions
-                    if row.source.family == "match")
+                    if row.source.family in ("match", "session"))
     if view.binding.result.generation is not None:
         keys.update(row.source for row in view.binding.result.generation.recipe.exclusions)
     return tuple(sorted(keys, key=lambda row: row.identity))

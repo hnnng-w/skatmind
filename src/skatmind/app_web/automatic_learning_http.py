@@ -136,6 +136,16 @@ def handle_get(handler, path):
                     raise StoreConflictError("Automatic result unavailable.")
                 selector = match[2]
                 parts = selector.split("/")
+                if parts[0] == "session":
+                    from .session_learning_navigation import render_session_page
+                    if len(parts) == 4:
+                        value = view.binding.installed.bundle.session_evidence[int(parts[2])]
+                        authorize_response(handler, controller, view)
+                        handler._send_artifact(*value.download(parts[3][:-5]))
+                        return True
+                    body = render_session_page(view, parts[1], int(parts[2]), locale)
+                    send_page(handler, controller, view, path, body)
+                    return True
                 if parts[0] == "downloads":
                     kind = parts[1][:-5].replace("-", "_")
                     download = view.binding.installed.bundle.download(kind)
@@ -201,7 +211,13 @@ def handle_post(handler, path, values):
                     obsolete_sources=values["mode"] == "obsolete_sources")
                 destination = AUTOMATIC_PAGE + "/confirmation/" + confirmation.token
             else:
-                destination = open_recording(handler, controller, view, _index(values["situation"]))
+                if values["situation"].startswith("session-"):
+                    from .session_learning_navigation import open_session_recording
+                    destination = open_session_recording(handler, controller, view,
+                        _index(values["situation"][8:]))
+                else:
+                    destination = open_recording(handler, controller, view,
+                                                 _index(values["situation"]))
         with handler.server.app_context.lock:
             handler.server.app_context.form_feedback.clear("automatic")
         authorize_response(handler, controller, view)

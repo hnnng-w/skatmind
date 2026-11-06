@@ -1183,8 +1183,8 @@ assert FRONTEND_TRANSLATION_CATALOG_VERSION == 1
 assert LOCAL_FRONTEND_PROFILE_VERSION == 1
 assert FRONTEND_INFORMATION_ARCHITECTURE_VERSION == 1
 assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-assert len(UNIFIED_FRONTEND_POST_ROUTES) == 79
-assert len(FRONTEND_FORM_REGISTRY) == 131
+assert len(UNIFIED_FRONTEND_POST_ROUTES) == 80
+assert len(FRONTEND_FORM_REGISTRY) == 132
 recording_input, = (form for form in FRONTEND_FORM_REGISTRY
                    if form.form_key == "match.recording_input")
 assert recording_input.action_route == "/matches/recording-input"

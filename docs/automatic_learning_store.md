@@ -23,6 +23,15 @@ pins and cleanup semantics remain intact. Codec-1 generation descriptors remain
 storage-only. Current/previous replacement is one manifest CAS; derived artifacts
 stay process-local and restart reconstruction is explicit.
 
+Separate S6 follow-up: [Issue #314](automatic_session_learning_s6_verification.md)
+registers native Session source/ordinary/rollout object codec **2** and an explicit
+mixed generation codec **3**. Original complete Session fingerprints, native public
+execution tuples and genuinely captured internal provenance are reconciled on
+admission. Codec-2 Match generation admission and S2/S3 bytes remain unchanged.
+The one bounded delivery receipt additionally binds fresh mixed source membership;
+source-history release retains existing reference-first and reader protection.
+Manifest/storage envelope version **1** and all existing quotas remain intact.
+
 ## Scope and acceptance
 
 This implements S1 of the accepted

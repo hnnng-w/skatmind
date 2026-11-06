@@ -1517,6 +1517,9 @@ _FORMS.append(_definition(
 _FORMS.append(_definition(
     "match.retry_saving", "/matches/retry-saving", page="/matches/current", active="matches",
     body_limit=8192, value_free=True, success="contextual"))
+_FORMS.append(_definition(
+    "session.retry_saving", "/sessions/retry-saving", page="/sessions/current", active="sessions",
+    body_limit=8192, value_free=True, success="contextual"))
 _FORMS.extend(_definition("automatic." + action, route,
     ("confirm_apply",) if action == "confirm" else (), page=AUTOMATIC_PAGE,
     active="automatic", success="contextual", body_limit=AUTOMATIC_BODY_LIMIT,
@@ -1546,6 +1549,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             "/sessions/review",
             "/sessions/review-decision",
             "/sessions/review-whole-game",
+            "/sessions/retry-saving",
             "/matches/import",
             "/matches/open",
             "/matches/api/v1/create",

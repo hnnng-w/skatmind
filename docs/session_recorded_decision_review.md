@@ -1,5 +1,14 @@
 # Review recorded Session decisions
 
+Issue #314 adds [durable native retention and automatic Learning](automatic_session_learning_s6_verification.md)
+for explicitly executed saved recorded-own-decision reviews. The native ordinary
+and separate rollout tuples/downloads survive restart through Saved Session analyses.
+Strict original-source admission and persistence-only retry preserve the exact
+attempt; incomplete rollouts do not overwrite an earlier completed comparison.
+Current-position and Session Historical executions retain their existing lifetime.
+The historical process-local descriptions below remain the original live-view
+contract; they do not describe the new separately owned archive.
+
 Issue #285 adds the primary **Evaluate whole game** action and a separate latest
 rollout Result/download slot. The saved-method action and exporter described below
 remain available. See [explicit recorded whole-game review](recorded_whole_game_review.md)

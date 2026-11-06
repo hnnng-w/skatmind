@@ -313,6 +313,7 @@ from .session_frontend import (
     reload_guided_session_v1,
     rewind_guided_session_v1,
 )
+from .session_learning_rendering import session_links
 from .session_recorded_review import (
     RecordedDecisionReviewConflictError,
     execute_recorded_session_decision_v1,
@@ -456,6 +457,7 @@ _STATEFUL_POST_ROUTES = {
     "/sessions/review",
     "/sessions/review-decision",
     "/sessions/review-whole-game",
+    "/sessions/retry-saving",
     "/matches/import",
     "/matches/open",
     "/matches/api/v1/create",
@@ -2132,7 +2134,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             return_to=return_route,
             title=title,
             content=deletion_notice(self.server.app_context, route, self._frontend_state().locale)
-            + (saved_analyses_link(self._frontend_state().locale) if family == "matches" else "")
+            + (saved_analyses_link(self._frontend_state().locale) if family == "matches" else
+               session_links(self._frontend_state().locale) if family == "sessions" else "")
             + render_managed_category_landing_v1(
                 discovery.view,
                 profile=profile_state.document,
@@ -2230,11 +2233,15 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     "partial", "rejected", "unavailable", "conflict", "stale"})
             if active.declaration_correction.selected is not None:
                 self._operation_feedback_delivery = None
+        from .session_evidence_retention import session_delivery_guard
+        from .session_learning_rendering import session_receipt
+
+        self._retained_delivery_guard = session_delivery_guard(self.server.app_context, active)
         self._content_page(
             "/sessions",
             return_to="/sessions/current",
             title=managed_name(locale, profile, "sessions", active.state.session_id),
-            content=notice
+            content=notice + session_receipt(active, locale)
             + render_task_first_session_v1(
                 active,
                 app_context=self.server.app_context,
@@ -2614,6 +2621,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if path in _SESSION_DOWNLOAD_ROUTES:
             active = self._active_session()
             with active.lock:
+                from .session_evidence_retention import session_delivery_guard
+
+                self._retained_delivery_guard = session_delivery_guard(
+                    self.server.app_context, active)
                 if not path.endswith("session.json") and (
                     active.recorded_review_source is not None
                     or active.rollout_review_source is not None
@@ -3616,6 +3627,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         values = self._text_form(body, content_type)
         if path == RETRY_MATCH_ROUTE:
             handle_retry_saving(self, values)
+        elif path == "/sessions/retry-saving":
+            from .session_evidence_retention import save_pending_session
+            active = self._bound_active("sessions", values)
+            self._exact_fields(values, {"save_token"})
+            save_pending_session(self.server.app_context, active, values["save_token"])
+            self._session_page()
         elif path == OPEN_RECORDING_ROUTE:
             self._redirect(open_recording_for_review_v1(self.server.app_context, values))
         elif path in RECOVERY_ROUTES:

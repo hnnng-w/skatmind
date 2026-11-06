@@ -1,5 +1,13 @@
 # Automatic Match Learning review and maintenance UI (Issue #313, S5)
 
+Current S6 follow-up: the maintainer has accepted #313, including the installed
+functional scenario and bounded performance/readability correction, before #314 at
+`7eacaf250b7d7e1f23338d45a020a1a27557b3d2`. Pending statements below are historical
+records. [Issue #314](automatic_session_learning_s6_verification.md) extends the
+automatic view with native Session coverage/comparisons under one mixed generation;
+existing Match URLs, qualifications, ten exports and independent collections retain
+their boundaries. New hosted/installed gates apply to S6, not a repetition of S5.
+
 ## Current acceptance status
 
 The maintainer has completed **installed functional acceptance A–F** for

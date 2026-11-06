@@ -20,6 +20,7 @@ from skatmind.app_web.information_architecture import (
 from skatmind.app_web.localization_contracts import BrowserSafeFrontendProfileStateV1
 from skatmind.app_web.rendering import render_app_content_page_v1, render_app_page_v1
 from skatmind.app_web.state import build_browser_safe_application_state_v1
+from skatmind.app_web.translation_catalog import translate_frontend_message_v1
 
 
 def _frontend(locale: str) -> BrowserSafeFrontendProfileStateV1:
@@ -113,7 +114,7 @@ def test_information_architecture_rejects_drift(
             (
                 "Record games",
                 "Analyze and review",
-                "Learn across Matches",
+                "Learn from saved games",
             ),
             (
                 "Record a 36-game Match",
@@ -128,7 +129,7 @@ def test_information_architecture_rejects_drift(
             (
                 "Spiele erfassen",
                 "Analysieren und auswerten",
-                "Über mehrere Matches lernen",
+                translate_frontend_message_v1("de", "home.group.learn_across_matches.title"),
             ),
             (
                 "36er-Match erfassen",

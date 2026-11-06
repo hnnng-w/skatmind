@@ -559,7 +559,7 @@ def test_threaded_attempt_supersession_and_real_accepted_write_barrier(tmp_path,
 
     def blocked(*args, **kwargs):
         assert not app.lock._is_owned()
-        assert not service.coordinator.lock._is_owned()
+        assert not any(value.lock._is_owned() for value in service.coordinator.values)
         if threading.current_thread().name == "old-preparation":
             entered.set()
             assert release.wait(30)
@@ -573,7 +573,7 @@ def test_threaded_attempt_supersession_and_real_accepted_write_barrier(tmp_path,
         assert entered.wait(30)
         epoch = service.coordinator.generation
         rewrite(path, document)
-        assert service.coordinator.generation == epoch + 1
+        assert service.coordinator.generation == (epoch[0] + 1, epoch[1])
         assert service.update().status == "prepared"
         current = service.store.snapshot().manifest
     finally:

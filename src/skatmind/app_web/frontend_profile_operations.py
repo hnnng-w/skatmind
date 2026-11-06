@@ -50,6 +50,7 @@ _SAFE_STATIC_HTML_ROUTES = {
     "/recordings/delete",
     "/sessions",
     "/sessions/current",
+    "/sessions/saved-analyses",
     "/matches",
     "/matches/new",
     "/matches/current",
@@ -62,7 +63,7 @@ _SAFE_STATIC_HTML_ROUTES = {
 }
 _SAFE_MATCH_POSITION = re.compile(r"/matches/(?:position|review)/(?:[1-9]|[12][0-9]|3[0-6])\Z")
 _SAFE_MATCH_REPORT = re.compile(r"/matches/reports/[0-9a-f]{64}\Z")
-_SAFE_SAVED_MATCH = re.compile(r"/matches/saved-analyses/[0-9a-f]{64}\Z")
+_SAFE_SAVED_MATCH = re.compile(r"/(?:matches|sessions)/saved-analyses/[0-9a-f]{64}\Z")
 _SAFE_DEBRIEF = re.compile(r"/learning/debrief/[0-9a-f]{64}/(?:all|[0-9]+)(?:/[0-9a-f]{64})?\Z")
 _SAFE_LEARNING_PREPARED = re.compile(r"/learning/prepared/[0-9a-f]{64}\Z")
 

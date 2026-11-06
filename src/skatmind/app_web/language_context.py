@@ -129,7 +129,8 @@ def capture_language_source_v1(context: AppWebContextV1, route: str, *,
             None if service is None else service.attempt,
             None if service is None else service._installed, controller.confirmation), (),
             automatic_view=automatic_view)
-    if route == "/matches/saved-analyses" or route.startswith("/matches/saved-analyses/"):
+    if route in ("/matches/saved-analyses", "/sessions/saved-analyses") or route.startswith(
+            ("/matches/saved-analyses/", "/sessions/saved-analyses/")):
         return LanguageSourceV1(route, (context.saved_match_analyses,), ())
     from .learning_outcome_navigation import LEARNING_PREPARED_PATTERN, resolve_prepared_scope
 
@@ -365,7 +366,7 @@ def _require_files(context: AppWebContextV1, route: str, *, automatic_view=None)
         except (OSError, ValueError) as error:
             raise LanguageContextConflict from error
         return
-    if route.startswith("/matches/saved-analyses/"):
+    if route.startswith(("/matches/saved-analyses/", "/sessions/saved-analyses/")):
         from .saved_match_analyses import resolve_saved_analysis
 
         try:

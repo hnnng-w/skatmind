@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from skatmind.errors import SkatMindInvariantError, SkatMindValidationError
+from skatmind.match_source_coordination import match_source_coordinator
 from skatmind.session_persistence_codec import (
     build_session_persistence_document_v1,
     resume_session_document_v1,
@@ -269,6 +270,7 @@ def save_session_persistence_file_v1(
         )
 
     parent = _require_existing_parent_directory(path)
+    coordinator = match_source_coordinator(parent)
     persisted_bytes = _build_session_persistence_file_bytes_v1(requested)
     file_descriptor: int | None = None
     temporary_path: Path | None = None
@@ -285,17 +287,18 @@ def save_session_persistence_file_v1(
             temporary_file.flush()
             os.fsync(temporary_file.fileno())
 
-        current_exists, current = _pre_replace_existing_fingerprint(path)
-        if current_exists != target_exists or current != expected:
-            return _write_result(
-                status="conflict",
-                document=requested,
-                expected_content_fingerprint=expected,
-                existing_content_fingerprint=current,
-            )
-
-        os.replace(temporary_path, path)
-        temporary_path = None
+        with coordinator.lock:
+            current_exists, current = _pre_replace_existing_fingerprint(path)
+            if current_exists != target_exists or current != expected:
+                return _write_result(
+                    status="conflict",
+                    document=requested,
+                    expected_content_fingerprint=expected,
+                    existing_content_fingerprint=current,
+                )
+            os.replace(temporary_path, path)
+            coordinator.accepted_write(path.name)
+            temporary_path = None
         _best_effort_fsync_directory(parent)
         return _write_result(
             status="saved",

@@ -41,7 +41,7 @@ APP_NAVIGATION_LABELS = (
     "Record an individual game",
     "Review recorded games",
     "Analyze one decision",
-    "Learn across Matches",
+    "Learning",
     "Settings",
 )
 APP_HOME_TASK_TITLES = (
@@ -49,7 +49,7 @@ APP_HOME_TASK_TITLES = (
     "Record an individual game",
     "Review recorded games",
     "Analyze one decision",
-    "Explore patterns across recorded Matches",
+    "Learn from saved games",
 )
 APP_NAVIGATION_MESSAGE_KEYS = (
     "navigation.home",

@@ -121,6 +121,8 @@ class GuidedSessionContextV1:
     rollout_review_source: RecordedReviewSourceV1 | None = field(default=None, repr=False)
     rollout_notice: object | None = field(default=None, repr=False)
     execution_attempt: object | None = field(default=None, repr=False)
+    pending_evidence: object | None = field(default=None, repr=False)
+    evidence_notice: object | None = field(default=None, repr=False)
     operation_feedback: PendingOperationFeedback = field(
         default_factory=PendingOperationFeedback, repr=False)
     review_selection_key: bytes = field(default_factory=lambda: secrets.token_bytes(32), repr=False)
@@ -149,6 +151,8 @@ class GuidedSessionContextV1:
         self.require_attached()
         self.operation_feedback.begin()
         self.execution_attempt = object()
+        self.pending_evidence = None
+        self.evidence_notice = None
         return self.execution_attempt
 
     def require_attached(self) -> None:
@@ -164,6 +168,8 @@ class GuidedSessionContextV1:
         self.rollout_review_source = None
         self.rollout_notice = None
         self.execution_attempt = None
+        self.pending_evidence = None
+        self.evidence_notice = None
         self.declaration_correction.clear()
 
     @property

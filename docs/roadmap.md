@@ -2125,3 +2125,13 @@ This is a documentation plan, not implemented automatic Learning or acceptance
 evidence. Historical records and accepted #292–#307 scopes remain intact; #208 stays
 open, UAT-01 is not globally accepted, formal UAT-02–12 remain paused, and release
 preparation is not authorized.
+
+### Session-native automatic Learning implementation (Issue #314)
+
+At the #314 baseline, S1–S5 and #313's performance/readability correction are
+maintainer-accepted. [S6](automatic_session_learning_s6_verification.md) now adds
+complete saved Session identity, genuine native saved-method/rollout retention,
+explicit mixed-generation preparation, restart access and bilingual maintenance.
+Session-only updates preserve unchanged Match exports and qualification scope.
+New exact-commit hosted gates and narrow installed acceptance remain pending;
+S7 is the next source-family adapter. #208/UAT/release restrictions remain intact.

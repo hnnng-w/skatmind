@@ -9,8 +9,9 @@ import skatmind.api.v1.session as session_api
 import skatmind.api.v1.session.files as session_files
 from skatmind.api.v1 import ExecutionOptionsV1
 from skatmind.errors import SkatMindValidationError
+from skatmind.private_execution_capture import capture_native_execution
+from skatmind.session_recorded_coverage import project_saved_session_coverage
 from skatmind.session_rollout_review import derive_session_rollout_review_request_v1
-from skatmind.session_transitions import replay_session_state_v1
 from skatmind.whole_game_rollout_contracts import WholeGameRolloutSettingsV1
 from skatmind.whole_game_rollout_workflow import rollout_declaration
 
@@ -51,6 +52,8 @@ class RecordedReviewSourceV1:
     generation: int
     decision: RecordedDecisionV1
     attempt: object
+    coordinator: object = None
+    source_epoch: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,22 +71,9 @@ def project_recorded_session_decisions_v1(
     """Read only; select variants within this exact accepted history, never backfill."""
     with context.lock:
         document = context.document
-        state = document.state
-        selected: dict[int, tuple[int, RecordedDecisionV1]] = {}
-        unavailable = dict.fromkeys(("pending", "future", "diverged", "ended_without_play"), 0)
-        for index, checkpoint in enumerate(document.decision_checkpoints):
-            observation = session_api.observe_session_decision_checkpoint(
-                state=state, checkpoint=checkpoint,
-            ).value
-            if observation.status != "observed":
-                unavailable[observation.status] += 1
-                continue
-            revision = observation.observed_play_revision
-            previous = selected.get(revision)
-            if previous is not None and (
-                previous[1].checkpoint.source_revision >= checkpoint.source_revision
-            ):
-                continue
+        coverage = project_saved_session_coverage(document)
+        decisions = []
+        for index, checkpoint, observation in coverage.decisions:
             # The complete document binds the accepted Play and every stored variant.
             # A per-context secret also distinguishes reopen of the identical file.
             material = canonical_frontend_json_bytes_v1((
@@ -91,18 +81,10 @@ def project_recorded_session_decisions_v1(
                 checkpoint.to_dict(), observation.to_dict(),
             ))
             selection = hmac.new(context.review_selection_key, material, hashlib.sha256).hexdigest()
-            selected[revision] = (index, RecordedDecisionV1(checkpoint, observation, selection))
-        facts = replay_session_state_v1(state)
-        rule_end = facts.recording_rule_end
-        eligible_plays = (facts.plays if rule_end is None else
-                          facts.plays[:rule_end.decisive_play_count])
-        local_plays = sum(player == state.local_player_id for player, _ in eligible_plays)
-        decisions = tuple(sorted(
-            (value[1] for value in selected.values()),
-            key=lambda value: value.checkpoint.decision_index,
-        ))
+            decisions.append(RecordedDecisionV1(checkpoint, observation, selection))
         return RecordedReviewProjectionV1(
-            decisions, local_plays, local_plays - len(decisions), tuple(unavailable.items()),
+            tuple(decisions), coverage.own_plays, coverage.missing_checkpoints,
+            coverage.unavailable,
         )
 
 
@@ -133,6 +115,8 @@ def _require_source(context: GuidedSessionContextV1, source: RecordedReviewSourc
         raise RecordedDecisionReviewConflictError("selection")
     if context.execution_attempt is not source.attempt:
         raise RecordedDecisionReviewConflictError("superseded")
+    if source.coordinator is not None and source.coordinator.generation != source.source_epoch:
+        raise RecordedDecisionReviewConflictError("source_changed")
 
 
 def execute_recorded_session_decision_v1(
@@ -141,6 +125,8 @@ def execute_recorded_session_decision_v1(
     rollout_supplements: dict[str, str] | None = None,
 ) -> RecordedRolloutNoticeV1 | None:
     """Publish after unlocked execution; return only the source-checked incomplete notice."""
+    from .session_evidence_retention import retain_published_session, session_source_epoch
+
     with context.lock:
         with app.lock:
             _require_binding(app, context)
@@ -149,6 +135,7 @@ def execute_recorded_session_decision_v1(
         if decision is None:
             raise RecordedDecisionReviewConflictError()
         require_recorded_review_file_fresh_v1(context)
+        coordinator, epoch = session_source_epoch(context)
         exported = session_api.export_session_checkpoint_review_request(
             state=context.state, checkpoint=decision.checkpoint,
         ).value
@@ -157,7 +144,8 @@ def execute_recorded_session_decision_v1(
         with app.lock:
             _require_binding(app, context)
             attempt = context.begin_execution()
-            source = RecordedReviewSourceV1(context.document, context.generation, decision, attempt)
+            source = RecordedReviewSourceV1(context.document, context.generation, decision, attempt,
+                                            coordinator, epoch)
         request = exported.request
         if rollout_settings is not None:
             from .session_recorded_review_form import parse_recorded_rollout_supplements_v1
@@ -168,9 +156,13 @@ def execute_recorded_session_decision_v1(
             request = derive_session_rollout_review_request_v1(
                 state=context.state, checkpoint=decision.checkpoint, settings=rollout_settings,
                 supplements=supplements)
-    execution = execute_guided_frontend_review_v1(request, options=ExecutionOptionsV1())
+    with capture_native_execution() as captured:
+        execution = execute_guided_frontend_review_v1(request, options=ExecutionOptionsV1())
+    notice = None
     with context.lock:
         _require_source(context, source)
+        if coordinator.generation != epoch:
+            raise RecordedDecisionReviewConflictError("source_changed")
         require_recorded_review_file_fresh_v1(context)
         # Session -> short app binding/publication lock. Activation releases the app
         # lock before clearing a previous Session; no filesystem/engine work is nested.
@@ -194,8 +186,11 @@ def execute_recorded_session_decision_v1(
                     if context.rollout_execution is None:
                         context.rollout_execution = execution
                         context.rollout_review_source = source
-                    return context.rollout_notice
-                context.rollout_execution = execution
-                context.rollout_review_source = source
-                context.rollout_notice = None
-    return None
+                    notice = context.rollout_notice
+                else:
+                    context.rollout_execution = execution
+                    context.rollout_review_source = source
+                    context.rollout_notice = None
+    if len(captured) == 1:
+        retain_published_session(app, context, source, execution, captured[0], coordinator, epoch)
+    return notice

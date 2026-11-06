@@ -3109,6 +3109,17 @@ planned.
 
 ## Open future topics
 
+Current automatic Learning follow-up: S1–S5, including #313's bounded correction,
+are maintainer-accepted at `7eacaf250b7d7e1f23338d45a020a1a27557b3d2`.
+[Issue #314](automatic_session_learning_s6_verification.md) implements Session-native
+coverage and original executed evidence, one mixed generation, native restart
+navigation and Session archive maintenance. The linked record contains the exact
+implementation/validation inventory and later disposable installed scenario.
+Keep #314 open for new exact-commit branch/main gates and installed acceptance.
+S7 remains subsequent work, recommendation adaptation remains a later goal,
+#208 remains open and formal UAT-02–12 remain paused. Release preparation is not
+authorized.
+
 The approved pre-`v1.0.0`, post-`v1.0.0`, not-required, and excluded product
 areas are recorded in [v1.0 scope](v1_scope.md) and frozen by the
 [v1.0 scope and traceability audit](v1_0_scope_and_traceability_audit.md).

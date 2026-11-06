@@ -2139,6 +2139,14 @@ over maintainer-accepted S1–S4. Open Learning and explicitly Create/Update a r
 from saved managed Matches and retained analyses. View Player focuses, supporting
 situations and exact downloads; source exclusions and previewed storage maintenance
 are secondary. Viewing runs no card analysis or preparation. Independent collections
-remain available through their own controls. This implements the Match-only S5
-slice; Session and manual Historical Review adapters remain S6/S7. New exact-commit
-hosted gates and maintainer installed UI acceptance for #313 remain pending.
+remain available through their own controls. The Match-only S5 slice, including
+#313's bounded performance/readability correction, is maintainer-accepted.
+
+Issue #314 extends this to [saved Sessions and retained own-decision comparisons](docs/automatic_session_learning_s6_verification.md)
+under one mixed automatic generation. Saved-method and whole-game analyses survive
+restart through **Saved Session analyses**; Learning Update uses retained inputs
+without running card analyses. Missing Checkpoints and no-own-perspective recordings
+have explicit limited coverage. Session-only changes preserve the ten Match export
+bytes; qualified recurring focuses remain Match-specific. New exact-commit hosted
+gates and narrow maintainer installed acceptance for #314 remain pending. S7 saved
+manual Historical Review integration remains subsequent work.

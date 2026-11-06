@@ -71,7 +71,7 @@ def test_routes_navigation_home_tasks_and_categories_are_exact_and_ordered() -> 
         "Record an individual game",
         "Review recorded games",
         "Analyze one decision",
-        "Learn across Matches",
+        "Learning",
         "Settings",
     )
     assert APP_HOME_TASK_TITLES == (
@@ -79,7 +79,7 @@ def test_routes_navigation_home_tasks_and_categories_are_exact_and_ordered() -> 
         "Record an individual game",
         "Review recorded games",
         "Analyze one decision",
-        "Explore patterns across recorded Matches",
+        "Learn from saved games",
     )
     assert APP_NAVIGATION_ROUTE_PATHS == (
         "/", "/matches", "/sessions", "/review/recorded", "/analyze", "/learning", "/settings",
