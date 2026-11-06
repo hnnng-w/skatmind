@@ -24,6 +24,8 @@ from scripts.validation_identity import read_json, source_identity
 WORKFLOW = ".github/workflows/check.yml"
 FRESHNESS = timedelta(hours=24)
 OS_NAMES = ("ubuntu", "windows")
+# Committed hosted policy, never selected by a submitted report or CPU/timing data.
+HOSTED_REGRESSION_WORKERS = 4
 REQUIRED_JOBS = frozenset({
     "coordinator", "standards", "generated", "check", "v1-supported-platform-matrix",
     *(f"regression ({os_name})" for os_name in OS_NAMES),
@@ -229,13 +231,13 @@ def validate_gate_evidence(root: Path, gate: str, source: dict) -> None:
             raise ValueError("Incomplete or foreign validation stage evidence")
         if name.startswith("regression"):
             os_name = "Windows" if name.endswith("windows") else "Linux"
-            if environment["workers"] != 2 or environment["runner_os"] != os_name:
+            if (type(environment["workers"]) is not int
+                    or environment["workers"] != HOSTED_REGRESSION_WORKERS
+                    or environment["runner_os"] != os_name):
                 raise ValueError("Unexpected CI worker count or regression platform")
             collection, parallel, serial = [read_json(directory / f"pytest-{phase}.json")
                                             for phase in ("collection", "parallel", "exclusive")]
-            if len(parallel["worker_collections"]) != 2:
-                raise ValueError("Required pytest worker missing")
-            validate_test_accounting(collection, [parallel, serial], 2)
+            validate_test_accounting(collection, [parallel, serial], HOSTED_REGRESSION_WORKERS)
 
 
 def _exception_reason(error: Exception, diagnostics: dict) -> str:

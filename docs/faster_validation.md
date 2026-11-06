@@ -2,6 +2,17 @@
 
 ## Status and acceptance boundary
 
+Issue #315 is a bounded follow-up to maintainer-accepted #279. The pending-#279
+paragraphs below retain the original migration's point-in-time history, not a
+reopening of its accepted behavior. #315 changes hosted regression workers from
+two to four and adds diagnostic timing summaries. Its explicit local scope is
+complete affected validation-tool modules plus `./scripts/check.ps1 -Mode Quick`,
+using development CPython 3.13.7 and a 7,200,000 ms tool timeout for every validation
+invocation. No local Full, distribution build/install, or installed UAT is required
+for this task. Handoff is **locally validated; exact-commit hosted CI pending**.
+Keep #315 open until the next normal hosted execution and main-gate evidence are
+reviewed; no measured speedup is claimed before that execution.
+
 Issue #279 changes validation tooling and governance only. Package version,
 runtime dependencies, Product behavior, UAT installation/profile/recording, and
 UAT/release decisions are unchanged. The new routine policy is **pending actual
@@ -72,14 +83,20 @@ verify exact installed versions, and run `pip check`. No environment is reused.
 
 ## Pytest execution and isolation review
 
-Full first collects the complete suite, then runs `--dist=loadfile -n 2
---max-worker-restart=0`, then the exclusive serial phase. Worker crashes are not
+Full first collects the complete suite, then runs `--dist=loadfile -n <workers>
+--max-worker-restart=0`, then the exclusive serial phase. The local default remains
+two workers; both hosted regression lanes explicitly use four. Worker crashes are not
 retried. Each worker must report the same complete selected collection. The final
 accounting requires the two phases to equal the complete collection exactly once,
 with no duplicate/unknown node IDs, missing execution, failed setup/call/teardown,
 or incomplete teardown. Setup skips are retained as skips, never as passes.
 New test files automatically enter parallel execution. One-worker diagnosis runs
 all tests once in one process after the same collection check.
+The final hosted verifier requires the committed four-worker policy, four matching
+parallel collection reports, and zero worker collections in the exclusive phase.
+A submitted worker count cannot choose its own policy. Missing/extra phases or
+worker collections are rejected, including an absent parallel worker set. The
+local serial diagnostic path instead requires one non-xdist execution phase.
 
 The opt-in plugin changes no ordinary focused pytest invocation. Ambient
 `PYTEST_ADDOPTS` and configured `addopts` cannot narrow the exhaustive runner.
@@ -150,7 +167,7 @@ validation of its merge commit with read-only permissions. No PR is mandatory.
 
 After `coordinator`, `standards`, `generated`, two regressions, and two builds can
 run independently. Builds feed twelve cells (maximum four concurrent), followed
-by two per-OS semantic aggregates. Regressions use two processes each. Matrix
+by two per-OS semantic aggregates. Regressions use four workers each. Matrix
 `fail-fast` is false; required cells are allowed to finish for diagnosis. Exhaustive
 jobs have explicit 180-minute budgets. Per-ref concurrency never cancels an active
 run. This is a fixed graph, not changed-path test selection.
@@ -338,6 +355,109 @@ lines. CI retains a bounded fixed family of reports/artifacts for seven days,
 including failure sidecars; these are validation artifacts, not Release assets.
 Summaries distinguish elapsed wall time from **summed** test phase time across
 parallel workers. There is no extra benchmark run or timing-only acceptance gate.
+
+Issue #315 adds `logical_cpu_count` (`os.cpu_count`) and `process_cpu_count`
+(`os.process_cpu_count`) to the validation environment, with null when unavailable.
+These observed CPU counts and the existing OS/image/interpreter metadata are
+diagnostic; they neither auto-size workers nor authorize validation. After complete
+accounting, `pytest-performance.json` and the job summary report each execution
+phase's elapsed wall time, effective workers derived from its collection reports
+(one for serial), setup/call/teardown sums, and the slowest 20 modules by summed
+phase seconds, with module-name tie breaking. The complete per-test reports remain
+available. The sidecar is separate from Product outputs and from final-gate
+authorization; no timing threshold or performance-sidecar claim can replace the
+strict execution reports. Failed invocations retain their existing raw reports
+and logs without a successful complete-accounting/performance claim.
+
+### Issue #315 retrieved baseline and follow-up findings
+
+Authenticated read-only retrieval of run
+[`42245301290`](https://github.com/hnnng-w/skatmind/actions/runs/42245301290)
+at `310bd93370be0e88531c0ec31e61771227ee3bed` obtained `regression-ubuntu`
+(artifact `13525366761`) and `regression-windows` (artifact `13524675830`). All
+23 jobs succeeded. Workflow elapsed time was **105m47s**; the Actions pytest steps
+were **104m41s** on Ubuntu and **89m40s** on Windows. The platform-matrix gate
+completed **46m20s after workflow creation**. These are wall-clock observations,
+not sums of test time and not a controlled before/after benchmark.
+
+The retrieved `summary.json`, `pytest-parallel.json`, `pytest-exclusive.json`, and
+`pytest-accounting.json` give the following values, rounded to hundredths of a
+second. Recomputed per-test phase sums agree with the accounting files.
+
+| Measurement (seconds) | Ubuntu | Windows |
+|---|---:|---:|
+| Validation entry-point wall time | 6,279.97 | 5,380.50 |
+| Collection wall time | 24.90 | 17.43 |
+| Parallel phase wall time | 6,126.79 | 5,257.84 |
+| Exclusive phase wall time | 125.73 | 103.29 |
+| Summed setup, all executed tests | 760.62 | 637.16 |
+| Summed call, all executed tests | 10,656.37 | 9,046.16 |
+| Summed teardown, all executed tests | 767.71 | 775.72 |
+| Exclusive summed setup | 0.09 | 0.33 |
+| Exclusive summed call | 81.44 | 65.09 |
+| Exclusive summed teardown | 19.44 | 20.32 |
+
+Each platform collected 12,271 tests: 12,176 in the parallel phase with two
+matching worker collections, then 95 in the four exclusive modules. Ubuntu had
+12,266 passes and five explicit skips; Windows had 12,271 passes. Both recorded
+CPython 3.13.15. Ubuntu recorded image `ubuntu24` / `20261101.360.1`,
+`Linux-7.0.0-1017-azure-x86_64-with-glibc2.39`; Windows recorded image
+`win25-vs2026` / `20261030.294.1`, `Windows-2025Server-10.0.26100-SP0`.
+These artifacts did **not** record CPU capacity or per-worker scheduling
+timestamps, so baseline capacity and an observed end-of-run worker tail cannot be
+reconstructed from them. The new capacity fields must be inspected on the next
+hosted run. Windows Server evidence remains distinct from Windows 11/UAT evidence.
+
+Largest parallel modules (all paths below are under `tests/`; values are summed
+test-phase seconds, **not job wall time**):
+
+| Module | Ubuntu setup / call / teardown | Windows setup / call / teardown |
+|---|---:|---:|
+| `test_automatic_match_learning_evidence.py` | 13.61 / 1,085.11 / 0.004 | 11.58 / 984.81 / 0.006 |
+| `test_installed_cli.py` | 0.03 / 1,048.48 / 0.008 | 0.06 / 764.40 / 0.012 |
+| `test_automatic_learning_delivery_receipt.py` | 702.46 / 55.66 / 0.003 | 575.87 / 44.30 / 0.005 |
+| `test_automatic_match_evidence.py` | 3.69 / 692.67 / 0.008 | 3.17 / 583.98 / 0.011 |
+| `test_saved_match_rollouts_web.py` | 0.03 / 413.46 / 4.95 | 0.07 / 341.29 / 4.51 |
+
+Concrete follow-up opportunities, without changing fixtures or Product code here:
+
+* Delivery-receipt tests repeatedly use the function-scoped `admitted` fixture to
+  create/archive/prepare genuine evidence. Its module's setup dominates its call
+  time (702.46s Ubuntu / 575.87s Windows). Any later reuse proposal must preserve
+  independent mutation/corruption isolation and genuine evidence assertions.
+* File grouping keeps each large module on one worker. The largest module totals
+  1,098.72s Ubuntu / 996.40s Windows; its
+  `test_all_methods_rollout_separation_restart_bytes_and_zero_analysis` call alone
+  takes 619.59s / 555.35s. Installed-CLI coverage totals 1,048.52s / 764.47s.
+  These are measured indivisible file workloads and possible tail bottlenecks,
+  not proof of when either worker finished. Four workers cannot split such files.
+* Teardown totals remain 767.71s / 775.72s across the full suite; the largest
+  individual teardown observations are about 0.5s in web-server fixtures. Preserve
+  observer isolation and timeouts in any subsequent investigation.
+* Exclusive `test_match_analysis_action_placement.py` contributes 67.79s / 54.45s
+  summed time; the other exclusive modules total 17.23s / 15.97s (Corpus web),
+  15.44s / 14.80s (unified rejection), and 0.51s / 0.51s (early rejection).
+  All four stay serial after parallel workers exit.
+
+Local #315 verification on development CPython 3.13.7 passed all 205 tests across
+the complete validation runner, CI validator, recorded-reuse, and packaging-policy
+test modules in 16.42s. The subsequent four-module exclusive run, after all parallel
+workers exited, reported 94 passes and one failure in 92.82s:
+`test_match_analysis_action_placement.py::test_actual_analysis_route_bounds_and_strict_fields`.
+Its full-upload observer received Windows `ConnectionAbortedError(10053)` with no
+response bytes after sending 1,048,577 bytes. No Python processes remained after
+the run. One bounded diagnostic invocation of the complete failing module then
+passed all 25 tests in 58.75s. The original serial-run failure remains a concrete
+intermittent transport-observation finding for hosted acceptance; the diagnostic
+pass is not a clean original-run result or proof of a cause/fix. No test, fixture,
+observer, timeout, retry policy, or Product behavior was changed to obtain it.
+
+The changed hosted graph, complete accounting, observed capacity/effective workers,
+before/after wall times, remaining critical path, and both exact-commit main gates
+remain maintainer acceptance work for #315. Accepted #279 behavior and #292–#313
+Product scopes are preserved. #314 installed acceptance is separate and pending;
+#208 remains open, formal UAT-02–12 remain paused, and release preparation is not
+authorized.
 
 The historical #278 observations were 10,330 passed / 3 skipped in 3890.52 pytest
 seconds plus other local gates, and roughly 90 minutes for CI run 37537963789 at

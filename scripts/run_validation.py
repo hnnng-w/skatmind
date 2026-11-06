@@ -43,6 +43,7 @@ def environment_evidence(workers: int) -> dict:
     return {
         "commit": commit, "python": sys.version, "interpreter": sys.executable,
         "platform": platform.platform(), "workers": workers,
+        "logical_cpu_count": os.cpu_count(), "process_cpu_count": os.process_cpu_count(),
         "installation_mode": "development", "runner_os": os.environ.get("RUNNER_OS"),
         "runner_image": os.environ.get("ImageOS"),
         "runner_image_version": os.environ.get("ImageVersion"),
@@ -83,18 +84,23 @@ def run_stage(name: str, command: list[str], directory: Path) -> dict:
 
 
 def validate_test_accounting(collection: dict, phases: list[dict], workers: int) -> dict:
+    if type(workers) is not int or not 1 <= workers <= 8:
+        raise ValueError("Unsupported worker policy")
+    worker_counts = [0] if workers == 1 else [workers, 0]
+    if len(phases) != len(worker_counts) or collection["worker_collections"]:
+        raise ValueError("Unexpected collection or execution phase layout")
     expected = collection["collected"]
     if collection["exit_status"] != 0 or not expected or len(set(expected)) != len(expected):
         raise ValueError("Full collection failed, is empty, or has duplicate IDs")
     actual = []
     outcomes = Counter()
     durations = Counter()
-    for phase in phases:
+    for phase, expected_workers in zip(phases, worker_counts, strict=True):
         ids = phase["collected"]
         if phase["exit_status"] != 0:
             raise ValueError("A pytest phase failed")
         collections = phase["worker_collections"]
-        if collections and (len(collections) != workers or any(c != ids for c in collections)):
+        if len(collections) != expected_workers or any(c != ids for c in collections):
             raise ValueError("Worker collections are incomplete or inconsistent")
         actual.extend(ids)
         reports = phase["reports"]
@@ -125,6 +131,48 @@ def validate_test_accounting(collection: dict, phases: list[dict], workers: int)
             "summed_test_phase_seconds": dict(durations)}
 
 
+def test_duration_summary(phase: dict) -> dict:
+    """Bounded diagnostic reduction of existing reports, never a timing gate."""
+    modules = {}
+    totals = Counter({"setup": 0.0, "call": 0.0, "teardown": 0.0})
+    for report in phase["reports"]:
+        module = report["nodeid"].split("::", 1)[0]
+        times = modules.setdefault(module, Counter({"setup": 0.0, "call": 0.0, "teardown": 0.0}))
+        times[report["when"]] += report["duration"]
+        totals[report["when"]] += report["duration"]
+    rows = [{"module": name, **times, "summed_seconds": sum(times.values())}
+            for name, times in modules.items()]
+    return {"module_count": len(rows), "summed_test_phase_seconds": dict(totals),
+            "slowest_modules": sorted(rows, key=lambda r: (-r["summed_seconds"], r["module"]))[:20]}
+
+
+def render_pytest_performance(performance: dict) -> str:
+    lines = ["### Pytest performance diagnostics",
+             "Module/phase totals sum setup, call and teardown across workers; "
+             "they are not elapsed wall time or acceptance thresholds."]
+    for phase in performance["phases"]:
+        times = phase["summed_test_phase_seconds"]
+        lines.extend([
+            f"\n#### {phase['phase']}: wall {phase['wall_seconds']:.3f}s; "
+            f"effective workers {phase['effective_workers']}",
+            f"Summed setup {times['setup']:.3f}s; call {times['call']:.3f}s; "
+            f"teardown {times['teardown']:.3f}s.",
+            f"Slowest {len(phase['slowest_modules'])} of {phase['module_count']} modules:", "",
+            "| Module | Summed seconds | Setup | Call | Teardown |",
+            "|---|---:|---:|---:|---:|",
+        ])
+        lines.extend(f"| `{r['module']}` | {r['summed_seconds']:.3f} | {r['setup']:.3f} | "
+                     f"{r['call']:.3f} | {r['teardown']:.3f} |" for r in phase["slowest_modules"])
+    return "\n".join(lines) + "\n"
+
+
+def publish_summary(rendered: str) -> None:
+    print(rendered, flush=True)
+    if os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as output:
+            output.write(rendered)
+
+
 def run_pytest(directory: Path, workers: int, stages: list) -> int:
     common = [sys.executable, "-m", "pytest", "-p", "scripts.validation_pytest",
               "-o", f"cache_dir={directory / 'pytest-cache'}",
@@ -140,6 +188,7 @@ def run_pytest(directory: Path, workers: int, stages: list) -> int:
             ("exclusive", "serial", []),
         ])
     results = []
+    performance = {"phases": []}
     for name, phase, options in phases:
         report = directory / f"pytest-{name}.json"
         result = run_stage(f"pytest-{name}", [
@@ -149,13 +198,21 @@ def run_pytest(directory: Path, workers: int, stages: list) -> int:
         if result["exit_status"]:
             return result["exit_status"]
         results.append(json.loads(report.read_text(encoding="utf-8")))
-    if workers > 1 and len(results[1]["worker_collections"]) != workers:
-        raise ValueError("Parallel workers did not all report collection")
+        if name != "collection":
+            performance["phases"].append({
+                "phase": name, "wall_seconds": result["wall_seconds"],
+                "effective_workers": len(results[-1]["worker_collections"]) or 1,
+                **test_duration_summary(results[-1]),
+            })
     summary = validate_test_accounting(results[0], results[1:], workers)
     (directory / "pytest-accounting.json").write_text(
         json.dumps(summary, indent=2) + "\n", encoding="utf-8",
     )
     print(f"Complete pytest accounting: {summary}", flush=True)
+    (directory / "pytest-performance.json").write_text(
+        json.dumps(performance, indent=2) + "\n", encoding="utf-8",
+    )
+    publish_summary(render_pytest_performance(performance))
     return 0
 
 
@@ -198,16 +255,15 @@ def main(argv=None) -> int:
         )
         lines = [f"### Validation {summary['mode']}: exit {code}",
                  f"Wall time: {summary['wall_seconds']:.3f}s; workers: {args.workers}",
+                 f"Observed CPUs: logical={summary['environment'].get('logical_cpu_count')}; "
+                 f"process-usable={summary['environment'].get('process_cpu_count')}",
                  f"Commit: `{summary['environment']['commit']}`",
                  f"Environment: `{summary['environment']['platform']}`", "",
                  "| Stage | Wall seconds | Exit |", "|---|---:|---:|"]
         lines.extend(f"| {r['stage']} | {r['wall_seconds']:.3f} | {r['exit_status']} |"
                      for r in summary["stages"])
         rendered = "\n".join(lines) + "\n"
-        print(rendered, flush=True)
-        if os.environ.get("GITHUB_STEP_SUMMARY"):
-            with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as output:
-                output.write(rendered)
+        publish_summary(rendered)
     if code == 0:
         print(f"{summary['mode']} passed." + (
             " Focused tests, exhaustive tests, generated outputs and installations are separate."

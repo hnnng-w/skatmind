@@ -210,12 +210,12 @@ def write_gate_evidence(root):
                          ("regression-windows", ("pytest-collection", "pytest-parallel",
                                                  "pytest-exclusive"))):
         write(name, "summary.json", {"exit_status": 0, "environment": {
-            **SOURCE, "workers": 2,
+            **SOURCE, "workers": 4,
             "runner_os": "Windows" if name.endswith("windows") else "Linux"},
             "stages": [{"stage": stage, "exit_status": 0} for stage in stages]})
         if name.startswith("regression"):
             for label, report in (("collection", phase(["a", "b"])),
-                                  ("parallel", phase(["a"], 2)), ("exclusive", phase(["b"]))):
+                                  ("parallel", phase(["a"], 4)), ("exclusive", phase(["b"]))):
                 write(name, f"pytest-{label}.json", report)
 
 
@@ -224,7 +224,89 @@ def test_final_gate_reads_both_platforms_and_complete_regression_reports(tmp_pat
     ci.validate_gate_evidence(tmp_path, "check", SOURCE)
     path = tmp_path / "regression-windows" / "pytest-parallel.json"
     path.write_text(json.dumps(phase([])))
-    with pytest.raises(ValueError, match="worker"):
+    with pytest.raises(ValueError, match="Worker collections"):
+        ci.validate_gate_evidence(tmp_path, "check", SOURCE)
+
+
+@pytest.mark.parametrize("lane", ["ubuntu", "windows"])
+@pytest.mark.parametrize("workers", [1, 2, 3, 5, 8, "4", 4.0])
+def test_final_gate_requires_configured_policy_not_submitted_count(tmp_path, lane, workers):
+    write_gate_evidence(tmp_path)
+    directory = tmp_path / f"regression-{lane}"
+    path = directory / "summary.json"
+    report = json.loads(path.read_text())
+    report["environment"]["workers"] = workers
+    path.write_text(json.dumps(report))
+    # Even internally consistent reports cannot select another hosted policy.
+    (directory / "pytest-parallel.json").write_text(json.dumps(phase(["a"], int(workers))))
+    with pytest.raises(ValueError, match="worker count"):
+        ci.validate_gate_evidence(tmp_path, "check", SOURCE)
+
+
+@pytest.mark.parametrize("corruption", [
+    "missing-report", "missing-worker", "extra-worker", "inconsistent-worker",
+    "exclusive-workers", "missing-test", "duplicate-test", "failed-call",
+    "missing-teardown", "failed-phase", "reordered-phases", "foreign-source",
+])
+def test_final_gate_fails_closed_on_incomplete_regression_evidence(
+    tmp_path, monkeypatch, corruption,
+):
+    setup_environment(tmp_path, monkeypatch)
+    write_gate_evidence(tmp_path)
+    monkeypatch.setattr(ci, "source_identity", lambda: SOURCE)
+    needs = {name: {"result": "success"} for name in (
+        "coordinator", "standards", "generated", "regression", "build", "cells", "matrix-result")}
+    monkeypatch.setenv("NEEDS_JSON", json.dumps(needs))
+    directory = tmp_path / "regression-windows"
+    filename = ("summary.json" if corruption in ("reordered-phases", "foreign-source") else
+                "pytest-exclusive.json" if corruption == "exclusive-workers" else
+                "pytest-parallel.json")
+    path = directory / filename
+    report = json.loads(path.read_text())
+    if corruption == "missing-report":
+        path.unlink()
+    else:
+        if corruption == "missing-worker":
+            report["worker_collections"].pop()
+        elif corruption == "extra-worker":
+            report["worker_collections"].append(["a"])
+        elif corruption == "inconsistent-worker":
+            report["worker_collections"][0] = ["other"]
+        elif corruption == "exclusive-workers":
+            report["worker_collections"] = [["b"]] * 4
+        elif corruption == "missing-test":
+            report["reports"] = []
+        elif corruption == "duplicate-test":
+            report["reports"] *= 2
+        elif corruption == "failed-call":
+            report["reports"][1]["outcome"] = "failed"
+        elif corruption == "missing-teardown":
+            report["reports"].pop()
+        elif corruption == "failed-phase":
+            report["exit_status"] = 1
+        elif corruption == "reordered-phases":
+            report["stages"].reverse()
+        elif corruption == "foreign-source":
+            report["environment"]["source_digest"] = "foreign"
+        path.write_text(json.dumps(report))
+    assert ci.main(["gate", "--gate", "check", "--evidence-root", str(tmp_path)]) == 1
+    assert "gate_evidence_invalid" in (tmp_path / "summary").read_text()
+
+
+def test_performance_diagnostics_do_not_authorize_or_disqualify_evidence(tmp_path):
+    write_gate_evidence(tmp_path)
+    directory = tmp_path / "regression-windows"
+    # Diagnostics are never read as validation authorization, nor are timings gates.
+    (directory / "pytest-performance.json").write_text("not authorization")
+    path = directory / "pytest-parallel.json"
+    report = json.loads(path.read_text())
+    for row in report["reports"]:
+        row["duration"] = 10**9
+    path.write_text(json.dumps(report))
+    ci.validate_gate_evidence(tmp_path, "check", SOURCE)
+    report["reports"].pop()
+    path.write_text(json.dumps(report))
+    with pytest.raises(ValueError):
         ci.validate_gate_evidence(tmp_path, "check", SOURCE)
 
 
@@ -234,7 +316,11 @@ def test_workflow_has_bounded_safe_complete_graph():
                  "matrix-result", "check", "v1-supported-platform-matrix"):
         assert f"\n  {name}:\n" in text
     assert 'branches: ["**"]' in text and "pull_request:" in text
-    assert "max-parallel: 4" in text and "--workers 2" in text
+    assert "max-parallel: 4" in text
+    regression = text.split("\n  regression:\n")[1].split("\n  build:\n")[0]
+    assert ci.HOSTED_REGRESSION_WORKERS == 4
+    assert re.findall(r"--workers (\d+)", regression) == [str(ci.HOSTED_REGRESSION_WORKERS)]
+    assert "- os: ubuntu" in regression and "- os: windows" in regression
     assert "windows-2025" in text and "ubuntu-latest" in text
     assert "cache: pip" in text and "retention-days: 7" in text
     assert "timeout-minutes: 180" in text
