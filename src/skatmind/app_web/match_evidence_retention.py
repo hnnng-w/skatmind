@@ -82,6 +82,13 @@ def capture_original_document(context, active):
 
 def retain_published_match(context, active, document, attempt, workspace, report,
                            invocation, execution, *, source_guard):
+    if report.report_kind == "historical_analysis":
+        from skatmind.automatic_match_historical_evidence import (
+            build_match_historical_capture_candidate,
+        )
+        _retain_published(context, active, document, attempt, workspace, report, invocation,
+            execution, source_guard=source_guard, builder=build_match_historical_capture_candidate)
+        return
     if report.value.options.recommendation_method not in ORDINARY_METHODS:
         return
     _retain_published(context, active, document, attempt, workspace, report, invocation,

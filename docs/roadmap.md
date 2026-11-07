@@ -2133,5 +2133,17 @@ maintainer-accepted. [S6](automatic_session_learning_s6_verification.md) now add
 complete saved Session identity, genuine native saved-method/rollout retention,
 explicit mixed-generation preparation, restart access and bilingual maintenance.
 Session-only updates preserve unchanged Match exports and qualification scope.
-New exact-commit hosted gates and narrow installed acceptance remain pending;
-S7 is the next source-family adapter. #208/UAT/release restrictions remain intact.
+S1–S6 and #315 are now maintainer-accepted, with #314/#315 closed and S6 installed
+acceptance completed on main `08022a6def9f06891d99e1097c2bf0ba84d77039`. Earlier
+pending statements remain historical.
+
+### Historical automatic Learning implementation (Issue #316, S7)
+
+[S7](automatic_historical_learning_s7_verification.md) adds saved manual guided/imported
+Historical Reviews and their genuine executions, managed Match Historical retention,
+strict source identity/admission, codec-4 mixed generations, native restart discovery,
+correction/deletion and exact delivery. Historical findings remain per-game evidence;
+qualified focuses and ten prepared downloads retain their Match-only scope. Direct
+Session Historical/Finalize capture and recommendation adaptation remain separate.
+Keep #316 open for new exact-commit hosted gates and narrow installed A–D acceptance.
+Accepted S1–S6 scopes and #208/UAT/release restrictions remain intact.

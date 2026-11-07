@@ -558,4 +558,9 @@ def test_manual_import_and_real_result_survive_chooser(localized_server, example
     assert localized_server.app_context.review_state is state
     assert browser.request("GET", "/downloads/review/result.json")[2] == result
     assert text("en", "guided.run_imported_again") in page
-    assert 'href="/downloads/review/request.json"' in page
+    if state.latest_successful_request.workflow.value == "historical_game":
+        request_route = re.search(
+            r'href="(/review/execution/[0-9a-f]{64}/request.json)"', page)[1]
+        assert browser.request("GET", request_route)[2] == state.request_json_bytes
+    else:
+        assert 'href="/downloads/review/request.json"' in page

@@ -1,6 +1,7 @@
 """Analysis artifact/content ownership; real returned pages separate from scalar fixtures."""
 import hashlib
 import json
+import re
 from collections import Counter
 from dataclasses import replace
 
@@ -96,21 +97,27 @@ def test_real_import_execution_download_and_failed_input(localized_server, area,
     assert 'href="#recorded-decision-' not in page
     state = getattr(localized_server.app_context, area + "_state")
     before = state.request_json_bytes, state.result_json_bytes
-    assert_analysis_actions(page, (request_route, result_route))
+    execution_routes = (request_route, result_route)
+    if area == "review":
+        execution_routes = tuple(node["attrs"]["href"] for node in download_nodes(page))
+        assert len(execution_routes) == 2
+        assert re.fullmatch(r"/review/execution/[0-9a-f]{64}/request.json", execution_routes[0])
+        assert execution_routes[1] == execution_routes[0].replace("request.json", "result.json")
+    assert_analysis_actions(page, execution_routes)
     assert text("en", "result.import_details") in page
     for name, raw in zip(("request", "result"), before, strict=True):
-        assert_delivery(browser, f"/downloads/{area}/{name}.json", raw,
+        assert_delivery(browser, execution_routes[0 if name == "request" else 1], raw,
                         f'skatmind-{"position" if area == "analyze" else "review"}-{name}.json')
     # Rejected new input leaves the older accepted import and Result owners intact.
     body, kind = _multipart(b'{"invalid":true}', revision=state.revision)
     rejected = _request(localized_server, "POST", f"/actions/{area}/import-json", body=body,
         headers={"Cookie": browser.cookie, "Origin": localized_server.origin, "Content-Type": kind})
     assert rejected[0] == 400
-    assert_analysis_actions(rejected[2].decode(), (request_route, result_route))
+    assert_analysis_actions(rejected[2].decode(), execution_routes)
     for locale in ("de", "en"):
         page = follow(browser, browser.submit(Forms(browser.page("/" + area)).find(
             "/actions/profile/language"), language=locale))
-        assert_analysis_actions(page, (request_route, result_route), locale)
+        assert_analysis_actions(page, execution_routes, locale)
     assert (getattr(localized_server.app_context, area + "_state").request_json_bytes,
             getattr(localized_server.app_context, area + "_state").result_json_bytes) == before
     # Accepted replacement invalidates the previous Result; only the new import is downloadable.

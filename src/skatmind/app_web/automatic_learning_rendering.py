@@ -85,9 +85,15 @@ def source_exceptions(view, locale):
                                                 for row in manifest.exclusions)
         status = ("explicit" if explicit else exclusions.get(source,
                   rows[0].status if rows else "missing"))
-        family = ("session_learning.count.sessions" if source.family == "session"
+        family = ("historical_learning.count.saved_reviews" if source.family == "historical_review"
+                  else "session_learning.count.sessions" if source.family == "session"
                   else "automatic.count.matches")
         name = source.product_id if len(source.product_id) <= 48 else source.product_id[:24] + "…"
+        if source.family == "historical_review":
+            name = next((text(locale, "historical_learning.caption", name="", people=label,
+                              revision=revision).lstrip(" ·")
+                         for key, label, revision in view.binding.inventory.historical.captions
+                         if key == source), name)
         body += '<li><p>' + translated(locale, family) + ' · ' + escape(name) + ': ' + translated(
             locale, "automatic.input." + status) + '</p>'
         if manifest is not None:
@@ -112,6 +118,8 @@ def render_entry(view, locale, *, landing=False):
     body = '<section class="panel automatic-learning"><h2>' + translated(
         locale, "automatic.title") + '</h2>'
     body += FEEDBACK_MARKER + paragraph(locale, "automatic.scope")
+    from .historical_learning_rendering import historical_links
+    body += historical_links(locale)
     body += paragraph(locale, "automatic.state." + status) + update_form(view, locale)
     if view.binding.installed is not None and status in ("current", "outdated"):
         body += link(view.base + "/all", text(locale,
@@ -178,7 +186,10 @@ def render_review(view, selector, locale):
     else:
         body += disclosure(locale, "learning.result.included_data", inputs)
     from .session_learning_navigation import render_session_review
-    body += render_session_review(view, locale)
+    if not hasattr(bundle, "historical_sources") or bundle.session_sources:
+        body += render_session_review(view, locale)
+    from .historical_learning_rendering import render_historical_review
+    body += render_historical_review(view, locale)
     body += update_form(view, locale) + maintenance(view, locale)
     body += link(AUTOMATIC_PAGE, text(locale, "automatic.back")) + '</section>'
     return AutomaticDisplay(body, text(locale, "automatic.title"))
@@ -250,7 +261,11 @@ def render_confirmation(value, locale):
                    else "cleanup")
         body += paragraph(locale, "automatic.preview." + meaning)
     if value.source is not None:
-        body += '<p>' + escape(value.source.product_id) + '</p>'
+        caption = next((text(locale, "historical_learning.caption", name="", people=label,
+                             revision=revision).lstrip(" ·")
+                        for key, label, revision in value.view.binding.inventory.historical.captions
+                        if key == value.source), value.source.product_id)
+        body += '<p>' + escape(caption) + '</p>'
     if cleanup is not None:
         body += paragraph(locale, "automatic.cleanup_effect", objects=len(cleanup.files),
                           reports=len(cleanup.removed_evidence_ids))
@@ -258,7 +273,7 @@ def render_confirmation(value, locale):
             translated(locale, "automatic.unavailable_report", report=entry.identity[:12]))
             + '</li>' for entry, retained in value.evidence) + '</ul>'
         if value.kind == "obsolete_sources":
-            retained = sum(row.source_version.source.family in ("match", "session")
+            retained = sum(row.source_version.source.family in ("match", "session", "historical_review")
                            for row in cleanup.manifest.sources)
             body += paragraph(locale, "automatic.source_release_count",
                               sources=len(value.sources), retained=retained)
@@ -287,6 +302,8 @@ def render_confirmation(value, locale):
 
 
 def _archive_source_name(record, snapshot):
+    if record.source_version.source.family == "historical_review":
+        return snapshot.name
     if record.source_version.source.family == "session":
         name = snapshot.document.state.session_id
         return name if len(name) <= 32 else record.source_version.source.identity[:12]

@@ -79,6 +79,12 @@ def build_mixed_bundle(sources, evidence, *, mixed, corpus_id, dataset_id, catal
 
 
 def generation_object(generation, sources, evidence):
+    from .automatic_historical_preparation import (
+        AutomaticHistoricalGeneration,
+        historical_generation_object,
+    )
+    if type(generation) is AutomaticHistoricalGeneration:
+        return historical_generation_object(generation, sources, evidence)
     if type(generation) is AutomaticMatchGeneration:
         return match_generation_object(generation, sources, evidence)
     dependencies = tuple(sorted({row[1].object_ref for row in sources}
@@ -92,6 +98,9 @@ def admit_generation(obj, manifest):
     from .app_web.automatic_session_inventory import SessionInventoryRow
     from .corpus_web.downloads import LEARNING_CORPUS_ALL_PREPARED_DOWNLOAD_KINDS
 
+    if obj.codec_version == 4:
+        from .automatic_historical_preparation import admit_historical_generation
+        return admit_historical_generation(obj, manifest)
     if obj.codec_version != 3:
         return admit_match_generation(obj, manifest)
     data = decode_json(obj.payload)
@@ -101,6 +110,9 @@ def admit_generation(obj, manifest):
             or data["producer"] != "automatic_mixed_preparation"):
         raise UnsupportedGeneration("Unsupported mixed generation producer.")
     recipe = validate_generation(obj, manifest)
+    if any(row.identity in recipe.evidence_ids and row.evidence_class == "historical"
+           for row in manifest.evidence):
+        raise UnsupportedGeneration("Codec-3 recipes do not admit Historical executions.")
     if (recipe.adapter_versions != MIXED_ADAPTERS or recipe.builder_versions != MIXED_BUILDERS
             or (recipe.corpus_id, recipe.dataset_id) != automatic_ids(manifest.space_id)
             or recipe.seed != 0 or recipe.partition_weights != (70, 15, 15)):

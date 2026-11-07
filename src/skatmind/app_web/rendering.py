@@ -371,6 +371,8 @@ def render_app_page_v1(
     analyze_state: ProcessLocalFrontendWorkflowStateV1 | None = None,
     review_state: ProcessLocalFrontendWorkflowStateV1 | None = None,
     review_player_names: tuple[str, ...] = (),
+    review_receipt: str = "",
+    review_download_base: str | None = None,
     frontend: BrowserSafeFrontendProfileStateV1 | None = None,
     profile: LocalFrontendProfileV1 | None = None,
     settings_editor=None,
@@ -403,9 +405,10 @@ def render_app_page_v1(
             analyze_state or ProcessLocalFrontendWorkflowStateV1(), locale=frontend_state.locale)
     elif route == "/review":
         title = _text(frontend_state, "page.review.title")
-        content = render_review_workflow_v1(
+        content = review_receipt + render_review_workflow_v1(
             review_state or ProcessLocalFrontendWorkflowStateV1(),
-            player_names=review_player_names, locale=frontend_state.locale)
+            player_names=review_player_names, download_base=review_download_base,
+            locale=frontend_state.locale)
     elif route == "/about":
         if not isinstance(storage_root, Path):
             raise ValueError("About rendering requires one private storage Path.")

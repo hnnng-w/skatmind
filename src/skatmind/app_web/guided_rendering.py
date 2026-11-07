@@ -293,7 +293,7 @@ def _imported_request(
     )
 
 
-def _result(state: ProcessLocalFrontendWorkflowStateV1, *, page: str) -> str:
+def _result(state: ProcessLocalFrontendWorkflowStateV1, *, page: str, download_base=None) -> str:
     if state.execution_source_revision is not None:
         return f'<p class="execution-status" role="status">{_t("guided.running")}</p>'
     if state.latest_successful_result is None:
@@ -304,6 +304,8 @@ def _result(state: ProcessLocalFrontendWorkflowStateV1, *, page: str) -> str:
         request_download_available=state.request_json_bytes is not None,
         result_download_available=state.result_json_bytes is not None,
         page=page,
+        **({"request_download_route": download_base + "/request.json",
+            "result_download_route": download_base + "/result.json"} if download_base else {}),
     )
 
 
@@ -664,6 +666,7 @@ def _review_step(
 @localized_render
 def render_review_workflow_v1(
     state: ProcessLocalFrontendWorkflowStateV1, *, player_names: tuple[str, ...] = (),
+    download_base=None,
 ) -> str:
     if type(state) is not ProcessLocalFrontendWorkflowStateV1:
         raise ValueError("state must be exact process-local workflow state.")
@@ -672,9 +675,10 @@ def render_review_workflow_v1(
     messages = _messages(state)
     draft = state.draft if type(state.draft) is HistoricalFormDraftV1 else None
     content = [
-        _process_local_notice(),
+        f'<aside class="local-notice">{_t("historical_learning.draft")}</aside>',
+        f'<p><a class="button-link secondary" href="/review/saved">{_t("historical_learning.saved")}</a></p>',
         _error_summary(messages),
-        _result(state, page="review"),
+        _result(state, page="review", download_base=download_base),
     ]
     if draft is None and state.imported_request is None:
         content.append(
@@ -683,6 +687,12 @@ def render_review_workflow_v1(
         )
     if draft is not None:
         content.append(_review_step(state, draft, messages, player_names))
+    elif state.imported_request is not None:
+        content.append(
+            f'<form class="reset-form" method="post" action="{REVIEW_RESET_ACTION_ROUTE_PATH}">'
+            f'{_revision(state)}<label><input type="checkbox" name="confirm_reset" required> '
+            f'{_t("guided.reset_confirm")}</label><button type="submit" class="destructive">'
+            f'{_t("common.action.reset")}</button></form>')
     content.extend(
         (
             f'<aside class="scope-note"><h2>{_t("guided.review.scope")}</h2><p>{_t("guided.review.scope_help")}</p></aside>',

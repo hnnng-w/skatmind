@@ -155,6 +155,7 @@ def execute_match_historical_analysis_v1(
     match_position: int,
     options: MatchHistoricalAnalysisOptionsV1,
     dependencies: ApplicationWorkflowDependencies | None = None,
+    execution_observer=None,
 ) -> MatchHistoricalAnalysisResultV1:
     """Executes the existing Historical Application once when evidence is strict."""
     if type(options) is not MatchHistoricalAnalysisOptionsV1:
@@ -253,7 +254,7 @@ def execute_match_historical_analysis_v1(
         game_id=historical.game_id,
         requires_immediate_review=options.immediate_review,
     )
-    return MatchHistoricalAnalysisResultV1(
+    result_value = MatchHistoricalAnalysisResultV1(
         status="executed",
         match_id=historical.match_id,
         workspace_revision=workspace.revision,
@@ -264,3 +265,6 @@ def execute_match_historical_analysis_v1(
         request=request,
         result=result,
     )
+    if execution_observer is not None:
+        execution_observer(invocation, execution)
+    return result_value

@@ -32,6 +32,24 @@ The one bounded delivery receipt additionally binds fresh mixed source membershi
 source-history release retains existing reference-first and reader protection.
 Manifest/storage envelope version **1** and all existing quotas remain intact.
 
+S7 follow-up: [Issue #316](automatic_historical_learning_s7_verification.md) registers
+codec-2 `historical_source`, `historical_review` and `match_historical` objects and
+explicit generation codec **4**. Optional manifest `historical_heads` binds each
+live manual source to one exact successful execution; `historical_retired` prevents
+save-only retry from reviving a deleted identity. Empty fields are omitted so legacy
+manifest bytes remain exact. Source, execution and head publish in one manifest CAS.
+Cleanup cannot release live-head dependencies. The Match continuity basis survives
+Historical-only descriptor retirement.
+
+Historical native tuples use private lossless `zlib-json-v1` encoding with strict
+length, digest, complete-stream and trailing-data checks. Each expanded tuple is
+bounded at 128 MiB; the existing stored-object 16-MiB and total 512-MiB quotas remain
+unchanged. The optional exact-byte delivery receipt can retain admitted typed values
+only within its existing 64-object/candidate and 16-MiB stored-byte bounds, plus a
+128-MiB expanded-native bound. Every hit still reads exact current bytes and inventory;
+larger values take strict admission. No TTL or metadata-only authority is introduced.
+Standalone strict `read_evidence` and mutation admission retain their boundaries.
+
 ## Scope and acceptance
 
 This implements S1 of the accepted

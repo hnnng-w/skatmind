@@ -239,7 +239,14 @@ def test_ineligible_operations_never_initialize_archive(managed, monkeypatch, ca
             "operation": "prepare_materialization", "match_position": "3",
             "expected_revision": str(active.workspace.revision)}, app_context=app)
         assert result.status == "applied"
-    assert not root.exists()
+    if case == "historical":
+        # S7 deliberately registers the genuine Historical producer separately.
+        assert root.exists()
+        entry, = archive_store(app).snapshot().manifest.evidence
+        assert entry.evidence_class == "historical" and entry.envelope.kind == "match_historical"
+        assert active.evidence_notice[1] == "saved"
+    else:
+        assert not root.exists()
 
 
 @pytest.mark.parametrize("change", ("source", "owner", "attempt", "selection"))

@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from .automatic_learning_routes import automatic_html_route
 from .frontend_profile_codec import build_local_frontend_profile_v1
 from .frontend_profile_operations import is_safe_frontend_return_path_v1
+from .historical_review_routes import historical_html_route
 from .workflow_state import StaleFrontendWorkflowRevisionError
 
 if TYPE_CHECKING:
@@ -30,6 +31,7 @@ class LanguageSourceV1:
     references: tuple[object, ...]
     values: tuple[object, ...]
     automatic_view: object | None = None
+    historical_delivery: object | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,7 +115,7 @@ class LanguageContextV1:
 
 
 def capture_language_source_v1(context: AppWebContextV1, route: str, *,
-                               automatic_view=None) -> LanguageSourceV1:
+                               automatic_view=None, historical_delivery=None) -> LanguageSourceV1:
     """Snapshot immutable source references under existing locks, with no I/O.
 
     Never acquire a Product lock while holding the app or profile lock. Retained
@@ -122,12 +124,13 @@ def capture_language_source_v1(context: AppWebContextV1, route: str, *,
     """
     if not is_safe_frontend_return_path_v1(route):
         raise ValueError("Language origin must be a safe HTML route.")
-    if automatic_html_route(route):
+    if automatic_html_route(route) or historical_html_route(route):
         controller = context.automatic_learning_ui
         service = controller.service
         return LanguageSourceV1(route, (controller, service,
             None if service is None else service.attempt,
-            None if service is None else service._installed, controller.confirmation), (),
+            None if service is None else service._installed, controller.confirmation,
+            context.historical_reviews.confirmation if historical_html_route(route) else None), (),
             automatic_view=automatic_view)
     if route in ("/matches/saved-analyses", "/sessions/saved-analyses") or route.startswith(
             ("/matches/saved-analyses/", "/sessions/saved-analyses/")):
@@ -307,13 +310,15 @@ def capture_language_source_v1(context: AppWebContextV1, route: str, *,
                     references.append(match.workspace)
                     references.extend(match.capture.report_store.list())
                     values.append(match.capture.report_store.generation)
-    return LanguageSourceV1(route, tuple(references), tuple(values), automatic_view=automatic_view)
+    return LanguageSourceV1(route, tuple(references), tuple(values), automatic_view=automatic_view,
+                            historical_delivery=historical_delivery)
 
 
 def _require_language_identity(context: AppWebContextV1, source: LanguageSourceV1) -> None:
     """Recheck retained process identities without repeating filesystem validation."""
     current = capture_language_source_v1(context, source.route,
-                                         automatic_view=source.automatic_view)
+                                         automatic_view=source.automatic_view,
+                                         historical_delivery=source.historical_delivery)
     if (current.values != source.values or len(current.references) != len(source.references)
             or any(a is not b for a, b in zip(current.references, source.references, strict=True))):
         raise LanguageContextConflict
@@ -323,7 +328,13 @@ def validate_language_source_v1(
     context: AppWebContextV1, source: LanguageSourceV1, *, check_files: bool = False,
 ) -> None:
     _require_language_identity(context, source)
-    if check_files or automatic_html_route(source.route) or source.route == "/learning":
+    if source.historical_delivery is not None:
+        try:
+            source.historical_delivery.validate(context)
+        except (OSError, ValueError) as error:
+            raise LanguageContextConflict from error
+    if (check_files or automatic_html_route(source.route) or historical_html_route(source.route)
+            or source.route == "/learning"):
         _require_files(context, source.route, automatic_view=source.automatic_view)
         # Filesystem validation holds no app lock. Recheck the active binding afterward.
         _require_language_identity(context, source)
@@ -339,7 +350,7 @@ def validate_language_page_v1(
 
 
 def _require_files(context: AppWebContextV1, route: str, *, automatic_view=None) -> None:
-    if route == "/learning" or automatic_html_route(route):
+    if route == "/learning" or automatic_html_route(route) or historical_html_route(route):
         from .automatic_learning_routes import AUTOMATIC_CONFIRMATION, AUTOMATIC_VIEW
         controller = context.automatic_learning_ui
         try:

@@ -638,6 +638,7 @@ def test_app_web_layering_and_startup_execution_boundaries() -> None:
         "card_entry_http.py",
         "execution.py",
         "historical_form.py",
+        "historical_learning_rendering.py",  # Wraps retained public Results without execution.
         "json_transfer.py",
         "language_context.py",
         "managed_item_discovery.py",

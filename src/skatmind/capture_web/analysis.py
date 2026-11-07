@@ -328,6 +328,9 @@ def execute_match_capture_web_analysis_v1(
                 workspace,
                 match_position=position,
                 options=historical_options,
+                **({"execution_observer": lambda invocation, execution:
+                    captured_execution.append((invocation, execution))}
+                    if publication_observer is not None else {}),
             )
         report = build_match_analysis_report_v1(value)
     except SkatMindError:
@@ -370,7 +373,8 @@ def execute_match_capture_web_analysis_v1(
                 selected_report_id=report.report_id,
             ),
         )
-    if (publication_observer is not None and operation == "analyze_decision"
+    if (publication_observer is not None and operation in (
+            "analyze_decision", "analyze_historical_game")
             and report.value.status == "executed" and len(captured_execution) == 1):
         publication_observer(workspace, report, *captured_execution[0])
     return result

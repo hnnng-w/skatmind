@@ -10,6 +10,12 @@ from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, replace
 
 from skatmind import automatic_learning_io as io
+from skatmind.automatic_historical_preparation import (
+    HISTORICAL_ADAPTERS,
+    HISTORICAL_BUILDERS,
+    AutomaticHistoricalGeneration,
+    build_historical_bundle,
+)
 from skatmind.automatic_learning_contracts import ExclusionV1, GenerationV1
 from skatmind.automatic_learning_store import (
     _DELIVERY_RECEIPT_MAX_BYTES,
@@ -111,7 +117,8 @@ def _selection(inventory, resumed):
     # aggregate is hidden conservatively when its identity cannot be found alive.
     for source in manifest.sources:
         key = source.source_version.source
-        if key.family in ("match", "session") and key not in live and key not in exclusions:
+        if (key.family in ("match", "session", "historical_review")
+                and key not in live and key not in exclusions):
             exclusions[key] = ExclusionV1(source=key, reason="missing")
     selected = []
     for value in inventory.sources:
@@ -228,7 +235,8 @@ class AutomaticMatchLearningServiceV1:
                 and inventory_still_current(self.home, previous.inventory)):
             inventory = previous.inventory
         else:
-            inventory = capture_match_inventory(self.home, resumed.manifest.exclusions)
+            inventory = capture_match_inventory(self.home, resumed.manifest.exclusions,
+                                                store=store, resumed=resumed)
         with self.coordinator.lock:
             if epoch != self.coordinator.generation or not inventory_still_current(
                     self.home, inventory):
@@ -322,7 +330,13 @@ class AutomaticMatchLearningServiceV1:
                         raise StoreConflictError("Automatic reuse was superseded.")
                     return AutomaticMatchServiceResult("reused", previous, attempt=attempt)
             selected_ids = tuple(value[1].source_version.identity for value in sources)
-            mixed = (bool(inventory.sessions.rows) or type(previous) is AutomaticMixedGeneration
+            historical = (bool(inventory.historical.rows)
+                or type(previous) is AutomaticHistoricalGeneration
+                or any(row.evidence_class == "historical" for row in before.evidence)
+                or any(row.source_version.source.family == "historical_review"
+                       for row in before.sources))
+            mixed = (historical or bool(inventory.sessions.rows)
+                     or type(previous) is AutomaticMixedGeneration
                      or any(row.source_version.source.family == "session"
                             for row in before.sources))
             catalog_revision = (0 if previous is None else previous.recipe.catalog_revision)
@@ -333,7 +347,8 @@ class AutomaticMatchLearningServiceV1:
                               if row[1].source_version.source.family == "match")
             selected_evidence = {row.evidence_id for row in outcomes if row.status == "selected"}
             match_evidence_ids = tuple(sorted(row.identity for row in before.evidence
-                if row.identity in selected_evidence and row.source_version_id in match_ids))
+                if row.identity in selected_evidence and row.source_version_id in match_ids
+                and row.evidence_class != "historical"))
             basis = basis_for_update(store, before, previous, match_ids, match_evidence_ids)
             old_match_ids = () if basis is None else basis.recipe.source_version_ids
             match_revision = 0 if basis is None else basis.recipe.catalog_revision
@@ -355,7 +370,10 @@ class AutomaticMatchLearningServiceV1:
                     if not self._owner(attempt):
                         raise StoreConflictError("Automatic preparation attempt changed.")
                     reservation = store.begin_candidate(tuple(value[0] for value in sources))
-                if mixed:
+                if historical:
+                    bundle = build_historical_bundle(sources, evidence, corpus_id=corpus_id,
+                        dataset_id=dataset_id, catalog_revision=match_revision)
+                elif mixed:
                     bundle = build_mixed_bundle(sources, evidence, mixed=True, corpus_id=corpus_id,
                         dataset_id=dataset_id, catalog_revision=match_revision)
                 else:
@@ -366,11 +384,15 @@ class AutomaticMatchLearningServiceV1:
                     exclusions=exclusions, skipped_situations=bundle.skipped,
                     corpus_id=corpus_id, dataset_id=dataset_id, catalog_revision=catalog_revision,
                     seed=0, partition_weights=(70, 15, 15),
-                    adapter_versions=MIXED_ADAPTERS if mixed else ADAPTERS,
-                    builder_versions=MIXED_BUILDERS if mixed else BUILDERS,
+                    adapter_versions=(HISTORICAL_ADAPTERS if historical
+                                      else MIXED_ADAPTERS if mixed else ADAPTERS),
+                    builder_versions=(HISTORICAL_BUILDERS if historical
+                                      else MIXED_BUILDERS if mixed else BUILDERS),
                     derived_fingerprints=bundle.fingerprints)
-                generation = (AutomaticMixedGeneration(recipe, inventory.rows, outcomes, identity,
-                    match_revision) if mixed else
+                generation = (AutomaticHistoricalGeneration(
+                    recipe, inventory.rows, outcomes, identity, match_revision) if historical else
+                    AutomaticMixedGeneration(recipe, inventory.rows, outcomes, identity,
+                                             match_revision) if mixed else
                     AutomaticMatchGeneration(recipe, inventory.rows, outcomes, identity))
                 if same and generation != previous:
                     raise ValueError("Reconstruction differs from the accepted generation.")
@@ -472,6 +494,13 @@ class AutomaticMatchLearningServiceV1:
 
     def download(self, kind, *, allow_outdated=False):
         return self.consume(lambda bundle: bundle.download(kind), allow_outdated=allow_outdated)
+
+    def read_delivery_evidence(self, binding, evidence_id):
+        self.validate_delivery(binding)
+        receipt = self._delivery_snapshot_receipt
+        if receipt is not None and receipt.inventory == binding.inventory:
+            return self.store.read_delivery_evidence(evidence_id, receipt.archive)
+        return self.store.read_evidence(evidence_id)
 
     def capture_delivery(self):
         """Capture exact HTML/control authority, including absent-store membership."""

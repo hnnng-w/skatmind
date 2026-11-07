@@ -37,6 +37,11 @@ def _new_automatic_learning_ui():
     return AutomaticLearningController()
 
 
+def _new_historical_reviews():
+    from .historical_review_retention import HistoricalReviewOwner
+    return HistoricalReviewOwner()
+
+
 @dataclass(slots=True)
 class AppWebContextV1:
     """Process-local private context for one managed application home."""
@@ -72,6 +77,7 @@ class AppWebContextV1:
         default_factory=_new_saved_match_analyses, repr=False)
     automatic_match_learning: object | None = field(default=None, repr=False)
     automatic_learning_ui: object = field(default_factory=_new_automatic_learning_ui, repr=False)
+    historical_reviews: object = field(default_factory=_new_historical_reviews, repr=False)
 
     def __post_init__(self) -> None:
         from .stateful_context import ManagedStatefulContextV1

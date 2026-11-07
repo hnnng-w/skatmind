@@ -3115,10 +3115,15 @@ are maintainer-accepted at `7eacaf250b7d7e1f23338d45a020a1a27557b3d2`.
 coverage and original executed evidence, one mixed generation, native restart
 navigation and Session archive maintenance. The linked record contains the exact
 implementation/validation inventory and later disposable installed scenario.
-Keep #314 open for new exact-commit branch/main gates and installed acceptance.
-S7 remains subsequent work, recommendation adaptation remains a later goal,
-#208 remains open and formal UAT-02–12 remain paused. Release preparation is not
-authorized.
+S1–S6 and #315 are now maintainer-accepted; #314/#315 are closed and S6 installed
+acceptance completed on main `08022a6def9f06891d99e1097c2bf0ba84d77039`. Earlier
+pending records remain historical. [Issue #316 implements S7](automatic_historical_learning_s7_verification.md):
+saved manual Review heads, original native execution evidence, strict independent
+guided scopes and imported claims, managed Match Historical capture, codec-4 automatic
+review, native correction/deletion and guarded downloads. New exact-commit hosted
+gates and narrow installed A–D acceptance remain pending for #316. Recommendation
+adaptation remains a later goal, #208 remains open and formal UAT-02–12 remain paused.
+Release preparation is not authorized; accepted S5/S6 acceptance is not repeated.
 
 The approved pre-`v1.0.0`, post-`v1.0.0`, not-required, and excluded product
 areas are recorded in [v1.0 scope](v1_scope.md) and frozen by the

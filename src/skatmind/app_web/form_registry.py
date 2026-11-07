@@ -26,6 +26,7 @@ from .frontend_profile_operations import (
     FRONTEND_SETTINGS_PLAYER_ACTION_ROUTES,
 )
 from .guided_contracts import GUIDED_ACTION_ROUTE_PATHS
+from .historical_review_routes import HISTORICAL_POST_ROUTES
 from .json_transfer import FRONTEND_JSON_MAX_FILE_BYTES
 from .learning_direct_entry import LEARNING_ADD_ROUTE, LEARNING_ENTRY_BODY_LIMIT
 from .local_time_forms import LOCAL_TIME_VISIBLE_FIELDS
@@ -1525,6 +1526,10 @@ _FORMS.extend(_definition("automatic." + action, route,
     active="automatic", success="contextual", body_limit=AUTOMATIC_BODY_LIMIT,
     value_free=action != "confirm") for route in AUTOMATIC_POST_ROUTES
     for action in (route.rsplit("/", 1)[1],))
+_FORMS.extend(_definition("historical." + route.rsplit("/", 1)[1], route,
+    ("confirm_delete",) if route.endswith("delete-confirm") else (), page="/review",
+    success="contextual", body_limit=4096, value_free=not route.endswith("delete-confirm"))
+    for route in HISTORICAL_POST_ROUTES)
 
 FRONTEND_FORM_REGISTRY = tuple(_FORMS)
 UNIFIED_FRONTEND_POST_ROUTES = tuple(
@@ -1538,6 +1543,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             OPEN_RECORDING_ROUTE,
             *DELETION_POST_ROUTES,
             *AUTOMATIC_POST_ROUTES,
+            *HISTORICAL_POST_ROUTES,
             *DEBRIEF_POST_ROUTES,
             "/sessions/create",
             "/sessions/import",

@@ -129,7 +129,8 @@ def retention_feedback(context, active, report_id, locale):
         report = active.rollout_notice[0]
     prefix = ("saved_analysis.rollout." if (binding is not None
               and binding.report.report_id == report_id) or (report is not None
-              and report.value.options.recommendation_method == "whole_game_rollout")
+               and getattr(report.value.options, "recommendation_method", None)
+               == "whole_game_rollout")
               else "saved_analysis.")
     body = '<div role="status">' + paragraph(locale, prefix + status) + '</div>'
     if retry:
@@ -186,6 +187,9 @@ def live_retention_delivery_guard(context, active, report_id):
 
 
 def _caption(value, locale):
+    if value.entry.evidence_class == "historical":
+        from .historical_learning_rendering import historical_caption
+        return historical_caption(value, locale)
     if value.entry.envelope.kind.startswith("session_"):
         from .session_learning_rendering import evidence_caption
         return evidence_caption(value, locale)
@@ -208,6 +212,11 @@ def _caption(value, locale):
 
 
 def render_saved_analysis(value, route, locale):
+    if value.entry.evidence_class == "historical":
+        from .historical_learning_rendering import render_historical_evidence
+        return (render_historical_evidence(value, route, locale) + saved_analyses_link(locale)
+                + '<p><a href="/learning/automatic">' + escape(text(locale, "automatic.back"))
+                + '</a></p>')
     if value.entry.envelope.kind.startswith("session_"):
         from .session_learning_rendering import render_session_evidence, session_links
         return (render_session_evidence(value, route, locale) + session_links(locale)

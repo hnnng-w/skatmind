@@ -1,5 +1,13 @@
 # Automatic Match Learning review and maintenance UI (Issue #313, S5)
 
+Current S7 status: S1–S6 are maintainer-accepted; #314/#315 are closed and S6 installed
+acceptance completed on main `08022a6def9f06891d99e1097c2bf0ba84d77039`. Earlier
+pending paragraphs below are historical records. [Issue #316](automatic_historical_learning_s7_verification.md)
+adds saved manual Review access at `/review/saved` and separate per-game Historical
+findings under codec 4. Current/retained source meanings, exact original controls,
+source exceptions, cleanup, Match membership continuity and the ten Match exports
+remain explicit. New #316 hosted/installed gates do not repeat accepted S5/S6 UAT.
+
 Current S6 follow-up: the maintainer has accepted #313, including the installed
 functional scenario and bounded performance/readability correction, before #314 at
 `7eacaf250b7d7e1f23338d45a020a1a27557b3d2`. Pending statements below are historical

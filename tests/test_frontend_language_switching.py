@@ -219,6 +219,8 @@ def test_browser_german_does_not_write_and_localizes_shell_home_about_and_errors
 def test_german_workflow_bodies_use_catalogs_without_transitional_english(
     localized_server: SkatMindAppWebServerV1,
 ) -> None:
+    from skatmind.app_web.translation_catalog import translate_frontend_message_v1
+
     server = localized_server
     get_headers, _post_headers = _bootstrap(server)
     german = {**get_headers, "Accept-Language": "de"}
@@ -228,7 +230,8 @@ def test_german_workflow_bodies_use_catalogs_without_transitional_english(
         assert status == 200
         assert "english-workflow-body" not in html
         assert "translation-status" not in html
-        assert "Nur im laufenden Prozess" in html
+        key = "guided.process_local" if route == "/analyze" else "historical_learning.draft"
+        assert translate_frontend_message_v1("de", key) in html
     expected = {
         "/sessions": "Noch keine erfassten einzelnen Spiele",
         "/matches": "Noch keine erfassten Matches",

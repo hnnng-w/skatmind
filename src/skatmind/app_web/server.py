@@ -114,6 +114,7 @@ from .guided_contracts import (
     REVIEW_REQUEST_DOWNLOAD_ROUTE_PATH,
     REVIEW_RESET_ACTION_ROUTE_PATH,
     REVIEW_RESULT_DOWNLOAD_FILENAME,
+    REVIEW_RESULT_DOWNLOAD_ROUTE_PATH,
     REVIEW_RUN_GUIDED_ACTION_ROUTE_PATH,
     REVIEW_RUN_IMPORTED_ACTION_ROUTE_PATH,
     REVIEW_START_ACTION_ROUTE_PATH,
@@ -124,6 +125,7 @@ from .guided_contracts import (
     REVIEW_UPDATE_OPTIONS_ACTION_ROUTE_PATH,
     REVIEW_UPDATE_PLAYERS_ACTION_ROUTE_PATH,
 )
+from .historical_review_routes import HISTORICAL_POST_ROUTES
 from .json_transfer import FRONTEND_JSON_MAX_FILE_BYTES, parse_frontend_json_import_v1
 from .language_context import (
     LanguageContextConflict,
@@ -440,6 +442,7 @@ _SESSION_DOWNLOAD_ROUTES = {
     "/sessions/downloads/rollout-result.json",
 }
 _STATEFUL_POST_ROUTES = {
+    *HISTORICAL_POST_ROUTES,
     *AUTOMATIC_POST_ROUTES,
     MATCH_RECORDING_INPUT_ROUTE,
     *DEBRIEF_POST_ROUTES,
@@ -941,17 +944,40 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         return True
 
     def _page(self, route: str, *, status: int = HTTPStatus.OK) -> None:
-        self._rendered_language_source = capture_language_source_v1(self.server.app_context, route)
+        manual = None
+        if route == "/review":
+            from .historical_review_retention import capture_manual_delivery
+            from .saved_historical_reviews import recovery
+            try:
+                returned = getattr(self, "_language_return", None)
+                manual = None if returned is None else returned[0].source.historical_delivery
+                if manual is None:
+                    manual = capture_manual_delivery(self.server.app_context)
+                manual.validate(self.server.app_context)
+            except (OSError, ValueError, SkatMindError):
+                recovery(self)
+                return
+            self._retained_delivery_guard = lambda: manual.validate(self.server.app_context)
+            self._retained_delivery_recovery = lambda: recovery(self)
+        self._rendered_language_source = capture_language_source_v1(
+            self.server.app_context, route, historical_delivery=manual)
         storage_root = self.server.app_context.managed_home.root if route == "/about" else None
         with self.server.app_context.lock:
             frontend = self._frontend_state()
             profile = self.server.app_context.frontend_profile.document
+            from .historical_learning_rendering import manual_receipt
             rendered = render_app_page_v1(
                 self.server.app_context.browser_state,
                 route,
                 storage_root=storage_root,
                 analyze_state=self.server.app_context.analyze_state,
                 review_state=self.server.app_context.review_state,
+                review_receipt=manual_receipt(self.server.app_context, frontend.locale)
+                    if route == "/review" else "",
+                review_download_base=("/review/execution/" + manual.token if manual is not None
+                    and manual.state.latest_successful_request is not None
+                    and manual.state.latest_successful_request.workflow.value == "historical_game"
+                    else None),
                 frontend=frontend,
                 profile=profile if route == "/settings" else None,
                 review_player_names=(
@@ -1952,6 +1978,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             self._redirect(return_to)
 
     def _download(self, path: str) -> None:
+        if path in (REVIEW_REQUEST_DOWNLOAD_ROUTE_PATH, REVIEW_RESULT_DOWNLOAD_ROUTE_PATH):
+            from .historical_review_retention import capture_manual_delivery
+            manual = capture_manual_delivery(self.server.app_context)
+            self._retained_delivery_guard = lambda: manual.validate(self.server.app_context)
         with self.server.app_context.lock:
             if path == ANALYZE_REQUEST_DOWNLOAD_ROUTE_PATH:
                 content = self.server.app_context.analyze_state.request_json_bytes
@@ -2685,6 +2715,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         return False
 
     def _stateful_get(self, path: str) -> bool:
+        from .saved_historical_reviews import handle_get as historical_get
+        if historical_get(self, path):
+            return True
         from .automatic_learning_http import handle_get
         if handle_get(self, path):
             return True
@@ -3558,6 +3591,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         body: bytes,
         content_type: str,
     ) -> None:
+        if path in HISTORICAL_POST_ROUTES:
+            from .saved_historical_reviews import handle_post
+            handle_post(self, path, self._text_form(body, content_type))
+            return
         if path in AUTOMATIC_POST_ROUTES:
             from .automatic_learning_http import handle_post
             handle_post(self, path, self._text_form(body, content_type))

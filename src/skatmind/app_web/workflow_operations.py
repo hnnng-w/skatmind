@@ -95,7 +95,7 @@ def _publish(
     page: str,
     revision: int,
     execution: GuidedFrontendExecutionV1,
-) -> None:
+) -> object:
     with context.lock:
         state = context.analyze_state if page == "analyze" else context.review_state
         published = state.publish(
@@ -111,6 +111,7 @@ def _publish(
             context.analyze_state = published
         else:
             context.review_state = published
+        return published
 
 
 def _publish_candidate(
@@ -227,6 +228,11 @@ def store_frontend_import_v1(
             context.analyze_state = changed
         else:
             context.review_state = changed
+            owner = context.historical_reviews
+            # Import correction is explicit only for an already reopened imported
+            # source. An import can never inherit trusted guided origin.
+            if owner.origin != "imported" or owner.head is None or not owner.correction:
+                owner.new("imported")
 
 
 def reject_frontend_mutation_v1(
@@ -277,12 +283,18 @@ def run_imported_request_v1(
             context.analyze_state = state
         else:
             context.review_state = state
+        historical_attempt = None
+        if page == "review" and request.workflow.value == "historical_game":
+            from .historical_review_retention import capture_attempt
+            historical_attempt = capture_attempt(context, state)
     try:
-        execution = (
-            execute_guided_frontend_analysis_v1(request, options=options)
-            if page == "analyze"
-            else execute_guided_frontend_review_v1(request, options=options)
-        )
+        from skatmind.private_execution_capture import capture_native_execution
+        with capture_native_execution() as captured:
+            execution = (
+                execute_guided_frontend_analysis_v1(request, options=options)
+                if page == "analyze"
+                else execute_guided_frontend_review_v1(request, options=options)
+            )
     except SkatMindValidationError as error:
         route = (
             ANALYZE_RUN_IMPORTED_ACTION_ROUTE_PATH
@@ -303,12 +315,15 @@ def run_imported_request_v1(
             revision=expected_revision,
         )
         raise
-    _publish(
+    published = _publish(
         context,
         page=page,
         revision=expected_revision,
         execution=execution,
     )
+    if historical_attempt is not None and len(captured) == 1:
+        from .historical_review_retention import retain_manual_review
+        retain_manual_review(context, historical_attempt, published, execution, captured[0])
 
 
 def start_review_v1(context: AppWebContextV1, *, expected_revision: int) -> None:
@@ -317,6 +332,7 @@ def start_review_v1(context: AppWebContextV1, *, expected_revision: int) -> None
             expected_revision=expected_revision,
             draft=create_historical_form_draft_v1(),
         )
+        context.historical_reviews.new("guided")
 
 
 _REVIEW_FORM_OPERATIONS = {
@@ -454,8 +470,12 @@ def run_guided_review_v1(
     with context.lock:
         state = context.review_state.begin(expected_revision=expected_revision)
         context.review_state = state
+        from .historical_review_retention import capture_attempt
+        attempt = capture_attempt(context, state)
     try:
-        execution = execute_guided_frontend_review_v1(request, options=options)
+        from skatmind.private_execution_capture import capture_native_execution
+        with capture_native_execution() as captured:
+            execution = execute_guided_frontend_review_v1(request, options=options)
     except SkatMindValidationError as error:
         issues = _safe_validation_error(
             error,
@@ -474,12 +494,15 @@ def run_guided_review_v1(
             revision=expected_revision,
         )
         raise
-    _publish(
+    published = _publish(
         context,
         page="review",
         revision=expected_revision,
         execution=execution,
     )
+    if len(captured) == 1:
+        from .historical_review_retention import retain_manual_review
+        retain_manual_review(context, attempt, published, execution, captured[0])
 
 
 def reset_workflow_v1(
@@ -493,3 +516,4 @@ def reset_workflow_v1(
             context.analyze_state = context.analyze_state.reset(expected_revision=expected_revision)
         else:
             context.review_state = context.review_state.reset(expected_revision=expected_revision)
+            context.historical_reviews.new(None)

@@ -314,7 +314,8 @@ def execute_unified_match_analysis_v1(
             expected_kind="file",
         )
         original = None
-        if app_context is not None and values.get("operation") == "analyze_decision":
+        if app_context is not None and values.get("operation") in (
+                "analyze_decision", "analyze_historical_game"):
             from .match_evidence_retention import capture_original_document
 
             original = capture_original_document(app_context, context)

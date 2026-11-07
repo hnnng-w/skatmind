@@ -14,6 +14,11 @@ from skatmind.session_persistence import _decode_persistence_json
 from skatmind.session_persistence_codec import resume_session_document_v1
 from skatmind.session_persistence_contracts import SESSION_PERSISTENCE_SUPPORTED_DOCUMENT_KINDS
 
+from .automatic_historical_inventory import (
+    HistoricalInventory,
+    capture_historical_inventory,
+    reconcile_imported_claims,
+)
 from .automatic_match_inventory import (
     InventoryConflict,
     MatchInventory,
@@ -64,14 +69,15 @@ class SessionInventoryRow(Record):
 class MixedInventory:
     matches: MatchInventory
     sessions: MatchInventory
+    historical: HistoricalInventory = HistoricalInventory()
 
     @property
     def rows(self):
-        return self.matches.rows + self.sessions.rows
+        return self.historical.rows + self.matches.rows + self.sessions.rows
 
     @property
     def sources(self):
-        return self.matches.sources + self.sessions.sources
+        return self.historical.sources + self.matches.sources + self.sessions.sources
 
     @property
     def fingerprint(self):
@@ -142,9 +148,11 @@ def capture_session_inventory(home, exclusions=()):
         raise InventoryConflict("Session inventory is incomplete or changed.") from error
 
 
-def capture_mixed_inventory(home, exclusions=()):
+def capture_mixed_inventory(home, exclusions=(), *, store=None, resumed=None):
     value = MixedInventory(capture_match_inventory(home, exclusions),
-                           capture_session_inventory(home, exclusions))
+                           capture_session_inventory(home, exclusions),
+                           capture_historical_inventory(store, resumed, exclusions))
+    value = reconcile_imported_claims(value)
     if not mixed_inventory_still_current(home, value):
         raise InventoryConflict("Mixed source membership changed.")
     return value
@@ -154,6 +162,14 @@ def mixed_inventory_still_current(home, inventory):
     if not inventory_still_current(home, inventory.matches):
         return False
     try:
+        from skatmind import automatic_learning_io as io
+        from skatmind.automatic_learning_contracts import AUTOMATIC_LEARNING_MAX_OBJECT_BYTES
+        from skatmind.automatic_learning_objects import resume_manifest
+        path = home.root / "automatic-learning" / "manifest.json"
+        heads = (resume_manifest(io.read_bounded(path, AUTOMATIC_LEARNING_MAX_OBJECT_BYTES))
+                 .historical_heads if path.exists() else ())
+        if heads != inventory.historical.heads:
+            return False
         captured = _capture(home.category("sessions").path)
         return (captured[0], tuple((name, stamp, content)
             for name, stamp, content, _raw in captured[1])) == inventory.sessions.physical

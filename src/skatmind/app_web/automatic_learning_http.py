@@ -136,6 +136,21 @@ def handle_get(handler, path):
                     raise StoreConflictError("Automatic result unavailable.")
                 selector = match[2]
                 parts = selector.split("/")
+                if parts[0] == "historical":
+                    from .historical_learning_rendering import (
+                        historical_source_controls,
+                        render_historical_evidence,
+                    )
+                    value = view.binding.installed.bundle.historical_evidence[int(parts[2])]
+                    if len(parts) == 4:
+                        authorize_response(handler, controller, view)
+                        handler._send_artifact(*value.download(parts[3][:-5]))
+                        return True
+                    body = render_historical_evidence(value, path, locale)
+                    body += historical_source_controls(value, view, locale)
+                    body += link(view.base + "/all", text(locale, "automatic.view"))
+                    send_page(handler, controller, view, path, body)
+                    return True
                 if parts[0] == "session":
                     from .session_learning_navigation import render_session_page
                     if len(parts) == 4:

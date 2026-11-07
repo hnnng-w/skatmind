@@ -1055,7 +1055,12 @@ bounded performance/readability correction. [Issue #314's S6 implementation](aut
 adds saved Session-native coverage and retained own-decision comparisons to the
 common automatic generation. Match Dataset/Teacher/Tactical/Coaching and ten Match
 exports retain their scope. Existing recording/manual persistence and Public APIs
-remain unchanged. New exact-commit hosted gates and narrow installed acceptance
-remain pending for #314. S7 saved manual Historical Review integration remains
-subsequent work. This does not reopen accepted scopes, accept UAT-01 globally,
-resume formal UAT-02–12 or authorize release preparation.
+remain unchanged. S1–S6 and #315 are maintainer-accepted; #314/#315 are closed and
+S6 installed acceptance completed on main `08022a6def9f06891d99e1097c2bf0ba84d77039`.
+Earlier pending records remain historical. [Issue #316's S7 implementation](automatic_historical_learning_s7_verification.md)
+adds saved manual Historical Reviews and genuine manual/managed Match Historical
+evidence under explicit codec-4 generation semantics. Source-local guided identities,
+strict imported claims, correction/deletion, original downloads and Match continuity
+remain bounded. New exact-commit hosted gates and narrow installed A–D acceptance
+remain pending for #316. This does not reopen accepted S1–S6 scopes, accept UAT-01
+globally, resume formal UAT-02–12, adapt recommendations or authorize release preparation.

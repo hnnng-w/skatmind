@@ -12,6 +12,7 @@ from .frontend_profile_contracts import (
 )
 from .frontend_profile_persistence import save_frontend_profile_file_v1
 from .frontend_profile_state import state_from_saved_profile_v1
+from .historical_review_routes import historical_html_route
 
 if TYPE_CHECKING:
     from .context import AppWebContextV1
@@ -105,6 +106,7 @@ def is_safe_frontend_return_path_v1(value: object) -> bool:
         or _SAFE_DEBRIEF.fullmatch(value) is not None
         or _SAFE_LEARNING_PREPARED.fullmatch(value) is not None
         or automatic_html_route(value)
+        or historical_html_route(value)
     )
 
 

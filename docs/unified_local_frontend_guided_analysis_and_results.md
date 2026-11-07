@@ -2,6 +2,15 @@
 
 ## Status
 
+Current S7 extension: [Issue #316](automatic_historical_learning_s7_verification.md)
+saves a successful manual guided/imported Historical Review's exact input and genuine
+execution at the manual producer's guarded publication boundary. `/review/saved`
+provides restart discovery, original downloads, reopening/correction and confirmed
+deletion. New guided sources have private independent identity scopes; raw executed
+IDs and bytes remain exact. The seven-step normal-completion editor and all supported
+imported Historical endings retain their existing input behavior. Direct Session
+Historical/Finalize calls to the shared executor are not automatically saved here.
+
 Issue #211 implements the guided Analyze and Review slice of the
 [unified local frontend contract](unified_local_frontend_contract.md). It extends
 the Issue #210 [application shell](unified_local_frontend_application_shell.md)
@@ -93,9 +102,13 @@ Stale forms and duplicate Run attempts return HTTP `409`; stale completed work
 cannot overwrite newer state. Product execution occurs outside the context lock,
 and publication rechecks the exact source revision without retry.
 
-State contains no timestamp, caller path, persistent Product identifier, Session,
-Match Workspace, Corpus object, or managed-storage reference. Closing the process
-discards drafts, imports, and Results unless the user explicitly downloaded JSON.
+The workflow State remains process-local and contains no timestamp, caller path,
+Session, Match Workspace, Corpus object or managed-storage reference. Closing the
+process discards drafts and unexecuted imports. S7 separately retains successful
+manual Historical source/execution/head values in the private automatic archive.
+Saving failure leaves the successful process-local Result available with truthful
+feedback and a bounded original-attempt persistence-only retry where possible.
+Single-situation Position imports keep their process-local lifetime.
 
 ## Position form
 
@@ -295,8 +308,10 @@ chooser's manual link. Its concise full-deal/full-history explanation explicitly
 applies to the guided editor; the Historical and retrospective Position JSON-import
 paths below remain separate supported variants. Secondary native links outside
 forms reach the recorded chooser and `/sessions`, the persistently saved recording
-alternative. They do not save or transfer the manual draft. The existing process-local
-notice, editable draft, repeat-execution and export lifecycles remain valid.
+alternative. They do not save or transfer the manual draft. S7's notice distinguishes
+unsaved drafts from successful saved Historical executions. Its original-attempt
+downloads reject stale views rather than exporting a newer execution under an older
+control; native filenames and payload bytes remain unchanged.
 GET `/review` resumes the available step/import/Result without starting or resetting
 the editor. See [entry navigation](home_and_recorded_review_navigation.md#independent-analysis-and-manual-review-entry-issue-303)
 for the source distinction and scoped verification.

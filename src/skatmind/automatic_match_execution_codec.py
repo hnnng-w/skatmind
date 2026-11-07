@@ -15,6 +15,7 @@ from .application.contracts import (
     ApplicationExecutionResult,
     ApplicationExternalDocuments,
     ApplicationInvocation,
+    HistoricalGameApplicationOptions,
     PositionAnalysisApplicationOptions,
 )
 from .application.provenance import ApplicationProvenanceAttachment, ApplicationProvenanceBundle
@@ -31,6 +32,8 @@ from .match_analysis_contracts import (
     MatchAnalysisReportV1,
     MatchDecisionAnalysisOptionsV1,
     MatchDecisionAnalysisResultV1,
+    MatchHistoricalAnalysisOptionsV1,
+    MatchHistoricalAnalysisResultV1,
 )
 from .match_decision_review_preparation import MatchDecisionOpponentProfileBindingV1
 from .v1_information_provenance_enforcement import validate_v1_retained_stage_linkage
@@ -51,6 +54,7 @@ _TYPES = {cls.__name__: cls for cls in (
     RequestDocumentV1, ResultDocumentV1, ApplicationArtifact, ApplicationExecutionOptions,
     ApplicationExecutionResult, ApplicationExternalDocuments, ApplicationInvocation,
     PositionAnalysisApplicationOptions, ApplicationProvenanceAttachment,
+    HistoricalGameApplicationOptions,
     ApplicationProvenanceBundle,
     FieldProvenanceEntry, FieldProvenanceExemption, FieldProvenanceLedger,
     FieldProvenanceSourceReference, FieldProvenanceCoverageSummary, InformationUseContext,
@@ -59,6 +63,7 @@ _TYPES = {cls.__name__: cls for cls in (
     V1InformationProvenanceSources,
     MatchAnalysisReportV1, MatchDecisionAnalysisOptionsV1, MatchDecisionAnalysisResultV1,
     MatchDecisionOpponentProfileBindingV1, WholeGameRolloutSettingsV1,
+    MatchHistoricalAnalysisOptionsV1, MatchHistoricalAnalysisResultV1,
 )}
 
 
@@ -76,7 +81,7 @@ def encode_execution_value(value):
         raise ValueError("Unsupported retained Application contract.")
     result = {"type": type(value).__name__, "value": {
         item.name: encode_execution_value(getattr(value, item.name)) for item in fields(value)}}
-    if type(value) is PositionAnalysisApplicationOptions:
+    if type(value) in (PositionAnalysisApplicationOptions, HistoricalGameApplicationOptions):
         result["supplied"] = list(value._provenance_supplied_option_names)
     return result
 
@@ -108,7 +113,7 @@ def _decode(value):
                 item.name for item in fields(cls)}:
             raise ValueError("Unsupported retained Application fields.")
         kwargs = {name: _decode(item) for name, item in data.items()}
-        if cls is PositionAnalysisApplicationOptions:
+        if cls in (PositionAnalysisApplicationOptions, HistoricalGameApplicationOptions):
             supplied = value.get("supplied")
             if (type(supplied) is not list or any(type(name) is not str for name in supplied)
                     or len(set(supplied)) != len(supplied) or set(supplied) - set(kwargs)):
@@ -129,12 +134,12 @@ def decode_execution_value(value):
     return result
 
 
-def validate_execution(invocation, execution):
+def validate_execution(invocation, execution, *, workflow=WorkflowV1.POSITION_ANALYSIS):
     if type(invocation) is not ApplicationInvocation or type(execution) is not (
             ApplicationExecutionResult):
         raise ValueError("Expected an original Application invocation and execution.")
-    if invocation.request.workflow is not WorkflowV1.POSITION_ANALYSIS:
-        raise ValueError("Only ordinary Position execution is supported.")
+    if invocation.request.workflow is not workflow or execution.result.workflow is not workflow:
+        raise ValueError("The retained execution workflow disagrees.")
     validate_v1_information_provenance_serialization_checkpoint(execution)
     validate_v1_information_provenance_sources(
         invocation, execution.information_provenance_enforcement.sources)

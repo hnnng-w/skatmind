@@ -54,6 +54,16 @@ the independent Match slice. New exact-commit CI and narrow installed acceptance
 remain pending for S6. S7 remains subsequent work. The historical inventory and
 stage descriptions below retain their original meaning and #308 acceptance.
 
+Current S7 follow-up: S1–S6 are maintainer-accepted; #314 and #315 are closed.
+S6 installed acceptance completed on main `08022a6def9f06891d99e1097c2bf0ba84d77039`.
+The preceding pending paragraphs are historical. [Issue #316 implements S7](automatic_historical_learning_s7_verification.md):
+coherent saved manual Review heads and native execution evidence, independent guided
+identity scopes, strict imported claims, managed Match Historical retention, explicit
+codec-4 mixed generations, native saved access/correction/deletion and exact delivery.
+The sections below retain #308's original contract and source-grounded baseline.
+New exact-commit hosted gates and narrow installed A–D acceptance remain pending for
+#316; accepted S1–S6 scopes are not reopened.
+
 The maintainer has approved the following **v1 product direction**:
 
 * Learning automatically brings together eligible saved games and existing

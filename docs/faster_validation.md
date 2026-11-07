@@ -2,6 +2,14 @@
 
 ## Status and acceptance boundary
 
+Current Issue-#316 baseline: the maintainer has accepted #279 and #315; #315 is
+closed. S6/#314 installed acceptance also completed on main
+`08022a6def9f06891d99e1097c2bf0ba84d77039`. The pending paragraphs and failed-run
+records below remain historical. The active routine policy, hosted four-worker
+execution, local two-worker default, exclusive serial phase and exact-commit gates
+are unchanged. #316 explicitly authorizes complete affected modules plus final Quick,
+with no local Full, distribution build/install, installed UAT or extra benchmark.
+
 Issue #315 is a bounded follow-up to maintainer-accepted #279. The pending-#279
 paragraphs below retain the original migration's point-in-time history, not a
 reopening of its accepted behavior. #315 changes hosted regression workers from

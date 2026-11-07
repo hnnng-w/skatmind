@@ -344,6 +344,23 @@ class MatchSliceBasisV1(Record):
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class HistoricalReviewHeadV1(Record):
+    """One live saved Review, committed coherently with its original execution."""
+
+    source: SourceKeyV1
+    source_version_id: str
+    evidence_id: str
+    version: int = 1
+
+    def __post_init__(self):
+        self.validate()
+        if self.source.family != "historical_review":
+            raise ValueError("A saved Review head requires a Historical source.")
+        digest(self.source_version_id)
+        digest(self.evidence_id)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ManifestV1(Record):
     space_id: str
     revision: int = 0
@@ -355,6 +372,8 @@ class ManifestV1(Record):
     current_generation: ObjectRefV1 | None = None
     previous_generation: ObjectRefV1 | None = None
     match_basis: MatchSliceBasisV1 | None = None
+    historical_heads: tuple[HistoricalReviewHeadV1, ...] = ()
+    historical_retired: tuple[SourceKeyV1, ...] = ()
     version: int = 1
 
     def __post_init__(self):
@@ -378,6 +397,22 @@ class ManifestV1(Record):
                 raise ValueError("Evidence class limit exceeded.")
         objects = {entry.reference: entry for entry in self.objects}
         sources = {entry.source_version.identity: entry for entry in self.sources}
+        unique(tuple(head.source for head in self.historical_heads))
+        unique(self.historical_retired)
+        if (any(key.family != "historical_review" for key in self.historical_retired)
+                or set(self.historical_retired).intersection(head.source
+                                                           for head in self.historical_heads)):
+            raise ValueError("Retired Review identities cannot have live heads.")
+        if len(self.historical_heads) > 2048:
+            raise ValueError("Saved Review head limit exceeded.")
+        evidence = {entry.identity: entry for entry in self.evidence}
+        for head in self.historical_heads:
+            source = sources.get(head.source_version_id)
+            entry = evidence.get(head.evidence_id)
+            if (source is None or source.source_version.source != head.source
+                    or entry is None or entry.source_version_id != head.source_version_id
+                    or entry.evidence_class != "historical"):
+                raise ValueError("Saved Review heads require exact source/execution references.")
         if self.match_basis is not None:
             basis = self.match_basis
             if (basis.space_id != self.space_id
@@ -451,13 +486,18 @@ class ManifestV1(Record):
         result = Record.to_dict(self)
         if self.match_basis is None:
             result.pop("match_basis")  # Preserve canonical legacy manifest bytes/fingerprints.
+        if not self.historical_heads:
+            result.pop("historical_heads")
+        if not self.historical_retired:
+            result.pop("historical_retired")
         return result
 
     @classmethod
     def from_dict(cls, value):
         if type(value) is not dict:
             raise ValueError("Invalid private manifest field set.")
-        return Record.from_dict.__func__(cls, {"match_basis": None, **value})
+        return Record.from_dict.__func__(cls, {
+            "match_basis": None, "historical_heads": [], "historical_retired": [], **value})
 
     @property
     def fingerprint(self):

@@ -323,7 +323,8 @@ def test_guided_and_managed_stateful_pages_are_available(
         status, _headers, body = _request(server, "GET", route, headers={"Cookie": cookie})
         assert status == 200
         html = body.decode("utf-8")
-        assert "Process-local only" in html
+        assert ("Process-local only" if route == "/analyze" else
+                "Drafts and unexecuted imports stay in this process") in html
         assert "<form" in html
         assert "Not yet available" not in html
         assert "Issue #" not in html
@@ -359,7 +360,8 @@ def test_stateful_landing_empty_states_explain_scope_prerequisite_and_next_actio
             "Use Create Match below",
         ),
         "/learning": (
-            "Uses saved managed Matches and Sessions with their retained analyses",
+            "Uses saved Matches, Sessions and completed manual Reviews "
+            "with their retained analyses",
             "Independent collections",
             "Creates an empty collection. Add saved Matches afterward",
         ),

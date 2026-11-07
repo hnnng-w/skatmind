@@ -1,7 +1,11 @@
 # Session-native automatic Learning (Issue #314, S6)
 
-**Locally validated; new exact-commit hosted CI and narrow maintainer installed
-acceptance pending.**
+**Current acceptance: S1–S6 are maintainer-accepted.** #314 and #315 are closed;
+S6 installed acceptance completed on main
+`08022a6def9f06891d99e1097c2bf0ba84d77039`. Earlier local/hosted/installed pending
+statements below are preserved point-in-time records. [S7, Issue #316](automatic_historical_learning_s7_verification.md)
+adds manual and managed Match Historical evidence; it does not authorize another
+S5/S6 installed acceptance sequence or direct Session Historical/Finalize capture.
 
 ## Baseline and acceptance boundary
 

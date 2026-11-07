@@ -114,6 +114,7 @@ class _DeliverySnapshotReceipt:
     resumed: ResumeV1
     objects: tuple[tuple[ObjectRefV1, bytes], ...]
     inventory_fingerprint: str
+    admitted: tuple = field(default=(), repr=False, compare=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -256,11 +257,16 @@ class AutomaticLearningStoreV1:
             return admitted[evidence_id]
 
     def _admission(self, manifest, objects, storage):
+        from .automatic_historical_evidence import (
+            decode_historical_execution,
+            decode_historical_source,
+        )
         from .automatic_match_evidence import (
             UnsupportedMatchEvidence,
             decode_match_decision,
             decode_match_source,
         )
+        from .automatic_match_historical_evidence import decode_match_historical_execution
         from .automatic_match_rollout_evidence import decode_match_rollout
         from .automatic_session_evidence import decode_session_execution, decode_session_source
         from .errors import SkatMindError
@@ -285,8 +291,9 @@ class AutomaticLearningStoreV1:
                 try:
                     if ref in sources:
                         family = sources[ref].source_version.source.family
-                        adapter = (decode_session_source if family == "session"
-                                   else decode_match_source)
+                        adapter = {"session": decode_session_source,
+                                   "historical_review": decode_historical_source,
+                                   "match": decode_match_source}[family]
                         decoded[ref] = adapter(objects[ref], sources[ref])
                         status = "available"
                     elif ref in evidence:
@@ -297,7 +304,10 @@ class AutomaticLearningStoreV1:
                                 ("decision", "match_decision"): decode_match_decision,
                                 ("rollout", "match_rollout"): decode_match_rollout,
                                 ("decision", "session_decision"): decode_session_execution,
-                                ("rollout", "session_rollout"): decode_session_execution}
+                                ("rollout", "session_rollout"): decode_session_execution,
+                                ("historical", "historical_review"): decode_historical_execution,
+                                ("historical", "match_historical"):
+                                    decode_match_historical_execution}
                             adapter = adapters.get((entry.evidence_class, ref.kind))
                             if adapter is not None:
                                 value = adapter(objects[ref], entry, decoded[source_ref])
@@ -331,19 +341,21 @@ class AutomaticLearningStoreV1:
                 status[ref] = "corrupt"
         for ref in manifest.generations:
             if (status[ref] == "valid" and ref.kind == "generation_descriptor"
-                    and ref.codec_version in (1, 2, 3)):
+                    and ref.codec_version in (1, 2, 3, 4)):
                 try:
                     validate_generation(objects[ref], manifest)
                 except (ValueError, KeyError, TypeError, RecursionError):
                     status[ref] = "corrupt"
         return objects, status
 
-    def snapshot(self) -> ResumeV1:
+    def snapshot(self, *, _admitted=None) -> ResumeV1:
         with self._coordinator.lock:
             manifest = self._manifest()
             objects, storage = self._object_states(manifest)
             entries = {entry.reference: entry for entry in manifest.objects}
             consumption, admitted = self._admission(manifest, objects, storage)
+            if _admitted is not None:
+                _admitted.update(admitted)
             states = tuple(ObjectStatusV1(ref, storage[ref], consumption[ref]) for ref in entries)
             files = io.scan_files(self.root)
             indexed = {io.object_path(self.root, ref) for ref in entries}
@@ -394,6 +406,26 @@ class AutomaticLearningStoreV1:
                 objects = read_objects()
             except (OSError, ValueError):
                 return self.snapshot(), None
+            # Historical tuples compress repetitive provenance. Bound retained typed
+            # delivery values independently of the unchanged 16-MiB stored-byte cap.
+            from .automatic_learning_codec import decode_json
+            expanded = 0
+            try:
+                for _ref, raw in objects:
+                    expanded += len(raw)
+                    payload = decode_json(raw).get("payload")
+                    if type(payload) is not dict:
+                        raise ValueError("Invalid stored delivery payload shape.")
+                    for value in payload.values():
+                        if type(value) is dict and value.get("encoding") == "zlib-json-v1":
+                            size = value.get("size")
+                            if type(size) is not int or size < 0:
+                                raise ValueError("Invalid native delivery size.")
+                            expanded += size
+                if expanded > 128 * 1024 * 1024:
+                    return self.snapshot(), None
+            except (ValueError, KeyError, TypeError):
+                return self.snapshot(), None
             inventory = self._inventory_fingerprint(io.scan_files(self.root))
             if (type(receipt) is _DeliverySnapshotReceipt and receipt.owner is self.owner
                     and receipt.limits == self.limits and receipt.resumed.manifest == manifest
@@ -403,7 +435,8 @@ class AutomaticLearningStoreV1:
                 return receipt.resumed, receipt
 
             # Seed only from strict admission bracketed by matching exact input reads.
-            resumed = self.snapshot()
+            admitted = {}
+            resumed = self.snapshot(_admitted=admitted)
             if any(row.storage_status != "valid" for row in resumed.objects):
                 return resumed, None
             if (resumed.manifest != manifest or read_objects() != objects
@@ -411,7 +444,17 @@ class AutomaticLearningStoreV1:
                     or self._manifest() != manifest):
                 raise StoreConflictError("Archive changed while capturing delivery admission.")
             return resumed, _DeliverySnapshotReceipt(self.owner, self.limits, resumed,
-                                                      objects, inventory)
+                                                      objects, inventory, tuple(admitted.items()))
+
+    def read_delivery_evidence(self, evidence_id, receipt):
+        """Reuse a typed value only after the original bounded receipt passes fresh byte checks."""
+        _resumed, current = self._snapshot_for_delivery(receipt)
+        if receipt is None or current is not receipt:
+            raise StoreConflictError("Original evidence delivery receipt changed.")
+        for identity, value in receipt.admitted:
+            if identity == evidence_id:
+                return value
+        raise UnsupportedEvidenceError("Evidence is unavailable in this exact delivery.")
 
     def _quota(self, *, extra: tuple[ObjectRefV1, ...] = (), candidates=None):
         files = io.scan_files(self.root)
@@ -568,7 +611,7 @@ class AutomaticLearningStoreV1:
                 raise ValueError("Evidence family and stored kind disagree.")
         for ref in manifest.generations:
             if states[ref] == "valid" and (ref not in current.generations or (
-                ref.kind == "generation_descriptor" and ref.codec_version in (1, 2, 3)
+                ref.kind == "generation_descriptor" and ref.codec_version in (1, 2, 3, 4)
             )):
                 validate_generation(objects[ref], manifest)
         return manifest
@@ -604,6 +647,8 @@ class AutomaticLearningStoreV1:
                     return WriteResultV1("conflict", current.fingerprint)
             if requested.space_id != current.space_id:
                 raise ValueError("The automatic space identity is immutable.")
+            if not set(current.historical_retired).issubset(requested.historical_retired):
+                raise ValueError("Deleted Review identities cannot be resurrected.")
             for old_values, new_values, key in (
                 (current.sources, requested.sources, lambda entry: entry.source_version.identity),
                 (current.evidence, requested.evidence, lambda entry: entry.identity),

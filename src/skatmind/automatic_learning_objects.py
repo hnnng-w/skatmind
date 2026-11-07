@@ -97,11 +97,13 @@ def resume_manifest(raw: bytes) -> ManifestV1:
 
 
 def validate_generation(obj: StoredObjectV1, manifest: ManifestV1) -> GenerationV1:
-    if obj.kind != "generation_descriptor" or obj.codec_version not in (1, 2, 3):
+    if obj.kind != "generation_descriptor" or obj.codec_version not in (1, 2, 3, 4):
         raise ValueError("Unsupported generation descriptor.")
     data = decode_json(obj.payload)
     # Codec 2 adds the S4 input ledger. This remains structural validation only;
     # automatic_match_preparation.admit_generation owns semantic authorization.
+    if obj.codec_version != 1 and type(data.get("recipe")) is not dict:
+        raise ValueError("A generation requires a recipe object.")
     generation = GenerationV1.from_dict(data if obj.codec_version == 1 else data["recipe"])
     sources = {entry.source_version.identity: entry for entry in manifest.sources}
     evidence = {entry.identity: entry for entry in manifest.evidence}

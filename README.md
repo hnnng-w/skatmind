@@ -715,6 +715,9 @@ without normal-user paths or ports. Normal creation uses names and saved Players
 generates internal Product identities, presents friendly Match platform/date/
 source fields, and keeps Session and Match JSON import secondary. Open **Settings**
 to add/edit Players, identify **Your player**, and choose local creation defaults.
+Successful manual completed-game Reviews also save their input and execution;
+**Saved Reviews and evidence** provides reopening, correction, deletion and original
+downloads. Check the saving receipt before closing the process.
 
 Inside a Learning collection, [choose a saved Match directly](docs/learning_direct_match_entry.md),
 add its saved version without opening the recording, explicitly build summaries,
@@ -741,8 +744,9 @@ and the [application shell](docs/unified_local_frontend_application_shell.md).
 On an opened Session, **Review recorded decisions** lists saved own decisions by
 Player, Trick, Card position, and actual Card. Review one directly after later
 Plays or all 30 Plays, without re-entering the Game or requiring complete
-Historical export. Source-labelled Results and exact downloads remain process-local;
-missing decision snapshots are explained rather than reconstructed. See
+Historical export. Source-labelled active Results remain process-local; eligible
+executions additionally survive restart through **Saved Session analyses**.
+Missing decision snapshots are explained rather than reconstructed. See
 [Review recorded Session decisions](docs/session_recorded_decision_review.md).
 Home's **Review recorded games** now opens a chooser for existing individual
 Games and Matches. It reuses a fresh active recording and its temporary Results;
@@ -2147,6 +2151,21 @@ under one mixed automatic generation. Saved-method and whole-game analyses survi
 restart through **Saved Session analyses**; Learning Update uses retained inputs
 without running card analyses. Missing Checkpoints and no-own-perspective recordings
 have explicit limited coverage. Session-only changes preserve the ten Match export
-bytes; qualified recurring focuses remain Match-specific. New exact-commit hosted
-gates and narrow maintainer installed acceptance for #314 remain pending. S7 saved
-manual Historical Review integration remains subsequent work.
+bytes; qualified recurring focuses remain Match-specific. S1–S6 and #315's validation
+policy are maintainer-accepted at main `08022a6`; earlier pending records are historical.
+
+Issue #316 adds [saved manual Historical Reviews and retained Match Historical evidence](docs/automatic_historical_learning_s7_verification.md).
+An explicit successful completed-game Review saves its exact input and execution.
+Open **Saved Reviews and evidence** at `/review/saved` to retrieve original downloads,
+reopen/correct a saved source, or preview and confirm its deletion. New guided Reviews
+have independent source-local participants even when their internal placeholder IDs
+repeat. Imported Historical identity claims remain strict. Drafts and unexecuted
+imports are not saved Games.
+
+Automatic Learning includes these saved sources and existing Match Historical
+findings through the ordinary explicit Create/Update action. Historical findings
+remain per-game evidence, separate from Session comparisons and qualified Match
+focuses. A Match Historical execution adds no duplicate Game or Teacher Report.
+Restart, passive navigation, language switching and downloads run no new card analysis.
+New exact-commit hosted CI and the narrow maintainer installed A–D workflows for #316
+remain pending; #316 and #208 stay open and release preparation is not authorized.

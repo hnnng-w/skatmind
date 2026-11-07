@@ -986,8 +986,8 @@ Corpus deletion/garbage collection, Player Catalog or Human Evidence persistence
 persisted aliases/assertions, merge/split operations, all-revision views,
 public Human or Strategy Teacher Evidence API transport, Dataset-v2 persistence,
 task builders, persisted partition artifacts and model training are not v1 gates.
-Automatic Learning and durable eligible Report reuse are approved v1 direction
-under Issue #308's contract below; implementation remains future work.
+Automatic Learning and durable eligible Report reuse are implemented through S7 below;
+S1–S6 are accepted; #316 still requires new hosted and installed gates.
 Session State itself contains no path
 or fingerprint; those values belong only to the private persistence boundary.
 No learned model, model-training workflow, hosted website, browser extension,
@@ -1087,11 +1087,11 @@ A task is complete only when:
 
 ## Validation policy and Issue #279 activation gate
 
-The faster routine policy is implemented but **not active until the maintainer
-accepts Issue #279's local Full and actual new CI evidence**. Keep #279 open until
-the real graph demonstrates both final statuses, all mandatory workers, failure
-propagation, timings, and honest Windows Server identification. Until then,
-continue requiring the final local Full check for implementation tasks.
+The maintainer accepted #279 and #315 before Issue #316 at
+`08022a6def9f06891d99e1097c2bf0ba84d77039`. The faster routine policy is active;
+earlier pending-acceptance paragraphs in historical verification records remain
+point-in-time history. Preserve #315's hosted four-worker policy and the local
+two-worker default, complete affected modules, and exclusive-phase isolation.
 
 After that acceptance, routine local completion requires explicit focused tests
 and `./scripts/check.ps1 -Mode Quick`.
@@ -1171,3 +1171,16 @@ acceptance. S7 remains subsequent work; recommendation adaptation remains a late
 goal. Accepted #292–#313 and #308's documentation acceptance remain intact. #208
 stays open, UAT-01 is not globally accepted, formal UAT-02–12 remain paused, and
 release preparation is not authorized.
+
+Scoped S7 follow-up: S1–S6 are maintainer-accepted, #314 and #315 are closed, and
+S6 installed acceptance completed on main
+`08022a6def9f06891d99e1097c2bf0ba84d77039`. Earlier S6-pending statements are
+historical. Issue #316 implements saved manual guided/imported Historical Reviews,
+genuine manual and managed Match Historical evidence, codec-4 automatic generations,
+native correction/deletion and exact delivery. See
+[Historical automatic Learning S7 verification](docs/automatic_historical_learning_s7_verification.md).
+Direct Session Historical/Finalize capture remains outside S7; accepted Session
+ordinary/rollout paths and independent collections retain their contracts. Keep
+#316 open for new exact-commit hosted gates and narrow maintainer installed A–D
+acceptance. Do not repeat S5/S6 acceptance. #208 stays open, formal UAT-02–12 remain
+paused, and recommendation adaptation and release authorization remain separate.

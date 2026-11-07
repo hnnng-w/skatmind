@@ -98,6 +98,9 @@ def admit_generation(obj, manifest):
             or data["version"] != 1 or data["producer"] != "automatic_match_preparation"):
         raise UnsupportedGeneration("Unsupported automatic Match generation producer.")
     recipe = validate_generation(obj, manifest)
+    if any(row.identity in recipe.evidence_ids and row.evidence_class == "historical"
+           for row in manifest.evidence):
+        raise UnsupportedGeneration("Codec-2 recipes do not admit Historical executions.")
     if (recipe.adapter_versions != ADAPTERS or recipe.builder_versions != BUILDERS
             or (recipe.corpus_id, recipe.dataset_id) != automatic_ids(manifest.space_id)
             or recipe.seed != 0 or recipe.partition_weights != (70, 15, 15)):
