@@ -96,7 +96,7 @@ def test_manual_purpose_editor_scope_and_secondary_native_alternatives(localized
                         "und den Spielverlauf ein.")
     assert page.count(explanation) == 1
     assert 'class="workflow-choice"' not in page
-    assert text(locale, "guided.process_local") in page
+    assert text(locale, "historical_learning.draft") in page
     assert text(locale, "guided.review.scope_help") in page
     assert text(locale, "guided.import_help") in page
     recorded_link(page, locale)

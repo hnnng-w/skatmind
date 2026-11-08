@@ -36,6 +36,7 @@ def validate_historical_execution(game, invocation, execution):
             raise ValueError("Historical Result contradicts the recorded outcome.")
     else:
         _validate_proof_source(game, replay, summary)
+        _validate_proof_outcome(game, replay, summary)
     options = invocation.options.historical_game
     external = invocation.external_documents
     statistics = external.opponent_statistics_to_dict()
@@ -151,3 +152,32 @@ def _validate_proof_source(game, replay, summary):
                     or summary["point_accounting"]["final_" + field + "_points"] != final
                     or summary[field + "_points"] != final):
                 raise ValueError("Historical Claim assignment contradicts original points.")
+
+
+def _validate_proof_outcome(game, replay, summary):
+    from .final_settlement import build_final_settlement_summary
+    from .game_value import build_game_value_summary
+    from .overbid import build_overbid_summary
+    from .replay_coaching_report_context import _validate_retained_historical_summary
+
+    # Reuse the existing pure retained-outcome checks, including Claim assignment
+    # and declaration-to-Settlement reconciliation. Neither path executes a proof.
+    _validate_retained_historical_summary(game, summary)
+    if game.game_end_reason == "party_wide_all_remaining_tricks_claim":
+        return
+    outcome = summary["game_result_summary"]
+    end = summary["historical_game_end_summary"]
+    if (outcome["rest_trick_proof_status"] != end["exact_proof"]["status"]
+            or outcome["rest_trick_assignment"] != end["rest_trick_assignment"]
+            or outcome["rest_tricks_recipient"] != end["rest_tricks_recipient"]
+            or outcome["winner"] != end["adjudicated_winner"]
+            or outcome["winner_basis"] != end["winner_basis"]):
+        raise ValueError("Historical defender open-play outcome contradicts retained adjudication.")
+    value = build_game_value_summary(game.declaration)
+    overbid = build_overbid_summary(value, game.declaration.bid_value, game.game_end_reason)
+    tricks = [{"cards": [card for _player, card in trick.plays], "winner_role": trick.winner_side}
+              for trick in replay.completed_tricks]
+    settlement = build_final_settlement_summary(value, outcome, overbid, tricks)
+    if (summary["game_value_summary"] != value or summary["overbid_summary"] != overbid
+            or summary["final_settlement_summary"] != settlement):
+        raise ValueError("Historical defender open-play Settlement contradicts the declaration.")

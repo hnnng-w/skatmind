@@ -172,3 +172,114 @@ def test_retained_native_envelope_rejects_contradictory_wire(genuine_historical,
     source = decode_historical_source(candidate.objects[0], candidate.source)
     with pytest.raises((ValueError, TypeError, AttributeError)):
         decode_historical_execution(obj, entry, source)
+
+
+@pytest.fixture(scope="module", params=(
+    "historical_grand_defender_open_play", "historical_party_wide_claim"))
+def genuine_proof_ending(request):
+    root = parse_request(json.loads((ROOT / "examples" / (request.param + ".json")).read_text()))
+    with capture_native_execution() as native:
+        execution = execute_guided_frontend_review_v1(root, options=ExecutionOptionsV1())
+    candidate = build_historical_capture_candidate("proof-settlement", 0, execution, native[0])
+    return candidate, execution
+
+
+def test_rehashed_proof_settlement_is_rejected_without_reexecution_or_writes(
+    tmp_path, genuine_proof_ending, monkeypatch,
+):
+    from skatmind.automatic_learning_store import UnsupportedEvidenceError
+    candidate, execution = genuine_proof_ending
+    original = decode_json(candidate.objects[1].payload)
+    data = decode_json(candidate.objects[1].payload)
+    changed_count = 0
+
+    def contradict(value):
+        nonlocal changed_count
+        if type(value) is list:
+            return [contradict(item) for item in value]
+        if type(value) is dict:
+            changed = {key: contradict(item) for key, item in value.items()}
+            if value.get("type") == "mapping":
+                for pair in changed["value"]:
+                    if pair[0] == "settlement_score" and type(pair[1]) is int:
+                        pair[1] += 1
+                        changed_count += 1
+            return changed
+        return value
+
+    for field in ("result", "internal_execution"):
+        data[field] = pack_native(decode_execution_value(
+            contradict(encode_execution_value(unpack_native(data[field])))))
+    assert changed_count >= 2
+    public = unpack_native(data["result"])
+    raw = canonical_frontend_json_bytes_v1(public)
+    data["downloads"][1].update(bytes=base64.b64encode(raw).decode("ascii"),
+                                sha256=hashlib.sha256(raw).hexdigest())
+    for field in ("original_source", "invocation", "options", "supplied_options", "guided_draft"):
+        assert data[field] == original[field]
+    retained_summary = public["document"]["historical_game_summary"]
+    original_summary = unpack_native(original["result"])["document"]["historical_game_summary"]
+    for field in ("record", "point_accounting", "historical_game_end_summary"):
+        assert retained_summary[field] == original_summary[field]
+    validate_execution(unpack_native(data["invocation"]), unpack_native(data["internal_execution"]),
+                       workflow=WorkflowV1.HISTORICAL_GAME)
+    obj = replace(candidate.objects[1], payload=canonical_json(data))
+    entry = replace(candidate.evidence, envelope=obj.reference)
+    corrupted = replace(candidate, evidence=entry, objects=(candidate.objects[0], obj))
+    store = initialize_automatic_learning_store_v1(tmp_path / "archive")
+    assert commit_candidate(store, corrupted).status == "saved"
+    before = archive_bytes(store)
+    forbid_execution(monkeypatch)
+    def forbidden(*args, **kwargs):
+        pytest.fail("Proof admission must not execute a solver or write the archive")
+    monkeypatch.setattr("skatmind.historical_party_wide_claim.execute_party_wide_claim_proof_v1",
+                        forbidden)
+    monkeypatch.setattr("skatmind.defender_open_play.prove_defender_rest_tricks", forbidden)
+    monkeypatch.setattr("skatmind.automatic_learning_io.write_temporary", forbidden)
+    source = decode_historical_source(candidate.objects[0], candidate.source)
+    genuine = decode_historical_execution(candidate.objects[1], candidate.evidence, source)
+    assert genuine.download("request")[1] == execution.request_json_bytes
+    assert genuine.download("result")[1] == execution.result_json_bytes
+    direct_rejected = False
+    try:
+        decode_historical_execution(obj, entry, source)
+    except ValueError:
+        direct_rejected = True
+    restarted = resume_automatic_learning_store_v1(store.root)
+    resumed = restarted.snapshot()
+    archived = entry.identity in resumed.available_evidence_ids
+    print({"direct_rejected": direct_rejected, "restart_admitted": archived,
+           "original_score": original_summary["final_settlement_summary"]["settlement_score"],
+           "changed_score": retained_summary["final_settlement_summary"]["settlement_score"]})
+    assert archive_bytes(store) == before
+    assert direct_rejected and not archived
+    assert next(row for row in resumed.objects if row.reference == entry.envelope
+                ).consumption_status == "corrupt"
+    with pytest.raises(UnsupportedEvidenceError):
+        restarted.read_evidence(entry.identity)
+
+
+@pytest.mark.parametrize(("section", "field"), (
+    ("game_value_summary", "game_value"), ("overbid_summary", "margin"),
+    ("game_result_summary", "winner"),
+))
+def test_proof_outcome_reconciles_declaration_and_retained_result(
+    genuine_proof_ending, monkeypatch, section, field,
+):
+    from skatmind.api.v1 import ResultDocumentV1
+    from skatmind.automatic_historical_validation import validate_historical_execution
+    candidate, _execution = genuine_proof_ending
+    source = decode_historical_source(candidate.objects[0], candidate.source)
+    data = decode_json(candidate.objects[1].payload)
+    invocation = unpack_native(data["invocation"])
+    internal = unpack_native(data["internal_execution"])
+    document = internal.result.to_dict()["document"]
+    value = document["historical_game_summary"][section][field]
+    # Controlled scalar corruption, not another executed or archived Report.
+    document["historical_game_summary"][section][field] = (
+        "defenders" if value == "declarer" else "declarer") if field == "winner" else value + 1
+    changed = replace(internal, result=ResultDocumentV1(
+        workflow=WorkflowV1.HISTORICAL_GAME, document=document))
+    forbid_execution(monkeypatch)
+    with pytest.raises(ValueError):
+        validate_historical_execution(source.game, invocation, changed)

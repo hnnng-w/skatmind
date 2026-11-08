@@ -747,3 +747,319 @@ Actions and installed A–D were not run under this task's explicit boundary. No
 managed/UAT data, distribution/UAT build, staging, commit, push, merge, issue
 modification or release action was performed. Accepted S1–S6 scopes remain intact;
 recommendation adaptation and overall UAT/release authorization are not claimed.
+
+## Issue #316 CI and source-review correction at `175c466b` (2026-11-08)
+
+### Exact baseline and authenticated hosted evidence
+
+Expected/actual branch: `feat/316-automatic-historical-learning`. Expected/actual
+starting and current HEAD: `175c466b8f232df628924565efbbe7bba0f2ab29`. The initial
+worktree and index were clean; there was no baseline deviation or unrelated work.
+The actual Issue and its two maintainer comments were read before correction.
+The original S7 implementation/local verification above remains historical evidence.
+Accepted S1–S6 scopes, #315's policy and the later installed A–D scope are unchanged.
+
+Authenticated read-only retrieval succeeded for all requested logs and artifacts
+from attempt **1** of push [run 42375759887](https://github.com/hnnng-w/skatmind/actions/runs/42375759887),
+on that exact branch/commit. The reviewing environment's earlier HTTP 403/401
+limitations did not recur through this environment's authenticated `gh` access.
+There is no unresolved retrieval limitation.
+
+| Retrieved evidence | Exact ID | Retained bytes |
+| --- | ---: | ---: |
+| Windows regression job log | 128412941467 | 111,559 |
+| Ubuntu regression job log | 128412941473 | 101,192 |
+| Final `check` job log | 128434828690 | 28,991 |
+| `regression-windows` artifact ZIP | 13578950573 | 1,737,407 |
+| `regression-ubuntu` artifact ZIP | 13578002757 | 1,777,211 |
+
+Run metadata confirms **20 successful jobs and three failures**: both regressions
+and `check`. All twelve installation cells and `v1-supported-platform-matrix`
+succeeded. These are historical exact-commit statuses, not validation of this
+subsequent correction.
+
+Each regression artifact contains `summary.json`, `pytest-collection.json/.log`,
+`pytest-parallel.json/.log`, and pytest cache diagnostics. Both complete job logs,
+the final-gate log, run/job/artifact metadata, ZIPs, extracted files and SHA-256
+retrieval receipts are retained under:
+
+```text
+C:\Users\HENNIN~1\AppData\Local\Temp\opencode\316-review-hosted-42375759887
+```
+
+The complete actual failing node inventory is identical on both platforms:
+
+```text
+tests/test_analysis_review_entry_paths.py::test_manual_purpose_editor_scope_and_secondary_native_alternatives[de]
+tests/test_analysis_review_entry_paths.py::test_manual_purpose_editor_scope_and_secondary_native_alternatives[en]
+```
+
+All four hosted failures are **call-phase assertion failures** at line **99**:
+
+```python
+assert text(locale, "guided.process_local") in page
+```
+
+The delivered S7 page instead contains the approved `historical_learning.draft`
+notice distinguishing unsaved drafts/imports from successful saved Reviews. The
+Windows traces identify worker `gw1`; Ubuntu identifies `gw2`. There were no
+collection failures, failed setup/teardown phases, worker crashes, missing/extra
+parallel executions or duplicate phase reports in the retrieved evidence.
+
+| Hosted report fact | Windows | Ubuntu |
+| --- | ---: | ---: |
+| Full collection / collection exit | 12,403 / 0 | 12,403 / 0 |
+| Parallel selected and executed cases | 12,308 | 12,308 |
+| Parallel passed / failed / skipped | 12,306 / 2 / 0 | 12,301 / 2 / 5 |
+| Matching complete worker collections | 4 | 4 |
+| Setup passed / skipped | 12,308 / 0 | 12,305 / 3 |
+| Call passed / failed / skipped | 12,306 / 2 / 0 | 12,301 / 2 / 2 |
+| Teardown passed | 12,308 | 12,308 |
+| Collection wall seconds | 21.870 | 23.387 |
+| Parallel wall seconds | 5,601.853 | 5,646.394 |
+| Validation entry-point wall seconds | 5,624.041 | 5,669.855 |
+
+The five Ubuntu skips are Windows-specific junction cases: automatic inventory
+`root_junction`, two automatic-store junction cases, direct-entry `junction`, and
+recording deletion's real junction-root case. Both lanes recorded CPython **3.13.15**,
+four workers and four logical/process-usable CPUs. Windows recorded
+`Windows-2025Server-10.0.26100-SP0`, image `win25-vs2026 / 20261103.298.1`; Ubuntu
+recorded `Linux-7.0.0-1017-azure-x86_64-with-glibc2.39`, image
+`ubuntu24 / 20261101.360.1`. Their source digest is identical:
+`98865f7a7ee27b975f0a32eeea8e48444ee078c7b8e8148db82ee9da9d54db26`.
+
+Both parallel invocations completed with exit **1**, so the exclusive phase did
+**not run**. Exactly 95 collected cases remained unexecuted: early rejection **6**,
+standalone Corpus **27**, unified rejection **37**, Match action placement **25**.
+Consequently `pytest-exclusive.json`, complete `pytest-accounting.json` and
+`pytest-performance.json` are absent as expected. The logs retain their normal
+slowest-40 duration diagnostics. The external `failure-inventory.json` independently
+reconciles raw collection/phase identities; it does not claim a successful hosted
+complete-suite accounting result or a performance improvement.
+
+The final `check` log records `regression.result = failure` and:
+
+```text
+mode=full reason=gate_prerequisites_invalid lookup=gate_prerequisites
+```
+
+This is correct prerequisite failure propagation, before successful full-evidence
+acceptance. No CI workflow, gate, worker count, timeout, retry or reuse requirement
+needs changing.
+
+### Before-edit reproductions and bounded corrections
+
+All three causes were reproduced on development **CPython 3.13.7** before Product
+edits. Only the new regression tests had been added when A/B were exercised.
+
+**Hosted cause — omitted module and stale expectation.** The original affected
+inventory omitted the complete `tests/test_analysis_review_entry_paths.py` module.
+Both exact hosted nodes failed locally at the same assertion. The correction
+changes only its expected catalog key to `historical_learning.draft`. All purpose,
+scope, import, native-link, form/action-order and retained-state assertions remain.
+The entire 18-test module passes in the complete affected run.
+
+**Independent finding A — proof-bearing settlement admission.** Genuine base-option
+executions of `historical_grand_defender_open_play.json` and
+`historical_party_wide_claim.json` supplied the original source, Request, invocation,
+proof and point accounting. Controlled corruption changed integer `settlement_score`
+by +1 in every retained Result/internal document copy, repacked native tuples and
+rebuilt Result download bytes/digest, envelope and evidence references. Original
+provenance validation still passed.
+
+| Source | Original / contradictory score | Before edit | After correction |
+| --- | --- | --- | --- |
+| Defender open play | -144 / -143 | Direct decoding accepted; restart admitted | Direct rejection; restart quarantines as corrupt |
+| Party-wide Claim | 33 / 34 | Direct decoding accepted; restart admitted | Direct rejection; restart quarantines as corrupt |
+
+`automatic_historical_validation.py` now reuses the existing pure retained-outcome
+reconciliation in `replay_coaching_report_context.py`, including its Claim
+assignment/declaration/settlement checks. Defender open-play outcome fields are
+also reconciled with the retained adjudication/proof/assignment, and the existing
+`build_game_value_summary`, `build_overbid_summary` and
+`build_final_settlement_summary` rebuild the expected rule-derived values from the
+original declaration, retained outcome and original completed Tricks. No alternative
+settlement implementation, solver invocation or Historical analysis is introduced.
+
+The original native exports remain byte-exact and genuine supported endings pass.
+Six additional controlled scalar cases cover game value, overbid margin and outcome
+consistency for both proof endings. These are explicit negative fixtures, not new
+genuine executions or claims of historical truth. Archive bytes remain unchanged
+during direct/restart admission, and execution/proof/write guards prohibit hidden
+evaluation or repair.
+
+**Independent finding B — legacy Review download conflict.** In each locale, App A
+genuinely executed/saved a guided Review. A second cooperating app context used the
+delivered saved-source preview and confirmed-deletion forms against the same disposable
+home. App A retained its original successful state and notice. Both legacy routes
+returned **500** before correction, while the stale tokenized control returned **409**:
+
+```text
+/downloads/review/request.json
+/downloads/review/result.json
+```
+
+The narrow `_download` boundary now handles expected Historical capture/storage
+conflicts through the existing localized recovery and binds that same recovery to
+the retained final-delivery guard. Both routes now return complete localized **409**
+responses. Unchanged source requests still return the exact original bytes and
+filenames. App A's successful state/notice and retained archive bytes stay unchanged.
+The global exception handler is untouched. This correction requires no malformed
+archive or additional analysis after the fixture execution/deletion.
+
+A/B are independently confirmed Product findings. Neither is an actual failed node
+in the retrieved hosted run.
+
+### Changed files and affected-module inventory
+
+Exactly **six modified files**, with no new repository file:
+
+```text
+src/skatmind/automatic_historical_validation.py
+src/skatmind/app_web/server.py
+tests/test_analysis_review_entry_paths.py
+tests/test_automatic_historical_admission.py
+tests/test_automatic_historical_web.py
+docs/automatic_historical_learning_s7_verification.md
+```
+
+Product code changes are confined to the two boundaries above. Producer separation,
+guided/imported identities, source/execution/options/native bytes, codec-2/3/4
+meanings, unsupported-future behavior, quotas, generation publication, Match
+continuity, ten Match exports and Session/manual collection ownership retain their
+existing contracts. All 23 hosted jobs, twelve installation cells, final gates,
+four-worker hosted policy and exact-commit reuse are unchanged.
+
+The correction uses **11 complete affected modules**, rather than repeating the
+original 82: native Historical admission/evidence and its managed Match consumer;
+new/legacy Historical HTTP access; existing manual-status/download/navigation and
+guided/app compatibility callers; the omitted CI entry module; and final rejection
+transport. Unchanged generation/continuity, Session, storage transaction, solver,
+packaging and installation evidence is reused within its original scope.
+
+The complete ten-module parallel command and subsequent exclusive command were:
+
+```powershell
+$PY = 'C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe'
+$E = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode'
+$env:PYTHONDONTWRITEBYTECODE = '1'
+$env:PYTHONPATH = "$E;$env:PYTHONPATH"
+$env:S7_ACCOUNTING = "$E\316-review-affected-operations"
+& $PY -m pytest tests/test_analysis_review_entry_paths.py tests/test_automatic_historical_admission.py tests/test_automatic_historical_evidence.py tests/test_automatic_historical_web.py tests/test_automatic_match_historical_evidence.py tests/test_manual_review_status_labels.py tests/test_analysis_download_details.py tests/test_recorded_review_navigation.py tests/test_guided_frontend_web.py tests/test_unified_local_app_web.py -q -n 2 --dist=loadfile --max-worker-restart=0 --tb=short -p no:cacheprovider -p issue316_accounting --basetemp "$E\316-review-affected" --junitxml "$E\316-review-affected.xml"
+$env:S7_ACCOUNTING = "$E\316-review-exclusive-operations"
+& $PY -m pytest tests/test_unified_rejection_transport.py -q --tb=short -p no:cacheprovider -p issue316_accounting --basetemp "$E\316-review-exclusive" --junitxml "$E\316-review-exclusive.xml"
+```
+
+Both workers exited before the exclusive module ran. The other three exclusive
+modules cover unchanged body-drain, standalone Corpus and Match action-placement
+behavior and were not repeated. No routine browser matrix was run: the visible
+correction is the established recovery response, verified through genuine delivered
+German/English HTTP checks, with no new control, layout or browser script.
+
+Earlier exact reproduction/focused commands:
+
+```powershell
+& $PY -m pytest tests/test_analysis_review_entry_paths.py -k test_manual_purpose_editor_scope_and_secondary_native_alternatives -q --tb=short -p no:cacheprovider --basetemp "$E\316-review-ci-red" --junitxml "$E\316-review-ci-red.xml"
+& $PY -m pytest tests/test_automatic_historical_admission.py tests/test_automatic_historical_web.py -k "rehashed_proof_settlement or legacy_download_conflict" -q -s --tb=short -p no:cacheprovider --basetemp "$E\316-review-ab-red" --junitxml "$E\316-review-ab-red.xml"
+& $PY -m pytest tests/test_automatic_historical_admission.py tests/test_automatic_historical_web.py tests/test_analysis_review_entry_paths.py -k "rehashed_proof_settlement or legacy_download_conflict or test_manual_purpose_editor_scope_and_secondary_native_alternatives" -q -s --tb=short -p no:cacheprovider --basetemp "$E\316-review-focused" --junitxml "$E\316-review-focused.xml"
+& $PY -m ruff check src/skatmind/automatic_historical_validation.py src/skatmind/app_web/server.py tests/test_automatic_historical_admission.py tests/test_automatic_historical_web.py tests/test_analysis_review_entry_paths.py --output-format concise
+```
+
+| Invocation | Actual outcome | Console seconds |
+| --- | --- | ---: |
+| `316-review-ci-red`, before Product edits | 2 expected failures, 16 deselected | 3.29 |
+| `316-review-ab-red`, before Product edits | 4 confirmed failures, 37 deselected | 25.81 |
+| `316-review-focused`, after correction | 6 passed, 53 deselected | 33.23 |
+| `316-review-affected`, all ten parallel modules | 231 passed | 357.80 |
+| `316-review-exclusive`, complete serial module | 37 passed | 19.61 |
+
+Final coverage is **268 distinct passing tests in 11 complete modules**, including
+**10 new regressions**, with **no skips or unresolved failures**. Across five pytest
+invocations there were **274 passing executions and six pre-correction failures**.
+The six focused passes overlap complete coverage; the six red failures subsequently
+pass. There were no collection/setup/teardown errors or warnings. Targeted Ruff
+initially found one new-test line length and one import-order issue; both were fixed
+with patches before complete validation. Timings are recorded test durations, not
+a benchmark or performance-improvement claim.
+
+### Operation accounting and external evidence
+
+The ten new tests use **four successful genuine Historical fixture executions** in
+one complete pass: two module-scoped proof-ending tuples reused immutably across
+eight admission cases, and two independently owned App-A executions for German/English
+HTTP lifecycles. The red and focused passes each also executed four such fixtures,
+for **12 correction-fixture executions across those three invocations**. Existing
+compatibility tests have their own fixture work; it is not described as zero.
+
+For the new tests in the complete pass, instrumentation records four source writes,
+four Report writes and ten manifest writes: four initialization/commit writes for
+the two controlled admission stores, and six initialization/save/deletion writes for
+the two cooperating-context HTTP scenarios. There are **zero generation writes**.
+After fixture publication, admission/restart and stale downloads assert zero analysis,
+solver execution and archive writes. No Learning preparation, save retry, recording
+write or Profile save is requested by these new correction scenarios. The confirmed
+source deletions are deliberate fixture operations and are not passive writes.
+
+Retrieval, verification and accounting used the development interpreter at the exact
+path above. Every validation tool invocation used timeout **7,200,000 ms**. Authenticated
+retrieval/inspection commands included:
+
+```powershell
+gh issue view 316 --repo hnnng-w/skatmind --json number,title,state,body,comments
+gh run view 42375759887 --repo hnnng-w/skatmind --json headSha,headBranch,status,conclusion,url,jobs
+& $PY "$E\316-review-retrieve.py"
+& $PY "$E\316-review-hosted-analysis.py"
+& $PY "$E\316-review-local-accounting.py"
+```
+
+The retrieval helper uses authenticated `gh api` GETs for the run, complete job list,
+each `/actions/jobs/{id}/logs`, artifact metadata and `/actions/artifacts/{id}/zip`.
+It verifies the exact commit/branch and artifact/run identities before extraction.
+External evidence includes:
+
+```text
+%TEMP%/opencode/316-review-hosted-42375759887/retrieval.json
+%TEMP%/opencode/316-review-hosted-42375759887/failure-inventory.json
+%TEMP%/opencode/316-review-hosted-42375759887/{regression-windows,regression-ubuntu,check}.log
+%TEMP%/opencode/316-review-hosted-42375759887/{regression-windows,regression-ubuntu}/summary.json
+%TEMP%/opencode/316-review-hosted-42375759887/{regression-windows,regression-ubuntu}/pytest-{collection,parallel}.{json,log}
+%TEMP%/opencode/316-review-{ci-red,ab-red,focused,affected,exclusive}.xml
+%TEMP%/opencode/316-review-{affected,exclusive}-operations-{main,gw0,gw1}.json
+%TEMP%/opencode/316-review-local-accounting.json
+```
+
+### Follow-up completion and remaining gates
+
+**Locally validated; new exact-commit hosted CI and narrow maintainer installed
+acceptance pending.** Final explicit `.\scripts\check.ps1 -Mode Quick` passed with
+exit **0** in **26.952 s**, using the verified development CPython **3.13.7** on
+`Windows-11-10.0.26300-SP0`, local workers **2**. Ruff passed in **0.470 s**, schema
+parity in **0.341 s** and input examples in **5.204 s**. Total wall time includes
+runner setup and is not the sum of stage-only timings. Logs:
+`C:\Users\Henning-DT\AppData\Local\Temp\skatmind-check-aj0irjb0`.
+Checked source digest:
+`2bb34223af60d21bcfa9e86b0832fa011b11e2ce3b979553d67ec8ddb2106c3b`.
+Only this documentation receipt followed Quick; Product code and tests are unchanged.
+
+```powershell
+$env:PYTHONDONTWRITEBYTECODE = '1'
+$env:PYTHONPYCACHEPREFIX = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode\316-review-quick-pycache'
+function python { & 'C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe' @args }
+python -c "import sys; print(sys.executable); print(sys.version); assert sys.version_info[:3] == (3, 13, 7)"
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+git status --short --branch
+git diff --cached --stat
+git rev-parse HEAD
+```
+
+All six changed files were reviewed; whitespace checking passed. The index remains
+empty and the worktree contains only the six intended modifications, with no new or
+unrelated files. Branch and starting/current HEAD remain the exact values recorded
+above. Quick is partial validation, not new hosted or installed acceptance.
+
+No local Full, unrelated suites, distribution/UAT build, installation, real managed
+or installed UAT data, hosted rerun, Actions trigger, Git/GitHub publication or release
+operation was used. New exact-commit hosted branch/main gates and narrow maintainer
+installed A–D acceptance remain required. Keep #316 and #208 open; accepted S1–S6
+scopes and the paused formal UAT/release boundaries remain unchanged.

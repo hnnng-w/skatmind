@@ -1980,8 +1980,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
     def _download(self, path: str) -> None:
         if path in (REVIEW_REQUEST_DOWNLOAD_ROUTE_PATH, REVIEW_RESULT_DOWNLOAD_ROUTE_PATH):
             from .historical_review_retention import capture_manual_delivery
-            manual = capture_manual_delivery(self.server.app_context)
+            from .saved_historical_reviews import recovery
+            try:
+                manual = capture_manual_delivery(self.server.app_context)
+            except (OSError, ValueError, SkatMindError):
+                recovery(self)
+                return
             self._retained_delivery_guard = lambda: manual.validate(self.server.app_context)
+            self._retained_delivery_recovery = lambda: recovery(self)
         with self.server.app_context.lock:
             if path == ANALYZE_REQUEST_DOWNLOAD_ROUTE_PATH:
                 content = self.server.app_context.analyze_state.request_json_bytes

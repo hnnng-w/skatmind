@@ -245,3 +245,73 @@ def test_ordinary_imports_are_independent_and_reset_keeps_saved_sources(localize
     assert app.automatic_match_learning._installed.bundle.historical_sources == ()
     assert all(row.reason == "ambiguous"
                for row in app.automatic_match_learning._installed.generation.recipe.exclusions)
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+def test_legacy_download_conflict_after_cooperating_context_deletes_saved_review(
+    localized_server, monkeypatch, locale,
+):
+    from test_automatic_match_learning_evidence import forbid_execution
+    from test_automatic_session_review_corrections import archive_bytes
+    from test_guided_historical_review_form import _completed_example_draft
+
+    from skatmind.app_web.context import AppWebContextV1
+    from skatmind.app_web.historical_form import update_historical_options_v1
+    from skatmind.app_web.saved_match_analyses import archive_store
+    from skatmind.app_web.server import serve_app_web_in_thread_v1, start_app_web_server_v1
+    from skatmind.app_web.stateful_localization import text
+    from skatmind.app_web.workflow_operations import run_guided_review_v1
+
+    app = localized_server.app_context
+    draft = update_historical_options_v1(_completed_example_draft())
+    app.review_state = app.review_state.mutate(expected_revision=0, draft=draft)
+    run_guided_review_v1(app, expected_revision=app.review_state.revision)
+    state, notice = app.review_state, app.historical_reviews.notice
+    assert notice[1] == "saved"
+    browser = Browser(localized_server)
+    headers = {"Accept-Language": locale}
+    page = browser.request("GET", "/review", headers=headers)[2].decode()
+    tokenized = re.search(r'href="(/review/execution/[0-9a-f]+/result.json)"', page)[1]
+    for kind in ("request", "result"):
+        status, response_headers, raw = browser.request(
+            "GET", f"/downloads/review/{kind}.json", headers=headers)
+        assert status == 200 and raw == getattr(state, kind + "_json_bytes")
+        assert response_headers["content-disposition"] == (
+            f'attachment; filename="skatmind-review-{kind}.json"')
+
+    forbid_execution(monkeypatch)
+    other = start_app_web_server_v1(AppWebContextV1.create(app.managed_home),
+        port=0, token="localization-test-token")
+    thread = serve_app_web_in_thread_v1(other)
+    try:
+        cooperating = Browser(other)
+        page = cooperating.page("/review/saved")
+        source = cooperating.page(source_link(page))
+        preview = follow(cooperating, cooperating.submit(
+            Forms(source).find("/review/delete-preview")))
+        response = cooperating.submit(Forms(preview).find("/review/delete-confirm"),
+                                      confirm_delete="on")
+        assert response[0] == 303
+    finally:
+        other.shutdown()
+        other.server_close()
+        thread.join(timeout=5)
+        assert not thread.is_alive()
+
+    store = archive_store(app)
+    assert store.snapshot().manifest.historical_heads == ()
+    before = archive_bytes(store)
+    def forbidden(*args, **kwargs):
+        pytest.fail("Conflict delivery must not write the archive")
+    monkeypatch.setattr("skatmind.automatic_learning_io.write_temporary", forbidden)
+    control = browser.request("GET", tokenized, headers=headers)
+    assert control[0] == 409
+    results = [browser.request("GET", f"/downloads/review/{kind}.json", headers=headers)
+               for kind in ("request", "result")]
+    print({"locale": locale, "legacy_statuses": [row[0] for row in results],
+           "tokenized_status": control[0]})
+    assert app.review_state is state and app.historical_reviews.notice is notice
+    assert archive_bytes(store) == before
+    for status, _headers, body in results:
+        assert status == 409 and b"</html>" in body
+        assert text(locale, "historical_learning.conflict") in unescape(body.decode())
