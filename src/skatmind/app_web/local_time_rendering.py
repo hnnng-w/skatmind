@@ -55,7 +55,7 @@ def render_local_time_editor(locale, context: LocalTimeFormContext, *, original=
     fields = input_field(locale, "local_date", "local_time.date", kind="date")
     fields = fields.replace('type="date"', 'type="date" min="0001-01-01" max="9999-12-31"')
     fields += input_field(locale, "local_time", "local_time.time", kind="time").replace(
-        'type="time"', 'type="time" step="0.000001"')
+        'type="time"', 'type="time" step="60"')
     fields += zone_selector(locale, name="local_zone",
                             selected=values.get("local_zone", context.zone))
     choices = ()

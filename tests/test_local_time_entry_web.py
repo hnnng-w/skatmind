@@ -10,6 +10,7 @@ from test_session_recorded_review_web import Browser, Forms, record_live_game, r
 from skatmind.app_web.context import AppWebContextV1
 from skatmind.app_web.local_time_forms import LOCAL_TIME_FIELDS
 from skatmind.app_web.server import serve_app_web_in_thread_v1, start_app_web_server_v1
+from skatmind.app_web.translation_catalog import translate_frontend_message_v1 as text
 from skatmind.session_transitions import replay_session_state_v1
 
 
@@ -44,6 +45,66 @@ def create_session(browser):
 
 def occurrence(page, which):
     return re.search(r'<option value="(' + which + r'\.[0-9a-f]{64})"', page)[1]
+
+
+@pytest.mark.parametrize("locale", ("en", "de"))
+@pytest.mark.parametrize("clock", ("19:30", "19:30:00", "19:30:00.000"))
+def test_minute_controls_creation_replacement_and_retry(localized_server, locale, clock):
+    browser = Browser(localized_server)
+    switch(browser, browser.page("/"), locale)
+
+    def minute_form(page, marker):
+        controls = re.findall(r'<input\b[^>]*name="local_time"[^>]*>', page)
+        assert controls and all('type="time"' in tag and 'step="60"' in tag for tag in controls)
+        assert text(locale, "local_time.entry_help") in page
+        return local_form(page, marker)
+
+    def retry(page, marker, **extra):
+        form = minute_form(page, marker)
+        assert form["values"]["local_time"] == ""
+        gap_clock = "02:30" + clock[5:]
+        response = browser.submit(form, local_date="2026-03-29", local_time=gap_clock, **extra)
+        assert response[0] == 400
+        page = response[2].decode()
+        assert text(locale, "validation.local_time.gap") in page
+        form = minute_form(page, marker)
+        assert form["values"]["local_time"] == gap_clock
+        # Compatible native zero-second spellings remain accepted, without truncation.
+        return follow(browser, browser.submit(form, local_date="2026-01-15", local_time=clock,
+                                             **extra))
+
+    page = retry(browser.page("/matches/new"), "match-create", match_title="Minute entry",
+        forehand_name="Alex", middlehand_name="Boris", rearhand_name="Clara",
+        perspective_seat="forehand", setup_action="update")
+    form = minute_form(page, "match-create")
+    assert form["values"]["local_time"] == clock
+    page = follow(browser, browser.submit(form, setup_action="create"))
+    expected = "2026-01-15T19:30:00" + (".000000" if "." in clock else "") + "+01:00"
+    match = localized_server.app_context.managed_stateful.active_match
+    assert match.workspace.match_definition.played_at == expected
+    page = retry(page, "match-metadata", time_mode="replace")
+    assert match.workspace.match_definition.played_at == expected
+    assert minute_form(page, "match-metadata")["values"]["time_mode"] == "keep"
+
+    page = retry(create_session(browser), "session-metadata")
+    session = localized_server.app_context.managed_stateful.active_session
+    assert session.state.command_log[0].command.played_at == expected
+    page = retry(page, "session-metadata-correction", time_mode="replace")
+    assert session.state.command_log[0].command.played_at == expected
+    assert minute_form(page, "session-metadata-correction")["values"]["time_mode"] == "keep"
+
+
+@pytest.mark.parametrize("locale", ("en", "de"))
+def test_invalid_clock_guidance_uses_hours_and_minutes(localized_server, locale):
+    browser = Browser(localized_server)
+    page = switch(browser, browser.page("/matches/new"), locale)
+    response = browser.submit(local_form(page, "match-create"),
+        local_date="2026-01-15", local_time="25:00", setup_action="update")
+    assert response[0] == 400
+    page = response[2].decode()
+    message = text(locale, "validation.local_time.time")
+    assert message in page and "HH:MM" in message and ":SS" not in message
+    assert 'aria-invalid="true"' in page and 'step="60"' in page
 
 
 def test_settings_restart_date_only_exact_metadata_and_reopen(localized_server):
@@ -150,8 +211,8 @@ def test_returned_fold_choices_language_and_single_creation(localized_server, wh
 
 
 @pytest.mark.parametrize("original", (
-    "2026-01-15t19:30:00.123456789z", "2016-12-31T23:59:60Z",
-    "2026-01-15T19:30:00-00:00", "2026-01-15t19:30:00.120000000+05:45",
+    "2026-01-15t19:30:12.123456789z", "2016-12-31T23:59:60Z",
+    "2026-01-15T19:30:00-00:00", "2026-01-15t19:30:12.120000000+05:45",
 ))
 def test_session_original_command_keep_replace_remove_and_reopen(localized_server, original):
     browser = Browser(localized_server)
@@ -298,7 +359,7 @@ def test_match_precision_keep_noop_replace_remove_save_counts_and_temporal_safet
     form = local_form(page, "match-metadata")
     legacy = {name: value for name, value in form["values"].items()
         if name not in {*LOCAL_TIME_FIELDS, "profile_generation", "_frontend_form_instance"}}
-    original = "2026-01-15t19:30:00.123456789-00:00"
+    original = "2026-01-15t19:30:12.123456789-00:00"
     page = follow(browser, browser.request(
         "POST", form["action"], {**legacy, "played_at": original}))
     form = local_form(page, "match-metadata")

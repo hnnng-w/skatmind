@@ -85,13 +85,21 @@ host `zoneinfo.TZPATH`. Versions are diagnostic evidence, not Game fields. See t
 The compact disclosure contains native date/time/select controls, with no editable
 UTC-offset string. A zone alone records nothing. Date without time and time without
 date have separate feedback. No Now, midnight, source-time or Session-start value
-is invented. Accepted syntax is exact `YYYY-MM-DD` and `HH:MM`, optionally `:SS`
-and one through six fractional digits following seconds. Years are 0001–9999,
-also bounded by representable UTC conversion. `HH:MM` serializes seconds as `00`
-without implying measured seconds. Browser presentation may differ by locale;
-submitted fields are locale-neutral. Edge may submit `.000` after a native
-minute/hour edit; explicit fractional replacement renders six digits. Existing
-timestamps are never subjected to that formatting.
+is invented. Issue #317 changes ordinary time entry to hours and minutes using
+`type="time" step="60"` in all four shared consumers: Match creation, Match metadata
+replacement, initial Session metadata, and accepted-command Session metadata
+correction. The same native control is used for validation/retry rendering, with
+German and English guidance for `HH:MM` from `00:00` through `23:59`.
+
+The date syntax remains exact `YYYY-MM-DD`, with years 0001–9999, also bounded by
+representable UTC conversion. `HH:MM` serializes seconds as `00` without implying
+measured seconds. Browser presentation may differ by locale; submitted fields are
+locale-neutral. Compatible native zero-second serialization remains accepted.
+The existing conversion/technical input syntax still supports optional `:SS` and
+one through six fractional digits; supplied precision is not silently truncated.
+Existing recorded timestamps are shown separately and never prefilled into the
+replacement control. Keep and unrelated edits preserve the original string,
+including seconds, fractions, offset and spelling.
 
 The pure `local_time_conversion.py` evaluates both fold interpretations, round-trips
 through UTC and accepts only candidates returning the original wall fields.
@@ -177,7 +185,45 @@ invalidation. Product-first/profile-second creation warnings, one intended save,
 no-ops and explicit conflict recovery remain. No retry, automatic reload, rollback
 or cross-file transaction is introduced.
 
+## Issue #317 source-only verification
+
+Developer verification used checkout imports on CPython **3.13.7** and headless
+Microsoft Edge **157.0.4341.46**, with fresh synthetic managed homes and disposable
+browser profiles outside the repository. All four combinations of English/German
+and page JavaScript enabled/disabled passed. The 48 native-control observations
+used actual browser accessibility segments and screenshots, including blank entry,
+returned gap/fold forms, and replacement of precise recorded values. Only hour and
+minute segments appeared for ordinary values, including returned `:00` and
+`:00.000` spellings. Native arrow keys changed `18:30` to `19:30` to `19:31`;
+real form submissions saved the corresponding timestamps. The flows also verified
+gap rejection, explicit later-fold selection, Keep no-op bytes, and exact precise
+timestamps after unrelated Match-title/Session-ID edits. Synthetic precise values
+were seeded through the existing explicit technical adapter.
+
+The seven reviewed modules (`test_local_time_entry_web`, `test_local_time_form_bindings`,
+`test_local_time_conversion`, `test_profile_driven_creation_web`,
+`test_task_first_stateful_rendering`, `test_frontend_localization_foundation`, and
+`test_complete_frontend_localization`) passed **117 tests** with two file-grouped
+workers. After strengthening zero-second retry assertions, the complete changed
+web module passed again (**35 tests**). None of these modules is an exclusive-phase
+module. Source evidence is retained outside the repository at
+`<temporary-directory>/opencode/minute317-browser-1794518911368104700/evidence.json`.
+
+**Remaining browser limit:** clicking the native time-picker indicator did not
+expose a popup in headless page screenshots/accessibility output. The popup's
+visible columns and selection interaction are therefore unverified. The narrowly
+affected future maintainer installed check is the four local-time controls,
+including native picker/keyboard use, ordinary entry/replacement and retries,
+precise Keep/unrelated edits, English/German, and JavaScript-free operation.
+Source-based developer evidence is not installed maintainer acceptance; no UAT
+build was created, installed or started for this check. Exact-commit hosted gates
+and the narrow installed check remain pending.
+
 ## Installed-browser evidence
+
+This section records historical Issue-#230 evidence from the former
+`step="0.000001"` control. Its seconds/fraction observations are not evidence of
+the corrected Issue-#317 minute-only control or maintainer acceptance of it.
 
 `scripts/verify_local_time_entry.py` reuses dependency-free local DevTools tooling
 with an independently installed Wheel. It rejects checkout imports and verifies
