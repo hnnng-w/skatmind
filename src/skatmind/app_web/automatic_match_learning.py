@@ -364,8 +364,8 @@ class AutomaticMatchLearningServiceV1:
                             if entry.identity in evidence_ids)
                 stack.enter_context(store.pin_objects(
                     tuple(refs), expected_manifest=before.fingerprint))
-                evidence = tuple(store.read_evidence(row.evidence_id) for row in outcomes
-                                 if row.status == "selected")
+                evidence = store.read_evidence_many(evidence_ids,
+                                                     expected_manifest=before.fingerprint)
                 with self.app.lock:
                     if not self._owner(attempt):
                         raise StoreConflictError("Automatic preparation attempt changed.")
@@ -501,6 +501,18 @@ class AutomaticMatchLearningServiceV1:
         if receipt is not None and receipt.inventory == binding.inventory:
             return self.store.read_delivery_evidence(evidence_id, receipt.archive)
         return self.store.read_evidence(evidence_id)
+
+    def read_delivery_evidence_many(self, binding, evidence_ids):
+        """Load list captions once; the original binding still guards final delivery."""
+        self.validate_delivery(binding)
+        if binding.resumed is None:
+            raise StoreConflictError("Automatic storage has not been created.")
+        receipt = self._delivery_snapshot_receipt
+        if receipt is not None and receipt.inventory == binding.inventory:
+            return self.store.read_delivery_evidence_many(evidence_ids, receipt.archive,
+                expected_manifest=binding.resumed.manifest.fingerprint)
+        return self.store.read_evidence_many(evidence_ids,
+            expected_manifest=binding.resumed.manifest.fingerprint)
 
     def capture_delivery(self):
         """Capture exact HTML/control authority, including absent-store membership."""

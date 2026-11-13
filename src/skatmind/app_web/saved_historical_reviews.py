@@ -210,18 +210,23 @@ def handle_get(handler, path):
                     handler._retained_delivery_guard = guard
             else:
                 manifest = None if view.binding.resumed is None else view.binding.resumed.manifest
+                entries = _entries(view)
+                values = (() if manifest is None else
+                    controller.service.read_delivery_evidence_many(view.binding,
+                        tuple(entry.identity for entry in entries
+                        if entry.identity in view.binding.resumed.available_evidence_ids)))
+                by_id = {value.entry.identity: value for value in values}
                 for index, head in enumerate(() if manifest is None else manifest.historical_heads):
                     if head.evidence_id not in view.binding.resumed.available_evidence_ids:
                         body += paragraph(locale, "saved_analysis.excluded")
                         continue
-                    _head, value = _head_value(controller, view, index)
+                    value = by_id[head.evidence_id]
                     body += '<p>' + link(base + "/source/" + str(index),
                                         historical_caption(value, locale)) + '</p>'
                 body += '<h2>' + escape(text(locale, "historical_learning.evidence")) + '</h2>'
-                for index, entry in enumerate(_entries(view)):
+                for index, entry in enumerate(entries):
                     if entry.identity in view.binding.resumed.available_evidence_ids:
-                        value = controller.service.read_delivery_evidence(
-                            view.binding, entry.identity)
+                        value = by_id[entry.identity]
                         body += '<p>' + link(base + "/evidence/" + str(index),
                                             historical_caption(value, locale)) + '</p>'
             body += link(SAVED_REVIEWS, text(locale, "historical_learning.saved"))

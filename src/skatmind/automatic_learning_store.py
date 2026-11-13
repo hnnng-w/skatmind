@@ -245,16 +245,38 @@ class AutomaticLearningStoreV1:
         """Admit only an indexed exact original dependency closure through typed codecs."""
         digest(evidence_id)
         with self._coordinator.lock:
+            return self._read_evidence_many(self._manifest(), (evidence_id,))[0]
+
+    def read_evidence_many(self, evidence_ids: tuple[str, ...], *, expected_manifest: str):
+        """Read ordered operation-local values with one complete strict admission.
+
+        No receipt/cache is retained or issued, including above delivery-receipt
+        limits. Callers keep their reader pins and publication/final-delivery checks;
+        returned typed values are data, never authority for a later operation.
+        """
+        digest(expected_manifest)
+        if type(evidence_ids) is not tuple:
+            raise ValueError("Expected an immutable tuple of evidence identities.")
+        for evidence_id in evidence_ids:
+            digest(evidence_id)
+        with self._coordinator.lock:
             manifest = self._manifest()
-            if evidence_id not in {entry.identity for entry in manifest.evidence}:
-                raise ValueError("Evidence is not indexed.")
-            objects, storage = self._object_states(manifest)
-            _statuses, admitted = self._admission(manifest, objects, storage)
-            if self._manifest().fingerprint != manifest.fingerprint:
-                raise StoreConflictError("Evidence manifest changed during validation.")
-            if evidence_id not in admitted:
-                raise UnsupportedEvidenceError("Indexed evidence is unavailable or unsupported.")
-            return admitted[evidence_id]
+            if manifest.fingerprint != expected_manifest:
+                raise StoreConflictError("Evidence manifest changed before bulk validation.")
+            return self._read_evidence_many(manifest, evidence_ids)
+
+    def _read_evidence_many(self, manifest, evidence_ids):
+        if not set(evidence_ids).issubset(entry.identity for entry in manifest.evidence):
+            raise ValueError("Evidence is not indexed.")
+        if not evidence_ids:
+            return ()
+        objects, storage = self._object_states(manifest)
+        _statuses, admitted = self._admission(manifest, objects, storage)
+        if self._manifest().fingerprint != manifest.fingerprint:
+            raise StoreConflictError("Evidence manifest changed during validation.")
+        if any(evidence_id not in admitted for evidence_id in evidence_ids):
+            raise UnsupportedEvidenceError("Indexed evidence is unavailable or unsupported.")
+        return tuple(admitted[evidence_id] for evidence_id in evidence_ids)
 
     def _admission(self, manifest, objects, storage):
         from .automatic_historical_evidence import (
@@ -448,13 +470,21 @@ class AutomaticLearningStoreV1:
 
     def read_delivery_evidence(self, evidence_id, receipt):
         """Reuse a typed value only after the original bounded receipt passes fresh byte checks."""
+        return self.read_delivery_evidence_many((evidence_id,), receipt)[0]
+
+    def read_delivery_evidence_many(self, evidence_ids, receipt, *, expected_manifest=None):
+        """Project one operation's values after freshly validating its original receipt."""
+        if type(evidence_ids) is not tuple:
+            raise ValueError("Expected an immutable tuple of evidence identities.")
         _resumed, current = self._snapshot_for_delivery(receipt)
         if receipt is None or current is not receipt:
             raise StoreConflictError("Original evidence delivery receipt changed.")
-        for identity, value in receipt.admitted:
-            if identity == evidence_id:
-                return value
-        raise UnsupportedEvidenceError("Evidence is unavailable in this exact delivery.")
+        if expected_manifest is not None and _resumed.manifest.fingerprint != expected_manifest:
+            raise StoreConflictError("Evidence delivery manifest changed.")
+        admitted = dict(receipt.admitted)
+        if any(evidence_id not in admitted for evidence_id in evidence_ids):
+            raise UnsupportedEvidenceError("Evidence is unavailable in this exact delivery.")
+        return tuple(admitted[evidence_id] for evidence_id in evidence_ids)
 
     def _quota(self, *, extra: tuple[ObjectRefV1, ...] = (), candidates=None):
         files = io.scan_files(self.root)

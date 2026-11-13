@@ -50,6 +50,248 @@ only within its existing 64-object/candidate and 16-MiB stored-byte bounds, plus
 larger values take strict admission. No TTL or metadata-only authority is introduced.
 Standalone strict `read_evidence` and mutation admission retain their boundaries.
 
+## Operation-scoped bulk reads (Issue #318)
+
+The baseline for this correction is `24e7dfe62b3544cdbb988b25d592083233ba2289`
+on `bug/318-learning-bulk-read`, initially clean. Product code changes in the store
+and four private frontend consumers. No persistence format, evidence codec, public
+contract, download representation or independent collection owner changes.
+
+`read_evidence_many(evidence_ids, expected_manifest=...)` accepts an immutable tuple
+of requested identities and the original manifest fingerprint. Under the existing
+store coordination lock it checks that manifest and indexed membership, reads the
+complete indexed archive through bounded exact-byte/object/dependency validation,
+performs **one complete typed semantic admission**, and rechecks the manifest.
+It returns only the requested typed values in caller order, including repeated IDs.
+Unknown IDs fail as unindexed; missing, corrupt or unsupported requested evidence
+raises `UnsupportedEvidenceError` without a partial result. Independently intact
+evidence remains readable. An empty selection checks the expected manifest without
+loading evidence. `read_evidence` retains its strict single-record behavior through
+the same private admission helper.
+
+The tuple is operation-local data, **not a delivery credential**. The store retains
+no new receipt, cross-operation cache, TTL or metadata-based authority. Each strict
+bulk call reads current bytes again. Existing typed source, original execution and
+download reconciliation, owned-root checks and same-size/same-mtime corruption
+detection remain active. The complete archive is processed even when only a subset
+of IDs is requested; neither receipt overflow nor unavailable unrelated evidence
+truncates the index.
+
+Migrated consumers:
+
+* Automatic Learning Update reads its ordered selected evidence once inside its
+  existing reader pins. Post-build strict snapshot comparison, reservations,
+  source/owner/attempt checks, manifest CAS and installation authorization remain.
+* Maintenance previews bulk-load available evidence captions once, preserve the
+  original entries and `None` captions for unavailable evidence, and end reader
+  pins before capturing the exact cleanup preview/consent epoch. Source-release
+  consent, final source checks and reference-first cleanup are unchanged.
+* Saved Match and Session analysis lists bulk-load the same available entries in
+  manifest order. Final delivery additionally checks that every rendered evidence
+  ID remains available, so bytes corrupted after projection cannot deliver stale
+  captions under an otherwise unchanged manifest. Original-record routes and
+  original Request/Result/Strategy-source downloads keep their contracts.
+* Saved Historical Review lists share one load across both source-head and evidence
+  captions. The existing bounded delivery receipt, when eligible, is freshly
+  byte-checked once for that bulk phase; otherwise the service uses strict bulk
+  admission against the binding's manifest. Original binding validation, reader
+  pins, final HTTP authorization and stale-response recovery remain in place.
+
+The receipt stays bounded at **64 objects/candidates**, **16 MiB stored bytes** and
+**128 MiB expanded native values**. Per-object/expanded-tuple bounds, the **512 MiB**
+store quota and **2,048 entries per evidence class** remain unchanged. Above receipt
+limits, full strict processing remains available without eviction or omission.
+Restart still requires strict admission. Passive list/caption operations perform
+zero Card analysis and zero archive mutation; Update derives from existing evidence.
+Cooperating reader pins, source barriers and reservations remain separate from these
+temporary values. Filesystem checks remain optimistic against uncontrolled writers.
+
+### Work evidence and affected validation
+
+The new complete `tests/test_automatic_learning_bulk_read.py` uses genuine Match
+Immediate, genuinely unavailable early Match Search, Session and guided Historical
+executions. Counters wrap real archive reads, full admission and successful typed
+retained-result loads without replacing their implementation. Fixture creation and
+publication are measured separately; retained-result loading is not Card analysis.
+Two requested-count comparisons use the unchanged strict single-record path as the
+before-work reference on the identical disposable archive:
+
+| Requested records | Complete admissions, before → bulk | Indexed objects/read objects | Retained Results loaded | Object bytes read |
+| ---: | ---: | ---: | ---: | ---: |
+| 2 | 2 → 1 | 14 → 7 | 8 → 4 | 13,552,006 → 6,776,003 |
+| 4 | 4 → 1 | 28 → 7 | 16 → 4 | 27,104,012 → 6,776,003 |
+
+The focused serial observation was **8.527 → 4.386 seconds** for two requested
+records and **21.226 → 5.253 seconds** for four. These are bounded local observations,
+not latency gates, full-tournament measurements or measured CI speedup. This fixture
+created three new Card executions in 5.491 seconds plus one separately scoped genuine
+Historical execution. Each disposable publication/snapshot setup performed five
+admissions, 17 indexed-object visits, 39 object reads (47,562,771 bytes), and ten
+retained-result loads; setup took 20.336–32.250 seconds in that invocation. Those
+setup costs are excluded from the before/after read times above.
+
+Consumer checks use five genuine retained bindings in nine indexed objects, including
+two independent guided sources with equal original public Game/Player IDs. Update,
+maintenance and Match/Session list bulk phases each admit once and load five retained
+Results. An eligible Historical receipt phase performs zero new typed admissions
+but still reads all nine exact objects; its overflow phase admits once. Complete
+list operations retain their constant boundary work: Match/Session lists performed
+three admissions each; the Historical list performed zero with a warm exact receipt
+and seven with strict fallback. Source/evidence links, ordering, original download
+bytes, maintenance consent and same-metadata corruption rejection are also asserted.
+These are behavioral checks accompanied by work counters, not call-count substitutes.
+
+The fallback coverage includes tightened object-count and byte thresholds using the
+same genuine four-Report archive, plus a **67-object / 34-Report** archive crossing
+the unchanged production 64-object limit. Its additional independent Historical
+bindings reuse a genuine captured execution; they do not invent an execution Result.
+All requested records must be admitted and retain their original bytes.
+
+Final affected selection consists of these **29 complete modules** under `tests/`:
+
+* Store/shared admission and lifecycle: `test_automatic_learning_bulk_read.py`,
+  `test_automatic_learning_store.py`, `test_automatic_learning_lifecycle.py`,
+  `test_automatic_learning_delivery_receipt.py`.
+* Match preparation, native codecs and producer compatibility:
+  `test_automatic_match_learning.py`, `test_automatic_match_learning_evidence.py`,
+  `test_automatic_match_evidence.py`, `test_automatic_match_rollout_evidence.py`,
+  `test_match_evidence_retention.py`, `test_match_rollout_retention.py`.
+* Migrated maintenance and browser lists, original consent/language bindings and
+  independent collections: `test_automatic_learning_ui.py`,
+  `test_automatic_learning_ui_evidence.py`, `test_automatic_learning_source_release.py`,
+  `test_automatic_learning_maintenance_readability.py`,
+  `test_automatic_learning_language_work.py`, `test_automatic_learning_entry_language.py`,
+  `test_saved_match_analyses_web.py`, `test_saved_match_rollouts_web.py`.
+* Native Session admission, saved lists and correction isolation:
+  `test_automatic_session_evidence.py`, `test_automatic_session_learning.py`,
+  `test_automatic_session_web.py`, `test_automatic_session_review_corrections.py`,
+  `test_session_evidence_retention.py`.
+* Native Historical admission, saved lists, head/correction/deletion isolation and
+  Match Historical compatibility: `test_automatic_historical_admission.py`,
+  `test_automatic_historical_evidence.py`, `test_automatic_historical_learning.py`,
+  `test_automatic_historical_lifecycle.py`, `test_automatic_historical_web.py`,
+  `test_automatic_match_historical_evidence.py`.
+
+This selection follows the five Product-file diff, the shared single-record helper
+and its genuine-evidence callers, rather than expanding into CLI, solver or unrelated
+transport suites. None belongs to the four exclusive modules in
+[the validation policy](faster_validation.md); those modules' assignments are unchanged.
+The selected parallel workers must exit before the final explicit Quick invocation.
+
+Development CPython 3.13.7 was used, with a **7,200,000 ms** timeout for every
+validation invocation. External evidence lives under
+`C:\Users\HENNIN~1\AppData\Local\Temp\opencode\318-*`; no maintainer data or installed
+UAT environment is used.
+
+| Invocation | Result | Elapsed |
+| --- | --- | ---: |
+| Pre-implementation `-k bulk_work` | 2 expected failures: bulk method absent; 6 deselected | 91.71s |
+| Initial complete bulk test module | 8 passed | 346.45s |
+| Added consumer/content/final-delivery checks | 7 passed, 8 deselected | 1313.07s |
+| Final 29 complete affected modules, two file-grouped workers | **613 passed, 4 skipped** | **3722.96s** |
+| Final explicit `.\scripts\check.ps1 -Mode Quick` | **Passed, exit 0** | **22.296s** |
+
+The final collection contains **617 distinct tests**, including all **16** new bulk
+tests. The four existing skips are actual file/root/source-directory symlink checks
+requiring unavailable Windows account privileges; actual junction checks pass.
+There were no final pytest failures or warnings. No selected module requires the
+exclusive phase; both parallel workers finished before Quick. Focused executions
+are repeated coverage, not additional distinct passing tests. The first targeted
+Ruff invocation found five line-length findings; those were fixed and the next
+targeted Ruff invocation passed before complete-module validation.
+
+The final run reconfirmed the table's deterministic counts exactly. Its concurrent
+two-worker timing observations were 8.162 → 4.543 seconds (two requested) and
+19.076 → 4.274 seconds (four requested). They are not directly comparable to a CI
+run or a controlled serial benchmark. The actual production-limit test admitted
+all **34 Reports / 67 objects**, reading **9,531,123 bytes**, with **one** complete
+admission and **34** typed retained-result loads. Creating/publishing its 30
+additional genuine Historical bindings took **21.659s**, with **zero additional
+Card executions**, separately from the measured bulk phase.
+
+Exact commands, with `$E` abbreviating the verified existing external parent and
+`$Affected` expanded in the actual invocation order:
+
+```powershell
+$E = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode'
+py -3.13 -m pytest tests/test_automatic_learning_bulk_read.py -k bulk_work -q -s -p no:cacheprovider --basetemp "$E\318-red"
+py -3.13 -m pytest tests/test_automatic_learning_bulk_read.py -q -s -p no:cacheprovider --basetemp "$E\318-bulk-focused" --junitxml "$E\318-bulk-focused.xml"
+py -3.13 -m pytest tests/test_automatic_learning_bulk_read.py -k 'native_lists or mixed_update or list_bulk' -q -s -p no:cacheprovider --basetemp "$E\318-consumers-focused" --junitxml "$E\318-consumers-focused.xml"
+$Affected = @(
+  'tests/test_automatic_learning_bulk_read.py',
+  'tests/test_automatic_learning_store.py',
+  'tests/test_automatic_learning_lifecycle.py',
+  'tests/test_automatic_learning_delivery_receipt.py',
+  'tests/test_automatic_match_learning.py',
+  'tests/test_automatic_match_learning_evidence.py',
+  'tests/test_automatic_match_evidence.py',
+  'tests/test_automatic_match_rollout_evidence.py',
+  'tests/test_match_evidence_retention.py',
+  'tests/test_match_rollout_retention.py',
+  'tests/test_automatic_learning_ui.py',
+  'tests/test_automatic_learning_ui_evidence.py',
+  'tests/test_automatic_learning_source_release.py',
+  'tests/test_automatic_learning_maintenance_readability.py',
+  'tests/test_automatic_learning_language_work.py',
+  'tests/test_automatic_learning_entry_language.py',
+  'tests/test_saved_match_analyses_web.py',
+  'tests/test_saved_match_rollouts_web.py',
+  'tests/test_automatic_session_evidence.py',
+  'tests/test_automatic_session_learning.py',
+  'tests/test_automatic_session_web.py',
+  'tests/test_automatic_session_review_corrections.py',
+  'tests/test_session_evidence_retention.py',
+  'tests/test_automatic_historical_admission.py',
+  'tests/test_automatic_historical_evidence.py',
+  'tests/test_automatic_historical_learning.py',
+  'tests/test_automatic_historical_lifecycle.py',
+  'tests/test_automatic_historical_web.py',
+  'tests/test_automatic_match_historical_evidence.py'
+)
+py -3.13 -m pytest @Affected -q -n 2 --dist=loadfile --max-worker-restart=0 --durations=20 -p no:cacheprovider --basetemp "$E\318-affected" --junitxml "$E\318-affected.xml" -o junit_logging=all -o junit_log_passing_tests=true
+function python { & 'C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe' @args }
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+```
+
+Both targeted Ruff invocations used `py -3.13 -m ruff check` with the five changed
+Product files and `tests/test_automatic_learning_bulk_read.py`. The complete-module
+JUnit file retains captured work/timing output, original skips and per-test times.
+Final Quick passed Ruff (0.141s), exact packaged-schema parity (0.067s), and Root/Session
+input examples (1.925s). Its logs are in
+`C:\Users\Henning-DT\AppData\Local\Temp\skatmind-check-uafexfv1`, with source digest
+`86690ec9dcce66a10d059470609a11cc6a0742f6733f1e252724e5e6787507c6`.
+Only this documentation verification result was added after Quick; Product/tests
+remain those from the successful complete-module run. Quick does not certify
+generated outputs, distributions, the installation matrix or complete regression.
+
+Status: **locally validated; exact-commit hosted CI pending**. Starting and ending
+HEAD are both `24e7dfe62b3544cdbb988b25d592083233ba2289`; all seven intended files
+remain unstaged/uncommitted. The final diff consists of
+`src/skatmind/automatic_learning_store.py`,
+`src/skatmind/app_web/automatic_match_learning.py`,
+`src/skatmind/app_web/automatic_learning_controller.py`,
+`src/skatmind/app_web/saved_match_analyses.py`,
+`src/skatmind/app_web/saved_historical_reviews.py`,
+`tests/test_automatic_learning_bulk_read.py`, and this document.
+
+### Acceptance and concrete limits
+
+This diff specifically affects installed **multi-record Update, maintenance previews,
+Saved Match/Session analyses and Saved Historical source/evidence lists**, including
+original downloads and stale-list recovery. A narrow maintainer-installed check of
+those paths using disposable genuine evidence below/above receipt limits is relevant
+after exact-commit hosted gates. It does not reopen unrelated installed CLI parity or
+accepted UAT sequences. No UAT build is created, installed or started by the agent.
+
+One complete archive admission per strict bulk phase still costs proportional work
+in archive size and loads all retained Results once, including unrequested entries.
+Independent publication/final-delivery checks can add further full passes, especially
+above receipt limits. This change neither removes that necessary work nor establishes
+a full-tournament/CI timing claim. Keep #318 open pending exact-commit hosted
+`check` / `v1-supported-platform-matrix` and maintainer acceptance. No Full run,
+extra CI measurement run, installed acceptance or release authorization is claimed.
+
 ## Scope and acceptance
 
 This implements S1 of the accepted

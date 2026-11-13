@@ -74,13 +74,15 @@ def resolve_saved_analysis(context, token):
     return scope, store, snapshot.manifest, value
 
 
-def validate_saved_delivery(context, scope, store, manifest, value=None):
+def validate_saved_delivery(context, scope, store, manifest, value=None, *, evidence_ids=()):
     if context.saved_match_analyses is not scope or scope.store is not store:
         raise RecordingOpenConflict()
     current = store.snapshot()
     if current.manifest != manifest:
         raise RecordingOpenConflict()
     if value is not None and value.entry.identity not in current.available_evidence_ids:
+        raise RecordingOpenConflict()
+    if not set(evidence_ids).issubset(current.available_evidence_ids):
         raise RecordingOpenConflict()
 
 
@@ -288,10 +290,12 @@ def handle_saved_analysis_get(handler, path):
         from contextlib import nullcontext
         with (nullcontext() if store is None else store.pin_objects(refs,
                 expected_manifest=snapshot.manifest.fingerprint)):
-            for entry in entries:
-                if entry.identity not in snapshot.available_evidence_ids:
-                    continue
-                value = store.read_evidence(entry.identity)
+            values = (() if store is None else store.read_evidence_many(
+                tuple(entry.identity for entry in entries
+                      if entry.identity in snapshot.available_evidence_ids),
+                expected_manifest=snapshot.manifest.fingerprint))
+            for value in values:
+                entry = value.entry
                 token = scope.token(snapshot.manifest.space_id, entry)
                 body += '<li><p>' + escape(_caption(value, locale)) + '</p>'
                 body += paragraph(locale, "saved_analysis.captured",
@@ -306,7 +310,8 @@ def handle_saved_analysis_get(handler, path):
                 if len(refs) != len(entries):
                     body += paragraph(locale, "saved_analysis.excluded")
                 handler._retained_delivery_guard = lambda: validate_saved_delivery(
-                    context, scope, store, snapshot.manifest)
+                    context, scope, store, snapshot.manifest,
+                    evidence_ids=tuple(value.entry.identity for value in values))
             from .language_context import capture_language_source_v1
 
             handler._rendered_language_source = capture_language_source_v1(context, path)

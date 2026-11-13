@@ -130,15 +130,15 @@ class AutomaticLearningController:
         releases = (() if not obsolete_sources or release_blocked else
                     _releasable_sources(view))
         # Capture typed captions/effects BEFORE preview. All reader pins end here.
-        captions = []
         available = view.binding.resumed.available_evidence_ids
         refs = (tuple(row.envelope for row in entries if row.identity in available)
                 + tuple(row.object_ref for row in releases))
         with self.service.store.pin_objects(refs, expected_manifest=manifest.fingerprint):
-            for entry in entries:
-                value = (self.service.store.read_evidence(entry.identity)
-                         if entry.identity in available else None)
-                captions.append((entry, value))
+            values = self.service.store.read_evidence_many(
+                tuple(entry.identity for entry in entries if entry.identity in available),
+                expected_manifest=manifest.fingerprint)
+            by_id = {value.entry.identity: value for value in values}
+            captions = tuple((entry, by_id.get(entry.identity)) for entry in entries)
             source_captions = tuple((record, decode_historical_source(
                 self.service.store.read_object(record.object_ref), record)
                 if record.source_version.source.family == "historical_review"
@@ -156,7 +156,7 @@ class AutomaticLearningController:
             self.confirmation = AutomaticConfirmation(secrets.token_hex(32), view,
                 "obsolete_sources" if obsolete_sources else
                 "old_evidence" if old_evidence else "cleanup", cleanup=preview,
-                evidence=tuple(captions), sources=source_captions,
+                evidence=captions, sources=source_captions,
                 source_release_blocked=release_blocked)
             return self.confirmation
 
