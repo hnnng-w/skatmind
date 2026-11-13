@@ -292,6 +292,235 @@ a full-tournament/CI timing claim. Keep #318 open pending exact-commit hosted
 `check` / `v1-supported-platform-matrix` and maintainer acceptance. No Full run,
 extra CI measurement run, installed acceptance or release authorization is claimed.
 
+### Issue #318 hosted failure correction
+
+The follow-up started on the existing `bug/318-learning-bulk-read` branch at
+`81d31e7f53c54b2fdde058bc6d5de272dbe789c7`, with a clean index/worktree. The earlier
+local results above remain historical evidence, not hosted acceptance.
+
+Authenticated read-only retrieval inspected run
+[`43489665088`](https://github.com/hnnng-w/skatmind/actions/runs/43489665088), failed
+Ubuntu job `132107386935` (including its full log), Windows job `132107386947`, and
+final `check` job `132163300694`. Artifact API metadata binds `regression-ubuntu`
+**14076027583** and `regression-windows` **14074841685** to that exact run, branch
+and HEAD. Their `summary.json` files independently record the same commit and
+source digest `577444fdf75ae11559852bce59291e1a0d950a3fe898e6a519229b7641a8211b`.
+Both artifacts were available and downloaded without an authentication blocker.
+Evidence is retained outside the checkout under
+`C:\Users\HENNIN~1\AppData\Local\Temp\opencode\318-hosted-43489665088`.
+
+#### Complete failure inventory and proven cause
+
+There is exactly **one** failed setup/call/teardown record across the two artifacts:
+
+```text
+tests/test_automatic_learning_source_release.py::test_shared_evidence_and_independent_manual_copy_keep_original_sources
+```
+
+It failed in **call**, on Ubuntu parallel worker `gw1`, CPython 3.13.15. The complete
+pytest traceback is in `regression-ubuntu/pytest-parallel.log`, lines 182–247, and
+the retrieved job log. Its relevant final frame is:
+
+```text
+        confirm(browser, preview)
+        remaining = archive.snapshot().manifest
+        assert len(remaining.sources) == 2 and len(remaining.evidence) == 2
+        assert source.record in remaining.sources
+        # Explicit fixture removal of only one Report proves the shared dependency remains protected.
+        partial = archive.preview_cleanup(expected_manifest=remaining.fingerprint,
+                                          remove_evidence_ids=(shared_reports[0].evidence.identity,))
+>       assert archive.commit_cleanup(partial).status == "saved"
+E       AssertionError: assert 'conflict' == 'saved'
+E         - saved
+E         + conflict
+tests/test_automatic_learning_source_release.py:340: AssertionError
+```
+
+This is a **test synchronization defect involving its real HTTP reader**, not a
+timeout or demonstrated Product admission defect. `confirm()` follows its redirect
+and reads the complete HTTP body. The server still owns the `delivery_reader` context
+while sending that body; reader-pin release happens when the handler unwinds afterward.
+Receiving all declared body bytes does not synchronize with that context exit.
+The test immediately performs direct storage-fixture preview/commit, outside HTTP.
+If the prior reader exits between those calls, the cleanup consent epoch changes
+and the unchanged Product correctly returns `conflict`.
+
+Before repository edits, a bounded external pytest plugin forced precisely that
+interleaving in the original failing node using Events, without replacing Product
+results or changing bytes. On development Windows 11 / CPython 3.13.7 it reproduced
+the **same line-340 assertion**: preview epoch **49**, commit epoch **50**, identical
+manifest and inventory, zero remaining pins, actual cleanup result `conflict`.
+The raw hosted trace does not record epoch values, so its exact thread schedule is
+not claimed to be recoverable; the controlled reproduction establishes the missing
+synchronization and the legitimate rejection mechanism. This cross-platform
+reproduction does not certify execution on hosted Ubuntu.
+
+The correction is confined to `tests/test_automatic_learning_source_release.py`:
+observe the existing service `delivery_reader` around the final confirmed GET,
+signal an Event only after its context exits, and wait for that completion before
+the direct fixture cleanup. The wait has a finite five-second diagnostic guard;
+there is no sleep, retry, skipped test, weakened `saved` assertion, changed Product
+timeout, or new exclusive-module assignment. All original source protection,
+download-byte, no-analysis and independent manual-collection assertions remain.
+The same controlled delayed-reader schedule then passed: preview/commit epoch
+**50/50**, identical manifest/inventory, zero pins, actual result `saved`.
+
+**Product code does not change in this follow-up.** The accepted bulk-read boundary,
+original-byte checks, manifest/store/source binding, pins, reservations, CAS,
+cleanup consent, final-delivery guards, quotas and original downloads remain exact.
+
+#### Actual completed phases
+
+Raw report inspection checked all executed node/phase records, absence of duplicate
+execution, matching worker collections, and selected versus executed node sets.
+The failed run was **104m40s** overall. GitHub step times were **103m27s** for Ubuntu
+pytest and **80m03s** for Windows pytest; the platform matrix passed. Final `check`
+correctly rejected `regression.result = failure` with
+`reason=gate_prerequisites_invalid lookup=gate_prerequisites`.
+
+| Existing report evidence | Ubuntu | Windows |
+| --- | ---: | ---: |
+| Complete collection, exit 0 | 12,437 | 12,437 |
+| Collection wall seconds | 22.776 | 19.344 |
+| Parallel selected/executed IDs | 12,342 | 12,342 |
+| Matching parallel worker collections | 4 | 4 |
+| Parallel passed / failed / skipped | 12,336 / 1 / 5 | 12,342 / 0 / 0 |
+| Parallel wall seconds / exit | 6184.030 / 1 | 4655.972 / 0 |
+| Exclusive execution | **Not run** | 95 passed |
+| Exclusive wall seconds / exit | Absent | 125.364 / 0 |
+| Validation entry-point wall seconds | 6206.870 | 4802.736 |
+
+Ubuntu has no `pytest-exclusive.json`, `pytest-accounting.json` or
+`pytest-performance.json`, as expected after the failed parallel phase. Its 95
+unexecuted nodes are exactly the four exclusive modules: early rejection (6), local
+Corpus web (27), unified rejection transport (37), and Match action placement (25).
+No passing claim is made for them on Ubuntu. Windows has complete accounting and
+performance reports and passed all **12,437** tests. Both environments report four
+logical/process-usable CPUs and four workers. Windows Server remains distinct from
+installed Windows 11/UAT evidence.
+
+#### Existing-artifact cost findings
+
+The following values are recomputed sums of per-test setup/call/teardown durations,
+in **seconds**, not job wall time. The five most expensive modules are the same on
+both OSes, with different ordering. Ubuntu ranks are shown first; Windows rank is
+in parentheses. The Windows recomputation agrees with its performance sidecar.
+
+| Module under `tests/` | Ubuntu setup / call / teardown | Ubuntu sum | Windows setup / call / teardown | Windows sum |
+| --- | ---: | ---: | ---: | ---: |
+| `test_automatic_learning_bulk_read.py` (1 / 1) | 1004.502 / 1575.159 / 1.812 | 2581.473 | 797.307 / 1193.426 / 1.657 | 1992.390 |
+| `test_installed_cli.py` (2 / 3) | 0.039 / 2036.685 / 0.010 | 2036.735 | 0.136 / 1181.509 / 0.013 | 1181.659 |
+| `test_automatic_match_learning_evidence.py` (3 / 2) | 21.769 / 1556.106 / 0.005 | 1577.881 | 17.020 / 1229.035 / 0.008 | 1246.063 |
+| `test_automatic_match_evidence.py` (4 / 4) | 7.011 / 1154.386 / 0.009 | 1161.406 | 5.143 / 930.754 / 0.012 | 935.908 |
+| `test_automatic_learning_delivery_receipt.py` (5 / 5) | 978.141 / 94.764 / 0.004 | 1072.909 | 741.046 / 71.421 / 0.005 | 812.473 |
+
+All 16 bulk-read tests passed on both platforms. That module is the largest
+file-grouped workload: **43m01.473s summed** on Ubuntu and **33m12.390s summed** on
+Windows. It is about 39–40% setup and 60–61% call; teardown is negligible.
+Its two list/maintenance tests account for **303.387 + 655.921s** of Ubuntu call
+time and **226.360 + 507.729s** on Windows (warm receipt plus forced fallback).
+Those bodies explicitly forbid Card analysis and archive writes. They exercise
+repeated retained-result admission, strict scalar download/final-delivery checks,
+I/O and rendering. They do not demonstrate expensive new Card analysis.
+
+The genuine execution fixtures are already module-scoped. Each `archived` fixture
+still publishes four candidates through separate `commit_candidate` calls, each
+of which snapshots/admit-validates the growing archive, then snapshots again.
+`consumer_archive` similarly republishes and captures a mixed five-Report store
+per test. Thus the large setup totals include repeated archive construction and
+retained-result loading, not repeated execution of every genuine analysis.
+Delivery-receipt setup likewise dominates its module. The other evidence modules
+and installed CLI contain mixed genuine execution/admission/transport workloads;
+phase reports alone are not a profiler and cannot assign exact internal percentages.
+The installed CLI cost is reported only, with no code or scope expansion.
+
+For comparison, authenticated retrieval also inspected accepted #317 branch run
+[`43320565632`](https://github.com/hnnng-w/skatmind/actions/runs/43320565632) at
+`24e7dfe62b3544cdbb988b25d592083233ba2289`, artifacts **13995554183** (Ubuntu) and
+**13996211819** (Windows), with matching API and summary commit identity. That run
+passed both phases: Ubuntu **12,416 passed / 5 skipped**, Windows **12,421 passed**.
+Its parallel wall times were **5803.094s / 5204.451s**, and exclusive times
+**126.984s / 132.978s** (Ubuntu / Windows). #318 adds exactly the 16 bulk tests.
+Both runs use CPython 3.13.15, four workers and four reported usable CPUs; the Windows
+image is unchanged (`20261103.298.1`), while Ubuntu changes from
+`20261101.360.1` to `20261111.370.1`.
+
+The reported overall/pytest-step observations remain **100m33s → 104m40s** overall,
+**99m19s → 103m27s** Ubuntu, and **89m24s → 80m03s** Windows. Different collections,
+the missing Ubuntu exclusive phase, image differences and uncontrolled runner
+conditions preclude a causal speedup claim. The new module was absent in #317,
+not a zero-cost executed module. Comparable existing-module summed observations
+include Match Learning evidence **1911.122 → 1577.881s** Ubuntu and
+**1812.678 → 1246.063s** Windows, and delivery receipts **1270.982 → 1072.909s** /
+**1189.881 → 812.473s**. These do not establish overall CI acceleration.
+
+At most two subsequent cost-reduction candidates, **not implemented here**:
+
+1. Batch genuine fixture publication into one normal reserved object/manifest
+   transaction per fresh disposable store, followed by strict admission, instead
+   of snapshotting every growing prefix. Keep genuine captured executions, fresh
+   owners, independent writable roots and all corruption/cleanup isolation.
+2. Separate mixed-list work assertions from exhaustive scalar download sweeps:
+   retain the mixed archive for bulk selection/counts and use minimal genuine
+   family-specific archives for every original-byte/fallback HTTP assertion.
+   Preserve all family, unavailability, large-archive and final-delivery behaviors;
+   introduce no cross-request Product cache or weakened validation.
+
+#### Correction-only local validation
+
+The actual diff is this documentation record plus the one test body and its local
+imports. Complete affected selection is therefore only
+`tests/test_automatic_learning_source_release.py`; no shared fixture, Product caller
+or workflow changed. The prior 29-module selection is not repeated. This module is
+not exclusive; local two-worker file grouping remains in use and workers must exit
+before explicit Quick. No CI run or additional timing-only run was started.
+
+The controlled pre-edit failure took **161.81s**; the synchronized controlled node
+passed in **238.36s**. These are diagnostic lifecycle executions, not speedup
+measurements. The complete affected module passed **13 tests, no skips or warnings,
+in 437.23s**, with the existing two-worker file-grouped policy; because only one
+module is selected, its tests stay together on one worker. There is no relevant
+exclusive phase to execute. All validation invocations use **7,200,000 ms**.
+No hosted Ubuntu execution of the
+correction is claimed; new exact-commit hosted gates remain required. #318 stays
+open, hosted and installed acceptance remain pending, and accepted #316/#317
+evidence remains intact. No UAT build or maintainer UAT data/environment is used.
+
+Exact validation commands (`$E` abbreviates the verified external parent):
+
+```powershell
+$E = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode'
+# Diagnostic plugin outside the repository: force the prior HTTP reader's release
+# between preview/commit (old test), or during the new completion wait (fixed test).
+$env:PYTHONPATH = $E
+py -3.13 -m pytest tests/test_automatic_learning_source_release.py::test_shared_evidence_and_independent_manual_copy_keep_original_sources -p issue318_cleanup_race -q -s -p no:cacheprovider --basetemp "$E\318-ci-red" --junitxml "$E\318-ci-red.xml"
+py -3.13 -m pytest tests/test_automatic_learning_source_release.py::test_shared_evidence_and_independent_manual_copy_keep_original_sources -p issue318_cleanup_race -q -s -p no:cacheprovider --basetemp "$E\318-ci-controlled-fixed" --junitxml "$E\318-ci-controlled-fixed.xml"
+# Separate ordinary invocation, without the diagnostic plugin/PYTHONPATH override:
+py -3.13 -m pytest tests/test_automatic_learning_source_release.py -q -n 2 --dist=loadfile --max-worker-restart=0 --durations=10 -p no:cacheprovider --basetemp "$E\318-ci-affected" --junitxml "$E\318-ci-affected.xml"
+function python { & 'C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe' @args }
+.\scripts\check.ps1 -Mode Quick
+```
+
+Artifact analysis used only already downloaded `summary.json`, collection and phase
+reports/logs through the external read-only `analyze_318_reports.py`; it performed
+no test execution or new performance measurement.
+
+Final explicit Quick **passed, exit 0, in 33.105s**: Ruff 1.519s, schema parity
+0.138s, input examples 5.228s. Logs are in
+`C:\Users\Henning-DT\AppData\Local\Temp\skatmind-check-_g2s1zxo`; its source digest is
+`6375fc3a1fbf894808ab46a7697ce7871cc0f13d2444009616d13f410f8f68ba`.
+Only this documentation result was added after Quick. The tested correction is
+unchanged. No local Full, new Actions run, installed acceptance or UAT execution
+was performed. Quick does not certify full regression or installation behavior.
+
+Final status: **locally validated; new exact-commit hosted and installed acceptance
+pending**. Starting and ending HEAD remain
+`81d31e7f53c54b2fdde058bc6d5de272dbe789c7` on
+`bug/318-learning-bulk-read`. The only changed repository files are this existing
+verification record and `tests/test_automatic_learning_source_release.py`, both
+unstaged/uncommitted. This test-only correction adds no new installed Product
+criterion; the original #318 installed multi-item acceptance remains pending.
+
 ## Scope and acceptance
 
 This implements S1 of the accepted

@@ -1,7 +1,9 @@
 """Issue #313 review A: genuine saved-source history and native maintenance consent."""
 
 from collections import Counter
+from contextlib import contextmanager
 from html import unescape
+from threading import Event
 
 import pytest
 from test_automatic_learning_ui import UPDATE, create, localized_server
@@ -330,7 +332,22 @@ def test_shared_evidence_and_independent_manual_copy_keep_original_sources(
     page = browser.page("/learning/automatic")
     preview = follow(browser, browser.submit(cleanup_form(page, "obsolete_sources")))
     assert len(app.automatic_learning_ui.confirmation.sources) == 1
-    confirm(browser, preview)
+    service = app.automatic_match_learning
+    reader_finished = Event()
+    delivery_reader = service.delivery_reader
+
+    @contextmanager
+    def observed_reader(binding):
+        with delivery_reader(binding):
+            yield
+        reader_finished.set()
+
+    # Receiving the body does not imply the GET's pins have exited. Direct fixture
+    # cleanup must start after that exit, which legitimately advances the consent epoch.
+    with monkeypatch.context() as patch:
+        patch.setattr(service, "delivery_reader", observed_reader)
+        confirm(browser, preview)
+        assert reader_finished.wait(5), "The confirmed page's reader did not finish."
     remaining = archive.snapshot().manifest
     assert len(remaining.sources) == 2 and len(remaining.evidence) == 2
     assert source.record in remaining.sources
