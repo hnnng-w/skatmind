@@ -1217,7 +1217,7 @@ the corrected targeted invocation and final Quick Ruff both passed.
 ```powershell
 $E = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode'
 # One-off external fixture comparison, in its own shell:
-$env:PYTHONPATH = 'C:\Users\Henning-DT\Documents\Scripts\Python\skat-ai\tests'
+$env:PYTHONPATH = Join-Path (Get-Location).Path 'tests'
 py -3.13 -m pytest "$E\test_319_fixture_cost.py" -q -p no:cacheprovider --basetemp "$E\319-fixture-cost-a" --junitxml "$E\319-fixture-cost-a.xml" -o junit_logging=all -o junit_log_passing_tests=true
 # Ordinary development shells, without that PYTHONPATH override:
 py -3.13 -m ruff check tests/test_automatic_learning_bulk_read.py tests/test_automatic_learning_delivery_receipt.py tests/learning_archive_fixture_helpers.py
@@ -1242,3 +1242,138 @@ hosted trigger or publication was performed. This bounded test/docs change needs
 no new installed acceptance. Keep **#319 open** for maintainer publication and
 the normal exact-commit branch/main `check` and `v1-supported-platform-matrix`
 gates; Quick does not certify those gates or authorize closure.
+
+### Issue #319 hosted inventory correction
+
+This follow-up starts on the existing `task/319-learning-test-fixtures` branch at
+`7d2dc3bb9c12aa6b8f295cda30ba62292f4e9cff`, with a clean index/worktree.
+Authenticated API retrieval verified completed failed run
+[`43577425746`](https://github.com/hnnng-w/skatmind/actions/runs/43577425746), Ubuntu
+artifact **14109438557** (`regression-ubuntu`) and Windows artifact **14110740624**
+(`regression-windows`) against that exact branch/run/commit. Both artifact
+`summary.json` files record the same commit and source digest
+`49b99a8bd9fa25428ab026a9225e71203711e8c5568d052d332092eed0a7d356`.
+The downloaded artifacts, API metadata, full job logs and extracted complete
+tracebacks are outside the checkout under `%TEMP%\opencode\319-hosted-43577425746`.
+The artifact pytest logs retain only their final 2,000 lines; full authenticated
+job-log retrieval recovered the traceback header and worker identity as well.
+
+**Exact failure, on both platforms:**
+`tests/test_skatmind_rename.py::test_repository_old_name_inventory_is_exact_and_reviewed`,
+in **call**, at line **468**, `assert sorted(actual) == sorted(expected)`.
+Ubuntu job **132394686028** ran it on **gw3**; Windows job **132394685976** on **gw1**.
+Setup and teardown passed. The complete diffs identify precisely one extra
+`hyphenated_identity` occurrence at this document's line **1220**, line SHA-256
+`8d0356baa921e4398f3457e09c82b47c289a2b6934dfe5dfb8c86bca67f9de7e`.
+The machine-local checkout directory in the diagnostic's `PYTHONPATH` command
+introduced the old identity without a reviewed inventory entry. This is the
+demonstrated common cause, independently reproduced locally before editing; the
+hosted failures do not implicate archive publication or handler synchronization.
+
+The correction changes only that command to resolve `tests` from the current
+repository root, preserving its effective value without embedding a machine-local
+checkout name. Earlier results/measurements remain intact. The exact original
+literal remains in the starting commit and external diagnostic evidence. Neither
+the inventory nor its strict test needs an exception or changed assertion.
+No test/helper or Product code changes. Genuine fixtures, fresh owners, normal
+reservation/CAS/cleanup and final admission, actual Update/fresh receipt, all twenty
+original-byte HTTP comparisons, independent Historical bindings, corruption/409
+checks, complete byte preservation and the 67-object/34-Report fallback remain
+those that passed on both hosted platforms.
+
+#### Executed phases and existing-artifact costs
+
+Structured phase records were checked for matching selected/executed nodes, no
+duplicate node/phase reports, and four identical worker collections. There are no
+other failed setup/call/teardown records or reported runner/accounting failures.
+
+| Actual phase evidence | Ubuntu | Windows |
+| --- | ---: | ---: |
+| Complete collection, exit 0 | 12,446 in 21.881s | 12,446 in 22.006s |
+| Parallel selected/executed | 12,351 | 12,351 |
+| Parallel passed / failed / skipped | 12,345 / 1 / 5 | 12,350 / 1 / 0 |
+| Parallel wall time, exit 1 | 5151.588s | 6047.198s |
+| Validation entry-point wall time | 5173.525s | 6069.519s |
+| Exclusive execution | Not run | Not run |
+
+The five Ubuntu skips are existing Windows-junction capability cases. Each
+platform's **95 unexecuted tests** are exactly the four exclusive modules
+(6 early-rejection, 27 local Corpus web, 37 unified rejection, 25 Match placement).
+Neither exclusive phase passed: it never started after parallel failure. No
+exclusive, final accounting or performance sidecar exists in either artifact;
+structured JSON phase reports, rather than JUnit, are the hosted runner's evidence.
+The API's pytest-step durations are **5174s / 6069s**, and overall run elapsed is
+**6188s**. The platform-matrix gate passed; final `check` failed.
+
+Both runs below use CPython **3.13.15**, four workers and four logical/usable CPUs.
+The environments match their respective #318 observations: Ubuntu image
+`ubuntu24` **20261111.370.1**, Linux **7.0.0-1017-azure**, glibc **2.39**;
+Windows image `win25-vs2026` **20261103.298.1**, Server **10.0.26100**.
+The following are recomputed **summed test-phase seconds, not job wall time**:
+
+| Platform / complete module | #318 passed | #318 setup / call / teardown; sum | #319 passed | #319 setup / call / teardown; sum |
+| --- | ---: | --- | ---: | --- |
+| Ubuntu bulk | 16 | 1004.502 / 1575.159 / 1.812; **2581.473** | 25 | 373.894 / 1190.776 / 3.146; **1567.815** |
+| Windows bulk | 16 | 797.307 / 1193.426 / 1.657; **1992.390** | 25 | 445.177 / 1418.724 / 2.908; **1866.809** |
+| Ubuntu receipt | 18 | 978.141 / 94.764 / 0.004; **1072.909** | 18 | 742.074 / 79.831 / 0.004; **821.910** |
+| Windows receipt | 18 | 741.046 / 71.421 / 0.005; **812.473** | 18 | 885.746 / 94.596 / 0.007; **980.349** |
+
+All listed target-module cases passed without skips/failures in both runs. Receipt
+has the same 18-case boundary; bulk preserves the original assertions but adds six
+download cases and three helper cases. Its new download setup occurs inside test
+calls, so setup/call columns are not independently equivalent workloads. These
+are complete-module observations including that changed organization. The #318
+baseline is run **43489665088**, commit
+`81d31e7f53c54b2fdde058bc6d5de272dbe789c7`, with 12,437 collected tests; #319 has
+nine more. #318 Windows executed its exclusive phase; #319 did not. Windows
+receipt time increased despite lower fixture work counts. Uncontrolled runner
+conditions, changed collections and failed/incomplete runs preclude a whole-CI
+improvement claim. No new timing-only execution or hosted run was started.
+
+#### Correction validation boundary
+
+The pre-edit single-node check reproduced the exact hosted inventory difference:
+**1 expected failure in 23.22s**, development CPython **3.13.7**. Only this document
+changes, so the complete affected regression module is `test_skatmind_rename.py`,
+which owns the repository-wide documentation inventory. It is nonexclusive; the
+two archive modules and shared helper do not change and need no repeated local
+execution for this correction. Complete-module validation and explicit subsequent
+Quick are recorded below. All validation invocations use **7,200,000 ms** timeouts
+and unique external log/basetemp/JUnit paths, with passing-test output retained.
+
+The complete affected module passed **8 tests, no skips/warnings, in 2.88s** using
+two file-grouped workers; the one selected module stays on one worker. After both
+workers exited, explicit Quick **passed, exit 0, in 3.046s**: Ruff **1.049s**, schema
+parity **0.061s**, input examples **1.687s**. Quick stage evidence is under
+`%TEMP%\skatmind-check-f4e7iymh`, source digest
+`fb53f4818db8c2de8dd1f2af7fca0d2215fce2e76fff433cfad9b013f841d9fa`.
+This execution-result paragraph is appended afterward; the final document remains
+subject to the same complete-module inventory check and subsequent Quick.
+
+Exact retrieval and validation commands (`$E` is the verified existing external
+parent; PowerShell transcripts share each evidence basename):
+
+```powershell
+$E = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode'
+gh run download 43577425746 --repo hnnng-w/skatmind --name regression-ubuntu --name regression-windows --dir "$E\319-hosted-43577425746"
+py -3.13 "$E\inspect_319_hosted.py"
+py -3.13 "$E\analyze_318_reports.py" "$E\319-hosted-43577425746" 7d2dc3bb9c12aa6b8f295cda30ba62292f4e9cff
+py -3.13 -m pytest tests/test_skatmind_rename.py::test_repository_old_name_inventory_is_exact_and_reviewed -q -p no:cacheprovider --basetemp "$E\319-ci-inventory-red" --junitxml "$E\319-ci-inventory-red.xml" -o junit_logging=all -o junit_log_passing_tests=true
+py -3.13 -m pytest tests/test_skatmind_rename.py -q -n 2 --dist=loadfile --max-worker-restart=0 --durations=20 -p no:cacheprovider --basetemp "$E\319-ci-inventory-affected" --junitxml "$E\319-ci-inventory-affected.xml" -o junit_logging=all -o junit_log_passing_tests=true
+function python { & 'C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe' @args }
+.\scripts\check.ps1 -Mode Quick
+```
+
+The read-only inspection script uses `gh api` for run/artifact metadata and full
+logs from `repos/hnnng-w/skatmind/actions/jobs/{job_id}/logs`; credentials are never
+printed. Final-document verification uses the same complete-module command with
+fresh `319-ci-inventory-final` paths, followed by explicit Quick; those external
+reports retain its outcome without another change to the inventory-bearing text.
+
+**Locally validated, exact-commit hosted CI pending.** Only
+`docs/automatic_learning_store.md` changes, unstaged/uncommitted; ending HEAD is
+still `7d2dc3bb9c12aa6b8f295cda30ba62292f4e9cff`. Keep **#319 open** for maintainer
+publication and normal exact-commit branch/main gates. No Full, new hosted run,
+installed acceptance, UAT build/install or maintainer UAT-data access was performed.
+This documentation-only correction requires no new installed acceptance. Accepted
+#316–#318 evidence and the complete archive regression guarantees remain intact.
