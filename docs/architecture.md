@@ -6,6 +6,14 @@ This document describes the project structure and main modules.
 
 SkatMind is organized as a small rule-based analysis engine around a JSON input/output workflow.
 
+Issue #321 adds a separate private [event-context journal](event_context_and_checkpoints.md)
+beside managed recordings. Closed Match/Session documents feed strict source adapters;
+the existing established-outcome and fixed-three-player contribution functions feed
+a chronological prefix projection. A transport-free preparation service freezes
+the exact applicable context and consumed basis. Native Match/Session forms own
+explicit journal operations. Context capture executes neither Card analysis nor
+Learning and does not extend retained-analysis payloads or global preferences.
+
 Issues #160, #161, #163, #164, #165, #166, #167, and #168 add internal Match,
 observed-Game, persistent Workspace, transport-free Capture Application, private
 local browser transport, downstream preparation/materialization, and explicit

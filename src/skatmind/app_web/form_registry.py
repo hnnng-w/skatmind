@@ -14,6 +14,7 @@ from .automatic_learning_routes import AUTOMATIC_BODY_LIMIT, AUTOMATIC_PAGE, AUT
 from .card_entry_http import CARD_ENTRY_ROUTES, MATCH_CARD_OPERATIONS, MATCH_EVIDENCE_FORMS
 from .compact_declaration_form import DECLARATION_FIELDS
 from .debrief_frontend import DEBRIEF_POST_ROUTES
+from .event_context_forms import EVENT_ACTIONS, EVENT_FIELDS, EVENT_ROUTES
 from .form_parsing import FormValuesV1, FormValueV1
 from .frontend_profile_operations import (
     FRONTEND_PROFILE_ACTION_ROUTES,
@@ -1531,6 +1532,15 @@ _FORMS.extend(_definition("historical." + route.rsplit("/", 1)[1], route,
     success="contextual", body_limit=4096, value_free=not route.endswith("delete-confirm"))
     for route in HISTORICAL_POST_ROUTES)
 
+for _family in ("matches", "sessions"):
+    for _action in EVENT_ACTIONS:
+        if f"/{_family}/event-context/{_action}" not in EVENT_ROUTES:
+            continue
+        _FORMS.append(_definition(
+            f"event.{_family}.{_action}", f"/{_family}/event-context/{_action}",
+            EVENT_FIELDS[_action], page=f"/{_family}/current", active=_family,
+            body_limit=32768, success="contextual"))
+
 FRONTEND_FORM_REGISTRY = tuple(_FORMS)
 UNIFIED_FRONTEND_POST_ROUTES = tuple(
     dict.fromkeys(
@@ -1544,6 +1554,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             *DELETION_POST_ROUTES,
             *AUTOMATIC_POST_ROUTES,
             *HISTORICAL_POST_ROUTES,
+            *EVENT_ROUTES,
             *DEBRIEF_POST_ROUTES,
             "/sessions/create",
             "/sessions/import",

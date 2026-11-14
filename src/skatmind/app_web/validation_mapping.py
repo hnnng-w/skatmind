@@ -8,6 +8,8 @@ from skatmind.observed_trace_diagnostics import ObservedTraceError
 
 from .card_entry_http import CardEntryConflict
 from .compact_declaration_http import DeclarationConflict
+from .event_context_forms import EventFormError
+from .event_context_frontend import EventFormConflict
 from .form_parsing import FormFieldErrorV1
 from .form_registry import FrontendFormDefinitionV1
 from .frontend_profile_operations import FrontendProfilePersistenceConflictError
@@ -109,6 +111,11 @@ def map_frontend_exception_v1(
     *,
     status: int,
 ) -> tuple[FrontendValidationIssueV1, ...]:
+    if isinstance(error, (EventFormError, EventFormConflict)):
+        return (_issue(_known_field(definition, getattr(error, "field_key", None)),
+                       "validation.event." + error.reason),)
+    if definition.form_key.startswith("event.") and status == 400:
+        return (_issue(None, "validation.event.invalid"),)
     if isinstance(error, DeclarationDraftConflict):
         return (_issue(None, "validation.declaration.draft_conflict"),)
     if isinstance(error, LocalTimeError):

@@ -64,6 +64,9 @@ from .debrief_rendering import (
     render_debrief,
     render_report_collection_actions,
 )
+from .event_context_forms import EVENT_ROUTES
+from .event_context_frontend import dispatch_event_context
+from .event_context_rendering import render_event_context
 from .form_parsing import FormValuesV1
 from .form_registry import (
     FRONTEND_FORM_REGISTRY,
@@ -442,6 +445,7 @@ _SESSION_DOWNLOAD_ROUTES = {
     "/sessions/downloads/rollout-result.json",
 }
 _STATEFUL_POST_ROUTES = {
+    *EVENT_ROUTES,
     *HISTORICAL_POST_ROUTES,
     *AUTOMATIC_POST_ROUTES,
     MATCH_RECORDING_INPUT_ROUTE,
@@ -2284,7 +2288,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 locale=locale,
                 show_operation_notice=status < HTTPStatus.BAD_REQUEST,
                 game_label=managed_name(locale, profile, "sessions", active.state.session_id),
-            ),
+            ) + render_event_context(self.server.app_context, active, "sessions", locale),
             status=status,
             feedback_family="sessions",
             feedback_identity=active,
@@ -2462,6 +2466,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             recovery=recovery,
             card_bindings=card_bindings,
         ))
+        body += render_event_context(self.server.app_context, active, "matches", locale)
         body += saved_analyses_link(locale)
         receipt_id = report_id
         binding = active.rollout_evidence_binding
@@ -3597,6 +3602,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         body: bytes,
         content_type: str,
     ) -> None:
+        if path in EVENT_ROUTES:
+            self._redirect(dispatch_event_context(self.server.app_context, path,
+                                                  self._text_form(body, content_type)))
+            return
         if path in HISTORICAL_POST_ROUTES:
             from .saved_historical_reviews import handle_post
             handle_post(self, path, self._text_form(body, content_type))
@@ -3851,7 +3860,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     self._profile_operation(parsed.path, body, content_type)
                 return
             if parsed.path in _STATEFUL_POST_ROUTES:
-                if parsed.path in AUTOMATIC_POST_ROUTES:
+                if parsed.path in EVENT_ROUTES:
+                    max_bytes = 32768
+                elif parsed.path in AUTOMATIC_POST_ROUTES:
                     max_bytes = AUTOMATIC_BODY_LIMIT
                 elif parsed.path in DELETION_POST_ROUTES:
                     max_bytes = DELETION_BODY_LIMIT
