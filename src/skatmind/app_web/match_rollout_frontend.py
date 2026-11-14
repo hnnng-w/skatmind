@@ -3,14 +3,13 @@
 import hashlib
 import hmac
 
-from skatmind.application.execution import ApplicationWorkflowDependencies
-from skatmind.application.position_workflow import PositionWorkflowDependencies
 from skatmind.match_analysis_contracts import (
     MatchDecisionAnalysisOptionsV1,
     build_match_analysis_report_v1,
 )
 from skatmind.match_decision_analysis import (
     build_match_decision_position_request_v1,
+    build_match_rollout_dependencies_v1,
     execute_match_decision_analysis_v1,
 )
 from skatmind.rollout_derivation import missing_rollout_settlement_inputs
@@ -135,8 +134,7 @@ def execute_unified_match_rollout(active, values, *, app_context=None):
         with active.capture.lock:
             return not source_guard()
 
-    dependencies = ApplicationWorkflowDependencies(
-        position=PositionWorkflowDependencies(rollout_cancelled=cancelled))
+    dependencies = build_match_rollout_dependencies_v1(cancelled=cancelled)
     value = execute_match_decision_analysis_v1(workspace, match_position=position,
         decision_index=decision, options=options, execution_observer=observe,
         dependencies=dependencies)

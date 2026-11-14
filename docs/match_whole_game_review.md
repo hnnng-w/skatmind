@@ -531,3 +531,148 @@ supersede one existing Match rollout from a second tab, confirm controlled recov
 complete the current invocation, and reopen retained completed evidence. A3 needs
 no additional installed scenario. #208/overall UAT-01 remain open, formal UAT-02–12
 remain paused, and release preparation is not authorized.
+
+## Issue #320 hosted layering correction
+
+The preceding 318-pass local record remains point-in-time evidence. The maintainer
+published that implementation as `3aa3ba1c053819af9b519e31fe34d99acefea2f4` on
+`bug/320-rollout-cancellation`. This correction starts at that exact commit with a
+clean worktree. The separate final-documentation follow-up also remains valid:
+eight rename-module tests passed, followed by Quick and whitespace, before publication.
+
+### Verified hosted evidence
+
+Authenticated read-only inspection retrieved both regression artifacts and full
+job logs from [run 43609661047, attempt 1](https://github.com/hnnng-w/skatmind/actions/runs/43609661047).
+Run metadata, artifact workflow bindings, job metadata, checkout logs and both
+validation summaries identify the exact published commit above. Both summaries
+record source digest
+`4d00333faed77daa1e5535dbeb393338cd380cb31c4fd2e6b78e3796dfeeb92f`, independently
+recomputed from the clean starting checkout before correction.
+
+| Evidence | Ubuntu | Windows |
+| --- | --- | --- |
+| Regression job | `132491766193` | `132491766203` |
+| Artifact | `regression-ubuntu`, `14123895217` | `regression-windows`, `14123425308` |
+| Python | 3.13.15 | 3.13.15 |
+| Platform | Linux, Ubuntu hosted runner | Windows Server 2025 hosted runner |
+| Complete collection | 12,461 | 12,461 |
+| Parallel selected/executed node IDs | 12,366 | 12,366 |
+| Passed / failed / skipped | 12,360 / 1 / 5 | 12,365 / 1 / 0 |
+| Matching worker collections | 4 | 4 |
+| Unexecuted exclusive tests | 95 | 95 |
+| Collection / parallel exit | 0 / 1 | 0 / 1 |
+
+The artifacts contain JSON collection/phase records and summaries, not JUnit XML.
+All selected parallel node IDs have exactly their expected execution phases and
+successful teardown, without duplicate or missing reports. Ubuntu has three setup
+skips and two call skips, all in Windows-junction cases. There are no failed setup
+or teardown reports on either platform. The only failed call is:
+
+```text
+tests/test_cli_internal_architecture.py::test_app_web_layering_and_startup_execution_boundaries
+worker: gw0 (both platforms)
+tests/test_cli_internal_architecture.py:689: AssertionError
+assert violations == []
+
+Actual violations:
+(src/skatmind/app_web/match_rollout_frontend.py, 6, skatmind.application.execution)
+(src/skatmind/app_web/match_rollout_frontend.py, 7, skatmind.application.position_workflow)
+```
+
+Both artifact logs retain this full traceback and both complete job logs agree;
+there is no missing traceback to reconstruct. After the failed parallel phase the
+runner stopped. The unexecuted exclusive modules contain 6 early-rejection tests,
+27 Corpus-web tests, 25 Match-action-placement tests and 37 unified-rejection tests.
+Neither exclusive execution nor final complete-suite accounting/performance
+publication ran; their reports are absent. The reconciliation above is inspection
+of the failed parallel evidence, not successful full-suite accounting.
+
+The run has 20 successful jobs and three failures: both regressions and `check`.
+The actual `check` gate rejected the failed regression prerequisite with
+`gate_prerequisites_invalid`. Standards, generated outputs, both builds, all twelve
+installation cells, both matrix-result jobs and the actual
+`v1-supported-platform-matrix` gate succeeded. Those results do not accept the
+correction or authorize integration of a failed regression commit.
+
+### Demonstrated cause and bounded correction
+
+This is a Product dependency-layering defect: the frontend directly constructed
+internal Application/Position dependencies despite the existing architectural
+boundary. The architecture module was missing from the original local selection.
+It is not a synchronization, infrastructure, or timeout failure. Before editing,
+the exact node reproduced the same two violations on development CPython 3.13.7:
+one failure in 1.56s. No repeated scheduling runs were needed.
+
+**A2 correction:** `match_decision_analysis.py`, the existing Match-to-Application
+adapter, now owns `build_match_rollout_dependencies_v1`. It adapts a live cancellation
+callback to fresh Application/Position dependency values without executing analysis.
+The frontend imports this focused Match builder and passes its result through the
+unchanged `dependencies=` seam. This is the concrete minimal extension beyond the
+original three-file Product scope; Application types are no longer imported by the
+frontend. The architecture assertion and its forbidden-import policy are unchanged.
+
+The ownership predicate, Capture → app lock order, unlocked computation, actual
+core checkpoints, final freshness/publication/archive authority and retained bytes
+are unchanged. Existing Match and Application execution signatures, serialized
+options, default/non-rollout paths, limits and invocation isolation are preserved.
+One added Match integration test changes cancellation after dependency construction
+and verifies zero obsolete work, a genuinely completed independent invocation and
+identical Requests/options. The focused architecture plus integration pair passed
+two tests in 3.17s. The existing Event/work-counter and retention tests exercise the
+new builder through the real frontend path in final verification.
+
+**A3:** all six complete CLI provenance comparisons and their original execution,
+exit-code, quiet-output and provenance checks remain intact. This correction does
+not alter or rerun the complete CLI module. Accepted #316–#318 evidence is preserved.
+
+### Final verification selection and commands
+
+The final selection is seven complete modules: the missed architecture invariant;
+the Match adapter and rollout integration modules; real rollout HTTP cancellation,
+retention and saved-download consumers; and the repository-name inventory against
+this completed documentation. No exclusive module is affected by moving only this
+runtime dependency construction. The earlier 318-pass selection is retained rather
+than repeated in full. All validation tool invocations use **7,200,000 ms** timeouts,
+development Python and external temporary/log/JUnit paths.
+
+```powershell
+$E = Join-Path $env:TEMP 'opencode'
+if (-not (Test-Path -LiteralPath $E)) { throw 'Missing external evidence parent' }
+$env:PYTHONDONTWRITEBYTECODE = '1'
+gh run download 43609661047 --repo hnnng-w/skatmind --name regression-ubuntu --name regression-windows --dir "$E/320-hosted-43609661047"
+gh run view 43609661047 --repo hnnng-w/skatmind --attempt 1 --job 132491766193 --log
+gh run view 43609661047 --repo hnnng-w/skatmind --attempt 1 --job 132491766203 --log
+$Flags = @('-q', '-n', '2', '--dist=loadfile', '--max-worker-restart=0', '-p', 'no:cacheprovider')
+# Before correction:
+py -3.13 -m pytest tests/test_cli_internal_architecture.py::test_app_web_layering_and_startup_execution_boundaries @Flags --basetemp "$E/320-layering-red" --junitxml "$E/320-layering-red.xml" -o junit_logging=all --log-file "$E/320-layering-red.log"
+# Focused correction check:
+py -3.13 -m pytest tests/test_cli_internal_architecture.py::test_app_web_layering_and_startup_execution_boundaries tests/test_match_rollout_review.py::test_match_dependency_uses_live_cancellation_without_affecting_another_invocation @Flags --basetemp "$E/320-layering-focused" --junitxml "$E/320-layering-focused.xml" -o junit_logging=all --log-file "$E/320-layering-focused.log"
+# Complete affected modules, after finishing all documentation:
+$Affected = @(
+  'tests/test_cli_internal_architecture.py', 'tests/test_match_decision_analysis.py',
+  'tests/test_match_rollout_review.py', 'tests/test_match_rollout_web.py',
+  'tests/test_match_rollout_retention.py', 'tests/test_saved_match_rollouts_web.py',
+  'tests/test_skatmind_rename.py'
+)
+py -3.13 -m pytest @Affected @Flags --basetemp "$E/320-layering-final" --junitxml "$E/320-layering-final.xml" -o junit_logging=all --log-file "$E/320-layering-final.log"
+# After all workers exit:
+$env:RUFF_CACHE_DIR = "$E/320-ruff-cache"
+function python { py -3.13 @args }
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+```
+
+Downloaded raw phase reports, metadata, full job logs and a derived inspection
+summary are retained under `$E/320-hosted-43609661047`. The external inspection
+helper `320-inspect-hosted.py` checks commit/source identity, exact per-worker
+collections, per-node phase uniqueness, outcomes and the unexecuted exclusive set.
+Final local results are reported in the handoff, without a post-check documentation
+edit. Quick remains partial validation; no local Full, extra timing run, browser
+script, UAT build/install/start or access to maintainer UAT data is involved.
+
+Keep #320 open for new exact-commit branch/main hosted gates and the existing narrow
+installed A2 check (second-tab supersession, controlled recovery, current completion
+and reopening retained evidence). No repeated S7, blanket UAT or release acceptance
+is authorized. Cooperative checkpoints and final detection of disk-only source edits
+remain the same bounded behavior.

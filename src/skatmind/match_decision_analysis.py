@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any
 
@@ -16,6 +17,7 @@ from skatmind.application.execution import (
     build_application_invocation,
 )
 from skatmind.application.position_workflow import (
+    PositionWorkflowDependencies,
     _build_effective_opponent_policy_settings,
 )
 from skatmind.errors import SkatMindInvariantError
@@ -542,6 +544,14 @@ def _reconcile_profile_summary(
             )
     if summary != expected_summary:
         raise SkatMindInvariantError("Position Result changed the Profile application summary.")
+
+
+def build_match_rollout_dependencies_v1(
+    *, cancelled: Callable[[], bool],
+) -> ApplicationWorkflowDependencies:
+    """Adapt Match-owned cancellation to invocation-local Application execution hooks."""
+    return ApplicationWorkflowDependencies(
+        position=PositionWorkflowDependencies(rollout_cancelled=cancelled))
 
 
 def execute_match_decision_analysis_v1(

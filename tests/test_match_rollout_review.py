@@ -2,6 +2,7 @@
 
 import copy
 from dataclasses import replace
+from threading import Event
 
 import pytest
 from test_match_workspace_contracts import _definition, _observed_game, _set_game
@@ -14,6 +15,7 @@ from skatmind.match_analysis_contracts import (
 )
 from skatmind.match_decision_analysis import (
     build_match_decision_position_request_v1,
+    build_match_rollout_dependencies_v1,
     execute_match_decision_analysis_v1,
 )
 from skatmind.match_player_snapshot import MatchParticipantV1
@@ -118,6 +120,32 @@ def test_match_execution_retains_typed_report_and_public_roundtrip():
     replay = replay.result.to_dict()["document"]
     assert metrics(replay["whole_game_rollout_result"]) == metrics(
         value.result.to_dict()["document"]["whole_game_rollout_result"])
+
+
+def test_match_dependency_uses_live_cancellation_without_affecting_another_invocation():
+    workspace = alex_workspace(count=3)
+    options = rollout_options()
+    obsolete, current = Event(), Event()
+    old_dependencies = build_match_rollout_dependencies_v1(cancelled=obsolete.is_set)
+    current_dependencies = build_match_rollout_dependencies_v1(cancelled=current.is_set)
+    # The callback remains live after adaptation; it is not a captured boolean.
+    obsolete.set()
+    cancelled = execute_match_decision_analysis_v1(workspace, match_position=2,
+        decision_index=3, options=options, dependencies=old_dependencies)
+    completed = execute_match_decision_analysis_v1(workspace, match_position=2,
+        decision_index=3, options=options, dependencies=current_dependencies)
+    assert cancelled.request == completed.request
+    assert cancelled.options == completed.options == options
+    stopped = cancelled.result.document["whole_game_rollout_result"]
+    assert stopped["status"] == "cancelled"
+    assert stopped["work"]["sampled_worlds"] == stopped["work"]["card_transitions"] == 0
+    assert stopped["completed_common_worlds"] == 0
+    assert stopped["ranked_cards"] == stopped["tied_best_cards"] == ()
+    assert stopped["recommended_card"] is None
+    assert obsolete.is_set() and not current.is_set()
+    result = completed.result.document["whole_game_rollout_result"]
+    assert result["status"] == "complete" and result["completed_common_worlds"] == 2
+    assert result["work"]["card_transitions"] == 168
 
 
 @pytest.mark.parametrize("card", ("CK", "C9", "C7"))
