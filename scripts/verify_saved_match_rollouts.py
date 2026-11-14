@@ -60,11 +60,11 @@ def serve(home):
         counts["execute"] += 1
         return real_execute(*args, **kwargs)
 
-    def evaluate(view, settings):
+    def evaluate(view, settings, *, cancelled=None):
         assert controls["allow_execution"], "Passive or save-only evaluation"
         counts["evaluate"] += 1
         return real_evaluate(view, settings,
-            **({"cancelled": lambda: True} if controls["cancelled"] else {}))
+            cancelled=lambda: (cancelled is not None and cancelled()) or controls["cancelled"])
 
     def forbidden(*args, **kwargs):
         counts["learning_preparation"] += 1

@@ -88,7 +88,8 @@ def test_native_incomplete_save_only_retry_keeps_selected_complete(localized_ser
     monkeypatch.setattr(application_execution, "execute_application_invocation", counted)
     monkeypatch.setattr(io, "write_temporary", interrupted)
     monkeypatch.setattr(workflow, "evaluate_whole_game_rollout_v1",
-                        lambda view, settings: evaluate(view, settings, cancelled=lambda: True))
+                        lambda view, settings, *, cancelled=None: evaluate(view, settings,
+                            cancelled=lambda: (cancelled is not None and cancelled()) or True))
     response = browser.submit(form(page), random_seed="1")
     assert response[0] == 400
     page = response[2].decode()
@@ -171,7 +172,8 @@ def test_incomplete_receipt_final_delivery_uses_attempt_owner(
     active = app.managed_stateful.active_match
     evaluate = workflow.evaluate_whole_game_rollout_v1
     monkeypatch.setattr(workflow, "evaluate_whole_game_rollout_v1",
-                        lambda view, settings: evaluate(view, settings, cancelled=lambda: True))
+                        lambda view, settings, *, cancelled=None: evaluate(view, settings,
+                            cancelled=lambda: (cancelled is not None and cancelled()) or True))
     monkeypatch.setattr(archive_store(app), "publish_object", lambda *a, **kw: "conflict")
     real = Handler._send_bytes
     fired = False

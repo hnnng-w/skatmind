@@ -337,7 +337,8 @@ def test_omitted_and_explicit_immediate_invoke_only_immediate(
     )
 
     omitted = _execute(build_recommendation_method_configuration({}))
-    explicit = _execute(_configuration(IMMEDIATE_EXPECTED_VALUE_METHOD))
+    explicit = _execute(_configuration(IMMEDIATE_EXPECTED_VALUE_METHOD),
+        rollout_cancelled=lambda: pytest.fail("Immediate inspected rollout cancellation"))
 
     assert calls == ["immediate", "immediate"]
     assert omitted.recommendation_card == explicit.recommendation_card == "D7"
@@ -377,7 +378,8 @@ def test_search_recommendation_skips_immediate_for_strict_and_auto(
     )
 
     for method in (BOUNDED_SEARCH_METHOD, AUTO_METHOD):
-        result = _execute(_configuration(method, search_result.requested_budget))
+        result = _execute(_configuration(method, search_result.requested_budget),
+            rollout_cancelled=lambda: pytest.fail("Search inspected rollout cancellation"))
         assert result.effective_method == "compatible_world_minimax_v1"
         assert result.recommendation_card == "D7"
         assert result.analysis_report == ()

@@ -541,7 +541,8 @@ def test_all_seven_provenance_outputs_match_public_installed_module_and_legacy(
     )
     public_document = public.result.to_dict()["document"]
 
-    assert documents[0] == documents[1] == documents[2] == public_document
+    for name, document in zip(paths, documents, strict=True):
+        assert document == public_document, name
     assert public.field_provenance is not None
     assert documents[0]["field_provenance"] == public.field_provenance.to_dict()
     assert documents[0]["field_provenance"]["workflow"] == workflow

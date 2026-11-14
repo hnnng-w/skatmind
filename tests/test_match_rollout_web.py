@@ -4,11 +4,11 @@ import json
 import re
 from concurrent.futures import ThreadPoolExecutor
 from html import unescape
-from threading import Event
 
 import pytest
 from test_frontend_language_switching import localized_server as _localized_server
 from test_match_recording_recovery_web import follow
+from test_match_rollout_retention import rollout_probe as _rollout_probe
 from test_match_rollout_review import alex_workspace, metrics
 from test_recorded_review_navigation import chooser_form, home_chooser
 from test_recording_task_focus import Hierarchy
@@ -16,6 +16,7 @@ from test_session_recorded_review_web import Browser, Forms
 
 import skatmind.app_web.match_rollout_frontend as frontend
 from skatmind.api.v1 import execute, parse_request
+from skatmind.app_web.saved_match_analyses import archive_store
 from skatmind.app_web.stateful_localization import text
 from skatmind.match_workspace_persistence import save_match_workspace_file_v1
 from skatmind.match_workspace_persistence_codec import build_match_workspace_persistence_document_v1
@@ -25,7 +26,16 @@ ROUTE = "/matches/review-whole-game"
 
 @pytest.fixture
 def localized_server(tmp_path):
-    yield from _localized_server.__wrapped__(tmp_path)
+    for server in _localized_server.__wrapped__(tmp_path):
+        # Track request threads so concurrency tests can join handlers before
+        # inspecting persistent evidence, not just wait for the client response.
+        server.daemon_threads = False
+        yield server
+
+
+@pytest.fixture
+def rollout_probe(monkeypatch):
+    yield from _rollout_probe.__wrapped__(monkeypatch)
 
 
 def open_alex(server, *, count=3, bid=18):
@@ -123,26 +133,37 @@ def test_invalid_attempt_keeps_report_bytes_and_scoped_choices(localized_server)
     assert browser.request("GET", route)[0] == 404
 
 
-def test_superseded_unlocked_work_cannot_publish(localized_server, monkeypatch):
+@pytest.mark.parametrize("phase", ("preparation", "evaluation"))
+def test_superseded_unlocked_work_cannot_publish(localized_server, rollout_probe, phase):
     browser, path, page = open_alex(localized_server)
-    entered, release = Event(), Event()
-    real = frontend.execute_match_decision_analysis_v1
-    def delayed(*args, **kwargs):
-        if kwargs["options"].rollout_settings.random_seed == 7:
-            entered.set()
-            assert release.wait(15)
-        return real(*args, **kwargs)
-    monkeypatch.setattr(frontend, "execute_match_decision_analysis_v1", delayed)
+    original = path.read_bytes()
+    rollout_probe.phase = phase
     with ThreadPoolExecutor(2) as pool:
         first = pool.submit(browser.submit, form(page), objective="played_game_goal",
-                            requested_worlds="1", random_seed="7")
-        assert entered.wait(10)
-        response = browser.submit(form(page), objective="played_game_goal", requested_worlds="1")
-        assert response[0] == 303
-        release.set()
-        assert first.result()[0] == 409
-    reports = localized_server.app_context.managed_stateful.active_match.capture.report_store.list()
+                            requested_worlds="2", random_seed="7")
+        try:
+            assert rollout_probe.entered.wait(60)
+            response = browser.submit(form(page), objective="played_game_goal",
+                                      requested_worlds="2")
+            assert response[0] == 303
+        finally:
+            rollout_probe.release.set()
+        stale = first.result()
+        assert stale[0] == 409
+    # The stale tab can recover through the current review without another execution.
+    current_page = follow(browser, response)
+    assert form(current_page)["values"]["decision_index"] == "3"
+    localized_server._threads.join()
+    rollout_probe.assert_cancelled()
+    rollout_probe.assert_complete(0)
+    app = localized_server.app_context
+    active = app.managed_stateful.active_match
+    reports = active.capture.report_store.list()
     assert len(reports) == 1 and reports[0].value.options.rollout_settings.random_seed == 0
+    assert active.pending_evidence is None and active.rollout_notice is None
+    entry, = archive_store(app).snapshot().manifest.evidence
+    assert archive_store(app).read_evidence(entry.identity).report == reports[0]
+    assert path.read_bytes() == original
 
 
 def test_selected_actor_and_foreign_stale_binding_do_not_run(localized_server, monkeypatch):
@@ -201,9 +222,9 @@ def test_timeout_retains_completed_bytes_and_names_attempt_separately(
     active = localized_server.app_context.managed_stateful.active_match
     report, = active.capture.report_store.list()
     real = workflow.evaluate_whole_game_rollout_v1
-    def timed(view, settings):
+    def timed(view, settings, *, cancelled=None):
         ticks = iter(range(0, 1_000_000, 100))
-        return real(view, settings, clock=lambda: next(ticks))
+        return real(view, settings, clock=lambda: next(ticks), cancelled=cancelled)
     monkeypatch.setattr(workflow, "evaluate_whole_game_rollout_v1", timed)
     response = browser.submit(form(page), objective="complete_settlement", analysis_matadors="1")
     assert response[0] == 400
@@ -237,8 +258,8 @@ def test_exact_tied_set_and_actual_membership_use_shared_renderer(localized_serv
     import skatmind.recommendation_workflow as workflow
 
     real = workflow.evaluate_whole_game_rollout_v1
-    def tied(view, settings):
-        result = real(view, settings)
+    def tied(view, settings, *, cancelled=None):
+        result = real(view, settings, cancelled=cancelled)
         # A deliberately synthetic retained full tie exercises presentation, not
         # a claim about which card wins the independent acceptance fixture.
         candidates = tuple(replace(result.candidates[0], card=row.card)
@@ -275,24 +296,57 @@ def test_known_value_injection_and_explicit_objective_switch(localized_server):
     assert report.value.request.document["game_declaration"]["matadors"] is None
 
 
-def test_invalid_new_attempt_supersedes_old_inflight_work(localized_server, monkeypatch):
+def test_invalid_new_attempt_supersedes_old_inflight_work(localized_server, rollout_probe):
     browser, path, page = open_alex(localized_server)
-    entered, release = Event(), Event()
-    real = frontend.execute_match_decision_analysis_v1
-    def delayed(*args, **kwargs):
-        entered.set()
-        assert release.wait(15)
-        return real(*args, **kwargs)
-    monkeypatch.setattr(frontend, "execute_match_decision_analysis_v1", delayed)
+    original = path.read_bytes()
+    page = follow(browser, browser.submit(form(page), objective="played_game_goal",
+                                         requested_worlds="2"))
+    prior = downloads(browser, page)
+    app = localized_server.app_context
+    active = app.managed_stateful.active_match
+    report, = active.capture.report_store.list()
+    store = archive_store(app)
+    archive_bytes = {path: path.read_bytes() for path in store.root.rglob("*.json")}
     with ThreadPoolExecutor(2) as pool:
         first = pool.submit(browser.submit, form(page), objective="played_game_goal",
-                            requested_worlds="1")
-        assert entered.wait(10)
-        assert browser.submit(form(page), analysis_matadors="")[0] == 400
-        release.set()
+                            requested_worlds="2", random_seed="7")
+        try:
+            assert rollout_probe.entered.wait(60)
+            assert browser.submit(form(page), objective="complete_settlement",
+                                  analysis_matadors="")[0] == 400
+        finally:
+            rollout_probe.release.set()
         assert first.result()[0] == 409
-    active = localized_server.app_context.managed_stateful.active_match
-    assert not active.capture.report_store.list()
+    rollout_probe.assert_cancelled()
+    assert active.capture.report_store.list() == (report,)
+    assert active.pending_evidence is None and active.rollout_notice is None
+    assert downloads(browser, browser.page(f"/matches/reports/{report.report_id}")) == prior
+    localized_server._threads.join()
+    assert {path: path.read_bytes() for path in store.root.rglob("*.json")} == archive_bytes
+    assert path.read_bytes() == original
+
+
+def test_unchanged_passive_reads_and_language_do_not_cancel(localized_server, rollout_probe):
+    browser, path, page = open_alex(localized_server)
+    original = path.read_bytes()
+    with ThreadPoolExecutor(1) as pool:
+        future = pool.submit(browser.submit, form(page), objective="played_game_goal",
+                             requested_worlds="2", random_seed="7")
+        try:
+            assert rollout_probe.entered.wait(60)
+            browser.page("/")
+            page = browser.page("/matches/review/2")
+            follow(browser, browser.submit(Forms(page).find("/actions/profile/language"),
+                                            language="de"))
+            assert rollout_probe.predicates[7]() is False
+        finally:
+            rollout_probe.release.set()
+        assert future.result()[0] == 303
+    localized_server._threads.join()
+    rollout_probe.assert_complete(7)
+    app = localized_server.app_context
+    assert len(archive_store(app).snapshot().manifest.evidence) == 1
+    assert path.read_bytes() == original
 
 
 def test_both_missing_inputs_stay_visible_and_values_survive_rejection(localized_server):

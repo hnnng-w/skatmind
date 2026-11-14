@@ -179,7 +179,7 @@ def build_unavailable_strategic_summary(reason: str) -> str:
 
 @dataclass(frozen=True, slots=True)
 class PositionWorkflowDependencies:
-    """Legacy patch seams for Position Analysis orchestration."""
+    """Internal execution hooks and legacy patch seams for Position Analysis."""
 
     immediate_recommender: Callable[..., Any] = recommend_card_by_expected_value
     report_builder: Callable[..., Any] = build_card_analysis_report
@@ -189,6 +189,7 @@ class PositionWorkflowDependencies:
     )
     multi_step_simulator: Callable[..., Any] = simulate_multiple_steps
     policy_comparator: Callable[..., Any] = compare_multi_step_policies
+    rollout_cancelled: Callable[[], bool] | None = None
 
 
 _DEFAULT_DEPENDENCIES = PositionWorkflowDependencies()
@@ -494,6 +495,7 @@ def _build_position_analysis_result(
         summary_builder=dependencies.strategic_summary_builder,
         unavailable_summary_builder=dependencies.unavailable_summary_builder,
         effective_opponent_policy_settings=effective_opponent_policy_settings,
+        rollout_cancelled=dependencies.rollout_cancelled,
     )
     if provenance_collector is not None:
         provenance_collector.retain_flat_recommendation_result(

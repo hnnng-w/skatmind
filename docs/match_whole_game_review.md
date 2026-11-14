@@ -398,3 +398,136 @@ comparisons and canonical downloads reuse the retained Request/Result; they do
 not evaluate again. The original source handle/content is checked separately on
 recording return. Teacher source exports/codecs, `FLAT_RECOMMENDATION_METHODS`,
 Dataset and qualified Coaching eligibility remain unchanged and reject rollout.
+
+## Issue #320: superseded-work cancellation and CLI parity
+
+Branch `bug/320-rollout-cancellation` started at
+`b80e6641c78885546c5e09b369ecade1714d2c37` with a clean index/worktree. Changes are
+unstaged and uncommitted. Accepted #316–#318 evidence remains valid; this bounded
+follow-up does not repeat S7 or establish overall UAT-01/v1 completion.
+
+### A2 — Invocation-local runtime cancellation
+
+The Product change is confined to three files:
+
+1. `app_web/match_rollout_frontend.py` supplies an invocation-local
+   `ApplicationWorkflowDependencies` through the existing Match `dependencies=` seam.
+2. `application/position_workflow.py` carries optional runtime-only
+   `PositionWorkflowDependencies.rollout_cancelled` into the recommendation workflow.
+3. `recommendation_workflow.py` forwards the hook only to the whole-game evaluator's
+   existing `cancelled=` parameter, which already reaches preparation and execution.
+
+The predicate reuses captured attempt, Workspace identity, source binding,
+position/selection generations and Report generation, plus retirement, active Match
+replacement and saved-analysis owner identity. A bound new attempt supersedes old
+work before field validation; ordinary analysis and explicit selection retain their
+existing invalidation behavior. Unchanged passive navigation and language changes
+do not invalidate ownership. Hooks and dependency instances are invocation-local;
+the omitted-hook path, other methods, public signatures, serialized options,
+Schemas, provenance and core rollout contracts remain unchanged.
+
+Checkpoint locking is briefly **Capture → app**, matching publication/retention;
+no lifecycle/store lock is acquired by the predicate and computation runs unlocked.
+Checkpoint checks use only in-memory ownership and the existing small binding HMAC,
+never recording reads/hashes. Final disk freshness, source reconciliation, guarded
+publication and archive ownership remain authoritative. Consequently an external
+disk-only edit is detected by the final freshness guard, not by polling during
+computation. Cancellation is cooperative at existing checkpoints, not preemption.
+
+Deterministic synthetic evidence uses the existing Alex/C7 fixture, Events, a fixed
+clock and independent counters around actual sampled-world yields and Card
+transitions. Threads/HTTP handlers finish before persistent-file assertions.
+
+| Case | Sampled worlds | Card transitions | Terminal evaluations | Common coverage | Ranking |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Before correction, obsolete work (both pause locations) | 2 | 168 | 6 | 2/2 | Completed internally; publication rejected |
+| A2 cancellation before core preparation | 0 | 0 | 0 | 0/2 | None |
+| A2 cancellation during actual evaluation | 2 | 85 | 3 | 1/2 | None |
+| Current, independent, later, or unchanged-passive invocation | 2 | 168 | 6 | 2/2 | Completed |
+
+Tests cover all ownership dimensions, bound-invalid supersession, real ordinary
+analysis/explicit-selection invalidation, controlled HTTP 409 recovery, no stale
+Report/attempt notice/pending save, original recording bytes and retained completed
+archive/download bytes. Existing final staging/manifest/source guards and retry
+tests remain in the complete selection. Runtime/default execution isolation and
+non-rollout method checks also exercise the internal dependency seam.
+
+Two existing wrappers in `tests/test_saved_match_rollouts_web.py` and the wrapper
+in `scripts/verify_saved_match_rollouts.py` now compose/forward the runtime hook
+while retaining their controlled cancellation; existing clock/tie wrappers in the
+required modules also forward it. This concrete dependency adds the complete saved
+Match rollout module to the eleven requested modules. No exclusive module is
+affected. The development browser script is adapted but not executed here.
+
+### A3 — All six existing CLI documents
+
+`test_all_seven_provenance_outputs_match_public_installed_module_and_legacy` now
+compares each complete document with the public API result, naming the invocation
+on failure. All six existing executions (installed-style, module and Root facade,
+each implicit and explicit `run`), exit-code, quiet-output and provenance assertions
+are retained. There are no additional CLI executions or selected-field comparisons.
+This repairs verification coverage; no CLI Product mismatch was demonstrated.
+
+### Local commands and acceptance
+
+Development CPython 3.13.7; each validation tool invocation has a **7,200,000 ms**
+timeout. `$E` is an existing external temporary/log directory. JUnit captures actual
+work-counter output and failed assertions; pytest caches are disabled.
+
+```powershell
+$E = Join-Path $env:TEMP 'opencode'
+if (-not (Test-Path -LiteralPath $E)) { throw 'Missing external evidence parent' }
+$env:PYTHONDONTWRITEBYTECODE = '1'
+$Flags = @('-q', '-n', '2', '--dist=loadfile', '--max-worker-restart=0', '-p', 'no:cacheprovider')
+py -3.13 -m pytest tests/test_match_rollout_web.py::test_superseded_unlocked_work_cannot_publish @Flags --basetemp "$E/320-red" --junitxml "$E/320-red.xml" -o junit_logging=all --log-file "$E/320-red.log"
+py -3.13 -m pytest tests/test_match_rollout_web.py tests/test_match_rollout_retention.py tests/test_saved_match_rollouts_web.py tests/test_whole_game_rollout_workflow.py::test_runtime_dependency_cancels_without_mutating_invocation_or_default_execution tests/test_recommendation_workflow.py::test_omitted_and_explicit_immediate_invoke_only_immediate tests/test_recommendation_workflow.py::test_search_recommendation_skips_immediate_for_strict_and_auto @Flags --basetemp "$E/320-focused" --junitxml "$E/320-focused.xml" -o junit_logging=all --log-file "$E/320-focused.log"
+py -3.13 -m ruff check --cache-dir "$E/320-ruff-cache" src/skatmind/app_web/match_rollout_frontend.py src/skatmind/application/position_workflow.py src/skatmind/recommendation_workflow.py tests/test_match_rollout_web.py tests/test_match_rollout_retention.py tests/test_saved_match_rollouts_web.py tests/test_whole_game_rollout_workflow.py tests/test_recommendation_workflow.py tests/test_installed_cli.py scripts/verify_saved_match_rollouts.py
+$Affected = @(
+  'tests/test_match_rollout_web.py', 'tests/test_match_rollout_retention.py',
+  'tests/test_match_rollout_review.py', 'tests/test_match_decision_analysis.py',
+  'tests/test_whole_game_rollout_workflow.py', 'tests/test_recommendation_workflow.py',
+  'tests/test_application_orchestration.py', 'tests/test_application_provenance.py',
+  'tests/test_session_rollout_review.py', 'tests/test_installed_cli.py',
+  'tests/test_skatmind_rename.py', 'tests/test_saved_match_rollouts_web.py'
+)
+py -3.13 -m pytest @Affected @Flags --basetemp "$E/320-affected" --junitxml "$E/320-affected.xml" -o junit_logging=all --log-file "$E/320-affected.log"
+# After affected-module workers have exited:
+$env:RUFF_CACHE_DIR = "$E/320-ruff-cache"
+function python { py -3.13 @args }
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+```
+
+Pre-implementation reproduction: **two expected failures in 10.56s**, proving the
+obsolete work completed internally despite HTTP 409. Focused verification:
+**85 passed in 220.32s**. Targeted Ruff found two overlong lines, subsequently wrapped.
+Final complete affected selection: **318 passed, zero failures/skips, in 633.54s**
+across all twelve modules, with two file-grouped workers and no worker restart.
+This includes all seven A3 workflow cases, each comparing six whole CLI documents
+(42 comparisons against the corresponding public results). The earlier invocations
+overlap this final selection and are not additional distinct coverage.
+
+After workers exited, explicit Quick passed with exit **0** in **2.432s** on
+development Windows 11 / CPython 3.13.7: Ruff **0.462s**, schema parity **0.059s**,
+input examples **1.674s**, each exit 0. Logs are in
+`$env:TEMP/skatmind-check-0nafzf1s`; failure/counter JUnit evidence remains in
+`$E/320-red.xml`, `$E/320-focused.xml` and `$E/320-affected.xml` with their log files
+and disposable temporary roots. No unresolved local failure remains. Only this
+documentation receipt/command accounting was completed after Quick; Product and
+tests remain as validated. Final `git diff --check` passes, staging stays empty,
+and ending HEAD remains `b80e6641c78885546c5e09b369ecade1714d2c37`.
+
+Status: **locally validated; exact-commit hosted CI and installed acceptance pending**.
+
+Local verification uses development execution and disposable synthetic data.
+Quick covers Ruff, packaged-schema byte/name parity and input examples; it does not
+certify generated outputs, distributions, installation matrices or full regression.
+No local Full, timing-only suite, hosted trigger, UAT build/install/start or access
+to maintainer UAT data is part of this task.
+
+Keep **#320 open** for exact-commit branch/main `check` and
+`v1-supported-platform-matrix`, followed by A2's narrow installed maintainer check:
+supersede one existing Match rollout from a second tab, confirm controlled recovery,
+complete the current invocation, and reopen retained completed evidence. A3 needs
+no additional installed scenario. #208/overall UAT-01 remain open, formal UAT-02–12
+remain paused, and release preparation is not authorized.

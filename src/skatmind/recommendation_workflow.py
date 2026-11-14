@@ -778,6 +778,7 @@ def execute_recommendation_workflow(
     information_set_workflow_executor: Callable[
         ..., InformationSetSearchWorkflowResultV1
     ] | None = None,
+    rollout_cancelled: Callable[[], bool] | None = None,
 ) -> RecommendationWorkflowResult:
     """Executes Immediate, strict Search, or Search-first auto routing."""
     legal_cards_builder = legal_cards_builder or get_legal_cards
@@ -837,7 +838,8 @@ def execute_recommendation_workflow(
                 public_hand_constraints=public_hand_constraints,
             )
             rollout = evaluate_whole_game_rollout_v1(
-                view, configuration.whole_game_rollout_settings)
+                view, configuration.whole_game_rollout_settings,
+                **({"cancelled": rollout_cancelled} if rollout_cancelled is not None else {}))
         reason = (f"Whole-game rollout: {rollout.status}; {rollout.stop_reason}; "
                   f"{rollout.completed_common_worlds}/{rollout.settings.requested_worlds} "
                   f"common worlds; objective {rollout.objective}. "

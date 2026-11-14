@@ -3,6 +3,8 @@
 import hashlib
 import hmac
 
+from skatmind.application.execution import ApplicationWorkflowDependencies
+from skatmind.application.position_workflow import PositionWorkflowDependencies
 from skatmind.match_analysis_contracts import (
     MatchDecisionAnalysisOptionsV1,
     build_match_analysis_report_v1,
@@ -115,7 +117,8 @@ def execute_unified_match_rollout(active, values, *, app_context=None):
         captured.append((invocation, execution))
 
     def source_guard():
-        if (active.rollout_attempt is not attempt or active.workspace is not workspace
+        if (active.retired or active.rollout_attempt is not attempt
+                or active.workspace is not workspace
                 or active.capture.report_store.generation != generation
                 or match_rollout_binding(active, decision) != selection):
             return False
@@ -126,8 +129,17 @@ def execute_unified_match_rollout(active, values, *, app_context=None):
                     return False
         return True
 
+    def cancelled():
+        # Match -> app lock order matches publication/retention. Only inspect
+        # in-memory ownership here; final disk freshness remains authoritative.
+        with active.capture.lock:
+            return not source_guard()
+
+    dependencies = ApplicationWorkflowDependencies(
+        position=PositionWorkflowDependencies(rollout_cancelled=cancelled))
     value = execute_match_decision_analysis_v1(workspace, match_position=position,
-        decision_index=decision, options=options, execution_observer=observe)
+        decision_index=decision, options=options, execution_observer=observe,
+        dependencies=dependencies)
     report = build_match_analysis_report_v1(value)
     with active.capture.lock:
         active.require_attached()

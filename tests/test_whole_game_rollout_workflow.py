@@ -60,6 +60,32 @@ def test_public_opening_no_bid_round_trip_and_actual_independence():
     assert second["whole_game_rollout_comparison"]["actual_card"] == "SA"
 
 
+def test_runtime_dependency_cancels_without_mutating_invocation_or_default_execution():
+    from skatmind.application.execution import (
+        ApplicationWorkflowDependencies,
+        build_application_invocation,
+        execute_application_invocation,
+    )
+    from skatmind.application.position_workflow import PositionWorkflowDependencies
+
+    root = opening_request()
+    invocation = build_application_invocation(root, input_reference="synthetic")
+    original = build_application_invocation(root, input_reference="synthetic")
+    cancelled = execute_application_invocation(invocation,
+        dependencies=ApplicationWorkflowDependencies(
+            position=PositionWorkflowDependencies(rollout_cancelled=lambda: True)))
+    document = cancelled.result.document
+    result = document["whole_game_rollout_result"]
+    assert result["status"] == "cancelled"
+    assert result["work"]["sampled_worlds"] == result["work"]["card_transitions"] == 0
+    assert result["ranked_cards"] == () and document["recommendation"]["card"] is None
+    assert document["whole_game_rollout_comparison"]["status"] == "unavailable"
+    default = execute_application_invocation(invocation)
+    assert default.result.document["whole_game_rollout_result"]["status"] == "complete"
+    assert invocation == original
+    assert invocation.request.to_dict()["document"] == root
+
+
 @pytest.mark.parametrize("settings,reason", [
     ({"objective": "complete_settlement"}, "missing_terminal_utility_inputs"),
     ({"max_card_transitions": 1}, "transition_budget_exhausted"),
