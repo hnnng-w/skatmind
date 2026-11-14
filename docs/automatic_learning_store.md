@@ -1080,3 +1080,165 @@ eligibility, recipe execution and generation/final-delivery guards. S5 supplies
 the bilingual player-facing workflow and maintenance controls. S6/S7 supply native
 Session and saved Historical Review adapters, including validated guided origin
 and source-local identity retention. None is completed by this foundation.
+
+## Disposable archive test-cost correction (Issue #319)
+
+This test/docs-only follow-up starts and ends at
+`11578bffc9779f52db1b5ffb6a93449bfb421abc` on the maintainer-created
+`task/319-learning-test-fixtures`; branch inspection identified issue **#319**.
+The initial index/worktree was clean. The intended unstaged/uncommitted files are
+`tests/test_automatic_learning_bulk_read.py`,
+`tests/test_automatic_learning_delivery_receipt.py`, the new test-only
+`tests/learning_archive_fixture_helpers.py`, and this appended record.
+Only those two repository modules import the helper. The existing broadly used
+`commit_candidate`, `retain_fixture`, and `rewrite_same_metadata` are unchanged.
+
+### Construction and preserved assertions
+
+Fresh empty disposable archives now use one normal reservation, dependency-first
+immutable object publication and one manifest CAS. Stable deduplication compares
+complete objects and exact SourceRecords/EvidenceEntries, rejects contradictory
+duplicates, and releases reservations on failure. Historical heads retain two
+independent source-local identities, exact source/version/evidence bindings and
+Product-order sorting despite equal original public IDs and Request/Result bytes.
+The four-Report store still has seven objects; the five-Report consumer store has
+nine. Each test retains fresh writable storage, owners and process-local state.
+The necessary final snapshot/controller capture strictly admits the completed
+store. Receipt setup measures Update's ordinary owner initialization separately,
+then still performs the real `service.update()` and a fresh receipt capture.
+No extra populated snapshot is added solely for the batch helper.
+
+Old-to-new coverage mapping (all original **16 bulk + 18 receipt** cases retained):
+
+* `test_native_lists_and_maintenance_use_one_bulk_phase_with_original_content`
+  retains both mixed five-Report cases: family selection, order, captions, tokens,
+  Historical source/evidence links, bulk work, unavailable evidence, passive
+  no-analysis/no-write checks and exact cleanup consent after reader pins end.
+  Only its scalar download loop moves to six
+  `test_native_original_downloads_in_minimal_family_archive[family-fallback]`
+  cases: both original Match candidates (including unavailable Search), the
+  original Session candidate, and both independent Historical heads. The same
+  **20 HTTP status-200/exact-byte comparisons** remain: 4 Match + 2 Session +
+  4 Historical per receipt mode. Route/token assertions, exact bindings and passive
+  no-analysis/no-write checks accompany the relocated loop.
+* Every other original bulk case keeps its name and body: requested order,
+  duplicate/empty/unknown selections, atomic missing/corrupt/unsupported failures,
+  intact-source isolation, manifest races, both fallback bounds, mixed Update,
+  and all three post-bulk corruption-to-HTTP-409 families. The production-limit
+  case still admits **67 objects / 34 Reports**, reads **9,531,123 bytes**, loads
+  **34 retained Results** once, and checks original bytes above the unchanged
+  64-object limit. Its extra 30 bindings execute no new Card analysis.
+* All 18 receipt test bodies and parameter sets are unchanged, including the
+  genuine unavailable rollout, missing/same-metadata mutations, owner/manifest/
+  limits/inventory invalidation, admission-time mutation and live-source binding.
+* Three additional helper cases verify exact duplicate/order handling, rejection
+  of contradictory source/evidence metadata and populated stores, and reservation
+  cleanup after object-publication or manifest-publication failure.
+
+Passive browser checks wait on an Event set after the real GET handler returns,
+before inspecting all archive bytes or taking cleanup consent. Receiving the body
+alone does not establish reader completion. No sleep, retry, excluded lock file,
+relaxed byte assertion, fabricated Result or cached authority is used.
+
+### Observed work and measurement boundaries
+
+Counters wrap real object reads, typed retained-result loads, admissions and
+publication APIs; they preserve execution and return values. Manifest/lock reads,
+direct assertion reads, and initial empty-store constructor checks are excluded.
+Explicit empty-snapshot work is separately logged (one admission, zero objects).
+Genuine executions remain module-scoped: the final run recorded Historical
+execution **3.515s**, the existing two Match plus Session executions/candidate
+construction **5.986s**, and three receipt executions **3.982s**. These times are
+separate from publication/admission/HTTP work, not latency assertions.
+
+| Comparable boundary | Admissions before → after | Indexed visits | Object reads | Object bytes | Retained Result loads |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Four-Report construction through final snapshot; existing #318 observation → final #319 run | 5 → 2 | 17 → 7 | 39 → 18 | 47,562,771 → 13,642,061 | 10 → 4 |
+| Receipt construction before owner initialization; one-off same-candidate comparison | 3 → 1 | 5 → 0 | 19 → 7 | 9,860,642 → 3,709,862 | 3 → 0 |
+
+The bulk after-work consists of publication **11 reads / 6,866,058 bytes**, then
+final admission **7 reads / 6,776,003 bytes / 4 Results**. The separately measured
+receipt comparison used the unchanged old fixture loop only in an external
+diagnostic, never routine CI. Reservations/manifest publications were **3 → 1**
+each, object-publication calls **6 → 4**, construction **5.743 → 3.360s** including
+the new empty snapshot. Subsequent owner admission was identical (**1 admission,
+4 reads, 3 Results**); Update identical (**4 admissions, 42 reads, 12 Results**);
+fresh capture identical (**1 admission, 15 reads, 3 Results**). Final module-run
+receipt publication read **3,709,874 bytes**; the 12-byte difference from the
+diagnostic belongs to newly executed native values, not a normalized byte claim.
+
+Final mixed consumer publication performs **1 reservation / 9 publications /
+1 manifest CAS**, **14 reads / 6,969,962 bytes / 0 typed loads**. Its necessary
+controller initialization/capture performs **2 admissions / 47 reads /
+34,363,355 bytes / 10 typed loads**. Mixed Update's selected bulk phase remains
+**1 admission / 9 reads / 5 Results** in both receipt modes; complete measured
+operations retain **4/5 admissions**, **86 reads**, **61,857,914 bytes**, and
+**20/25 Results** (normal/fallback), including the test's final evidence snapshot.
+
+The following are **observed HTTP download work only**, excluding construction,
+expected-value admission and list GETs, which have separate captured counters:
+
+| Family / mode | Archive objects / Reports | HTTP comparisons | Admissions | Object reads | Bytes | Result loads |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Match, each mode | 3 / 2 | 4 | 12 | 44 | 79,213,364 | 24 |
+| Session, each mode | 2 / 1 | 2 | 6 | 16 | 8,249,768 | 6 |
+| Historical, normal | 4 / 2 | 4 | 0 | 96 | 4,408,320 | 0 |
+| Historical, fallback | 4 / 2 | 4 | 20 | 128 | 4,794,080 | 40 |
+
+The old scalar HTTP loop had no separate work counter. The **derived**, not
+remeasured, mixed-archive expectation for the same strict admission counts is
+Match **108 indexed visits / 60 Results**, Session **54 / 30**, Historical
+fallback **180 / 100**, versus observed **36 / 24**, **12 / 6**, **80 / 40**.
+Every complete object traversal now excludes the other families. Warm Historical
+receipt handling still checks exact bytes and adds no typed admission.
+Existing hosted #318 phase sums remain historical; these local observations do
+not establish whole-CI speedup. Necessary full-archive validation remains costly.
+
+### Completed local verification
+
+Development Windows 11 / CPython **3.13.7**, **7,200,000 ms** timeout for every
+validation invocation; external evidence parent
+`C:\Users\HENNIN~1\AppData\Local\Temp\opencode` (`$E` below). No exclusive module
+is affected. Both file-grouped workers exited before explicit Quick.
+
+| Invocation | Result | Elapsed |
+| --- | --- | ---: |
+| External receipt fixture before/after diagnostic | 1 passed | 55.10s |
+| First complete two-module run (`319-affected-a`) | 37 passed, 6 failed | 857.64s |
+| Final complete two-module run (`319-affected-b`) | **43 passed; no skips/warnings** | **831.12s** |
+| Explicit Quick after final workers exited | **Passed, exit 0** | **3.902s** |
+
+The six initial failures occurred after all native HTTP comparisons passed: the
+immediate all-file byte check raced the still-held Windows coordination lock.
+The Event synchronization above fixes that lifecycle boundary; all original cases
+already passed in the first run. Initial targeted Ruff found two long lines;
+the corrected targeted invocation and final Quick Ruff both passed.
+
+```powershell
+$E = 'C:\Users\HENNIN~1\AppData\Local\Temp\opencode'
+# One-off external fixture comparison, in its own shell:
+$env:PYTHONPATH = 'C:\Users\Henning-DT\Documents\Scripts\Python\skat-ai\tests'
+py -3.13 -m pytest "$E\test_319_fixture_cost.py" -q -p no:cacheprovider --basetemp "$E\319-fixture-cost-a" --junitxml "$E\319-fixture-cost-a.xml" -o junit_logging=all -o junit_log_passing_tests=true
+# Ordinary development shells, without that PYTHONPATH override:
+py -3.13 -m ruff check tests/test_automatic_learning_bulk_read.py tests/test_automatic_learning_delivery_receipt.py tests/learning_archive_fixture_helpers.py
+py -3.13 -m pytest tests/test_automatic_learning_bulk_read.py tests/test_automatic_learning_delivery_receipt.py -q -n 2 --dist=loadfile --max-worker-restart=0 --durations=20 -p no:cacheprovider --basetemp "$E\319-affected-b" --junitxml "$E\319-affected-b.xml" -o junit_logging=all -o junit_log_passing_tests=true
+function python { & 'C:\Users\Henning-DT\AppData\Local\Programs\Python\Python313\python.exe' @args }
+.\scripts\check.ps1 -Mode Quick
+git diff --check
+```
+
+The initial complete invocation used the identical command with `319-affected-a`
+paths. Matching `.log` PowerShell transcripts and both JUnit files retain outcomes;
+JUnit includes passing-test captured counters. Quick transcript is
+`319-quick-b.log`; stage logs are in `%TEMP%\skatmind-check-fo1kohk2` (Ruff **0.136s**,
+schema parity **0.094s**, input examples **2.971s**), source digest
+`8b7bef47213064e25a235772d2b544b82079560f2de833d6ae910ee2b4fee44f`.
+Only this appended documentation record follows successful tests/Quick.
+
+**Locally validated, exact-commit hosted CI pending.** Product code, limits,
+validation policy and accepted #316–#318 evidence are unchanged. No Full,
+distribution/UAT build, install, installed acceptance, maintainer UAT-data access,
+hosted trigger or publication was performed. This bounded test/docs change needs
+no new installed acceptance. Keep **#319 open** for maintainer publication and
+the normal exact-commit branch/main `check` and `v1-supported-platform-matrix`
+gates; Quick does not certify those gates or authorize closure.

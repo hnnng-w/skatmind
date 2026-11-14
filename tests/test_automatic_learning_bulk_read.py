@@ -1,10 +1,10 @@
 """Operation-local admission work with genuine retained evidence, never fake Reports."""
 
-from collections import Counter
 from time import perf_counter
 
 import pytest
-from test_automatic_historical_evidence import genuine_historical
+from learning_archive_fixture_helpers import measure_work, publish_fresh_archive, work_phase
+from test_automatic_historical_evidence import genuine_historical as _genuine_historical
 from test_automatic_learning_delivery_receipt import rewrite_same_metadata
 from test_automatic_match_evidence import commit_candidate, genuine_candidate, repack
 from test_automatic_match_learning_evidence import forbid_execution
@@ -23,6 +23,15 @@ __all__ = ["genuine_historical", "localized_server"]
 
 
 @pytest.fixture(scope="module")
+def genuine_historical():
+    start = perf_counter()
+    value = _genuine_historical.__wrapped__()
+    print({"phase": "historical_execution", "seconds": perf_counter() - start,
+           "new_card_executions": 1})
+    return value
+
+
+@pytest.fixture(scope="module")
 def executions(tmp_path_factory, genuine_historical):
     start = perf_counter()
     session, _execution, _document = genuine(tmp_path_factory.mktemp("bulk-session"))
@@ -34,57 +43,59 @@ def executions(tmp_path_factory, genuine_historical):
     return values
 
 
-def measure_work(monkeypatch, store):
-    """Count actual complete traversal bytes and successful typed retained-result loads."""
-    import skatmind.automatic_historical_evidence as historical
-    import skatmind.automatic_learning_io as io
-    import skatmind.automatic_match_evidence as match
-    import skatmind.automatic_session_evidence as session
-
-    counts = Counter()
-    read, admission = io.read_bounded, store._admission
-
-    def reading(path, limit):
-        raw = read(path, limit)
-        if path.parent in tuple(store.root / area
-                                for area in ("sources", "reports", "generations")):
-            counts["object_reads"] += 1
-            counts["object_bytes"] += len(raw)
-        return raw
-
-    def admitting(manifest, objects, storage):
-        counts["admissions"] += 1
-        counts["indexed_objects_admitted"] += len(manifest.objects)
-        return admission(manifest, objects, storage)
-
-    def loader(original):
-        def load(*args):
-            value = original(*args)
-            counts["retained_results_loaded"] += 1
-            return value
-        return load
-
-    monkeypatch.setattr(io, "read_bounded", reading)
-    monkeypatch.setattr(store, "_admission", admitting)
-    for module, name in ((match, "decode_match_decision"),
-                         (session, "decode_session_execution"),
-                         (historical, "decode_historical_execution")):
-        monkeypatch.setattr(module, name, loader(getattr(module, name)))
-    return counts
-
-
 @pytest.fixture
 def archived(tmp_path, executions, monkeypatch):
     store = initialize_automatic_learning_store_v1(tmp_path / "archive")
-    start = perf_counter()
-    with monkeypatch.context() as patch:
-        counts = measure_work(patch, store)
-        for value in executions:
-            assert commit_candidate(store, value).status == "saved"
+    with work_phase(monkeypatch, store, "bulk_empty_store"):
+        empty = store.snapshot()
+    with work_phase(monkeypatch, store, "bulk_fixture_publication"):
+        publish_fresh_archive(store, empty, executions)
+    with work_phase(monkeypatch, store, "bulk_final_admission"):
         snapshot = store.snapshot()
-        print({"fixture_publication_seconds": perf_counter() - start, "work": dict(counts)})
     assert len(snapshot.available_evidence_ids) == 4
     return store, snapshot
+
+
+def test_fresh_batch_rejects_contradictions_and_deduplicates_exact_entries(tmp_path, executions):
+    from dataclasses import replace
+
+    store = initialize_automatic_learning_store_v1(tmp_path / "archive")
+    empty = store.snapshot()
+    first, second = executions[:2]
+    for changed in (
+        replace(first, source=replace(first.source, revision=first.source.revision + 1)),
+        replace(first, evidence=replace(first.evidence, semantic_fingerprint="f" * 64)),
+    ):
+        with pytest.raises(ValueError, match="Contradictory fixture duplicate"):
+            publish_fresh_archive(store, empty, (first, changed))
+        assert store.snapshot() == empty
+        assert not store._coordinator.candidates
+    manifest = publish_fresh_archive(store, empty, (second, first, second, first))
+    assert manifest.sources == (first.source,)
+    assert manifest.evidence == (second.evidence, first.evidence)
+    assert manifest.objects == (first.objects[0].entry, second.objects[1].entry,
+                                first.objects[1].entry)
+    admitted = store.snapshot()
+    assert admitted.available_evidence_ids == (second.evidence.identity, first.evidence.identity)
+    with pytest.raises(ValueError, match="fresh empty store"):
+        publish_fresh_archive(store, admitted, (first,))
+    assert not store._coordinator.candidates
+
+
+@pytest.mark.parametrize("boundary", ("publish_object", "update_manifest"))
+def test_fresh_batch_releases_reservation_after_publication_failure(
+    tmp_path, executions, monkeypatch, boundary,
+):
+    store = initialize_automatic_learning_store_v1(tmp_path / "archive")
+    empty = store.snapshot()
+    def fail(*args, **kwargs):
+        raise OSError("Injected fixture publication failure")
+    monkeypatch.setattr(store, boundary, fail)
+    with pytest.raises(OSError, match="Injected fixture publication failure"):
+        publish_fresh_archive(store, empty, executions[:2])
+    assert store.snapshot().manifest == empty.manifest
+    assert not store._coordinator.candidates and not store._coordinator.pins
+    assert store._coordinator.lease is None
 
 
 @pytest.mark.parametrize("requested_count", (2, 4))
@@ -237,23 +248,38 @@ def test_manifest_race_and_unindexed_ids_never_return_partial_bulk(archived, mon
         store.read_evidence_many(ids, expected_manifest=snapshot.manifest.fingerprint)
 
 
-@pytest.fixture
-def consumer_archive(localized_server, executions, genuine_historical):
-    from test_automatic_historical_learning import retain_fixture
+@pytest.fixture(scope="module")
+def historical_candidates(executions, genuine_historical):
+    draft, execution, native = genuine_historical
+    other = build_historical_capture_candidate("bulk-other-review", 0, execution, native,
+                                               draft=draft)
+    return executions[-1], other
 
+
+def consumer_fixture(app, candidates, monkeypatch):
     from skatmind.app_web.automatic_learning_controller import automatic_controller
     from skatmind.app_web.saved_match_analyses import archive_store
 
-    app = localized_server.app_context
     store = archive_store(app, initialize=True)
-    for candidate in executions[:3]:
-        assert commit_candidate(store, candidate).status == "saved"
-    # Two independent heads deliberately share the same genuine execution's public IDs.
-    for _ in range(2):
-        retain_fixture(app, genuine_historical)
-    controller = automatic_controller(app)
-    view = controller.capture()
+    with work_phase(monkeypatch, store, "consumer_empty_store"):
+        empty = store.snapshot()
+    with work_phase(monkeypatch, store, "consumer_fixture_publication"):
+        manifest = publish_fresh_archive(store, empty, candidates, live_historical=True)
+    with work_phase(monkeypatch, store, "consumer_final_capture"):
+        controller = automatic_controller(app)
+        view = controller.capture()
+    assert view.binding.resumed.manifest == manifest
+    assert view.binding.resumed.available_evidence_ids == tuple(
+        entry.identity for entry in manifest.evidence)
+    return app, store, controller, view
+
+
+@pytest.fixture
+def consumer_archive(localized_server, executions, historical_candidates, monkeypatch):
+    app, store, controller, view = consumer_fixture(localized_server.app_context,
+        (*executions[:3], *historical_candidates), monkeypatch)
     assert len(view.binding.resumed.available_evidence_ids) == 5
+    assert len(view.binding.resumed.manifest.objects) == 9
     return app, store, controller
 
 
@@ -270,14 +296,39 @@ def observe_bulk(monkeypatch, store, counts, *, delivery=False):
     return phases
 
 
+@pytest.fixture
+def passive_browser(localized_server, monkeypatch):
+    from threading import Event
+
+    from test_session_recorded_review_web import Browser
+
+    browser = Browser(localized_server)
+    finished = Event()
+    handler = localized_server.RequestHandlerClass
+    original_get, original_request = handler.do_GET, browser.request
+    def get(self):
+        try:
+            return original_get(self)
+        finally:
+            if self.server is localized_server:
+                finished.set()
+    def request(*args, **kwargs):
+        finished.clear()
+        response = original_request(*args, **kwargs)
+        # Body receipt precedes handler unwind: wait for all actual readers/pins to end.
+        assert finished.wait(5), "Passive GET handler did not finish."
+        return response
+    monkeypatch.setattr(handler, "do_GET", get)
+    monkeypatch.setattr(browser, "request", request)
+    return browser
+
+
 @pytest.mark.parametrize("fallback", (False, True))
 def test_native_lists_and_maintenance_use_one_bulk_phase_with_original_content(
-    consumer_archive, localized_server, monkeypatch, fallback,
+    consumer_archive, passive_browser, monkeypatch, fallback,
 ):
     import re
     from html import unescape
-
-    from test_session_recorded_review_web import Browser
 
     import skatmind.automatic_learning_store as module
     from skatmind.app_web.saved_match_analyses import _caption
@@ -292,7 +343,7 @@ def test_native_lists_and_maintenance_use_one_bulk_phase_with_original_content(
     forbid_execution(monkeypatch)
     monkeypatch.setattr("skatmind.automatic_learning_io.write_temporary",
                         lambda *a, **kw: pytest.fail("Passive archive mutation"))
-    browser = Browser(localized_server)
+    browser = passive_browser
     for family in ("match", "session", "historical_review"):
         store = controller.service.store if family == "historical_review" else archive
         with monkeypatch.context() as patch:
@@ -322,11 +373,6 @@ def test_native_lists_and_maintenance_use_one_bulk_phase_with_original_content(
                     original.manifest.space_id, value.entry) for value in selected]
             print({"consumer": family, "fallback": fallback, "operation_work": dict(counts),
                    "bulk_work": dict(phases[0][1])})
-        for path, value in zip(evidence_routes, selected, strict=True):
-            for kind in ("request", "result"):
-                status, _headers, raw = browser.request("GET", path + "/" + kind + ".json")
-                assert status == 200 and raw == value.download(kind)[1]
-
     view = controller.capture()
     with monkeypatch.context() as patch:
         store = controller.service.store
@@ -341,6 +387,71 @@ def test_native_lists_and_maintenance_use_one_bulk_phase_with_original_content(
         assert controller.require_confirmation(preview.token) is preview
         print({"consumer": "maintenance", "fallback": fallback,
                "bulk_work": dict(phases[0][1])})
+    assert {p: p.read_bytes() for p in archive.root.rglob("*") if p.is_file()} == before_bytes
+
+
+@pytest.mark.parametrize("fallback", (False, True))
+@pytest.mark.parametrize("family", ("match", "session", "historical_review"))
+def test_native_original_downloads_in_minimal_family_archive(
+    localized_server, passive_browser, executions, historical_candidates, genuine_historical,
+    monkeypatch, family, fallback,
+):
+    import re
+
+    import skatmind.automatic_learning_store as module
+
+    candidates = {"match": executions[:2], "session": executions[2:3],
+                  "historical_review": historical_candidates}[family]
+    app, archive, controller, view = consumer_fixture(
+        localized_server.app_context, candidates, monkeypatch)
+    original = view.binding.resumed
+    assert len(original.manifest.objects) == {"match": 3, "session": 2, "historical_review": 4}[
+        family]
+    values = archive.read_evidence_many(original.available_evidence_ids,
+                                        expected_manifest=original.manifest.fingerprint)
+    assert tuple(value.source.record for value in values) == tuple(c.source for c in candidates)
+    if family == "match":
+        assert values[1].report.value.result.document["bounded_search_result"]["status"] == (
+            "unavailable")
+    if family == "historical_review":
+        heads = original.manifest.historical_heads
+        assert len(heads) == len({head.source for head in heads}) == 2
+        assert heads == tuple(sorted(heads, key=lambda head: head.source.identity))
+        assert len({value.source.record.scope for value in values}) == 2
+        assert len({value.game.game_id for value in values}) == 1
+        for value in values:
+            head = next(head for head in heads if head.evidence_id == value.entry.identity)
+            assert head.source == value.source.record.source_version.source
+            assert head.source_version_id == value.entry.source_version_id == (
+                value.source.record.source_version.identity)
+            assert value.download("request")[1] == genuine_historical[1].request_json_bytes
+            assert value.download("result")[1] == genuine_historical[1].result_json_bytes
+    if fallback:
+        monkeypatch.setattr(module, "_DELIVERY_RECEIPT_MAX_OBJECTS", 1)
+    before_bytes = {p: p.read_bytes() for p in archive.root.rglob("*") if p.is_file()}
+    forbid_execution(monkeypatch)
+    monkeypatch.setattr("skatmind.automatic_learning_io.write_temporary",
+                        lambda *a, **kw: pytest.fail("Passive archive mutation"))
+    browser = passive_browser
+    route = {"match": "/matches/saved-analyses", "session": "/sessions/saved-analyses",
+             "historical_review": "/review/saved"}[family]
+    with work_phase(monkeypatch, archive, ("native_list", family, fallback)):
+        page = browser.page(route)
+    if family == "historical_review":
+        paths = re.findall(r'href="(/review/saved/[a-f0-9]+/evidence/[0-9]+)"', page)
+        assert [path.rsplit("/", 1)[1] for path in paths] == ["0", "1"]
+        assert len(re.findall(r'href="/review/saved/[a-f0-9]+/source/[0-9]+"', page)) == 2
+    else:
+        paths = re.findall(r'href="(' + route + r'/[a-f0-9]+)"', page)
+        assert paths == [route + "/" + app.saved_match_analyses.token(
+            original.manifest.space_id, value.entry) for value in values]
+    with work_phase(monkeypatch, archive, ("native_http_downloads", family, fallback)) as counts:
+        for path, value in zip(paths, values, strict=True):
+            for kind in ("request", "result"):
+                status, _headers, raw = browser.request("GET", path + "/" + kind + ".json")
+                assert status == 200 and raw == value.download(kind)[1]
+                counts["http_byte_comparisons"] += 1
+        assert counts["http_byte_comparisons"] == 2 * len(candidates)
     assert {p: p.read_bytes() for p in archive.root.rglob("*") if p.is_file()} == before_bytes
 
 

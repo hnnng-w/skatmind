@@ -3,9 +3,10 @@
 import os
 from collections import Counter
 from dataclasses import replace
+from time import perf_counter
 
 import pytest
-from test_automatic_match_evidence import commit_candidate
+from learning_archive_fixture_helpers import publish_fresh_archive, work_phase
 from test_automatic_match_learning import save, setup_service
 from test_automatic_match_rollout_evidence import executed
 from test_match_rollout_review import alex_workspace, rollout_options
@@ -44,26 +45,36 @@ def test_unchanged_delivery_reads_bytes_without_repeating_typed_admission(tmp_pa
 @pytest.fixture(scope="module")
 def attempts():
     # Three genuine original partial-Match executions, never timed test thresholds.
+    start = perf_counter()
     ordinary = build_match_capture_candidate(*executed(options=MatchDecisionAnalysisOptionsV1(
         recommendation_method="immediate_expected_value", immediate_sample_count=1)))
     complete = build_match_rollout_capture_candidate(*executed("complete_settlement"))
     unavailable = build_match_rollout_capture_candidate(*executed(options=replace(
         rollout_options("complete_settlement"), settlement_supplements={})))
+    print({"phase": "receipt_executions", "seconds": perf_counter() - start,
+           "new_card_executions": 3})
     return ordinary, complete, unavailable
 
 
 @pytest.fixture
-def admitted(tmp_path, attempts):
+def admitted(tmp_path, attempts, monkeypatch):
     from skatmind.app_web.saved_match_analyses import archive_store
 
     app, service = setup_service(tmp_path)
     save(app, workspace=alex_workspace(count=3))
     archive = archive_store(app, initialize=True)
-    for candidate in attempts:
-        assert commit_candidate(archive, candidate).status == "saved"
-    assert service.update().status == "prepared"
+    with work_phase(monkeypatch, archive, "receipt_empty_store"):
+        empty = archive.snapshot()
+    with work_phase(monkeypatch, archive, "receipt_fixture_publication"):
+        publish_fresh_archive(archive, empty, attempts)
+    # Perform Update's required owner initialization once, measured separately.
+    with work_phase(monkeypatch, archive, "receipt_final_owner_admission"):
+        assert service._store(initialize=True) is service.store
+    with work_phase(monkeypatch, archive, "receipt_update"):
+        assert service.update().status == "prepared"
     store = service.store
-    snapshot, receipt = store._snapshot_for_delivery()
+    with work_phase(monkeypatch, store, "receipt_fresh_capture"):
+        snapshot, receipt = store._snapshot_for_delivery()
     assert receipt is not None and len(snapshot.available_evidence_ids) == 3
     return service, snapshot, receipt
 
