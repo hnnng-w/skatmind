@@ -1,0 +1,69 @@
+name: Development feedback (partial)
+
+on:
+  push:
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: development-feedback-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  VALIDATION_PYTHON_VERSION: "3.13.15"
+  GIT_CONFIG_COUNT: "2"
+  GIT_CONFIG_KEY_0: core.autocrlf
+  GIT_CONFIG_VALUE_0: "false"
+  GIT_CONFIG_KEY_1: core.eol
+  GIT_CONFIG_VALUE_1: lf
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHONIOENCODING: utf-8
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTEST_ADDOPTS: ""
+
+jobs:
+  development-feedback:
+    name: development-feedback (partial)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.VALIDATION_PYTHON_VERSION }}
+      - run: python -m pip install -e ".[dev]"
+      - name: Explicit Quick
+        run: python scripts/run_validation.py --mode Quick --log-directory "$RUNNER_TEMP/feedback-quick"
+        env:
+          RUFF_CACHE_DIR: ${{ runner.temp }}/feedback-ruff-cache
+      - name: Complete rename and architecture guard modules
+        run: >-
+          python -m pytest -q -n 2 --dist=loadfile --max-worker-restart=0
+          -o addopts= -o "cache_dir=$RUNNER_TEMP/feedback-pytest-cache"
+          --basetemp "$RUNNER_TEMP/feedback-pytest"
+          --junitxml "$RUNNER_TEMP/feedback-tests.xml"
+          tests/test_skatmind_rename.py tests/test_cli_internal_architecture.py
+      - name: Partial scope summary
+        if: always()
+        run: |
+          printf '%s\n' '### Partial development feedback' \
+            'Scope: explicit Quick and the complete rename and CLI architecture guard modules only.' \
+            'Complete acceptance requires maintainer-run Check on the exact reviewed candidate before integration.' \
+            >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: development-feedback
+          path: |
+            ${{ runner.temp }}/feedback-quick
+            ${{ runner.temp }}/feedback-tests.xml
+          retention-days: 7

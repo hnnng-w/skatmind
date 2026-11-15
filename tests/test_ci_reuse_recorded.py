@@ -112,6 +112,27 @@ def test_recorded_entry_success_diagnostic_links_exact_source(
     assert output.strip() in (tmp_path / "summary.md").read_text()
 
 
+@pytest.mark.parametrize("attempt", [1, 2])
+def test_synthetic_complete_dispatch_entry_selects_exact_candidate(
+    tmp_path, monkeypatch, recorded, attempt,
+):
+    recorded["candidate"]["event"] = "workflow_dispatch"
+    recorded["candidate"]["run_attempt"] = attempt
+    for row in recorded["candidate_jobs"]["jobs"]:
+        row["run_attempt"] = attempt
+    api = prepare_entry(tmp_path, monkeypatch, recorded)
+    assert ci.main(["decide"]) == 0
+    assert (tmp_path / "outputs.txt").read_text() == "reuse=true\nreuse_run=37679574939\n"
+    discovery = next(route for route in api.calls if "head_sha=" in route)
+    assert parse_qs(urlsplit(discovery).query) == {
+        "head_sha": [recorded["commit"]], "per_page": ["100"]}
+    history = next(route for route in api.calls if "branch=main" in route)
+    assert parse_qs(urlsplit(history).query) == {
+        "branch": ["main"], "event": ["push"], "per_page": ["100"]}
+    assert [route for route in api.calls if "/jobs?" in route] == [
+        f"actions/runs/37679574939/attempts/{attempt}/jobs?per_page=100&page=1"]
+
+
 def test_entry_policy_fallback_is_explainable(tmp_path, monkeypatch, recorded, capsys):
     api = prepare_entry(tmp_path, monkeypatch, recorded)
     monkeypatch.setenv("POLICY_COMMIT", "f" * 40)
@@ -127,6 +148,9 @@ def test_entry_policy_fallback_is_explainable(tmp_path, monkeypatch, recorded, c
     ("fork", "candidate_repository_mismatch"),
     ("workflow", "candidate_workflow_mismatch"),
     ("policy_path", "candidate_workflow_mismatch"),
+    ("feedback_workflow", "candidate_workflow_mismatch"),
+    ("feedback_jobs", "candidate_job_coverage"),
+    ("pr_event", "candidate_event_or_branch"),
     ("run_failed", "candidate_not_successful"),
     ("run_cancelled", "candidate_not_successful"),
     ("run_incomplete", "candidate_not_successful"),
@@ -136,6 +160,7 @@ def test_entry_policy_fallback_is_explainable(tmp_path, monkeypatch, recorded, c
     ("cancelled_job", "candidate_job_unsuccessful"),
     ("skipped_job", "candidate_job_unsuccessful"),
     ("wrong_attempt", "candidate_job_identity"),
+    ("incomplete_current_attempt", "candidate_job_coverage"),
     ("wrong_job_commit", "candidate_job_identity"),
     ("malformed_job", "candidate_malformed"),
     ("stale", "candidate_stale"),
@@ -148,10 +173,12 @@ def test_entry_policy_fallback_is_explainable(tmp_path, monkeypatch, recorded, c
     ("integration_before", "integration_previous_commit_mismatch"),
     ("current_identity", "current_run_identity_mismatch"),
 ])
+@pytest.mark.parametrize("event", ["push", "workflow_dispatch"])
 def test_synthetic_variants_of_recorded_entry_fail_closed_with_reason(
-    tmp_path, monkeypatch, recorded, capsys, variant, reason,
+    tmp_path, monkeypatch, recorded, capsys, variant, reason, event,
 ):
     candidate, rows = recorded["candidate"], recorded["candidate_jobs"]
+    candidate["event"] = event
     if variant == "commit":
         candidate["head_sha"] = "f" * 40
     elif variant in ("repository", "fork"):
@@ -161,6 +188,14 @@ def test_synthetic_variants_of_recorded_entry_fail_closed_with_reason(
         candidate["workflow_id"] += 1
     elif variant == "policy_path":
         candidate["path"] = ".github/workflows/foreign.yml"
+    elif variant == "feedback_workflow":
+        candidate["path"] = ".github/workflows/development-feedback.yml"
+        candidate["workflow_id"] += 1
+    elif variant == "feedback_jobs":
+        rows["jobs"] = [{**rows["jobs"][0], "name": "development-feedback (partial)"}]
+        rows["total_count"] = 1
+    elif variant == "pr_event":
+        candidate["event"] = "pull_request"
     elif variant in ("run_failed", "run_cancelled"):
         candidate["conclusion"] = "failure" if variant == "run_failed" else "cancelled"
     elif variant == "run_incomplete":
@@ -175,6 +210,13 @@ def test_synthetic_variants_of_recorded_entry_fail_closed_with_reason(
                                          else variant.removesuffix("_job"))
     elif variant == "wrong_attempt":
         rows["jobs"][0]["run_attempt"] += 1
+    elif variant == "incomplete_current_attempt":
+        candidate["run_attempt"] += 1
+        rows["jobs"] = [row for row in rows["jobs"]
+                        if row["name"] in ("check", "v1-supported-platform-matrix")]
+        rows["total_count"] = len(rows["jobs"])
+        for row in rows["jobs"]:
+            row["run_attempt"] = candidate["run_attempt"]
     elif variant == "wrong_job_commit":
         rows["jobs"][0]["head_sha"] = "f" * 40
     elif variant == "malformed_job":
@@ -309,12 +351,18 @@ def test_entry_missing_run_evidence_reports_which_lookup_is_empty(
 
 
 @pytest.mark.parametrize("gate", ["check", "matrix"])
-@pytest.mark.parametrize("invalid", [None, "candidate", "prerequisites"])
+@pytest.mark.parametrize("invalid", [None, "candidate", "prerequisites", "attempt", "feedback"])
+@pytest.mark.parametrize("event", ["push", "workflow_dispatch"])
 def test_recorded_final_gates_revalidate_source_and_skipped_worker_authorization(
-    tmp_path, monkeypatch, recorded, gate, invalid,
+    tmp_path, monkeypatch, recorded, gate, invalid, event,
 ):
+    recorded["candidate"]["event"] = event
     if invalid == "candidate":
         recorded["candidate"]["conclusion"] = "cancelled"
+    elif invalid == "attempt":
+        recorded["candidate"]["run_attempt"] += 1
+    elif invalid == "feedback":
+        recorded["candidate"]["path"] = ".github/workflows/development-feedback.yml"
     api = prepare_entry(tmp_path, monkeypatch, recorded)
     monkeypatch.setenv("REUSE", "true")
     monkeypatch.setenv("REUSE_RUN", str(recorded["candidate"]["id"]))

@@ -2,6 +2,31 @@
 
 ## Status and acceptance boundary
 
+Issue #323 separates **partial development feedback** from complete integration
+acceptance, starting at `f57fea13539cb27c9d6344997712a4593629c6fd`. Non-main branch
+publication runs the separate `Development feedback (partial)` workflow. The
+maintainer reviews the source, explicitly dispatches `Check` on the reviewed
+branch, verifies complete acceptance on that exact commit, fast-forwards it to
+main, and verifies main's two final gates. Publishing source for review is no
+longer a request for complete hosted validation. The complete 23-job Check graph,
+four hosted regression workers, exclusive phase and final gates retain their
+existing contracts. Hosted acceptance of this trigger/evidence change is pending;
+no shorter full-suite runtime is claimed.
+
+The active routine local policy remains focused tests plus explicit Quick, with
+task-specific verification taking precedence over the general local-Full rule.
+For #323, run the six complete affected modules listed below and final Quick on
+development CPython 3.13, using two file-grouped workers, disabled worker restarts,
+external temporary outputs and **7,200,000 ms invocation timeouts**. Finish the
+documentation before final tests and whitespace checks. This scope requires no
+local Full, standalone distribution build/install, benchmark-only run or installed
+UAT. Handoff is **locally validated; hosted acceptance pending** after these checks
+pass. Keep #323 open until the maintainer verifies real partial feedback, complete
+reviewed dispatch and exact-commit integration/main evidence. Accepted #316–#320
+evidence and paused combined #321/#322 installed acceptance remain intact.
+
+### Historical activation notes
+
 Current Issue-#316 baseline: the maintainer has accepted #279 and #315; #315 is
 closed. S6/#314 installed acceptance also completed on main
 `08022a6def9f06891d99e1097c2bf0ba84d77039`. The pending paragraphs and failed-run
@@ -51,6 +76,23 @@ python -m pytest tests/test_packaging_and_distribution.py
 fresh external directory. The cross-platform equivalent is
 `python scripts/run_validation.py --mode Full --workers 2`; `--stage` selects one
 explicit CI gate and never reports Full. Focused pytest is separate from Quick.
+
+For Issue #323, the complete affected modules are:
+
+* `tests/test_ci_validation.py` (including feedback/full workflow contract tests)
+* `tests/test_ci_reuse_recorded.py`
+* `tests/test_v1_supported_platform_matrix.py`
+* `tests/test_packaging_and_distribution.py`
+* `tests/test_skatmind_rename.py` (against the final documentation)
+* `tests/test_cli_internal_architecture.py`
+
+Run them together with `-n 2 --dist=loadfile --max-worker-restart=0`, external
+`cache_dir`, `--basetemp` and report paths, and no test selectors. These modules
+contain none of the four exclusive modules listed below; additional modules are
+required only for actually affected dependencies. Complete the local handoff with
+`.\scripts\check.ps1 -Mode Quick` and `git diff --check`,
+including whitespace review of the new untracked workflow. Local results cannot
+stand in for hosted execution.
 
 Quick means Ruff, exact packaged-schema filename/byte parity, and Root/Session
 input-example schema validation. Full retains those gates, all 98 generated-output
@@ -168,17 +210,32 @@ never enter canonical Product outputs or semantic parity.
 
 ## CI graph, limits, and honest platforms
 
-The workflow runs on all working-branch and main pushes, fork PRs to main, and
-manual `workflow_dispatch`. Same-repository PR jobs are omitted in favor of their
-branch push run; no privileged PR trigger executes fork code. A fork PR gets full
-validation of its merge commit with read-only permissions. No PR is mandatory.
+The separate `.github/workflows/development-feedback.yml` runs only on non-main
+branch pushes. Its sole status is `development-feedback (partial)`: explicit Quick
+and the complete `tests/test_skatmind_rename.py` and
+`tests/test_cli_internal_architecture.py` modules. It uses two file-grouped workers
+with restarts disabled, external temporary outputs, read-only contents permission,
+and no persistent cache. Its always-written summary labels the scope as partial;
+its Quick logs and guard report are retained for seven days. It defines and emits
+neither `check` nor `v1-supported-platform-matrix`, even as skipped jobs. Green
+feedback is source-review assistance, never complete acceptance evidence.
+
+`.github/workflows/check.yml` runs on main pushes, explicit maintainer
+`workflow_dispatch` on the reviewed branch, and fork PRs to main. Same-repository
+PR jobs remain omitted in favor of reviewed branch complete evidence; no
+privileged PR trigger executes fork code. A fork PR gets full validation of its
+merge commit with read-only permissions. No PR is mandatory. A dispatch always
+executes the complete graph, including when `force_full` is false: only a main
+push can reuse evidence. `force_full` retains its default of true.
 
 After `coordinator`, `standards`, `generated`, two regressions, and two builds can
 run independently. Builds feed twelve cells (maximum four concurrent), followed
 by two per-OS semantic aggregates. Regressions use four workers each. Matrix
 `fail-fast` is false; required cells are allowed to finish for diagnosis. Exhaustive
-jobs have explicit 180-minute budgets. Per-ref concurrency never cancels an active
-run. This is a fixed graph, not changed-path test selection.
+jobs have explicit 180-minute budgets. Full-run concurrency retains
+`validation-${{ github.event_name }}-${{ github.ref }}` and never cancels an active
+run. Feedback has its own `development-feedback-${{ github.ref }}` group and
+cannot cancel a full run. This is a fixed graph, not changed-path test selection.
 
 Stable final statuses are exactly `check` and `v1-supported-platform-matrix`.
 Both run with `always()` and explicitly check every required upstream result.
@@ -257,22 +314,35 @@ acceptance of the corrected workflow.
 
 ## Exact-commit integration and safe evidence reuse
 
-After activation, the maintainer's routine sequence is:
+The maintainer's routine sequence is:
 
 1. Review focused tests and explicit Quick results; use Full when required above.
 2. Manually commit/push the working branch. Agents leave edits uncommitted.
-3. Wait for both final CI gates on that **exact commit**, including all workers.
-4. Manually fast-forward that same commit into main.
-5. Inspect main's `coordinator` summary and both final gates. Reuse must link the
-   specific successful branch run; otherwise wait for the full new graph.
+3. Inspect the explicitly partial development feedback and review the source.
+4. Explicitly run `Check` through `workflow_dispatch`, selecting the reviewed
+   branch (the Actions Run workflow branch selector, or the equivalent manual CLI
+   dispatch). Leave `force_full` true. Confirm the resulting run's head SHA equals
+   the reviewed commit; branch movement is not acceptance of a different candidate.
+5. Wait for **all 23 jobs**, including `check` and `v1-supported-platform-matrix`,
+   to succeed on that **exact commit** in the current attempt. A change after
+   review/validation starts a new candidate and needs fresh review and acceptance.
+6. Manually fast-forward that same commit into main.
+7. Inspect main's `coordinator` summary and both final gates. Reuse must link the
+    specific successful branch run; otherwise wait for the full new graph.
 
-Read-only Actions API lookup permits reuse only for a successful completed **push
-run on a non-main branch in this same repository**, with exact head commit,
-workflow ID/path, and the same committed validation policy (`github.workflow_sha`).
+Read-only Actions API lookup permits reuse only for a successful completed
+**`workflow_dispatch` or existing `push` run on a non-main branch in this same
+repository**, with exact head commit, workflow ID/path, and the same committed
+validation policy (`github.workflow_sha`). Candidate discovery queries this
+workflow's runs by head SHA without a push-only event filter; eligibility still
+accepts only those two event kinds. Main-history lookup remains filtered to main
+push integration history, never manual main dispatches or development feedback.
 All 23 expected jobs, including both final gates and every OS/cell worker, must
 exist exactly once and have succeeded in that run's current attempt on the exact
-commit. A mere green workflow label, PR run, reusable success file, older commit,
-similar tree, partial rerun, or previously reused main run is insufficient.
+commit. A mere green workflow label, feedback run, PR run, reusable success file,
+older commit, similar tree, partial rerun, or previously reused main run is
+insufficient. Different workflow IDs/paths, failed/cancelled/skipped jobs and
+incomplete current attempts cannot authorize reuse.
 
 The candidate must have started within **24 hours** of the main run's creation,
 finished before it, and started after the immediately preceding main push run.
@@ -285,8 +355,8 @@ This defines one bounded current integration cycle and prevents reuse chains.
 Both final gates recheck the selected candidate via the API. If it becomes
 unavailable or ineligible after coordination, they fail closed; the maintainer
 must use the force-full path rather than accept it. A manual `workflow_dispatch`
-with `force_full` (default true) always executes the complete graph; ordinary
-non-main pushes also always execute it. No agent triggers or reruns Actions.
+with `force_full` (default true) always executes the complete graph. Ordinary
+non-main pushes execute only partial feedback. No agent triggers or reruns Actions.
 
 Only `contents: read` is global; coordinator/final gates additionally need
 `actions: read`. Checkout does not persist credentials. No PAT, external service,
@@ -295,7 +365,15 @@ repository must permit the official checkout/setup-python/upload/download action
 hosted Ubuntu/Windows runners, and read-only Actions API access. If branch rules
 are used, the maintainer should require the two stable final statuses; settings
 remain human-controlled. Same-repository PR acceptance must reference the branch
-commit run, not assume a skipped PR workflow validated a different merge commit.
+commit's complete reviewed run, not assume a skipped PR workflow validated a
+different merge commit. Keep the two complete gates required; the partial-feedback
+status is not a substitute.
+
+For #323 hosted acceptance, record the ordinary branch push's feedback-only status,
+the explicitly dispatched reviewed candidate's complete 23-job success, and the
+same-commit main run's exact source reuse (or correctly explained full fallback).
+Both main gates must revalidate successfully. Report feedback and full-run wall
+times separately; changing trigger cadence establishes no full-suite speedup.
 
 ### Historical reuse replay and decision diagnostics
 

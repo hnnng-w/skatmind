@@ -3,8 +3,10 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import subprocess
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from test_installation_cells import SOURCE, aggregate, evidence
@@ -39,13 +41,16 @@ def eligible(candidate, workers):
                            commit=COMMIT, cycle_start=ci.timestamp("2026-10-06T12:00:00Z"))
 
 
-def test_exact_successful_branch_run_is_eligible():
-    assert eligible(run(), jobs())
+@pytest.mark.parametrize("event", ["push", "workflow_dispatch"])
+def test_exact_successful_branch_run_is_eligible(event):
+    assert eligible({**run(), "event": event}, jobs())
     assert len(ci.REQUIRED_JOBS) == 23
 
 
-def test_fresh_run_from_before_current_integration_cycle_is_ineligible():
-    assert not ci.eligible_run(run(), jobs(), current=CURRENT, repository=REPOSITORY,
+@pytest.mark.parametrize("event", ["push", "workflow_dispatch"])
+def test_fresh_run_from_before_current_integration_cycle_is_ineligible(event):
+    assert not ci.eligible_run({**run(), "event": event}, jobs(),
+                               current=CURRENT, repository=REPOSITORY,
                                commit=COMMIT, cycle_start=ci.timestamp("2026-10-07T09:00:00Z"))
 
 
@@ -53,8 +58,10 @@ def test_fresh_run_from_before_current_integration_cycle_is_ineligible():
                                "skipped", "wrong-job-commit", "wrong-attempt", "wrong-run",
                                "wrong-commit", "wrong-repository", "fork", "stale", "future",
                                "previous-cycle", "workflow", "policy", "partial", "main", "pr"])
-def test_reuse_rejects_foreign_or_incomplete_green_labels(bad):
+@pytest.mark.parametrize("event", ["push", "workflow_dispatch"])
+def test_reuse_rejects_foreign_or_incomplete_green_labels(bad, event):
     candidate, workers = copy.deepcopy(run()), copy.deepcopy(jobs())
+    candidate["event"] = event
     if bad == "missing":
         workers.pop()
     elif bad == "duplicate":
@@ -93,8 +100,9 @@ def test_reuse_rejects_foreign_or_incomplete_green_labels(bad):
 
 
 class FakeGitHub:
-    def __init__(self, *, bad=None):
+    def __init__(self, *, bad=None, event="push"):
         self.bad = bad
+        self.event = event
         self.calls = []
 
     def get(self, route):
@@ -104,7 +112,7 @@ class FakeGitHub:
         if route == "actions/runs/300":
             return CURRENT
         if route == "actions/runs/200":
-            return run()
+            return {**run(), "event": self.event}
         if route.startswith("compare/"):
             return {"status": "diverged" if self.bad == "not-ff" else "ahead",
                     "merge_base_commit": {"sha": BEFORE}}
@@ -112,7 +120,10 @@ class FakeGitHub:
             return {"workflow_runs": [] if self.bad == "no-cycle" else [{
                 "id": 100, "head_sha": BEFORE, "created_at": "2026-10-06T13:00:00Z"}]}
         if "head_sha=" in route:
-            return {"workflow_runs": [] if self.bad == "missing" else [run()]}
+            query = parse_qs(urlsplit(route).query)
+            candidates = ([{**run(), "event": self.event}]
+                          if query.get("event", [self.event]) == [self.event] else [])
+            return {"workflow_runs": [] if self.bad == "missing" else candidates}
         raise AssertionError(route)
 
     def jobs(self, candidate):
@@ -127,9 +138,18 @@ def lookup(api, **overrides):
                          **options)
 
 
-def test_lookup_and_final_recheck_use_exact_run_and_current_integration_cycle():
-    assert lookup(FakeGitHub())["id"] == 200
-    assert lookup(FakeGitHub(), required_run=200)["id"] == 200
+@pytest.mark.parametrize("event", ["push", "workflow_dispatch"])
+def test_lookup_and_final_recheck_use_exact_run_and_current_integration_cycle(event):
+    api = FakeGitHub(event=event)
+    assert lookup(api)["id"] == 200
+    assert [route for route in api.calls if "branch=main" in route] == [
+        "actions/workflows/42/runs?branch=main&event=push&per_page=100"]
+    assert [route for route in api.calls if "head_sha=" in route] == [
+        f"actions/workflows/42/runs?head_sha={COMMIT}&per_page=100"]
+    api.calls.clear()
+    assert lookup(api, required_run=200)["id"] == 200
+    assert "actions/runs/200" in api.calls
+    assert not any("head_sha=" in route for route in api.calls)
 
 
 @pytest.mark.parametrize("reason", ["not-ff", "no-cycle", "missing", "partial"])
@@ -312,10 +332,13 @@ def test_performance_diagnostics_do_not_authorize_or_disqualify_evidence(tmp_pat
 
 def test_workflow_has_bounded_safe_complete_graph():
     text = (Path(__file__).resolve().parents[1] / ci.WORKFLOW).read_text()
-    for name in ("coordinator", "standards", "generated", "regression", "build", "cells",
-                 "matrix-result", "check", "v1-supported-platform-matrix"):
-        assert f"\n  {name}:\n" in text
-    assert 'branches: ["**"]' in text and "pull_request:" in text
+    assert re.findall(r"^  ([\w-]+):$", text.split("\njobs:\n", 1)[1], re.MULTILINE) == [
+        "coordinator", "standards", "generated", "regression", "build", "cells",
+        "matrix-result", "check", "v1-supported-platform-matrix"]
+    assert text.split("\non:\n", 1)[1].split("  workflow_dispatch:", 1)[0] == (
+        "  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\n")
+    assert ("if: github.event_name != 'pull_request' || "
+            "github.event.pull_request.head.repo.full_name != github.repository") in text
     assert "max-parallel: 4" in text
     regression = text.split("\n  regression:\n")[1].split("\n  build:\n")[0]
     assert ci.HOSTED_REGRESSION_WORKERS == 4
@@ -327,13 +350,55 @@ def test_workflow_has_bounded_safe_complete_graph():
     assert "persist-credentials: false" in text
     assert "pull_request_target:" not in text and "write-all" not in text
     assert "cancel-in-progress: false" in text and "continue-on-error" not in text
+    assert "group: validation-${{ github.event_name }}-${{ github.ref }}" in text
     assert "workflow_dispatch:" in text and "force_full:" in text
+    assert "type: boolean\n        default: true" in text
+    assert "FORCE_FULL: ${{ inputs.force_full || false }}" in text
     assert "--gate check" in text and "--gate matrix" in text
     assert all(cell in text for cell in ci.CELL_NAMES)
 
 
-def test_every_ci_job_uses_one_exact_python_patch():
-    text = (Path(__file__).resolve().parents[1] / ci.WORKFLOW).read_text(encoding="utf-8")
+def test_feedback_workflow_is_explicitly_partial_with_complete_guard_modules():
+    root = Path(__file__).resolve().parents[1]
+    text = (root / ".github/workflows/development-feedback.yml").read_text(encoding="utf-8")
+    assert text.split("\non:\n", 1)[1].split("\npermissions:", 1)[0].strip() == (
+        "push:\n    branches-ignore: [main]")
+    job = text.split("\njobs:\n", 1)[1]
+    assert re.findall(r"^  ([\w-]+):$", job, re.MULTILINE) == ["development-feedback"]
+    assert re.findall(r"^    name: (.+)$", job, re.MULTILINE) == [
+        "development-feedback (partial)"]
+    assert "check:" not in job and "v1-supported-platform-matrix" not in text
+    assert "scripts/ci_validation.py" not in text and "--stage pytest" not in text
+    assert "continue-on-error" not in text and "uses: ./" not in text
+    assert "permissions:\n  contents: read" in text and "actions: write" not in text
+    assert "persist-credentials: false" in text and "cache: pip" not in text
+    assert 'PYTEST_ADDOPTS: ""' in text
+    # The runner context is available in step env, not workflow/job env.
+    assert "runner." not in text.split("\njobs:\n", 1)[0]
+    quick = job.split("      - name: Explicit Quick\n", 1)[1].split("      - name:", 1)[0]
+    assert ("        env:\n"
+            "          RUFF_CACHE_DIR: ${{ runner.temp }}/feedback-ruff-cache\n") in quick
+    assert "Partial development feedback" in text
+    assert "Complete acceptance requires" in text and "$GITHUB_STEP_SUMMARY" in text
+    assert "--mode Full" not in text
+    assert ('python scripts/run_validation.py --mode Quick '
+            '--log-directory "$RUNNER_TEMP/feedback-quick"') in text
+    guard = re.search(r"run: >-\n((?:          .+\n)+)", text)
+    assert guard is not None
+    assert shlex.split(guard.group(1)) == [
+        "python", "-m", "pytest", "-q", "-n", "2", "--dist=loadfile", "--max-worker-restart=0",
+        "-o", "addopts=", "-o", "cache_dir=$RUNNER_TEMP/feedback-pytest-cache",
+        "--basetemp", "$RUNNER_TEMP/feedback-pytest",
+        "--junitxml", "$RUNNER_TEMP/feedback-tests.xml",
+        "tests/test_skatmind_rename.py", "tests/test_cli_internal_architecture.py",
+    ]
+
+
+@pytest.mark.parametrize("workflow,job_count", [
+    (ci.WORKFLOW, 9), (".github/workflows/development-feedback.yml", 1),
+])
+def test_every_ci_job_uses_one_exact_python_patch(workflow, job_count):
+    text = (Path(__file__).resolve().parents[1] / workflow).read_text(encoding="utf-8")
     workflow_env = text.split("\nenv:\n", 1)[1].split("\njobs:\n", 1)[0]
     pin = re.search(
         r'^  VALIDATION_PYTHON_VERSION: "([^"]+)"$', workflow_env, re.MULTILINE,
@@ -342,7 +407,7 @@ def test_every_ci_job_uses_one_exact_python_patch():
     assert re.fullmatch(r"3\.13\.\d+", pin.group(1))
     assert text.count("VALIDATION_PYTHON_VERSION:") == 1
     selectors = re.findall(r"^ +python-version: (.+)$", text, re.MULTILINE)
-    assert len(selectors) == text.count("uses: actions/setup-python@v6") == 9
+    assert len(selectors) == text.count("uses: actions/setup-python@v6") == job_count
     assert set(selectors) == {"${{ env.VALIDATION_PYTHON_VERSION }}"}
 
 

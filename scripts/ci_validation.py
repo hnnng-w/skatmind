@@ -66,7 +66,8 @@ def eligible_run(run: dict, jobs: list[dict], *, current: dict, repository: str,
             return _reject(diagnostics, "candidate_malformed")
         if run["id"] == current["id"]:
             return _reject(diagnostics, "candidate_is_current")
-        if run["event"] != "push" or not run["head_branch"] or run["head_branch"] == "main":
+        if (run["event"] not in ("push", "workflow_dispatch")
+                or not run["head_branch"] or run["head_branch"] == "main"):
             return _reject(diagnostics, "candidate_event_or_branch")
         if not run["head_sha"] == commit == current["head_sha"]:
             return _reject(diagnostics, "candidate_commit_mismatch")
@@ -179,8 +180,10 @@ def find_reuse(api, event: dict, *, repository: str, commit: str, run_id: int,
     if required_run is not None:
         candidates = [api.get(f"actions/runs/{required_run}")]
     else:
+        # Discover both reviewed dispatches and existing push evidence for this SHA.
+        # eligible_run still restricts events, workflow identity and complete jobs.
         candidates = api.get(f"actions/workflows/{current['workflow_id']}/runs?"
-                             + urlencode({"head_sha": commit, "event": "push", "per_page": 100}))[
+                             + urlencode({"head_sha": commit, "per_page": 100}))[
                                  "workflow_runs"]
     for candidate in candidates:
         _candidate_id(diagnostics, candidate["id"])

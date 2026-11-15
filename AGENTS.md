@@ -1095,7 +1095,7 @@ two-worker default, complete affected modules, and exclusive-phase isolation.
 
 After that acceptance, routine local completion requires explicit focused tests
 and `./scripts/check.ps1 -Mode Quick`.
-Report **locally validated, CI pending**. Quick runs Ruff, packaged-schema parity,
+Report **locally validated; hosted acceptance pending**. Quick runs Ruff, packaged-schema parity,
 and input examples; it does not certify generated outputs, distributions, the
 installation matrix, or the complete regression suite. A Quick pass never
 authorizes issue closure.
@@ -1107,14 +1107,42 @@ workers and the complete exclusive phase. Logs go outside the repository.
 Genuine Windows 11 / PowerShell 5.1 matrix checks and installed UAT boundaries
 remain required where documented; hosted Windows Server does not replace them.
 
-The human maintainer commits/pushes a working branch, waits for complete CI on
-that exact commit, fast-forwards it to main, and verifies main's two final gates.
-Eligible fresh same-commit branch evidence can be reused; missing or ineligible
-evidence runs full CI. No PR ceremony is mandatory. Agents do not publish, trigger
-Actions, perform UAT, or change UAT findings. See
+Issue #323 separates publication feedback from complete acceptance. The human
+maintainer commits/pushes a working branch, receives explicitly partial
+`development-feedback (partial)` results (Quick plus the complete rename and CLI
+architecture guard modules), and reviews the source. After review, the maintainer
+explicitly dispatches `Check` on that branch and verifies all 23 jobs and both
+complete gates on the exact reviewed commit before fast-forwarding it to main.
+Every changed candidate needs its own source review and exact-commit complete
+acceptance. Main pushes run Check and require verification of `check` and
+`v1-supported-platform-matrix`. Feedback defines neither complete gate and cannot
+authorize integration or evidence reuse. Same-repository PRs use reviewed branch
+evidence; the existing read-only fork-PR full path remains supported.
+
+Eligible fresh same-commit complete non-main `workflow_dispatch` or existing
+`push` evidence can be reused by main. Main integration history still uses only
+main push runs; exact identity, all successful current-attempt jobs, the 24-hour
+and integration-cycle limits, and final-gate revalidation remain mandatory.
+Missing or ineligible evidence runs the full graph; `force_full` remains available
+and defaults to true for manual dispatch. No PR ceremony is mandatory. Agents do
+not publish, trigger Actions, perform UAT, or change UAT findings. See
 [Faster complete validation](docs/faster_validation.md) for the coverage map,
 24-hour/current-integration-cycle reuse policy, force-full path, serial exceptions,
 required settings, and acceptance procedure.
+
+For Issue #323 specifically, complete affected tooling/consumer modules and final
+explicit `./scripts/check.ps1 -Mode Quick` supersede the general local-Full rule
+for validation-tool changes. Run all of `tests/test_ci_validation.py`,
+`tests/test_ci_reuse_recorded.py`, `tests/test_v1_supported_platform_matrix.py`,
+`tests/test_packaging_and_distribution.py`, `tests/test_skatmind_rename.py`, and
+`tests/test_cli_internal_architecture.py`, including the new workflow tests. Use
+development CPython 3.13, two file-grouped workers, disabled worker restarts,
+external temporary outputs, and 7,200,000 ms invocation timeouts. Run any actually
+affected exclusive modules after parallel workers exit. Finish documentation
+before final verification and whitespace checks. Keep #323 open for hosted
+feedback, reviewed full dispatch, and exact-commit integration/main verification;
+report feedback and full-run wall times separately. Accepted #316–#320 evidence
+and paused combined #321/#322 installed acceptance remain unchanged.
 
 ## Approved automatic Learning direction (Issue #308)
 
