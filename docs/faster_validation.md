@@ -4,26 +4,34 @@
 
 Issue #323 separates **partial development feedback** from complete integration
 acceptance, starting at `f57fea13539cb27c9d6344997712a4593629c6fd`. Non-main branch
-publication runs the separate `Development feedback (partial)` workflow. The
-maintainer reviews the source, explicitly dispatches `Check` on the reviewed
-branch, verifies complete acceptance on that exact commit, fast-forwards it to
-main, and verifies main's two final gates. Publishing source for review is no
-longer a request for complete hosted validation. The complete 23-job Check graph,
-four hosted regression workers, exclusive phase and final gates retain their
-existing contracts. Hosted acceptance of this trigger/evidence change is pending;
-no shorter full-suite runtime is claimed.
+publication automatically runs `Development feedback (partial)`. ChatGPT reviews
+the published source before the maintainer fast-forwards the reviewed commit to
+main and pushes. That push automatically runs `Check`; complete exact-commit main
+gates must succeed before issue closure or release acceptance. Main may temporarily
+be unverified or fail after integration; that is not successful acceptance.
+
+The maintainer's scope correction replaces the earlier pre-integration full
+dispatch requirement. The ordinary workflow needs no readiness button, tag,
+marker commit, manual dispatch or mandatory PR step. ChatGPT reviews published
+source; the maintainer publishes, integrates and accepts results; OpenCode
+implements and validates locally. The existing executable workflow already
+supports this sequence. Its complete 23-job graph, four hosted regression workers,
+exclusive phase, final gates and reuse logic retain their contracts. Hosted
+acceptance remains pending; no shorter full-suite runtime is claimed.
 
 The active routine local policy remains focused tests plus explicit Quick, with
 task-specific verification taking precedence over the general local-Full rule.
-For #323, run the six complete affected modules listed below and final Quick on
-development CPython 3.13, using two file-grouped workers, disabled worker restarts,
-external temporary outputs and **7,200,000 ms invocation timeouts**. Finish the
-documentation before final tests and whitespace checks. This scope requires no
-local Full, standalone distribution build/install, benchmark-only run or installed
-UAT. Handoff is **locally validated; hosted acceptance pending** after these checks
-pass. Keep #323 open until the maintainer verifies real partial feedback, complete
-reviewed dispatch and exact-commit integration/main evidence. Accepted #316–#320
-evidence and paused combined #321/#322 installed acceptance remain intact.
+For this bounded #323 text/policy follow-up, run the complete CI validation and
+rename modules listed below, then final Quick on development CPython 3.13, using
+two file-grouped workers, disabled worker restarts, external temporary outputs
+and **7,200,000 ms invocation timeouts**. Finish the documentation before final
+tests and whitespace checks. Do not repeat the original six-module selection or
+run local Full solely for this wording correction. No standalone distribution
+build/install, benchmark-only run or installed UAT is required. Handoff is
+**locally validated; hosted acceptance pending** after these checks pass. Keep
+#323 open until automatic branch feedback, published-source review and successful
+complete exact-commit main gates are verified. Accepted #316–#320 evidence and
+paused combined #321/#322 installed acceptance remain intact.
 
 ### Historical activation notes
 
@@ -77,7 +85,18 @@ fresh external directory. The cross-platform equivalent is
 `python scripts/run_validation.py --mode Full --workers 2`; `--stage` selects one
 explicit CI gate and never reports Full. Focused pytest is separate from Quick.
 
-For Issue #323, the complete affected modules are:
+For the bounded Issue-#323 text/policy follow-up, run the complete modules:
+
+* `tests/test_ci_validation.py`
+* `tests/test_skatmind_rename.py` (against the final documentation)
+
+Run them together with `-n 2 --dist=loadfile --max-worker-restart=0`, external
+`cache_dir`, `--basetemp` and report paths, and no test selectors. Neither module
+requires the exclusive phase. Finish with `.\scripts\check.ps1 -Mode Quick` and
+`git diff --check`. Local results cannot stand in for hosted execution.
+
+The original #323 implementation required the following six complete modules;
+this historical verification scope is not repeated for the text/policy follow-up:
 
 * `tests/test_ci_validation.py` (including feedback/full workflow contract tests)
 * `tests/test_ci_reuse_recorded.py`
@@ -85,14 +104,6 @@ For Issue #323, the complete affected modules are:
 * `tests/test_packaging_and_distribution.py`
 * `tests/test_skatmind_rename.py` (against the final documentation)
 * `tests/test_cli_internal_architecture.py`
-
-Run them together with `-n 2 --dist=loadfile --max-worker-restart=0`, external
-`cache_dir`, `--basetemp` and report paths, and no test selectors. These modules
-contain none of the four exclusive modules listed below; additional modules are
-required only for actually affected dependencies. Complete the local handoff with
-`.\scripts\check.ps1 -Mode Quick` and `git diff --check`,
-including whitespace review of the new untracked workflow. Local results cannot
-stand in for hosted execution.
 
 Quick means Ruff, exact packaged-schema filename/byte parity, and Root/Session
 input-example schema validation. Full retains those gates, all 98 generated-output
@@ -220,9 +231,9 @@ its Quick logs and guard report are retained for seven days. It defines and emit
 neither `check` nor `v1-supported-platform-matrix`, even as skipped jobs. Green
 feedback is source-review assistance, never complete acceptance evidence.
 
-`.github/workflows/check.yml` runs on main pushes, explicit maintainer
-`workflow_dispatch` on the reviewed branch, and fork PRs to main. Same-repository
-PR jobs remain omitted in favor of reviewed branch complete evidence; no
+`.github/workflows/check.yml` runs automatically on main pushes and fork PRs to
+main, with optional `workflow_dispatch` support. Same-repository PR jobs remain
+omitted in favor of automatic main-push acceptance after source review; no
 privileged PR trigger executes fork code. A fork PR gets full validation of its
 merge commit with read-only permissions. No PR is mandatory. A dispatch always
 executes the complete graph, including when `force_full` is false: only a main
@@ -314,21 +325,27 @@ acceptance of the corrected workflow.
 
 ## Exact-commit integration and safe evidence reuse
 
-The maintainer's routine sequence is:
+After OpenCode implements and completes the task's local validation, leaving edits
+unstaged and uncommitted, the ordinary sequence is:
 
-1. Review focused tests and explicit Quick results; use Full when required above.
-2. Manually commit/push the working branch. Agents leave edits uncommitted.
-3. Inspect the explicitly partial development feedback and review the source.
-4. Explicitly run `Check` through `workflow_dispatch`, selecting the reviewed
-   branch (the Actions Run workflow branch selector, or the equivalent manual CLI
-   dispatch). Leave `force_full` true. Confirm the resulting run's head SHA equals
-   the reviewed commit; branch movement is not acceptance of a different candidate.
-5. Wait for **all 23 jobs**, including `check` and `v1-supported-platform-matrix`,
-   to succeed on that **exact commit** in the current attempt. A change after
-   review/validation starts a new candidate and needs fresh review and acceptance.
-6. Manually fast-forward that same commit into main.
-7. Inspect main's `coordinator` summary and both final gates. Reuse must link the
-    specific successful branch run; otherwise wait for the full new graph.
+1. The maintainer commits/pushes the working branch.
+2. Partial development feedback runs automatically.
+3. ChatGPT completes review of the published source before integration.
+4. The maintainer fast-forwards that reviewed commit to main and pushes.
+5. `Check` runs automatically on main.
+6. The maintainer verifies successful complete exact-commit main gates `check`
+   and `v1-supported-platform-matrix` before issue closure or release acceptance.
+   Without eligible reusable evidence, all 23 jobs must succeed in the current
+   attempt. Inspect the coordinator summary; any reuse must link an eligible
+   complete source run and pass both main gates' final revalidation.
+
+Every changed candidate needs source review before integration and complete
+exact-commit main acceptance afterward. Integration may leave main temporarily
+unverified or failing; neither integration nor partial feedback establishes
+successful acceptance. No additional readiness action is required. Optional
+manual dispatch and its reuse eligibility remain available, but neither a dispatch
+nor a hosted dispatch-reuse demonstration is required for the ordinary workflow or
+#323 acceptance. Hosted dispatch reuse is not claimed as observed.
 
 Read-only Actions API lookup permits reuse only for a successful completed
 **`workflow_dispatch` or existing `push` run on a non-main branch in this same
@@ -353,26 +370,29 @@ errors, stale/incompatible evidence, or uncertain identity all select full CI.
 This defines one bounded current integration cycle and prevents reuse chains.
 
 Both final gates recheck the selected candidate via the API. If it becomes
-unavailable or ineligible after coordination, they fail closed; the maintainer
-must use the force-full path rather than accept it. A manual `workflow_dispatch`
-with `force_full` (default true) always executes the complete graph. Ordinary
-non-main pushes execute only partial feedback. No agent triggers or reruns Actions.
+unavailable or ineligible after coordination, they fail closed and acceptance
+remains pending. The optional `workflow_dispatch` with `force_full` (default true)
+always executes the complete graph and remains available for diagnosis. Ordinary
+non-main pushes execute only partial feedback; main pushes automatically run
+Check. No agent triggers or reruns Actions.
 
 Only `contents: read` is global; coordinator/final gates additionally need
 `actions: read`. Checkout does not persist credentials. No PAT, external service,
 self-hosted runner, or settings mutation is required. External prerequisite: the
 repository must permit the official checkout/setup-python/upload/download actions,
-hosted Ubuntu/Windows runners, and read-only Actions API access. If branch rules
-are used, the maintainer should require the two stable final statuses; settings
-remain human-controlled. Same-repository PR acceptance must reference the branch
-commit's complete reviewed run, not assume a skipped PR workflow validated a
-different merge commit. Keep the two complete gates required; the partial-feedback
-status is not a substitute.
+hosted Ubuntu/Windows runners, and read-only Actions API access. Repository
+settings remain human-controlled and must support reviewed fast-forward
+integration followed by automatic main validation. The two stable final statuses
+remain required for issue closure and release acceptance. Same-repository PR
+acceptance relies on the reviewed commit's main gates; skipped PR jobs do not
+validate a different merge commit. The partial-feedback status is not a substitute.
 
 For #323 hosted acceptance, record the ordinary branch push's feedback-only status,
-the explicitly dispatched reviewed candidate's complete 23-job success, and the
-same-commit main run's exact source reuse (or correctly explained full fallback).
-Both main gates must revalidate successfully. Report feedback and full-run wall
+ChatGPT's source review before integration, and successful complete exact-commit
+gates from the automatic main-push Check. The complete 23-job graph runs when no
+eligible evidence exists; optional reuse retains every existing eligibility and
+final-revalidation requirement. Neither manual dispatch nor demonstrated hosted
+dispatch reuse is an acceptance gate for #323. Report feedback and full-run wall
 times separately; changing trigger cadence establishes no full-suite speedup.
 
 ### Historical reuse replay and decision diagnostics

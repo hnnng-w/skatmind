@@ -39,7 +39,7 @@ env:
 
 jobs:
   coordinator:
-    # Same-repository PRs use reviewed branch dispatch evidence. Fork PRs execute normally,
+    # Same-repository PRs rely on automatic main-push acceptance. Fork PRs execute normally,
     # with read-only permissions and no pull_request_target or privileged workflow.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest

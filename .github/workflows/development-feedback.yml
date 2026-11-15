@@ -57,7 +57,7 @@ jobs:
         run: |
           printf '%s\n' '### Partial development feedback' \
             'Scope: explicit Quick and the complete rename and CLI architecture guard modules only.' \
-            'Complete acceptance requires maintainer-run Check on the exact reviewed candidate before integration.' \
+            'Complete acceptance requires successful exact-commit main gates from automatic Check after the reviewed commit is integrated and pushed.' \
             >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
