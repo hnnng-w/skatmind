@@ -63,7 +63,7 @@ def project_match_rollout_form(active, preparation):
             "missing": missing_rollout_settlement_inputs(root)}
 
 
-def execute_unified_match_rollout(active, values, *, app_context=None):
+def execute_unified_match_rollout(active, values, *, app_context=None, admission_observer=None):
     """Capture under the workspace lock, evaluate unlocked, then verify ownership again."""
     values = dict(values)
     with active.capture.lock:
@@ -87,6 +87,10 @@ def execute_unified_match_rollout(active, values, *, app_context=None):
             raise RecordingOpenConflict()
         attempt = object()
         active.rollout_attempt = attempt
+        if admission_observer is not None:
+            # Hand off this invocation's actual token under the admission lock,
+            # including ownership of subsequent settings-validation feedback.
+            admission_observer(attempt)
         active.rollout_notice = None
         active.pending_evidence = None
         active.evidence_notice = None

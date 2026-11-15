@@ -230,3 +230,61 @@ rerun, hosted trigger or UAT build/environment access is part of this correction
 Keep #321 open for new exact-commit branch/main gates and combined installed
 acceptance with the following accounting/Cent issue. No intermediate UAT is
 requested; #208 and release acceptance remain open.
+
+## Same-decision invocation-ownership follow-up
+
+This bounded follow-up starts on `feat/321-event-context-checkpoints` at
+`0dabbe1efd6e5cf4c7f655e67cb76b9e8e073589`, with a clean index and worktree.
+[Run 43696370353](https://github.com/hnnng-w/skatmind/actions/runs/43696370353),
+attempt 1, passed all 23 jobs at that commit, including both regression jobs,
+all twelve installation cells and both final gates. The prior event-context,
+registry and compatibility corrections remain accepted published-source evidence.
+
+The remaining finding concerns two rollout invocations on the same unchanged
+decision. They can share `(active, workspace, position_generation,
+review_decision_generation)` even though admission replaces `rollout_attempt`.
+The older invocation's execution/publication guards correctly reject it, but the
+coarser feedback-owner tuple previously allowed its late validation feedback to
+invalidate the newer Report GET's captured language source.
+
+The regression uses genuine accepted Match requests and the existing synthetic
+rollout probe. A uses seed 7 and is held at a controlled preparation boundary; B
+uses seed 0 for the same decision and completes. B's successful redirect is
+followed to its Report, held after the rendering source is captured. A is then
+released. Before the correction A returns 409 and B's Report GET also returns
+409 instead of 200. Events control this interleaving without sleeps. The broken
+path's feedback publication is observed before its rejection rendering can block
+behind the held Report lifecycle lock, allowing the test to report the actual
+HTTP mismatch rather than manufacture a deadlock.
+
+`execute_unified_match_rollout()` now offers a private optional admission observer.
+It receives the actual newly accepted attempt token inside the existing Capture
+lock, immediately after assignment and before settings validation. The HTTP
+handler retains that token on the request. It does not sample the previous token
+before execution, and the token does not enter any Request, Result or persistence
+payload. The existing atomic feedback-owner check now also requires that exact
+attempt to remain current, under the unchanged Capture-lock then app-lock order.
+Execution remains outside the app lock.
+
+With the correction, A completes its own localized 409 response while B's Report
+GET remains held; that GET then returns 200. Assertions retain B's exact Report
+object and seed, original Request/Result download bytes, retained-evidence identity
+and recording bytes, with no obsolete shared feedback. The selection-change
+regression remains intact. Additional assertions protect current-request invalid
+settings feedback when an older same-decision invocation is cancelled.
+
+The affected complete modules are Match decision-selection web, Match rollout web,
+the direct rollout-retention caller, and the rename guard against final
+documentation. Imports/layering are unchanged, so no additional architecture or
+unrelated event-context rerun is needed. The shared rejection predicate requires
+the exclusive unified rejection-transport and Match-action-placement modules after
+parallel workers exit. Final verification uses development CPython 3.13, two
+file-grouped workers, 7,200,000 ms invocation timeouts, external temporary outputs,
+then explicit Quick and tracked/new-file whitespace checks. Final results belong
+in the handoff; no post-verification repository edit records them.
+
+This correction changes no event-context contract, reconciliation, accounting or
+CI policy. New exact-commit hosted evidence remains required for the follow-up.
+#321 stays open, with installed acceptance combined with the following
+accounting/Cent issue. No intermediate UAT or access to maintainer UAT data is
+requested or performed.

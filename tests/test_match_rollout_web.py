@@ -166,6 +166,102 @@ def test_superseded_unlocked_work_cannot_publish(localized_server, rollout_probe
     assert path.read_bytes() == original
 
 
+def test_same_decision_superseded_rejection_cannot_invalidate_new_report_get(
+        localized_server, rollout_probe, monkeypatch):
+    from threading import Event
+
+    import skatmind.app_web.server as server_module
+
+    browser, path, page = open_alex(localized_server)
+    page = follow(browser, browser.submit(Forms(page).find("/matches/select-decision"),
+                                         decision_index="3"))
+    app = localized_server.app_context
+    active = app.managed_stateful.active_match
+    original = path.read_bytes()
+    source = (active.workspace, active.position_generation, active.review_decision_generation)
+    rollout_probe.phase = "preparation"
+    rendering, finish_render, rejection_observed = Event(), Event(), Event()
+    obsolete_feedback, conflict_sent = Event(), Event()
+    handler = server_module.SkatMindAppWebRequestHandlerV1
+    send, retain = handler._send_text, handler._retain_form_feedback
+    report_route = None
+
+    def sent(self, status, *args, **kwargs):
+        if self.command == "GET" and self.path == report_route and status == 200:
+            assert self._rendered_language_source is not None
+            rendering.set()
+            assert finish_render.wait(60)
+        result = send(self, status, *args, **kwargs)
+        if self.command == "POST" and self.path == ROUTE and status == 409:
+            conflict_sent.set()
+            rejection_observed.set()
+        return result
+
+    def retained(self, *args, **kwargs):
+        result = retain(self, *args, **kwargs)
+        if self.command == "POST" and self.path == ROUTE and kwargs["status"] == 409:
+            # Observe the broken path without deadlocking on its subsequent
+            # rejection rendering behind the held Report GET lifecycle lock.
+            obsolete_feedback.set()
+            rejection_observed.set()
+        return result
+
+    monkeypatch.setattr(handler, "_send_text", sent)
+    monkeypatch.setattr(handler, "_retain_form_feedback", retained)
+    with ThreadPoolExecutor(2) as pool:
+        first = pool.submit(browser.submit, form(page), objective="played_game_goal",
+                            requested_worlds="2", random_seed="7")
+        try:
+            assert rollout_probe.entered.wait(60)
+            first_attempt = active.rollout_attempt
+            response = browser.submit(form(page), objective="played_game_goal",
+                                      requested_worlds="2", random_seed="0")
+            assert response[0] == 303
+            report, = active.capture.report_store.list()
+            assert report.value.options.rollout_settings.random_seed == 0
+            second_attempt = active.rollout_attempt
+            assert second_attempt is not first_attempt
+            assert source == (active.workspace, active.position_generation,
+                              active.review_decision_generation)
+            report_route = response[1]["location"]
+            assert report_route == f"/matches/reports/{report.report_id}"
+            routes = (f"/matches/api/v1/reports/{report.report_id}.json",
+                      f"/matches/api/v1/reports/{report.report_id}/rollout-request.json")
+            original_downloads = {}
+            for route in routes:
+                status, _, content = browser.request("GET", route)
+                assert status == 200
+                original_downloads[route] = content
+            assert app.form_feedback.current("matches", active_identity=active) is None
+            report_get = pool.submit(browser.request, "GET", report_route)
+            assert rendering.wait(60)
+            rollout_probe.release.set()
+            assert rejection_observed.wait(60)
+            completed_while_report_held = conflict_sent.is_set()
+            if completed_while_report_held:
+                assert first.result(timeout=60)[0] == 409
+        finally:
+            rollout_probe.release.set()
+            finish_render.set()
+        assert first.result(timeout=60)[0] == 409
+        current = report_get.result(timeout=60)
+        assert current[0] == 200
+        assert completed_while_report_held
+    localized_server._threads.join()
+    assert not obsolete_feedback.is_set()
+    assert app.form_feedback.current("matches", active_identity=active) is None
+    assert active.rollout_attempt is second_attempt
+    assert active.capture.report_store.list() == (report,)
+    assert active.capture.report_store.list()[0] is report
+    assert form(current[2].decode())["values"]["random_seed"] == "0"
+    assert downloads(browser, current[2].decode()) == original_downloads
+    entry, = archive_store(app).snapshot().manifest.evidence
+    assert archive_store(app).read_evidence(entry.identity).report == report
+    rollout_probe.assert_cancelled()
+    rollout_probe.assert_complete(0)
+    assert path.read_bytes() == original
+
+
 def test_selected_actor_and_foreign_stale_binding_do_not_run(localized_server, monkeypatch):
     browser, path, page = open_alex(localized_server, count=30)
     stale = form(page)
@@ -318,6 +414,11 @@ def test_invalid_new_attempt_supersedes_old_inflight_work(localized_server, roll
             rollout_probe.release.set()
         assert first.result()[0] == 409
     rollout_probe.assert_cancelled()
+    feedback = app.form_feedback.current("matches", active_identity=active)
+    assert feedback.form_key == "match.review_whole_game"
+    assert feedback.safe_visible_values.singular("objective") == "complete_settlement"
+    assert feedback.safe_visible_values.singular("random_seed") == "0"
+    assert feedback.safe_visible_values.singular("analysis_matadors") == ""
     assert active.capture.report_store.list() == (report,)
     assert active.pending_evidence is None and active.rollout_notice is None
     assert downloads(browser, browser.page(f"/matches/reports/{report.report_id}")) == prior

@@ -1805,17 +1805,19 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         captured = getattr(self, "_match_analysis_feedback_source", None)
         if captured is not None:
             active, workspace, position, selection = captured
+            attempt = getattr(self, "_match_rollout_feedback_attempt", None)
             with active.capture.lock, self.server.app_context.lock:
                 current = self.server.app_context.managed_stateful.active_match
                 superseded = (current is not active or active.retired
                     or active.position_generation != position
                     or active.review_decision_generation != selection
-                    or active.workspace is not workspace)
+                    or active.workspace is not workspace
+                    or attempt is not None and active.rollout_attempt is not attempt)
                 if not superseded:
                     self._retain_form_feedback(definition, issues=issues, status=status)
             if superseded:
                 # A cancelled older invocation owns only its response, not the
-                # newer selection's shared feedback or language-render binding.
+                # newer invocation's shared feedback or language-render binding.
                 self._rendered_language_source = None
                 self._send_common_error(status)
                 return True
@@ -3322,8 +3324,11 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 self._match_analysis_feedback_source = (
                     active, active.workspace, active.position_generation,
                     active.review_decision_generation)
+            def admitted(attempt):
+                self._match_rollout_feedback_attempt = attempt
+
             report, retained = execute_unified_match_rollout(
-                active, values, app_context=self.server.app_context)
+                active, values, app_context=self.server.app_context, admission_observer=admitted)
             if report.value.status != "executed":
                 raise ValueError("Selected Match decision is unavailable.")
             rollout = report.value.result.document["whole_game_rollout_result"]
@@ -3848,6 +3853,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self._request_frontend = None
         self._rollout_execution_started = False
         self._match_analysis_feedback_source = None
+        self._match_rollout_feedback_attempt = None
         self._operation_feedback_delivery = None
         self._visible_operation_feedback = None
         self._rendered_language_source = None
