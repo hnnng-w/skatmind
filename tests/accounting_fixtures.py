@@ -41,6 +41,27 @@ def own_loss_match():
         create_match_workspace_v1(definition), game))
 
 
+def cumulative_session_prefix():
+    """Two genuine own losses after one cumulative checkpoint; no earlier hands."""
+    from event_context_fixtures import synthetic_context
+
+    from skatmind.event_context_contracts import CheckpointV1
+    from skatmind.event_context_sources import build_event_binding_v1, build_recording_facts_v1
+
+    original = completed_cent_session()
+    documents = tuple(build_session_persistence_document_v1(replace(original.state,
+        session_id=f"synthetic-prefix-{number}")) for number in (25, 26, 27))
+    context = replace(synthetic_context(own_loss_match()), selected_participant_id="player-b",
+        bindings=tuple(build_event_binding_v1(doc, game_position=number,
+            selected_player_id="player-b") for number, doc in zip((25, 26, 27), documents,
+                                                                  strict=True)),
+        checkpoints=(CheckpointV1(through_position=24, personal_points=780, own_losses=3,
+                                 provenance="Actual cumulative checkpoint"),))
+    facts = tuple(build_recording_facts_v1(doc, selected_player_id="player-b")
+                  for doc in documents)
+    return context, facts, documents
+
+
 def main():
     import argparse
     from pathlib import Path

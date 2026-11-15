@@ -3903,7 +3903,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     self._profile_operation(parsed.path, body, content_type)
                 return
             if parsed.path in _STATEFUL_POST_ROUTES:
-                if parsed.path in EVENT_ROUTES:
+                if parsed.path in ACCOUNTING_ROUTES:
+                    max_bytes = resolve_frontend_form_v1(parsed.path).body_limit
+                elif parsed.path in EVENT_ROUTES:
                     max_bytes = 32768
                 elif parsed.path in AUTOMATIC_POST_ROUTES:
                     max_bytes = AUTOMATIC_BODY_LIMIT

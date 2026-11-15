@@ -1546,7 +1546,10 @@ for _route in ACCOUNTING_ROUTES:
     _family, _action = _route.split("/")[1], _route.rsplit("/", 1)[1]
     _FORMS.append(_definition(
         f"accounting.{_family}.{_action}", _route, ACCOUNTING_FIELDS[_action],
-        page=f"/{_family}/current", active=_family, body_limit=16384, success="contextual"))
+        page=f"/{_family}/current", active=_family, body_limit=16384, success="contextual",
+        control_overrides={"net_action": "select"} if _action == "lifecycle" else {},
+        choice_overrides={"net_action": ("keep", "confirm", "remove")}
+            if _action == "lifecycle" else {}))
 
 FRONTEND_FORM_REGISTRY = tuple(_FORMS)
 UNIFIED_FRONTEND_POST_ROUTES = tuple(

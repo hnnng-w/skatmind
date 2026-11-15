@@ -126,7 +126,11 @@ an added gain/loss. It retains covered round identities and exact activity
 fingerprints. Overlapping confirmations are rejected. Correct/remove an earlier
 confirmation explicitly before confirming wider coverage. Later activity changes
 leave the original confirmation historical and visibly stale; they do not rewrite
-its total or synthesize per-game allocations. A separately evidenced external
+its total or synthesize per-game allocations. The native lifecycle form defaults
+to **Keep**. **Confirm / replace** and **Remove** require an explicit selection;
+the actual-net confirmation has its own evidence field. A prefilled amount, Finish,
+Reopen, tariff change or adjustment does not renew that confirmation.
+A separately evidenced external
 adjustment can be recorded. Local browser closure, restart and interruption have
 no financial effect, refund or automatic abandonment charge.
 
@@ -172,7 +176,12 @@ resume validates closed fields, versions, fingerprints, linear history, retained
 preparation reconstruction and aggregate coverage. Equal saves are byte-preserving
 no-ops. Stale forms, journal CAS and fresh recording guards reject replacement.
 Writes use bounded checked paths and flushed/fsynced same-directory temporaries,
-then a fresh guard and atomic replace. A failed accounting save after explicit
+then a fresh guard and atomic replace. A single process-local publication barrier
+serializes comparison, source guards, no-op decisions and replacement across both
+Match and Session writers. Family lifecycle/active locks precede this innermost
+barrier; guarded reads acquire no other family's lifecycle/active locks. This is
+cooperating in-process serialization, not distributed or cross-process locking.
+A failed accounting save after explicit
 Session creation can leave that ordinary saved Session available for explicit
 attachment; it does not invent an accepted accounting or silently delete the source.
 
@@ -195,7 +204,7 @@ explicit aliases, stale forms, preserved safe input, historical revisions and
 passive byte isolation. These are source-checkout developer observations, not a
 graphical browser or installed-acceptance claim.
 
-The current exact inventory is **104 POST routes / 156 forms / 2,521 keys per
+The current exact inventory is **104 POST routes / 156 forms / 2,526 keys per
 locale**. All seven added routes are enumerated in the installed smoke fragment.
 Its existing packaging regression executes that exact fragment without building
 or installing a distribution. Exact consumers in distribution validation, packaging,
@@ -269,3 +278,86 @@ pytest storage. The following is a **maintainer-only later prepared-build plan**
 No previous hands, per-game JSON editing or blanket historical/UAT rerun is needed.
 Keep #321 and #322 open until this single combined installed acceptance is actually
 recorded. #208 and the separate release/UAT boundaries remain unchanged.
+
+## Bounded source-review correction at `ad6160c`
+
+This correction starts on `feat/322-mode-accounting-cent-rounds` at
+`ad6160c738c901ecbe17e8f60d718213bb76811c`, with a clean index/worktree. Maintainer
+run 43728653017 passed all 23 jobs at that exact commit, including `check` and
+`v1-supported-platform-matrix`. The independent source review nevertheless
+identified four defects within #322. No new issue, general reassessment or
+intermediate installed acceptance is required.
+
+Before Product edits, six new regressions failed and the existing 64 Accounting
+tests passed (90.17s):
+
+| Finding | Reproduced before correction | Corrected boundary |
+| --- | --- | --- |
+| Shared journal publication | Two real independent Tournament/Cent candidates both returned `saved`; one accepted accounting disappeared | One common innermost store barrier spans compare/guards/publication. The deterministic losing writer receives `AccountingConflict`; a fresh retry retains both |
+| Non-exact checkpoint fee boundary | Retained-state construction raised the missing loss-count-evidence error and native input returned 400 | Reuse the original-version #321 cumulative projection over the retained prefix: checkpoint 24 / 780 / 3 plus established own losses in games 25/26 gives five; the rule starting at game 26 uses four before and charges 100 cents |
+| Implicit aggregate renewal | Both DE/EN Finish-only submissions replaced stale coverage and original receipt provenance | Default Keep preserves the entire confirmation; deliberate Confirm/replace uses separate evidence and current coverage; Remove is explicit |
+| Request size | A valid start plus 20,000 padding spaces returned 303 and persisted | All seven routes select their registered 16,384-byte limit before body read/dispatch; oversize returns 413 without mutation |
+
+The concurrency test uses Events and a lock-attempt/replace probe, not timing
+sleeps. It exercises the same interleaving before and after correction, verifies
+the accepted journal and explicitly retries the stale candidate. A native
+cross-family stale-form/retry test also protects the established 409 behavior.
+Equal saves and failure-before-replace byte preservation remain covered.
+
+The fee-boundary calculation retains the original complete preparation and context.
+It projects only the prefix before the fee boundary using that preparation's
+version and authorized reconciliation aliases. There is no new manual checkpoint,
+invented earlier hand or source substitution. Retained-state validation checks the
+derived count; genuine gaps cannot be bridged with a later checkpoint. Contradictory
+or unavailable evidence cannot authorize a known charge, and an unverified historical
+fee policy remains unresolved. Version-1 and version-2 preparations round-trip from
+their retained basis.
+
+The exact native aggregate regression confirms 2.91 EUR for three +100 declarer
+wins at half-cent tariff, reopens, changes only game 2 to +200, and derives 3.88 EUR.
+Finish-only leaves the original 2.91 confirmation and its stale notice intact.
+Deliberate reconfirmation binds the actual new receipt; subsequent tariff/adjustment
+actions still preserve it. Removal retains earlier accounting revisions. Clearing
+or editing prefilled controls without confirmation intent cannot change the record.
+
+The transport regression covers every Accounting route and sends an oversized
+Content-Length without a body to verify rejection does not wait for dispatch.
+The valid original form remains usable. No unrelated body-limit policy is changed.
+
+### Exact inventories, evidence reuse and final selection
+
+The original implementation had 104 routes / 156 forms / 2,521 keys per locale.
+This correction retains the route/form counts and adds five DE/EN keys. The existing
+lifecycle form gains `net_action` and `net_provenance`; the registered intent choices
+are exactly `keep`, `confirm`, `remove`. Distribution smoke assertions cover the
+complete lifecycle field set, choices and every Accounting body limit. Packaging,
+direct Match evidence, validation-preservation and localization consumers were
+reviewed together. Historical inventories are not rewritten.
+
+The previous `322-final-parallel.xml` was still available in external development
+temporary storage. Its sole skipped node was
+`tests/test_unified_local_app_managed_items.py::test_managed_direct_child_validation_rejects_escape_and_links`,
+with reason **This Windows account cannot create symbolic links.**, reported at
+line 506. This was read from the existing JUnit, not reconstructed by rerunning tests.
+
+The correction's complete-module selection consists of the three Accounting
+modules; existing context projection/store for consumed cumulative and v1/v2
+reconstruction semantics; packaging, direct Match evidence and validation
+preservation for exact registry consumers; localization foundation/completeness,
+frontend language switching, language context and task-first language preservation
+for the added native controls; architecture for the added imports; and the rename
+guard against final documentation. After workers exit, the exclusive unified
+rejection-transport module covers the affected pre-body HTTP rejection boundary.
+Match action placement, standalone Corpus transport and the synthetic early
+rejection observer are unchanged by these scoped corrections and are excluded.
+Unchanged prior source-adapter, rollout/cancellation, installation and accepted
+#316–#321 evidence is reused rather than repeated wholesale.
+
+Final commands/results/durations belong to the handoff after code and documentation
+are complete. Required local validation uses development CPython 3.13, two
+file-grouped workers without restarts, external logs, 7,200,000 ms timeouts, the
+affected exclusive phase, explicit Quick and whitespace checks. No repository
+edit follows successful final verification. New exact-commit hosted gates remain
+required; #321 and #322 stay open for the one agreed combined installed acceptance.
+The prepared-data plan above remains unexecuted. No UAT build/install/start or
+real maintainer-data access is part of this correction.

@@ -90,6 +90,7 @@ def test_three_sessions_reopen_next_round_native_forms_and_exact_immutable_histo
     assert corrected.round_heads[0].game(1)[1][0].gross.value == Fraction(24, 100)
     page = follow(browser, browser.submit(Forms(page).find("/sessions/accounting/lifecycle"),
         status="finished", actual_complete="yes", personal_net="0.735", net_scope="block",
+        net_action="confirm", net_provenance="Actual personal block receipt, not funding",
         provenance="Actual personal block receipt, not funding"))
     page = follow(browser, browser.submit(Forms(page).find("/sessions/accounting/next"),
         round_name="Synthetic next round", continuing_terms="yes", provenance="Same actual table"))
@@ -253,3 +254,151 @@ def test_accounting_preserves_genuine_reports_and_independent_collection(localiz
     assert retained == tuple(build_unified_match_report_download_v1(active, report_id,
         strategy_source=value) for value in (False, True))
     assert independent == {p: p.read_bytes() for p in root.rglob("*") if p.is_file()}
+
+
+def test_native_fee_boundary_uses_checkpoint_plus_established_losses(localized_server):
+    from accounting_fixtures import cumulative_session_prefix
+
+    from skatmind.app_web.session_frontend import import_guided_session_v1
+    from skatmind.event_context_store import (
+        append_event_revision_v1,
+        load_event_context_v1,
+        save_event_context_v1,
+    )
+
+    app = localized_server.app_context
+    context, _, documents = cumulative_session_prefix()
+    for document in documents:
+        active = import_guided_session_v1(app.managed_stateful.root("sessions"),
+            handle="b" * 64, document=document.to_dict())
+    app.managed_stateful.activate_session(active)
+    journal = load_event_context_v1(app.managed_home.root)
+    save_event_context_v1(app.managed_home.root, append_event_revision_v1(journal, context),
+                          expected_fingerprint=journal.fingerprint)
+    browser = Browser(localized_server)
+    page = follow(browser, browser.submit(Forms(browser.page()).find("/sessions/accounting/save"),
+        rule=STANDARD_RULE, rule_from_position="26", provenance="Confirmed from game 26"))
+    row = load_accounting(app.managed_home.root).tournament_heads[0]
+    assert row.losses_before == 4 and row.prepared.own_losses == 5
+    assert next(c.value.value for c in row.components if c.kind == "additional_losses") == -1
+    assert text("en", "accounting.title") in page
+
+
+@pytest.mark.parametrize("locale", ["en", "de"])
+def test_finish_only_does_not_reconfirm_a_stale_personal_aggregate(localized_server, locale):
+    app = localized_server.app_context
+    activate_session(app)
+    browser = Browser(localized_server)
+    switch(browser, browser.page(), locale)
+    page = start(browser)
+    for number in range(1, 4):
+        if number > 1:
+            page = follow(browser, browser.submit(open_form(page, number), source_choice="new",
+                                                  provenance="Actual next game"))
+        page = follow(browser, browser.submit(game_form(page, number), game_status="settled",
+            declarer="1", settlement="100", provenance="Actual game result"))
+    page = follow(browser, browser.submit(Forms(page).find("/sessions/accounting/lifecycle"),
+        status="finished", personal_net="2.91", net_scope="block",
+        net_action="confirm", net_provenance="Original actual block receipt",
+        provenance="Original actual block receipt"))
+    original = load_accounting(app.managed_home.root).round_heads[0].net_confirmation
+    assert original.personal_net.value == Fraction(291, 100)
+    page = follow(browser, browser.submit(Forms(page).find("/sessions/accounting/lifecycle"),
+        status="open"))
+    page = follow(browser, browser.submit(game_form(page, 2), settlement="200",
+        reconciliation="Corrected only game 2", provenance="Game correction evidence"))
+    corrected = load_accounting(app.managed_home.root)
+    assert corrected.round_heads[0].personal_totals()[1] == Fraction(388, 100)
+    assert text(locale, "accounting.stale") in page
+    page = follow(browser, browser.submit(Forms(page).find("/sessions/accounting/lifecycle"),
+                                         status="finished"))
+    finished = load_accounting(app.managed_home.root)
+    assert finished.round_heads[0].net_confirmation == original
+    assert finished.rounds[:len(corrected.rounds)] == corrected.rounds
+    assert text(locale, "accounting.stale") in page
+    page = follow(browser, browser.submit(Forms(page).find("/sessions/accounting/lifecycle"),
+        status="open", personal_net="", net_scope="table_stay",
+        net_provenance="Not a new confirmation without explicit intent"))
+    assert load_accounting(app.managed_home.root).round_heads[0].net_confirmation == original
+    bad = browser.submit(Forms(page).find("/sessions/accounting/lifecycle"),
+        net_action="confirm", personal_net="3.88", net_provenance="")
+    assert bad[0] == 400
+    assert load_accounting(app.managed_home.root).round_heads[0].net_confirmation == original
+    page = bad[2].decode()
+    assert Forms(page).find("/sessions/accounting/lifecycle")["values"]["net_action"] == "confirm"
+    page = follow(browser, browser.submit(Forms(page).find("/sessions/accounting/lifecycle"),
+        status="open", net_action="confirm", personal_net="3.88",
+        net_provenance="Deliberately rechecked actual receipt"))
+    renewed = load_accounting(app.managed_home.root).round_heads[0]
+    assert renewed.net_confirmation.personal_net.value == Fraction(388, 100)
+    assert renewed.net_confirmation.activity_fingerprints == (renewed.activity_fingerprint,)
+    assert renewed.net_confirmation.provenance == "Deliberately rechecked actual receipt"
+    assert text(locale, "accounting.stale") not in page
+    assert load_accounting(app.managed_home.root).rounds[:len(finished.rounds)] == finished.rounds
+    page = follow(browser, browser.submit(Forms(page).find("/sessions/accounting/lifecycle"),
+        cent_tariff="1", from_position="3", change_kind="later", adjustment="-0.5",
+        adjustment_provenance="Separate actual charge", provenance="Actual changed terms"))
+    assert load_accounting(app.managed_home.root).round_heads[0].net_confirmation == (
+        renewed.net_confirmation)
+    assert text(locale, "accounting.stale") in page
+    page = follow(browser, browser.submit(Forms(page).find("/sessions/accounting/lifecycle"),
+                                         net_action="remove"))
+    assert load_accounting(app.managed_home.root).round_heads[0].net_confirmation is None
+    assert any(r.net_confirmation == original
+               for r in load_accounting(app.managed_home.root).rounds)
+
+
+def test_accounting_oversized_start_rejected_before_mutation(localized_server):
+    from urllib.parse import urlencode
+
+    app = localized_server.app_context
+    active = activate_session(app)
+    original = active.path.read_bytes()
+    browser = Browser(localized_server)
+    form = Forms(browser.page()).find("/sessions/accounting/start")
+    values = dict(round_name="Synthetic bounded round", cent_tariff="1/2", confirm_terms="yes",
+                  provenance="Actual conditions" + " " * 20000)
+    assert len(urlencode({**form["values"], **values}).encode("ascii")) > 16384
+    response = browser.submit(form, **values)
+    assert response[0] == 413
+    assert not (app.managed_home.root / ACCOUNTING_FILENAME).exists()
+    assert active.path.read_bytes() == original
+    from skatmind.app_web.accounting_forms import ACCOUNTING_ROUTES
+    for route in ACCOUNTING_ROUTES:
+        assert browser.request("POST", route, {**form["values"], **values})[0] == 413
+        assert not (app.managed_home.root / ACCOUNTING_FILENAME).exists()
+        assert active.path.read_bytes() == original
+    # Declared size is rejected without waiting for a body or reaching dispatch.
+    import http.client
+    connection = http.client.HTTPConnection("127.0.0.1", localized_server.port, timeout=30)
+    try:
+        connection.putrequest("POST", form["action"])
+        for name, value in {"Cookie": browser.cookie, "Origin": localized_server.origin,
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Content-Length": "16385"}.items():
+            connection.putheader(name, value)
+        connection.endheaders()
+        assert connection.getresponse().status == 413
+    finally:
+        connection.close()
+    follow(browser, browser.submit(form, **{**values, "provenance": "Actual conditions"}))
+    assert len(load_accounting(app.managed_home.root).round_heads) == 1
+
+
+def test_stale_other_family_form_conflicts_then_fresh_retry_preserves_both(localized_server):
+    app = localized_server.app_context
+    activate_match(app)
+    activate_session(app)
+    browser = Browser(localized_server)
+    match_page = create_context(browser)
+    stale_cent = Forms(browser.page()).find("/sessions/accounting/start")
+    follow(browser, browser.submit(Forms(match_page).find("/matches/accounting/save"),
+        rule=STANDARD_RULE, provenance="Confirmed tournament fees"))
+    accepted = load_accounting(app.managed_home.root)
+    response = browser.submit(stale_cent, round_name="Same empty-journal form", cent_tariff="1/2",
+                              confirm_terms="yes", provenance="Actual Cent conditions")
+    assert response[0] == 409
+    assert load_accounting(app.managed_home.root) == accepted
+    start(browser)
+    current = load_accounting(app.managed_home.root)
+    assert current.tournaments == accepted.tournaments and len(current.round_heads) == 1

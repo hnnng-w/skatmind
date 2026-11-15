@@ -11,6 +11,7 @@ from .event_context_projection import (
     PreparedEventContextV1,
     PreparedEventContextV2,
     RecordingFactsV1,
+    _prepare_from_basis,
     bind_recording_facts,
     validate_frozen_context_v1,
 )
@@ -36,6 +37,22 @@ def thaw_preparation(value):
     if kind is None:
         raise ValueError("Unsupported retained context preparation.")
     return kind.from_dict(data)
+
+
+def accounting_boundary_prefix(context, prepared, boundary):
+    """Project a fee cutoff from the retained #321 basis, never today's recording.
+
+    This is a prefix calculation, not a new decision/source attachment. Keep the
+    original preparation version and its authorized acknowledgement evidence.
+    """
+    integer(boundary, 1)
+    if boundary > prepared.game_position:
+        raise ValueError("The fee boundary cannot follow the consumed prefix.")
+    return _prepare_from_basis(context, prepared.basis[:boundary - 1],
+        target=prepared.target_key, target_source=prepared.target_source,
+        game_position=boundary, decision_index=None, actor=None, game_id=None,
+        preparation_version=prepared.version,
+        acknowledgement_aliases=getattr(prepared, "acknowledgement_aliases", ()))
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -85,23 +102,10 @@ class TournamentAccountingV1(Record):
         integer(self.rule_from_position, 1)
         prepared = self.prepared
         validate_frozen_context_v1(prepared, self.context)
-        if self.rule_from_position > prepared.game_position:
-            raise ValueError("The fee boundary cannot follow the consumed prefix.")
-        # A confirmed applicability boundary can use a retained checkpoint or the
-        # actual established prefix. A count alone never establishes earlier fees.
-        if self.rule_from_position == 1:
-            before = 0
-        else:
-            checkpoint = next((c for c in self.context.checkpoints
-                if c.through_position == self.rule_from_position - 1), None)
-            if checkpoint is not None:
-                before = checkpoint.own_losses
-            else:
-                rows = prepared.basis[:self.rule_from_position - 1]
-                if any(row.fact.status not in ("passed", "settled") for row in rows):
-                    raise ValueError("The fee boundary needs established loss-count evidence.")
-                before = sum(row.contribution(self.context)[1] for row in rows)
-        if before != self.losses_before:
+        prefix = accounting_boundary_prefix(self.context, prepared, self.rule_from_position)
+        if prefix.established_through != self.rule_from_position - 1:
+            raise ValueError("The fee boundary needs established loss-count evidence.")
+        if prefix.own_losses != self.losses_before:
             raise ValueError("The fee boundary count differs from its retained evidence.")
         unique(tuple(row.kind for row in self.obligations))
         unique(tuple(row.pool for row in self.receipts))
@@ -122,9 +126,10 @@ class TournamentAccountingV1(Record):
     @property
     def components(self):
         prepared = self.prepared
+        prefix = accounting_boundary_prefix(self.context, prepared, self.rule_from_position)
         return tournament_components(obligations=self.obligations, receipts=self.receipts,
             receipts_complete=self.receipts_complete, loss_before=self.losses_before,
-            loss_after=prepared.own_losses if prepared.status == "ready" else None,
+            loss_after=prepared.own_losses if prepared.status == prefix.status == "ready" else None,
             rule_confirmed=self.rule == STANDARD_RULE,
             earlier_losses_known=self.losses_before == 0,
             tournament_cent=prepared.terms.mode == "tournament_cent",

@@ -200,3 +200,131 @@ def test_source_only_fixture_generator_refuses_overwrite(tmp_path, monkeypatch):
     with pytest.raises(SystemExit):
         accounting_fixtures.main()
     assert before == {p.name: p.read_bytes() for p in tmp_path.iterdir()}
+
+
+def test_independent_writers_cannot_lose_an_accepted_accounting(
+        tmp_path, genuine_sources, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event, Lock, current_thread
+
+    import skatmind.accounting_store as store
+
+    match, session = genuine_sources
+    empty = AccountingJournalV1()
+    first = append_accounting(empty, tournament(synthetic_context(match),
+        (build_recording_facts_v1(match),), before=3))
+    second = append_accounting(empty, cent(session))
+    first_replacing, release_first, second_boundary = Event(), Event(), Event()
+    lock = Lock()
+    identities = {}
+
+    class ObservedLock:
+        def __enter__(self):
+            if current_thread().ident == identities.get("second"):
+                second_boundary.set()
+            lock.acquire()
+
+        def __exit__(self, *args):
+            lock.release()
+
+    # Before the fix this probe is unused; the second writer reaches replace.
+    # After the fix it signals its lock attempt before the first writer is released.
+    monkeypatch.setattr(store, "_PUBLICATION_LOCK", ObservedLock(), raising=False)
+    original_replace = store.os.replace
+
+    def controlled_replace(source, target):
+        if current_thread().ident == identities["first"]:
+            first_replacing.set()
+            assert release_first.wait(30)
+        else:
+            original_replace(source, target)
+            second_boundary.set()
+            return
+        original_replace(source, target)
+
+    monkeypatch.setattr(store.os, "replace", controlled_replace)
+
+    def write(name, journal):
+        identities[name] = current_thread().ident
+        try:
+            return save_accounting(tmp_path, journal, expected_fingerprint=empty.fingerprint,
+                                   source_guard=lambda: True)
+        except AccountingConflict:
+            return "conflict"
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        a = pool.submit(write, "first", first)
+        try:
+            assert first_replacing.wait(30)
+            b = pool.submit(write, "second", second)
+            assert second_boundary.wait(30)
+        finally:
+            release_first.set()
+        results = a.result(timeout=30), b.result(timeout=30)
+    assert results == ("saved", "conflict")
+    assert load_accounting(tmp_path) == first
+    monkeypatch.setattr(store.os, "replace", original_replace)
+    combined = append_accounting(first, second.rounds[0])
+    assert save_accounting(tmp_path, combined, expected_fingerprint=first.fingerprint,
+                           source_guard=lambda: True) == "saved"
+    assert load_accounting(tmp_path) == combined
+
+
+def test_fee_boundary_continues_an_earlier_checkpoint_and_retains_the_basis():
+    from accounting_fixtures import cumulative_session_prefix
+
+    context, facts, _ = cumulative_session_prefix()
+    prepared = prepare_event_context_v1(context, facts, target=facts[-1].source.source,
+                                        game_position=27)
+    assert prepared.status == "ready" and prepared.own_losses == 5
+    row = TournamentAccountingV1(context=context, preparation=freeze_preparation(prepared),
+        rule=STANDARD_RULE, rule_source=STANDARD_SOURCE, rule_from_position=26,
+        losses_before=4, obligations=(), receipts=(), receipts_complete=False,
+        currency="EUR", provenance="Actual rule starts at game 26")
+    assert next(c.value.value for c in row.components if c.kind == "additional_losses") == -1
+    saved = append_accounting(AccountingJournalV1(), row)
+    assert resume_accounting(accounting_bytes(saved)) == saved
+    assert row.prepared == prepared
+    with pytest.raises(ValueError, match="boundary count"):
+        replace(row, losses_before=3)
+    assert replace(row, rule="unverified").components[3].value is None
+    # The same retained version-1 prefix reconstructs without changing its bytes.
+    from skatmind.event_context_projection import PreparedEventContextV1
+    legacy_data = prepared.to_dict()
+    legacy_data.pop("reconciliation_identities")
+    legacy_data.pop("acknowledgement_aliases")
+    legacy_data["version"] = 1
+    legacy = replace(row, preparation=freeze_preparation(
+        PreparedEventContextV1.from_dict(legacy_data)))
+    raw = accounting_bytes(append_accounting(AccountingJournalV1(), legacy))
+    assert accounting_bytes(resume_accounting(raw)) == raw
+    assert legacy.components == row.components
+
+    # A later checkpoint cannot bridge a genuinely missing earlier fee boundary.
+    from skatmind.event_context_projection import OutcomeFactV1
+    gap_facts = (replace(facts[0], outcomes=(OutcomeFactV1(position=1, status="unfinished"),)),
+                 *facts[1:])
+    later = replace(context, checkpoints=(*context.checkpoints,
+        CheckpointV1(through_position=26, personal_points=392, own_losses=5,
+                     provenance="Later cumulative confirmation")))
+    gap_prepared = prepare_event_context_v1(later, gap_facts,
+        target=facts[-1].source.source, game_position=27)
+    assert gap_prepared.status == "ready"
+    with pytest.raises(ValueError, match="fee boundary"):
+        replace(row, context=later, preparation=freeze_preparation(gap_prepared))
+
+    # Known contradictory backfill keeps the supplied counter but cannot authorize a fee.
+    conflict_context = replace(context, checkpoints=(*context.checkpoints,
+        CheckpointV1(through_position=25, personal_points=999, own_losses=4,
+                     provenance="Contradictory checkpoint")))
+    conflicting = prepare_event_context_v1(conflict_context, facts,
+        target=facts[-1].source.source, game_position=27)
+    assert conflicting.status == "conflict"
+    conflict_row = replace(row, context=conflict_context,
+                           preparation=freeze_preparation(conflicting),
+                           losses_before=4)
+    assert conflict_row.components[3].value is None
+    unavailable = prepare_event_context_v1(context, facts[:-1], target=facts[-1].source.source,
+                                           game_position=27)
+    assert unavailable.status == "source_unavailable"
+    assert replace(row, preparation=freeze_preparation(unavailable)).components[3].value is None

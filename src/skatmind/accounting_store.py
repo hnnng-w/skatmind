@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -14,6 +15,10 @@ from .mode_accounting import accounting_identity
 
 ACCOUNTING_FILENAME = "mode-accounting.json"
 MAX_BYTES = 16 * 1024 * 1024
+# Both frontend families enter with their own lifecycle/active locks already held.
+# This process-local barrier is always innermost: guards read sources without
+# acquiring another family's lifecycle/active lock. Never enter it before those locks.
+_PUBLICATION_LOCK = threading.Lock()
 
 
 class AccountingConflict(ValueError):
@@ -138,6 +143,13 @@ def load_accounting(root):
 
 
 def save_accounting(root, journal, *, expected_fingerprint, source_guard):
+    """Serialize comparison, guards and publication for every cooperating local writer."""
+    with _PUBLICATION_LOCK:
+        return _save_accounting_locked(root, journal, expected_fingerprint=expected_fingerprint,
+                                       source_guard=source_guard)
+
+
+def _save_accounting_locked(root, journal, *, expected_fingerprint, source_guard):
     checked_root(root)
     previous = load_accounting(root)
     if previous.fingerprint != expected_fingerprint or not source_guard():

@@ -17,6 +17,7 @@ ACCOUNTING_FIELDS = {
              "provenance", "reconciliation"),
     "open": ("position", "source_choice", "map_1", "map_2", "map_3", "provenance"),
     "lifecycle": ("status", "actual_complete", "personal_net", "net_scope",
+                  "net_action", "net_provenance",
                   "adjustment", "adjustment_provenance", "provenance", "cent_tariff",
                   "from_position", "change_kind"),
     "next": ("round_name", "continuing_terms", "provenance"),

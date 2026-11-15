@@ -270,10 +270,15 @@ def _cent(page, active, locale, app):
         fields += select(locale, "actual_complete", choices(locale, "unknown", "yes"),
                          "yes" if row.actual_block_complete else "unknown")
         fields += f'<p>{t(locale, "net_help")}</p>'
+        fields += select(locale, "net_action", [
+            (value, translate(locale, "accounting.net_" + value))
+            for value in ("keep", "confirm", "remove")], "keep")
         fields += select(locale, "net_scope", choices(locale, "block", "table_stay"),
                          "block" if row.net_confirmation is None else row.net_confirmation.scope)
         fields += field(locale, "personal_net", "" if row.net_confirmation is None
                         else money(row.net_confirmation.personal_net.value))
+        fields += field(locale, "net_provenance", "" if row.net_confirmation is None
+                        else row.net_confirmation.provenance)
         fields += field(locale, "adjustment", "" if row.adjustment is None
                         else money(row.adjustment.amount.value))
         fields += field(locale, "adjustment_provenance", "" if row.adjustment is None

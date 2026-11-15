@@ -14,6 +14,7 @@ from skatmind.accounting_state import (
     ExternalAdjustmentV1,
     NetConfirmationV1,
     TournamentAccountingV1,
+    accounting_boundary_prefix,
     freeze_preparation,
 )
 from skatmind.accounting_store import (
@@ -173,11 +174,10 @@ def _tournament(page, values):
         obligations += (ObligationV1(kind="earlier_losses", total=earlier,
             paid=optional_amount(values, "earlier_paid"), provenance=values["provenance"].strip()),)
     boundary = _integer(values, "rule_from_position", maximum=37)
-    checkpoint = next((c for c in event.context.checkpoints
-                       if c.through_position == boundary - 1), None)
-    losses = 0 if boundary == 1 else checkpoint.own_losses if checkpoint else sum(
-        row.contribution(event.context)[1] for row in prepared.basis[:boundary - 1]
-        if row.fact.status in ("passed", "settled"))
+    prefix = accounting_boundary_prefix(event.context, prepared, boundary)
+    if prefix.status != "ready":
+        raise AccountingFormError("context", "rule_from_position")
+    losses = prefix.own_losses
     receipts = tuple(PersonalReceiptV1(pool=pool, participation=True,
         personal_entitlement=value.numerator > 0, received=value,
         provenance=values.get("provenance", "").strip()) for pool in ("base", "plus", "tandem")
@@ -364,8 +364,13 @@ def dispatch_accounting(app, route, values, *, activate_session):
                         amount=SignedMoneyV1.parse(values["adjustment"]),
                         provenance=values.get("adjustment_provenance", "").strip())
                         if values.get("adjustment") else None)
-                    net = None
-                    if values.get("personal_net"):
+                    net_action = values.get("net_action", "keep")
+                    if net_action not in ("keep", "confirm", "remove"):
+                        raise AccountingFormError("invalid", "net_action")
+                    net = row.net_confirmation
+                    if net_action == "remove":
+                        net = None
+                    elif net_action == "confirm":
                         scope = values.get("net_scope")
                         coverage = (row.identity,) if scope == "block" else tuple(
                             r.identity for r in page.journal.round_heads
@@ -375,7 +380,7 @@ def dispatch_accounting(app, route, values, *, activate_session):
                                 page.journal.head(identity)).activity_fingerprint
                                 for identity in coverage),
                             personal_net=SignedMoneyV1.parse(values["personal_net"]),
-                            provenance=provenance)
+                            provenance=values.get("net_provenance", "").strip())
                     row = replace(row, status=values.get("status"), provenance=provenance,
                         actual_block_complete=values.get("actual_complete") == "yes",
                         net_confirmation=net)
