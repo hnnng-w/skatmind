@@ -86,6 +86,9 @@ official Skat rules arbitration.
 * Private managed Match/Session [event context and chronological checkpoints](docs/event_context_and_checkpoints.md),
   with confirmed cumulative personal scores, established-result continuation,
   explicit reconciliation and separately retained decision-time context
+* Private [mode-specific accounting and three-game Cent rounds](docs/mode_accounting_and_cent_rounds.md),
+  with exact monetary components, explicit provider gaps, immutable corrections,
+  and ordinary Session-backed round continuation
 * Compact comparison of two or more independent completed lists with one reference, final deltas, and resolved-only rank movement
 * Versioned complete historical-game records for normal play and six supported shortened terminal events, including the Historical-only party-wide Claim
 * Two timed non-terminal historical continuation events with exact public-hand boundaries

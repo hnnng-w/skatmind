@@ -6,6 +6,7 @@ from skatmind.declaration_diagnostics import DeclarationValueError
 from skatmind.errors import SkatMindWorkflowError
 from skatmind.observed_trace_diagnostics import ObservedTraceError
 
+from .accounting_forms import AccountingFormError
 from .card_entry_http import CardEntryConflict
 from .compact_declaration_http import DeclarationConflict
 from .event_context_forms import EventFormError
@@ -111,6 +112,11 @@ def map_frontend_exception_v1(
     *,
     status: int,
 ) -> tuple[FrontendValidationIssueV1, ...]:
+    if isinstance(error, AccountingFormError):
+        return (_issue(_known_field(definition, error.field_key),
+                       "validation.accounting." + error.reason),)
+    if definition.form_key.startswith("accounting.") and status == 400:
+        return (_issue(None, "validation.accounting.invalid"),)
     if isinstance(error, (EventFormError, EventFormConflict)):
         return (_issue(_known_field(definition, getattr(error, "field_key", None)),
                        "validation.event." + error.reason),)

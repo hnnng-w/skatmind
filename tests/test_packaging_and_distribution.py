@@ -112,6 +112,13 @@ def test_installed_smoke_frontend_registry_contract_executes() -> None:
         "FRONTEND_FORM_REGISTRY": FRONTEND_FORM_REGISTRY,
         "UNIFIED_FRONTEND_POST_ROUTES": UNIFIED_FRONTEND_POST_ROUTES,
     })
+    accounting = next(form for form in FRONTEND_FORM_REGISTRY
+                      if form.form_key == "accounting.sessions.game")
+    assert tuple(field.field_key for field in accounting.safe_fields) == (
+        "position", "game_status", "declarer", "settlement", "personal_net",
+        "provenance", "reconciliation")
+    assert accounting.active_context_requirement == "sessions"
+    assert accounting.body_limit == 16384
 
 
 def test_schema_resource_package_and_typing_marker_are_available() -> None:

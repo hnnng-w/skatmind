@@ -4,6 +4,14 @@ This document describes the project structure and main modules.
 
 ## Overview
 
+Issue #322 adds private [mode accounting and Cent rounds](mode_accounting_and_cent_rounds.md).
+Exact signed money is distinct from nonnegative context amounts. A separate bounded
+append-only journal retains consumed context preparations, source facts and explicit
+confirmations. Three-position Cent aggregates reuse managed Sessions; tournament
+accounting reuses the existing chronological contribution service only for scores
+and own-loss counts. Native forms perform explicit accepted writes; views and
+Learning Update execute no monetary-triggered Card analysis.
+
 SkatMind is organized as a small rule-based analysis engine around a JSON input/output workflow.
 
 Issue #321 adds a separate private [event-context journal](event_context_and_checkpoints.md)

@@ -2,6 +2,11 @@
 
 ## Scope and ordinary use
 
+The subsequent [Issue #322 accounting/round workflow](mode_accounting_and_cent_rounds.md)
+consumes these retained contracts without changing their historical semantics.
+The statements below about #321 performing no monetary execution describe #321's
+own boundary; the separate accounting producer now supplies the bounded workflow.
+
 Issue #321 implements private version-1 context for managed Match and Session
 recordings, with version-2 preparation and journal support from its bounded
 [CI/source-review correction](event_context_correction_verification.md).

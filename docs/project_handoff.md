@@ -2,6 +2,18 @@
 
 This document summarizes the current state of `skatmind` for continuing development in a new thread or with a new contributor.
 
+## Issue #322 accounting and Cent rounds
+
+Current Issue #322 work is documented in
+[Mode-specific accounting and Cent rounds](mode_accounting_and_cent_rounds.md),
+including the prepared-data plan for one later combined #321/#322 installed check.
+The starting commit is `65db02bc7f39e0b6c5c0f7bf95a7bbaea80478b2`; #321's exact-commit
+branch/main gates passed there. Accepted #316–#320 and completed #321 source reviews
+remain valid. New exact-commit hosted gates and the combined installed acceptance
+remain pending. Final local outcomes are supplied in the implementation handoff
+after code/documentation verification; no post-verification repository edit records
+them. No installed acceptance or release authorization is claimed.
+
 ## Issue #285 recorded whole-game review
 
 The accepted #284 core at `2b7eae6` now has an explicit individual Session action

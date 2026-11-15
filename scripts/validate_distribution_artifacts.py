@@ -1183,8 +1183,16 @@ assert FRONTEND_TRANSLATION_CATALOG_VERSION == 1
 assert LOCAL_FRONTEND_PROFILE_VERSION == 1
 assert FRONTEND_INFORMATION_ARCHITECTURE_VERSION == 1
 assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-assert len(UNIFIED_FRONTEND_POST_ROUTES) == 97
-assert len(FRONTEND_FORM_REGISTRY) == 149
+assert len(UNIFIED_FRONTEND_POST_ROUTES) == 104
+assert len(FRONTEND_FORM_REGISTRY) == 156
+accounting = tuple(form for form in FRONTEND_FORM_REGISTRY
+                   if form.form_key.startswith("accounting."))
+assert {form.action_route for form in accounting} == {
+    "/matches/accounting/save", "/sessions/accounting/save", "/sessions/accounting/start",
+    "/sessions/accounting/game", "/sessions/accounting/open", "/sessions/accounting/lifecycle",
+    "/sessions/accounting/next",
+}
+assert len(accounting) == 7
 recording_input, = (form for form in FRONTEND_FORM_REGISTRY
                    if form.form_key == "match.recording_input")
 assert recording_input.action_route == "/matches/recording-input"

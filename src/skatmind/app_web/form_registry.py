@@ -10,6 +10,7 @@ from skatmind.capture_web.contracts import (
 from skatmind.corpus_web.contracts import LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES
 from skatmind.session_commands import SESSION_COMMAND_KINDS
 
+from .accounting_forms import ACCOUNTING_FIELDS, ACCOUNTING_ROUTES
 from .automatic_learning_routes import AUTOMATIC_BODY_LIMIT, AUTOMATIC_PAGE, AUTOMATIC_POST_ROUTES
 from .card_entry_http import CARD_ENTRY_ROUTES, MATCH_CARD_OPERATIONS, MATCH_EVIDENCE_FORMS
 from .compact_declaration_form import DECLARATION_FIELDS
@@ -1541,6 +1542,12 @@ for _family in ("matches", "sessions"):
             EVENT_FIELDS[_action], page=f"/{_family}/current", active=_family,
             body_limit=32768, success="contextual"))
 
+for _route in ACCOUNTING_ROUTES:
+    _family, _action = _route.split("/")[1], _route.rsplit("/", 1)[1]
+    _FORMS.append(_definition(
+        f"accounting.{_family}.{_action}", _route, ACCOUNTING_FIELDS[_action],
+        page=f"/{_family}/current", active=_family, body_limit=16384, success="contextual"))
+
 FRONTEND_FORM_REGISTRY = tuple(_FORMS)
 UNIFIED_FRONTEND_POST_ROUTES = tuple(
     dict.fromkeys(
@@ -1555,6 +1562,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             *AUTOMATIC_POST_ROUTES,
             *HISTORICAL_POST_ROUTES,
             *EVENT_ROUTES,
+            *ACCOUNTING_ROUTES,
             *DEBRIEF_POST_ROUTES,
             "/sessions/create",
             "/sessions/import",

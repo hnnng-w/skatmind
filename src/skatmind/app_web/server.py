@@ -24,6 +24,9 @@ from skatmind.corpus_web.uploads import parse_learning_corpus_multipart_upload_v
 from skatmind.errors import SkatMindError, SkatMindInvariantError, SkatMindWorkflowError
 from skatmind.match_workspace_persistence_codec import resume_match_workspace_document_v1
 
+from .accounting_forms import ACCOUNTING_ROUTES
+from .accounting_frontend import dispatch_accounting
+from .accounting_rendering import render_accounting
 from .automatic_learning_routes import (
     AUTOMATIC_BODY_LIMIT,
     AUTOMATIC_PAGE,
@@ -445,6 +448,7 @@ _SESSION_DOWNLOAD_ROUTES = {
     "/sessions/downloads/rollout-result.json",
 }
 _STATEFUL_POST_ROUTES = {
+    *ACCOUNTING_ROUTES,
     *EVENT_ROUTES,
     *HISTORICAL_POST_ROUTES,
     *AUTOMATIC_POST_ROUTES,
@@ -2308,7 +2312,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 locale=locale,
                 show_operation_notice=status < HTTPStatus.BAD_REQUEST,
                 game_label=managed_name(locale, profile, "sessions", active.state.session_id),
-            ) + render_event_context(self.server.app_context, active, "sessions", locale),
+            ) + render_event_context(self.server.app_context, active, "sessions", locale)
+            + render_accounting(self.server.app_context, active, "sessions", locale),
             status=status,
             feedback_family="sessions",
             feedback_identity=active,
@@ -2487,6 +2492,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             card_bindings=card_bindings,
         ))
         body += render_event_context(self.server.app_context, active, "matches", locale)
+        body += render_accounting(self.server.app_context, active, "matches", locale)
         body += saved_analyses_link(locale)
         receipt_id = report_id
         binding = active.rollout_evidence_binding
@@ -3633,6 +3639,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         body: bytes,
         content_type: str,
     ) -> None:
+        if path in ACCOUNTING_ROUTES:
+            self._redirect(dispatch_accounting(self.server.app_context, path,
+                self._text_form(body, content_type), activate_session=self._activate_session))
+            return
         if path in EVENT_ROUTES:
             self._redirect(dispatch_event_context(self.server.app_context, path,
                                                   self._text_form(body, content_type)))
