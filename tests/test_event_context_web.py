@@ -40,6 +40,7 @@ def create_context(browser, *, family="matches", **overrides):
     return follow(browser, browser.submit(form, event_name="Synthetic event",
         series_name="Actual list 1", event_mode="tournament", through_position="24",
         personal_points="780", own_losses="3", provenance="Confirmed synthetic list",
+        scoring_source="Confirmed synthetic tournament rules", scoring_edition="1",
         **overrides))
 
 
@@ -248,3 +249,32 @@ def test_context_does_not_retrofit_native_results_or_independent_collections(loc
     assert retained == tuple(build_unified_match_report_download_v1(active, report_id,
                              strategy_source=source) for source in (False, True))
     assert independent == {path: path.read_bytes() for path in root.rglob("*") if path.is_file()}
+
+
+def test_cent_creation_requires_explicit_mode_consistent_source_without_javascript(
+        localized_server):
+    app = localized_server.app_context
+    document = build_session_persistence_document_v1(_complete_retrospective_session(
+        build_historical_input()))
+    active = import_guided_session_v1(app.managed_stateful.root("sessions"),
+        handle="b" * 64, document=document.to_dict())
+    app.managed_stateful.activate_session(active)
+    original = active.path.read_bytes()
+    browser = Browser(localized_server)
+    form = Forms(browser.page()).find("/sessions/event-context/create")
+    response = browser.submit(form, event_name="Actual Cent table", series_name="Actual block",
+        game_position="1", selected_player="1", event_mode="cent")
+    assert response[0] == 400  # No tournament-scoring provenance may be silently confirmed.
+    returned = Forms(response[2].decode()).find("/sessions/event-context/create")
+    assert returned["values"]["event_mode"] == "cent"
+    assert returned["values"]["scoring_source"] == ""
+    page = follow(browser, browser.submit(returned,
+        scoring_source="Confirmed Cent game-point rules",
+        scoring_edition="event-notice-1", currency="EUR", cent_tariff="1/2",
+        financial_provenance="Confirmed tariff notice"))
+    context = load_event_context_v1(app.managed_home.root).heads[0]
+    assert context.terms[0].scoring_rule == "cent_game_points_v1"
+    assert context.terms[0].scoring_source.reference == "Confirmed Cent game-point rules"
+    assert Forms(page).find("/sessions/event-context/terms")["values"]["scoring_source"] == (
+        "Confirmed Cent game-point rules")
+    assert active.path.read_bytes() == original

@@ -53,9 +53,9 @@ def _terms_fields(locale, terms=None, *, match=False):
     modes = EVENT_MODES[:-1] if match else EVENT_MODES
     body = _select(locale, "event_mode", [("", unknown), *[(mode, translate(locale,
         "event.mode." + mode)) for mode in modes]], "" if terms is None else terms.mode)
-    body += _input(locale, "scoring_source", "SkatMind fixed-three-player ISKO list contribution"
-                   if terms is None else terms.scoring_source.reference, required=True)
-    edition = "1" if terms is None else terms.scoring_source.edition
+    body += _input(locale, "scoring_source", ""
+                    if terms is None else terms.scoring_source.reference, required=True)
+    edition = "" if terms is None else terms.scoring_source.edition
     body += _input(locale, "scoring_edition", edition, required=True)
     facts = FinancialFactsV1() if terms is None else terms.financial
     body += (f'<details><summary>{_text(locale, "financial")}</summary>'
@@ -163,7 +163,7 @@ def _projection(value, locale):
         body += f'<p>{_text(locale, "disagreement", through=item.checkpoint.through_position,
             supplied=item.checkpoint.personal_points, supplied_losses=item.checkpoint.own_losses,
             derived=item.derived_points, derived_losses=item.derived_losses)}</p>'
-        if item.checkpoint.acknowledged_disagreement == item.fingerprint:
+        if value.acknowledges(item):
             body += f'<p>{_text(locale, "acknowledged")}</p>'
     if value.financial_missing:
         body += f'<p>{_text(locale, "financial_unknown")}</p>'
@@ -221,11 +221,11 @@ def render_event_context(app, active, family, locale):
                                 supplied_losses=checkpoint.own_losses,
                                 derived=item.derived_points, derived_losses=item.derived_losses)
                             body += f'<p>{message}</p>'
-                            if checkpoint.acknowledged_disagreement != disagreement.fingerprint:
+                            if not review.acknowledges(disagreement):
                                 fields = (f'<input type="hidden" name="through_position"'
                                     f' value="{checkpoint.through_position}">'
                                     '<input type="hidden" name="disagreement"'
-                                    f' value="{item.fingerprint}">')
+                                    f' value="{review.disagreement_identity(item)}">')
                                 fields += _input(locale, "provenance", required=True)
                                 body += _form(page, active, family, "reconfirm", fields, locale)
                             else:

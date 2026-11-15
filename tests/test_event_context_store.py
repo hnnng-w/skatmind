@@ -15,7 +15,7 @@ from skatmind.event_context_projection import prepare_event_context_v1
 from skatmind.event_context_sources import build_recording_facts_v1
 from skatmind.event_context_store import (
     EVENT_CONTEXT_FILENAME,
-    EventContextJournalV1,
+    EventContextJournalV2,
     append_event_revision_v1,
     event_context_bytes_v1,
     load_event_context_v1,
@@ -60,7 +60,7 @@ def test_save_reopen_frozen_basis_survives_correction_and_unknown_original(tmp_p
 
 def test_noop_stale_source_failed_write_and_append_only_history(tmp_path, monkeypatch):
     _, context, prepared = fixture()
-    empty = EventContextJournalV1()
+    empty = EventContextJournalV2()
     journal = append_event_revision_v1(empty, context, prepared=prepared)
     save_event_context_v1(tmp_path, journal, expected_fingerprint=empty.fingerprint)
     original = (tmp_path / EVENT_CONTEXT_FILENAME).read_bytes()
@@ -99,7 +99,7 @@ def test_explicit_reconfirmation_retains_disagreement_and_does_not_hide_new_back
     assert prepared.status == "conflict"
     reconfirmed = reconfirm_event_checkpoint_v1(context, prepared, through_position=25,
         expected_revision=1, provenance="Checked the original list; retain the supplied total")
-    journal = EventContextJournalV1(revisions=(synthetic_context(document), context),
+    journal = EventContextJournalV2(revisions=(synthetic_context(document), context),
                                      preparations=(prepared,))
     journal = append_event_revision_v1(journal, reconfirmed)
     assert resume_event_context_v1(event_context_bytes_v1(journal)) == journal
@@ -115,7 +115,7 @@ def test_explicit_reconfirmation_retains_disagreement_and_does_not_hide_new_back
 @pytest.mark.parametrize("mutation", ["version", "unknown", "score", "fingerprint", "history"])
 def test_strict_resume_rejects_tampered_or_unreconstructable_values(mutation):
     _, context, prepared = fixture()
-    journal = EventContextJournalV1(revisions=(context,), preparations=(prepared,))
+    journal = EventContextJournalV2(revisions=(context,), preparations=(prepared,))
     value = json.loads(event_context_bytes_v1(journal))
     if mutation == "version":
         value["version"] = True
@@ -147,7 +147,7 @@ def test_later_terms_and_factual_corrections_have_explicit_historical_applicabil
     correction = set_event_terms_v1(changed, replace(changed.terms[0],
         scoring_source=replace(changed.terms[0].scoring_source, edition="Corrected edition")),
         expected_revision=1, correction=True, provenance="Later-entered factual correction")
-    journal = EventContextJournalV1(revisions=(context, changed, correction),
+    journal = EventContextJournalV2(revisions=(context, changed, correction),
                                      preparations=(prepared,))
     assert resume_event_context_v1(event_context_bytes_v1(journal)).preparations[0] == prepared
     assert prepared.terms.scoring_source.edition == "1"
@@ -159,10 +159,10 @@ def test_independent_event_and_recording_bindings_are_not_merged():
     second = replace(context, event_id="second", series_id="second-series", bindings=(
         replace(binding, attached_source=replace(binding.attached_source,
             source=replace(binding.source, product_id="another-match"))),))
-    journal = EventContextJournalV1(revisions=(context, second), preparations=(prepared,))
+    journal = EventContextJournalV2(revisions=(context, second), preparations=(prepared,))
     assert journal.for_source(binding.source) == context
     with pytest.raises(ValueError, match="Duplicate"):
-        EventContextJournalV1(revisions=(context, replace(second, bindings=context.bindings)))
+        EventContextJournalV2(revisions=(context, replace(second, bindings=context.bindings)))
 
 
 def test_frozen_derived_contribution_survives_overwritten_recording_after_restart(tmp_path):
@@ -187,7 +187,7 @@ def test_frozen_derived_contribution_survives_overwritten_recording_after_restar
                                          game_position=26, decision_index=1)
     assert prepared.personal_points == 820 and prepared.own_losses == 3
     assert prepared.target_game_id == "observed-game-26"
-    empty = EventContextJournalV1()
+    empty = EventContextJournalV2()
     journal = append_event_revision_v1(empty, context, prepared=prepared)
     save_event_context_v1(tmp_path, journal, expected_fingerprint=empty.fingerprint)
     corrected = clear_match_workspace_slot_v1(document.workspace, match_position=25,
@@ -222,7 +222,7 @@ def test_confirmed_pool_prize_and_exact_amount_facts_survive_without_filling_unk
     facts = build_recording_facts_v1(document, through_position=24, decision_position=25)
     prepared = prepare_event_context_v1(context, (facts,), target=facts.source.source,
                                          game_position=25, decision_index=1)
-    journal = EventContextJournalV1(revisions=(context,), preparations=(prepared,))
+    journal = EventContextJournalV2(revisions=(context,), preparations=(prepared,))
     resumed = resume_event_context_v1(event_context_bytes_v1(journal)).preparations[0]
     assert resumed.status == "ready"
     assert resumed.terms.financial == financial
@@ -230,3 +230,187 @@ def test_confirmed_pool_prize_and_exact_amount_facts_survive_without_filling_unk
     assert resumed.terms.financial.pools[0].entitlement == "unknown"
     assert resumed.terms.financial.table_committed == AmountV1(numerator=0)
     assert "prize_facts" in resumed.financial_missing
+
+
+def test_reconciliation_survives_genuine_later_play_but_preparation_and_cas_are_stale(tmp_path):
+    from test_match_workspace_contracts import _observed_game, _set_game
+
+    from skatmind.event_context_projection import preparation_is_current_v1
+    from skatmind.game_declaration import GameDeclaration
+    from skatmind.match_capture_application import append_match_capture_play_v1
+    from skatmind.match_capture_application_contracts import MatchCaptureCardEntryV1
+    from skatmind.match_workspace_persistence_codec import (
+        build_match_workspace_persistence_document_v1,
+    )
+
+    original = synthetic_match()
+    game = _observed_game(original.workspace.match_definition, match_position=26,
+        game_timecode=None, declarer_player_id="player-a",
+        declaration=GameDeclaration(game_type="grand", bid_value=24))
+    document = build_match_workspace_persistence_document_v1(_set_game(original.workspace, game))
+    initial = synthetic_context(document)
+    context = set_event_checkpoint_v1(initial, CheckpointV1(through_position=25,
+        personal_points=999, own_losses=3, provenance="Confirmed supplied total"),
+        expected_revision=0)
+    facts = build_recording_facts_v1(document, through_position=25)
+    prepared = prepare_event_context_v1(context, (facts,), target=facts.source.source,
+                                         game_position=26)
+    assert prepared.status == "conflict"
+    reconfirmed = reconfirm_event_checkpoint_v1(context, prepared, through_position=25,
+        expected_revision=1, provenance="Rechecked the original list")
+    journal = EventContextJournalV2(revisions=(initial, context), preparations=(prepared,))
+    journal = append_event_revision_v1(journal, reconfirmed)
+    save_event_context_v1(tmp_path, journal,
+                           expected_fingerprint=EventContextJournalV2().fingerprint)
+    current = prepare_event_context_v1(reconfirmed, (facts,), target=facts.source.source,
+                                        game_position=26)
+    changed = append_match_capture_play_v1(document.workspace, match_position=26,
+        entry=MatchCaptureCardEntryV1(card="CA", decision_timecode=None),
+        expected_revision=document.workspace.revision)
+    assert changed.status == "applied"
+    later_document = build_match_workspace_persistence_document_v1(
+        changed.workspace_change.workspace)
+    later = build_recording_facts_v1(later_document, through_position=25)
+    assert later.outcomes == facts.outcomes
+    assert later.source != facts.source
+    after = prepare_event_context_v1(reconfirmed, (later,), target=facts.source.source,
+                                      game_position=26)
+    assert after.status == "ready"
+    assert after.personal_points == 999 and after.own_losses == 3
+    assert not preparation_is_current_v1(current, reconfirmed, (later,))
+    assert load_event_context_v1(tmp_path).preparations == (prepared,)
+    with pytest.raises(EventContextConflict):
+        save_event_context_v1(tmp_path, journal, expected_fingerprint=journal.fingerprint,
+                               source_guard=lambda: facts.source == later.source)
+
+
+def legacy_reconciliation_journal():
+    from skatmind.event_context_projection import _prepare_from_basis
+    from skatmind.event_context_store import EventContextJournalV1
+
+    document = synthetic_match()
+    initial = synthetic_context(document)
+    context = set_event_checkpoint_v1(initial, CheckpointV1(through_position=25,
+        personal_points=999, own_losses=3, provenance="Supplied total"), expected_revision=0)
+    facts = build_recording_facts_v1(document, through_position=25)
+    def legacy_prepare(context, facts):
+        current = prepare_event_context_v1(context, (facts,), target=facts.source.source,
+                                            game_position=26)
+        return _prepare_from_basis(context, current.basis, target=facts.source.source,
+            target_source=facts.source, game_position=26, decision_index=None, actor=None,
+            game_id=None, preparation_version=1)
+    conflict = legacy_prepare(context, facts)
+    confirmed = reconfirm_event_checkpoint_v1(context, conflict, through_position=25,
+        expected_revision=1, provenance="Checked original list")
+    ready = legacy_prepare(confirmed, facts)
+    later = build_recording_facts_v1(changed_document(document), through_position=25)
+    changed = legacy_prepare(confirmed, later)
+    return EventContextJournalV1(revisions=(initial, context, confirmed),
+        preparations=(conflict, ready, changed)), later
+
+
+def test_published_v1_bytes_statuses_and_explicit_v2_transition_are_preserved(tmp_path):
+    import hashlib
+
+    from skatmind.event_context_projection import preparation_is_current_v1
+    from skatmind.event_context_store import EventContextJournalV1
+
+    old, later = legacy_reconciliation_journal()
+    raw = event_context_bytes_v1(old)
+    # Captured on the published starting HEAD before changing Product code.
+    assert old.fingerprint == "530d4b65725f35b2ae1cd000114c73231a8a9f0e64897f54cc2b8bce25747eec"
+    assert hashlib.sha256(raw).hexdigest() == (
+        "badc00b3c8dbe991dc8205aefcbed9845d756c7a38ab50977ba7ec8cc4d7aa37")
+    path = tmp_path / EVENT_CONTEXT_FILENAME
+    path.write_bytes(raw)
+    loaded = load_event_context_v1(tmp_path)
+    assert type(loaded) is EventContextJournalV1
+    assert [item.status for item in loaded.preparations] == ["conflict", "ready", "conflict"]
+    assert save_event_context_v1(tmp_path, loaded,
+        expected_fingerprint=loaded.fingerprint) == "unchanged"
+    assert path.read_bytes() == raw
+    context = loaded.heads[0]
+    current = prepare_event_context_v1(context, (later,), target=later.source.source,
+        game_position=26, acknowledgement_aliases=loaded.reconciliation_aliases)
+    assert current.version == 2 and current.status == "ready"
+    assert current.acknowledgement_aliases
+    assert preparation_is_current_v1(current, context, (later,))
+    upgraded = append_event_revision_v1(loaded, context, prepared=current)
+    assert type(upgraded) is EventContextJournalV2
+    assert upgraded.revisions == loaded.revisions
+    assert upgraded.preparations[:-1] == loaded.preparations
+    save_event_context_v1(tmp_path, upgraded, expected_fingerprint=loaded.fingerprint)
+    assert load_event_context_v1(tmp_path) == upgraded
+    assert event_context_bytes_v1(old) == raw
+    with pytest.raises(ValueError, match="immutable"):
+        save_event_context_v1(tmp_path, old, expected_fingerprint=upgraded.fingerprint)
+
+
+@pytest.mark.parametrize("mutation", ("v1_status", "v1_fields", "v2_alias", "v2_version"))
+def test_versioned_reconstruction_does_not_relax_frozen_validation(mutation):
+    from skatmind.event_context_contracts import identity
+
+    old, later = legacy_reconciliation_journal()
+    context = old.heads[0]
+    current = prepare_event_context_v1(context, (later,), target=later.source.source,
+        game_position=26, acknowledgement_aliases=old.reconciliation_aliases)
+    upgraded = append_event_revision_v1(old, context, prepared=current)
+    data = json.loads(event_context_bytes_v1(upgraded))
+    if mutation == "v1_status":
+        data["journal"]["preparations"][2]["status"] = "ready"
+    elif mutation == "v1_fields":
+        data["journal"]["preparations"][0]["acknowledgement_aliases"] = []
+    elif mutation == "v2_alias":
+        data["journal"]["preparations"] = [current.to_dict()]
+    else:
+        data["journal"]["preparations"][-1]["version"] = 3
+    data["content_fingerprint"] = identity("journal_v2", data["journal"])
+    with pytest.raises(ValueError):
+        resume_event_context_v1(json.dumps(data).encode())
+
+
+@pytest.mark.parametrize("difference", ("settlement", "mapping", "checkpoint", "rule_source"))
+def test_reconciliation_requires_new_confirmation_for_relevant_comparison_changes(difference):
+    from test_match_workspace_contracts import _observed_game, _set_game
+
+    from skatmind.event_context_operations import revise_event_context_v1
+    from skatmind.match_workspace_persistence_codec import (
+        build_match_workspace_persistence_document_v1,
+    )
+
+    document = synthetic_match()
+    context = synthetic_context(document)
+    context = set_event_checkpoint_v1(context, CheckpointV1(through_position=25,
+        personal_points=999, own_losses=3, provenance="Supplied total"), expected_revision=0)
+    facts = build_recording_facts_v1(document, through_position=25)
+    prepared = prepare_event_context_v1(context, (facts,), target=facts.source.source,
+                                         game_position=26)
+    context = reconfirm_event_checkpoint_v1(context, prepared, through_position=25,
+        expected_revision=1, provenance="Confirmed original list")
+    if difference == "settlement":
+        game = document.workspace.slots[24].observed_game
+        corrected = _observed_game(document.workspace.match_definition, match_position=25,
+            game_timecode=None, perspective_initial_hand=game.perspective_initial_hand,
+            declarer_player_id=game.declarer_player_id, declaration=replace(game.declaration,
+                bid_value=96), original_skat=game.original_skat,
+            discarded_cards=game.discarded_cards,
+            plays=game.plays)
+        facts = build_recording_facts_v1(build_match_workspace_persistence_document_v1(
+            _set_game(document.workspace, corrected)), through_position=25)
+    elif difference == "mapping":
+        binding = context.bindings[0]
+        mapping = {"player-a": "player-a", "player-b": "player-c", "player-c": "player-b"}
+        binding = replace(binding, players=tuple(replace(player,
+            event_player_id=mapping[player.source_player_id]) for player in binding.players))
+        context = revise_event_context_v1(context, expected_revision=2, change="attachment",
+                                           provenance="Corrected mapping", bindings=(binding,))
+    elif difference == "checkpoint":
+        context = set_event_checkpoint_v1(context, replace(context.checkpoints[0],
+            personal_points=781), expected_revision=2)
+    else:
+        context = set_event_terms_v1(context, replace(context.terms[0],
+            scoring_source=replace(context.terms[0].scoring_source, edition="Corrected rules")),
+            expected_revision=2, correction=True, provenance="Corrected rule source")
+    value = prepare_event_context_v1(context, (facts,), target=facts.source.source,
+                                      game_position=26)
+    assert value.status == "conflict"

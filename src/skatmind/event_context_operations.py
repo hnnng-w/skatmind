@@ -58,7 +58,8 @@ def reconfirm_event_checkpoint_v1(context, prepared, *, through_position, expect
                          if item.checkpoint.through_position == through_position), None)
     if disagreement is None:
         raise ValueError("There is no complete established disagreement to reconfirm.")
-    checkpoints = tuple(replace(item, acknowledged_disagreement=disagreement.fingerprint)
+    checkpoints = tuple(replace(item,
+        acknowledged_disagreement=prepared.disagreement_identity(disagreement))
         if item.through_position == through_position else item for item in context.checkpoints)
     return revise_event_context_v1(context, expected_revision=expected_revision,
         change="reconciliation", provenance=provenance, checkpoints=checkpoints)

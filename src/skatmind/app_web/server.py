@@ -1802,7 +1802,25 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                         definition,
                         status=status,
                     )[-1:]
-        self._retain_form_feedback(definition, issues=issues, status=status)
+        captured = getattr(self, "_match_analysis_feedback_source", None)
+        if captured is not None:
+            active, workspace, position, selection = captured
+            with active.capture.lock, self.server.app_context.lock:
+                current = self.server.app_context.managed_stateful.active_match
+                superseded = (current is not active or active.retired
+                    or active.position_generation != position
+                    or active.review_decision_generation != selection
+                    or active.workspace is not workspace)
+                if not superseded:
+                    self._retain_form_feedback(definition, issues=issues, status=status)
+            if superseded:
+                # A cancelled older invocation owns only its response, not the
+                # newer selection's shared feedback or language-render binding.
+                self._rendered_language_source = None
+                self._send_common_error(status)
+                return True
+        else:
+            self._retain_form_feedback(definition, issues=issues, status=status)
         self._render_rejected_form(definition, status=status)
         return True
 
@@ -3246,6 +3264,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 with active.capture.lock:
                     require_bound_match_decision(active, values)
                     decision_binding = dict(values)
+                    self._match_analysis_feedback_source = (
+                        active, active.workspace, active.position_generation,
+                        active.review_decision_generation)
                     values.pop("visible_decision_index")
                     values.pop("decision_selection")
             if "review_binding" in values:
@@ -3296,6 +3317,11 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         elif path == "/matches/review-whole-game":
             self._match_review_return = True
             self._rollout_execution_started = True
+            with active.capture.lock:
+                require_bound_match_decision(active, values)
+                self._match_analysis_feedback_source = (
+                    active, active.workspace, active.position_generation,
+                    active.review_decision_generation)
             report, retained = execute_unified_match_rollout(
                 active, values, app_context=self.server.app_context)
             if report.value.status != "executed":
@@ -3821,6 +3847,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self._native_draft_authorization = None
         self._request_frontend = None
         self._rollout_execution_started = False
+        self._match_analysis_feedback_source = None
         self._operation_feedback_delivery = None
         self._visible_operation_feedback = None
         self._rendered_language_source = None

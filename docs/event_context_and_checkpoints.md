@@ -3,7 +3,9 @@
 ## Scope and ordinary use
 
 Issue #321 implements private version-1 context for managed Match and Session
-recordings. #316–#320 are accepted and closed. #208 and release acceptance remain
+recordings, with version-2 preparation and journal support from its bounded
+[CI/source-review correction](event_context_correction_verification.md).
+#316–#320 are accepted and closed. #208 and release acceptance remain
 open. Hosted exact-commit gates and the later **combined** installed acceptance
 with accounting/Cent work remain maintainer work; this feature does not request
 an intermediate installed test.
@@ -25,6 +27,9 @@ with zero later positions and any unresolved gaps still shown.
 The interface uses the DE/EN catalogs, native forms, accessible validation and
 submitted-value preservation. It works without JavaScript or JSON/model transport.
 Existing recording import remains useful for transferring developer fixtures.
+New context forms leave scoring-source and edition fields empty until explicitly
+supplied. A Cent selection therefore cannot inherit tournament-scoring provenance.
+Saved or explicitly entered provenance is retained, not rewritten by mode selection.
 
 On a Session, explicitly attach to an existing event and game position, mapping
 each of the three existing participants. Exact stable IDs may prefill that
@@ -51,13 +56,17 @@ The implementation is split into focused modules:
 | `event_context_contracts.py` | Immutable event/series identity, participants, explicit recording bindings, terms, exact financial facts and cumulative checkpoints |
 | `event_context_sources.py` | Existing strict recording reconstruction, decision actor/cutoff and established-outcome adapters |
 | `event_context_projection.py` | Prefix coverage, duplicate-source agreement, contribution arithmetic, checkpoint comparisons and immutable preparation |
+| `event_context_reconciliation.py` | Version-2 semantic comparison identities and verified bridges from retained version-1 acknowledgement evidence |
 | `event_context_operations.py` | Explicit no-op/revision/conflict, checkpoint, reconciliation, attachment and applicability operations |
 | `event_context_store.py` | Bounded append-only context history and frozen-value journal, strict resume and optimistic atomic save |
 | `event_context_recording_files.py` | Existing strict Match/Session file loaders |
 | `app_web/event_context_*.py` | Managed-source discovery, source-bound forms, localized presentation and explicit context-only operations |
 
-All new records use exact private version `1` and reject unknown/missing fields,
-wrong types, Boolean counts, unsupported versions and invalid nested values.
+Context facts retain exact private version `1`. New prepared values and journals
+use explicit version `2`; old version-1 prepared values and journals remain
+strictly reconstructable without changing their original meaning or fingerprints.
+Both versions reject unknown/missing fields, wrong types, Boolean counts,
+unsupported versions and invalid nested values.
 Shared finite-JSON/closed-record and bounded local-I/O helpers are reused without
 changing Automatic Learning's contracts or identity domains. Context fingerprints
 use their own `skatmind\0event_context_v1\0` namespace.
@@ -118,6 +127,10 @@ When a Match and Session refer to the same event position, the position contribu
 once. Complete normalized outcome evidence must agree; shared known declaration
 facts and observed trace prefixes must also agree, including when one source is
 unfinished. A completed source cannot silently hide a contradictory partial one.
+Normalization includes participant references in supported concessions and
+continuation events, including consent lists and exposure-response actors. Only
+identity aliases are normalized; different actors, declarations, traces and
+outcomes still conflict. Supported ending semantics are unchanged.
 Private comparison signatures contain declaration facts and trace-prefix hashes,
 not hidden hands or a second recording archive.
 
@@ -126,7 +139,12 @@ compare one anchor with the next; incomplete evidence makes no invented historic
 claim. A disagreement exposes supplied and derived points and own losses. The
 user can correct the checkpoint or explicitly reconfirm the supplied total with a
 reason. Reconfirmation is bound to the **displayed exact disagreement** and retains
-its comparison basis. Changed evidence requires a new reconciliation. Removing
+its comparison basis. Its version-2 identity covers the semantic compared prefix,
+checkpoints, relevant participant mappings and scoring sources. Unrelated later
+recording growth does not revoke an unchanged historical acknowledgement. Changed
+compared evidence requires a new reconciliation. Whole-document source freshness,
+current-preparation invalidation, stale-form rejection and journal CAS remain exact.
+Removing
 an active checkpoint retains its earlier revisions. Separate saved-checkpoint
 inspection is not an earlier decision's applicable context.
 
@@ -179,7 +197,8 @@ The managed-home root gains `event-contexts.json` only on an explicit successful
 context save. Passive opening, language changes and application restart create
 no context file, write no recording and run no Card analysis or Learning update.
 The fixed private envelope identifies `skatmind_event_context_journal`, version
-`1`, its complete canonical fingerprint and the journal. Limits are 16 MiB,
+`1` or `2`, its complete canonical fingerprint and the journal. New writes use
+version `2`; passive reads and equal saves do not migrate version `1`. Limits are 16 MiB,
 4,096 context revisions and 4,096 retained preparations; exceeding a bound fails
 without truncation or automatic cleanup.
 
@@ -194,7 +213,8 @@ writes preserve existing data. This is local optimistic concurrency, not
 distributed locking. Equal updates are unchanged. A stale page or corrected
 source receives controlled conflict/reload guidance.
 
-`prepare_event_context_v1()` is transport-free. Its immutable value retains the
+`prepare_event_context_v1()` remains the private transport-free service entry point;
+it now returns an explicit `PreparedEventContextV2`. Its immutable value retains the
 event revision, selected participant, exact target recording version, original
 game identity where supplied, game/decision cutoff, independent actor, applicable
 terms/financial facts, checkpoint, exact earlier-position basis, disagreements,
@@ -203,6 +223,16 @@ retains source versions, signed settlement, declarer/outcome and the consumed
 evidence identity. Reconciliation retains its actual comparison facts. Restart
 recomputes arithmetic from these retained values; an overwritten recording's
 fingerprint alone is not the basis.
+
+Version-2 preparations additionally retain comparison identities and only the
+consumed legacy acknowledgement bridges. The journal derives and validates each
+bridge against the exact retained original comparison and context revision.
+An old fingerprint by itself cannot authorize a bridge. Old frozen statuses are
+reconstructed using version-1 rules, even if a new preparation correctly reaches
+a different status under version 2. The first explicit changed save upgrades the
+envelope while preserving earlier revision/preparation values. Downgrade and
+unsupported nested versions are rejected. See the correction record for exact
+compatibility and the legacy concession-normalization boundary.
 
 The service accepts an optional exact `expected_source` for a requested original
 version. If unavailable, new preparation reports `source_unavailable`; it does

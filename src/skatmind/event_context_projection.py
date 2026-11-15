@@ -15,6 +15,12 @@ from .event_context_contracts import (
     identity,
     position,
 )
+from .event_context_reconciliation import (
+    ReconciliationAliasV1,
+    acknowledgement_matches,
+    semantic_disagreement_fingerprint_v2,
+    validate_v2_record,
+)
 from .fixed_three_player_list_contribution import build_fixed_three_player_list_contributions
 
 ESTABLISHED = ("passed", "settled")
@@ -343,6 +349,12 @@ class PreparedEventContextV1(Record):
     def fingerprint(self):
         return identity("prepared", self.to_dict())
 
+    def disagreement_identity(self, disagreement):
+        return disagreement.fingerprint
+
+    def acknowledges(self, disagreement):
+        return disagreement.checkpoint.acknowledged_disagreement == disagreement.fingerprint
+
     @property
     def financial_missing(self):
         return self.terms.financial.missing + (("cent_tariff",) if self.terms.mode != "tournament"
@@ -355,8 +367,37 @@ class PreparedEventContextV1(Record):
                      or row.fact.position > start and row.fact.status not in ESTABLISHED)
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class PreparedEventContextV2(PreparedEventContextV1):
+    reconciliation_identities: tuple[str, ...]
+    acknowledgement_aliases: tuple[ReconciliationAliasV1, ...] = ()
+    version: int = 2
+
+    def validate(self):
+        validate_v2_record(self)
+
+    def __post_init__(self):
+        PreparedEventContextV1.__post_init__(self)
+        if len(self.reconciliation_identities) != len(self.disagreements):
+            raise ValueError("Each disagreement requires one semantic comparison identity.")
+        for value in self.reconciliation_identities:
+            digest(value)
+        unique(self.acknowledgement_aliases)
+
+    @property
+    def fingerprint(self):
+        return identity("prepared_v2", self.to_dict())
+
+    def disagreement_identity(self, disagreement):
+        return self.reconciliation_identities[self.disagreements.index(disagreement)]
+
+    def acknowledges(self, disagreement):
+        return acknowledgement_matches(disagreement, self.disagreement_identity(disagreement),
+                                        self.acknowledgement_aliases)
+
+
 def prepare_event_context_v1(context, recordings, *, target, game_position, decision_index=None,
-                              expected_source=None):
+                              expected_source=None, acknowledgement_aliases=()):
     """Freeze only explicit applicable facts and the prefix ending before game g.
 
     No financial or Card calculation is invoked. Context-only capture does not
@@ -391,14 +432,23 @@ def prepare_event_context_v1(context, recordings, *, target, game_position, deci
     basis = bind_recording_facts(context, recordings, through_position=game_position - 1)
     return _prepare_from_basis(context, basis, target=target,
         target_source=None if recording is None else recording.source, game_position=game_position,
-        decision_index=decision_index, actor=actor, game_id=game_id)
+        decision_index=decision_index, actor=actor, game_id=game_id, preparation_version=2,
+        acknowledgement_aliases=acknowledgement_aliases)
 
 
 def _prepare_from_basis(context, basis, *, target, target_source, game_position,
-                        decision_index, actor, game_id):
+                        decision_index, actor, game_id, preparation_version=1,
+                        acknowledgement_aliases=()):
     checkpoint = next((item for item in reversed(context.checkpoints)
                        if item.through_position < game_position), None)
     disagreements = compare_checkpoints(context, basis, before_position=game_position)
+    semantic = tuple(semantic_disagreement_fingerprint_v2(context, item)
+                     for item in disagreements) if preparation_version == 2 else ()
+    aliases = tuple(sorted(set(alias for alias in acknowledgement_aliases
+        if any(alias.legacy_fingerprint == item.checkpoint.acknowledged_disagreement
+               and alias.semantic_fingerprint == semantic[index]
+               for index, item in enumerate(disagreements))),
+        key=lambda alias: (alias.legacy_fingerprint, alias.semantic_fingerprint)))
     start = 0 if checkpoint is None else checkpoint.through_position
     points = 0 if checkpoint is None else checkpoint.personal_points
     losses = 0 if checkpoint is None else checkpoint.own_losses
@@ -411,7 +461,10 @@ def _prepare_from_basis(context, basis, *, target, target_source, game_position,
         losses += contribution[1]
         through = row.fact.position
     status = "ready" if through == game_position - 1 else "incomplete"
-    if any(item.checkpoint.acknowledged_disagreement != item.fingerprint for item in disagreements):
+    if any(not acknowledgement_matches(item, semantic[index], aliases)
+           if preparation_version == 2 else
+           item.checkpoint.acknowledged_disagreement != item.fingerprint
+           for index, item in enumerate(disagreements)):
         status = "conflict"
     if any(row.fact.status == "source_conflict" for row in basis):
         status = "conflict"
@@ -421,7 +474,9 @@ def _prepare_from_basis(context, basis, *, target, target_source, game_position,
         status = "source_unavailable"
     elif decision_index is not None and actor is None:
         status = "decision_unavailable"
-    return PreparedEventContextV1(event_id=context.event_id, context_revision=context.revision,
+    prepared_type = PreparedEventContextV2 if preparation_version == 2 else PreparedEventContextV1
+    extra = dict(reconciliation_identities=semantic, acknowledgement_aliases=aliases)
+    return prepared_type(event_id=context.event_id, context_revision=context.revision,
         context_fingerprint=context.fingerprint, target_source=target_source,
         target_key=target, game_position=game_position,
         decision_index=decision_index, actor_id=actor, target_game_id=game_id,
@@ -429,7 +484,8 @@ def _prepare_from_basis(context, basis, *, target, target_source, game_position,
         terms=context.applicable_terms(game_position), checkpoint=checkpoint, basis=basis,
         disagreements=disagreements, status=status, personal_points=points, own_losses=losses,
         established_through=through,
-        remaining_including_current=37 - game_position if context.tournament else None)
+        remaining_including_current=37 - game_position if context.tournament else None,
+        **(extra if preparation_version == 2 else {}))
 
 
 def validate_frozen_context_v1(prepared, context):
@@ -450,7 +506,8 @@ def validate_frozen_context_v1(prepared, context):
     expected = _prepare_from_basis(context, prepared.basis, target=prepared.target_key,
         target_source=prepared.target_source, game_position=prepared.game_position,
         decision_index=prepared.decision_index, actor=prepared.actor_id,
-        game_id=prepared.target_game_id)
+        game_id=prepared.target_game_id, preparation_version=prepared.version,
+        acknowledgement_aliases=getattr(prepared, "acknowledgement_aliases", ()))
     if expected != prepared:
         raise ValueError("Frozen context differs from its exact retained basis.")
 
@@ -460,4 +517,5 @@ def preparation_is_current_v1(prepared, context, recordings):
     if context.fingerprint != prepared.context_fingerprint:
         return False
     return prepared == prepare_event_context_v1(context, recordings, target=prepared.target_key,
-        game_position=prepared.game_position, decision_index=prepared.decision_index)
+        game_position=prepared.game_position, decision_index=prepared.decision_index,
+        acknowledgement_aliases=getattr(prepared, "acknowledgement_aliases", ()))

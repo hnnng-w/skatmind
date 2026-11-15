@@ -193,6 +193,71 @@ def test_selection_supersedes_inflight_analysis_before_publication(
     assert active.selected_review_decision == 3 and not active.capture.report_store.list()
 
 
+def test_superseded_rollout_rejection_cannot_invalidate_new_selection_response(
+        localized_server, monkeypatch):
+    from threading import local
+
+    import skatmind.app_web.server as server_module
+
+    browser, path, page = open_alex(localized_server, count=30)
+    before = path.read_bytes()
+    entered, rendering, release, rejected = Event(), Event(), Event(), Event()
+    thread_state = local()
+    handler = server_module.SkatMindAppWebRequestHandlerV1
+    execute = rollout.execute_match_decision_analysis_v1
+    render = handler._render_match_page
+    event_render = server_module.render_event_context
+    retain = handler._retain_form_feedback
+    send = handler._send_text
+
+    def delayed(*args, **kwargs):
+        entered.set()
+        assert release.wait(15)
+        return execute(*args, **kwargs)
+
+    def marked(self, *args, **kwargs):
+        thread_state.selection = self.path == ROUTE
+        try:
+            return render(self, *args, **kwargs)
+        finally:
+            thread_state.selection = False
+
+    def hold_after_source_capture(*args, **kwargs):
+        if getattr(thread_state, "selection", False):
+            rendering.set()
+            assert rejected.wait(15)
+        return event_render(*args, **kwargs)
+
+    def retained(self, *args, **kwargs):
+        result = retain(self, *args, **kwargs)
+        if self.path == "/matches/review-whole-game":
+            rejected.set()
+        return result
+
+    def sent(self, *args, **kwargs):
+        if self.path == "/matches/review-whole-game":
+            rejected.set()
+        return send(self, *args, **kwargs)
+
+    monkeypatch.setattr(rollout, "execute_match_decision_analysis_v1", delayed)
+    monkeypatch.setattr(handler, "_render_match_page", marked)
+    monkeypatch.setattr(server_module, "render_event_context", hold_after_source_capture)
+    monkeypatch.setattr(handler, "_retain_form_feedback", retained)
+    monkeypatch.setattr(handler, "_send_text", sent)
+    with ThreadPoolExecutor(2) as pool:
+        first = pool.submit(browser.submit, form(page), objective="played_game_goal",
+                            requested_worlds="1")
+        assert entered.wait(10)
+        second = pool.submit(choose, browser, page, 3, enhanced=True)
+        assert rendering.wait(10)
+        release.set()
+        assert first.result()[0] == 409
+        assert second.result()[0] == 200
+    active = localized_server.app_context.managed_stateful.active_match
+    assert active.selected_review_decision == 3 and not active.capture.report_store.list()
+    assert path.read_bytes() == before
+
+
 def test_language_return_retains_exact_selected_controls_and_values(localized_server):
     browser, path, page = open_alex(localized_server, count=30)
     page = choose(browser, page, 3, enhanced=True)[2].decode()

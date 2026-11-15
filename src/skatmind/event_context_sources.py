@@ -84,6 +84,25 @@ def validate_session_match_seats_v1(context, session, binding, match_document):
             raise ValueError("Session participant mapping contradicts Match seat rotation.")
 
 
+def _normalize_event_participants(value, seats):
+    """Normalize only explicit participant-reference fields in supported event structures."""
+    if isinstance(value, list):
+        return [_normalize_event_participants(item, seats) for item in value]
+    if not isinstance(value, dict):
+        return value
+    singular = {"conceding_defender_player_id", "exposing_defender_player_id",
+                "shown_to_defender_player_id", "defender_player_id"}
+    result = {}
+    for name, item in value.items():
+        if name in singular:
+            result[name] = None if item is None else seats[item]
+        elif name == "consenting_defender_player_ids":
+            result[name] = [seats[player] for player in item]
+        else:
+            result[name] = _normalize_event_participants(item, seats)
+    return result
+
+
 def _settled_fact(record, number):
     summary = build_historical_game_summary(record)
     settlement = summary.get("final_settlement_summary", {})
@@ -110,6 +129,9 @@ def _settled_fact(record, number):
             play["player_id"] = seats[play["player_id"]]
     value["skat"] = sorted(value["skat"])
     value["discarded_cards"] = sorted(value["discarded_cards"])
+    for field in ("game_end", "game_events"):
+        if field in value:
+            value[field] = _normalize_event_participants(value[field], seats)
     return OutcomeFactV1(position=number, status="settled", declarer_id=record.declarer_player_id,
         outcome=outcome, settlement_score=score, evidence_fingerprint=identity("outcome", value))
 

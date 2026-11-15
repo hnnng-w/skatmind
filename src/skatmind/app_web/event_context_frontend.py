@@ -124,7 +124,8 @@ def capture_event_page(app, active, family, *, event_id=None):
         game_position = active.selected_position if family == "matches" else binding.game_position
         prepared = prepare_event_context_v1(event,
             _facts(event, documents, game_position=game_position, target=source),
-            target=source, game_position=game_position)
+            target=source, game_position=game_position,
+            acknowledgement_aliases=journal.reconciliation_aliases)
     scope = [journal.fingerprint, active.handle,
         active.position_generation if family == "matches" else active.generation,
         active.selected_position if family == "matches" else None,
@@ -144,7 +145,8 @@ def checkpoint_review(page, through):
     cutoff = through + 1 if target.family == "match" else context.binding(target).game_position
     return prepare_event_context_v1(context,
         _facts(context, page.documents, game_position=cutoff, target=target),
-        target=target, game_position=cutoff)
+        target=target, game_position=cutoff,
+        acknowledgement_aliases=page.journal.reconciliation_aliases)
 
 
 def _selected(document, values):
@@ -261,7 +263,8 @@ def dispatch_event_context(app, route, values):
                     raise EventFormError("applicability")
                 disagreement = next((item for item in prepared.disagreements
                     if item.checkpoint.through_position == through), None)
-                if disagreement is None or values.get("disagreement") != disagreement.fingerprint:
+                if (disagreement is None or values.get("disagreement")
+                        != prepared.disagreement_identity(disagreement)):
                     raise EventFormConflict()
                 context = reconfirm_event_checkpoint_v1(context, prepared, through_position=through,
                     expected_revision=context.revision,
@@ -273,7 +276,7 @@ def dispatch_event_context(app, route, values):
                     _facts(context, page.documents, game_position=game, target=source),
                     target=source,
                     game_position=game, decision_index=number(values, "decision_index", minimum=1,
-                                                              maximum=30))
+                        maximum=30), acknowledgement_aliases=page.journal.reconciliation_aliases)
                 if prepared.status in ("source_unavailable", "decision_unavailable"):
                     raise EventFormError("decision", "decision_index")
             journal = append_event_revision_v1(page.journal, context, prepared=prepared)

@@ -118,3 +118,73 @@ def test_disposable_fixture_generator_is_small_reproducible_and_no_clobber(tmp_p
     with pytest.raises(SystemExit):
         main()
     assert target.read_bytes() == original
+
+
+def mapped_concession_sources(data, other_data=None):
+    """Two genuine accepted Logs with different source-local IDs at one explicit position."""
+    from test_historical_game_event_chain import add_continuation
+
+    if isinstance(data, str):
+        data = add_continuation(build_defender_concession_prefix(completed_trick_count=5), data)
+    aliases = {"player-a": "local-alpha", "player-b": "local-beta", "player-c": "local-gamma"}
+    def renamed(value):
+        if isinstance(value, dict):
+            return {key: renamed(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [renamed(item) for item in value]
+        return aliases.get(value, value) if isinstance(value, str) else value
+    other = renamed(data if other_data is None else other_data)
+    other["game_id"] += "-second-source"
+    documents = tuple(build_session_persistence_document_v1(_complete_retrospective_session(item))
+                      for item in (data, other))
+    match = synthetic_match()
+    context = synthetic_context(match, checkpoint=False)
+    mapping = {"player-a": "player-b", "player-b": "player-c", "player-c": "player-a"}
+    bindings = (
+        build_event_binding_v1(documents[0], game_position=1, player_map=mapping,
+                               selected_player_id="player-c"),
+        build_event_binding_v1(documents[1], game_position=1,
+            player_map={aliases[key]: value for key, value in mapping.items()},
+            selected_player_id="local-gamma"),
+    )
+    context = replace(context, bindings=(*context.bindings, *bindings))
+    facts = (build_recording_facts_v1(match, through_position=1), *(
+        build_recording_facts_v1(document, selected_player_id=binding.source_selected_player_id)
+        for document, binding in zip(documents, bindings, strict=True)))
+    return context, facts
+
+
+@pytest.mark.parametrize("case", ("declarer", "defender", "defender_open_play_continuation",
+                                  "declarer_card_exposure_continuation"))
+def test_mapped_concessions_and_continuations_contribute_once(case):
+    data = (build_concession_prefix(completed_trick_count=3) if case == "declarer" else
+            build_defender_concession_prefix() if case == "defender" else case)
+    context, facts = mapped_concession_sources(data)
+    value = prepare_event_context_v1(context, facts, target=facts[0].source.source, game_position=2)
+    assert value.status == "ready"
+    assert value.basis[0].fact.status == "settled"
+    single = replace(context, bindings=context.bindings[:-1])
+    expected = prepare_event_context_v1(single, facts[:-1], target=facts[0].source.source,
+                                         game_position=2)
+    assert (value.personal_points, value.own_losses) == (
+        expected.personal_points, expected.own_losses)
+
+
+@pytest.mark.parametrize("difference", ("actor", "declaration", "trace", "outcome"))
+def test_mapped_concessions_preserve_actual_game_differences(difference):
+    import copy
+
+    original = build_defender_concession_prefix(completed_trick_count=3)
+    other = copy.deepcopy(original)
+    if difference == "actor":
+        other["game_end"]["conceding_defender_player_id"] = "player-c"
+    elif difference == "declaration":
+        other["declaration"]["bid_value"] = 48
+    elif difference == "trace":
+        other = build_defender_concession_prefix(completed_trick_count=4)
+    else:
+        other = build_concession_prefix(completed_trick_count=3)
+    context, facts = mapped_concession_sources(original, other)
+    assert all(source.outcomes[0].status == "settled" for source in facts[1:])
+    value = prepare_event_context_v1(context, facts, target=facts[0].source.source, game_position=2)
+    assert value.status == "conflict" and value.basis[0].fact.status == "source_conflict"
