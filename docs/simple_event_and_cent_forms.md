@@ -197,3 +197,42 @@ then one three-game Cent round, a missing-result retry/language switch, finish a
 explicit next round. Preserve prior valid evidence and repeat only remaining or
 actually affected steps. No intermediate manual UAT is requested. #208, paused
 formal UAT and release authorization retain their separate boundaries.
+
+## Mixed-participant attachment correction at `38b6341`
+
+The bounded follow-up starts on `feat/322-simple-event-cent-forms` at
+`38b634190cea5b439eb87f2053589a3257edf63a`, with a clean index and worktree.
+Maintainer-verified development-feedback run **43863428591** passed its sole
+partial job (Quick and complete rename/architecture modules) in **44 seconds**
+overall. This is partial feedback for that commit, not complete acceptance of
+the A–F implementation or this subsequent correction.
+
+Before the handler change, a genuine native HTTP regression failed in **4.04s**:
+round IDs `(a, b, c)`, external Session IDs `(b, x, a)`, perspective `a`, and
+position 2 requiring `(b, c, a)`. The returned form contained only `map_2`;
+submitting `map_2="3"` returned **400**, not the expected **303**. The parser's
+all-or-nothing mapping branch incorrectly required the omitted known-ID fields.
+
+`accounting_frontend._open_position` now resolves each participant independently:
+known IDs map directly, and only unknown IDs consume their rendered `map_i`.
+The existing native test is parameterized for all-known, mixed and all-unknown
+sources. It asserts exact rendered fields, invalid-mapping rejection without
+mutation, accepted source/fingerprint, ordered seating, selected perspective and
+unchanged source bytes. Existing uniqueness, perspective, source-binding and
+seat-rotation validation still applies. No redundant or hidden mapping inputs
+were added; rendering, state, arithmetic, registry and translations are unchanged.
+
+Final verification for this correction is the complete `test_accounting_web.py`
+and `test_skatmind_rename.py` modules against final source/documentation, using
+development CPython 3.13.7, `-n 2 --dist=loadfile --max-worker-restart=0`, external
+temporary outputs and 7,200,000 ms invocation timeouts, followed after worker exit
+by explicit Quick and whitespace checks. Command outcomes belong to the handoff.
+The earlier 18-module and source-browser evidence remains historical evidence;
+no browser matrix, exclusive transport modules or Full rerun is required here.
+
+Product code changed. Keep #321/#322 open for automatic partial feedback after
+publication, published-source review, automatic complete exact-commit main gates
+and the later combined installed acceptance. Prior A–F and accepted #316–#320
+evidence remains intact. The installed EUR 9 versus intended EUR 4 observation
+remains separate and unresolved. No UAT build or maintainer-data access occurred;
+no manual Check dispatch or intermediate manual UAT is requested.

@@ -414,28 +414,55 @@ def test_passed_missing_and_unfinished_remain_distinct(localized_server):
         app.managed_stateful.active_session, "sessions", "en")
 
 
+@pytest.mark.parametrize("source_ids,mapping", [
+    pytest.param(("x", "y", "z"), {"map_1": "2", "map_2": "3", "map_3": "1"},
+                 id="all_unknown"),
+    pytest.param(("b", "x", "a"), {"map_2": "3"}, id="mixed"),
+    pytest.param(("b", "c", "a"), {}, id="all_known"),
+])
 def test_external_session_mapping_only_for_unresolved_identity_and_correct_rotation(
-        localized_server):
+        localized_server, source_ids, mapping):
     app = localized_server.app_context
-    other = activate_session(app, "alias-session", ("x", "y", "z"))
+    other = activate_session(app, "alias-session", source_ids)
     # This source's local player is the future rearhand (round participant a).
     from skatmind.session_persistence import save_session_persistence_file_v1
     from skatmind.session_persistence_codec import build_session_persistence_document_v1
     document = build_session_persistence_document_v1(
-        replace(other.document.state, local_player_id="z"))
+        replace(other.document.state, local_player_id=source_ids[2]))
     save_session_persistence_file_v1(other.path, document,
         expected_content_fingerprint=other.document.content_fingerprint)
     before = other.path.read_bytes()
-    activate_session(app)
+    first = activate_session(app)
+    first_bytes = first.path.read_bytes()
     browser = Browser(localized_server)
     page = result(browser, start(browser), 1)
     form = open_form(page, 2, external=True)
-    assert {"map_1", "map_2", "map_3"} <= set(form["values"])
-    assert native_submit(browser, form, map_1="1", map_2="2", map_3="3")[0] == 400
-    page = follow(browser, native_submit(browser, form, map_1="2", map_2="3", map_3="1"))
+    assert action_fields(form) == {"position", "source_choice", *mapping}
+    if mapping:
+        journal = load_accounting(app.managed_home.root)
+        invalid = {key: key.rsplit("_", 1)[1] for key in mapping}
+        assert native_submit(browser, form, **invalid)[0] == 400
+        assert load_accounting(app.managed_home.root) == journal
+        assert app.managed_stateful.active_session is first
+    response = native_submit(browser, form, **mapping)
+    assert response[0] == 303
+    page = follow(browser, response)
     assert other.path.read_bytes() == before
+    assert first.path.read_bytes() == first_bytes
     row = load_accounting(app.managed_home.root).round_heads[0]
-    assert tuple(p.event_player_id for p in row.context.bindings[-1].players) == ("b", "c", "a")
+    binding = row.context.bindings[-1]
+    assert tuple(p.source_player_id for p in binding.players) == source_ids
+    assert tuple(p.event_player_id for p in binding.players) == ("b", "c", "a")
+    assert binding.game_position == 2
+    assert binding.source.product_id == document.state.session_id
+    assert binding.attached_source.content_fingerprint == document.content_fingerprint
+    assert binding.source_selected_player_id == source_ids[2]
+    assert binding.player(binding.source_selected_player_id) == row.context.selected_participant_id
+    assert row.context.selected_participant_id == "a"
+    opened = app.managed_stateful.active_session
+    assert opened.path == other.path and opened.state.local_player_id == source_ids[2]
+    assert tuple((p.seat, binding.player(p.player_id)) for p in opened.state.players) == (
+        ("forehand", "b"), ("middlehand", "c"), ("rearhand", "a"))
 
 
 def test_finish_preserves_all_legacy_confirmations_without_using_them_in_ordinary_summary(

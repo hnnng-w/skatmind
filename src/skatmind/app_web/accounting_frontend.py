@@ -279,11 +279,9 @@ def _open_position(app, row, number, values):
         created = open_guided_session_v1(app.managed_stateful.root("sessions"), matches[0])
     if binding is None:
         players, selected = recording_players_v1(created.document)
-        if all(player in row.context.participant_ids for player in players):
-            mapping = {player: player for player in players}
-        else:
-            mapping = {player: row.context.participant_ids[_integer(values, f"map_{index}",
-                maximum=3) - 1] for index, player in enumerate(players, 1)}
+        mapping = {player: player if player in row.context.participant_ids else
+                   row.context.participant_ids[_integer(values, f"map_{index}", maximum=3) - 1]
+                   for index, player in enumerate(players, 1)}
         selected = selected or next(player for player in players
             if mapping[player] == row.context.selected_participant_id)
         binding = build_event_binding_v1(created.document, game_position=number,
