@@ -7,6 +7,10 @@ from types import MappingProxyType
 from urllib.parse import urlsplit
 
 import skatmind.api.v1.session as session_api
+from skatmind.capture_web.timecodes import (
+    build_presentation_timecode_v1,
+    parse_presentation_timecode_v1,
+)
 from skatmind.rfc3339 import parse_rfc3339_datetime
 
 from .frontend_identifier_generation import (
@@ -534,6 +538,20 @@ def _date_values(values: Mapping[str, str]) -> tuple[str | None, str]:
     return played_date, played_at
 
 
+def _validate_source_timecodes(start: str, end: str) -> None:
+    """Keep existing timecode rules, with a reachable creation-field diagnostic."""
+    try:
+        build_presentation_timecode_v1(start, end)
+    except ValueError as error:
+        for field, value in (("match_timecode_start", start), ("match_timecode_end", end)):
+            try:
+                parse_presentation_timecode_v1(value)
+            except ValueError as field_error:
+                raise ProfileDrivenCreationFieldError(field, str(field_error)) from field_error
+        field = "match_timecode_start" if not start else "match_timecode_end"
+        raise ProfileDrivenCreationFieldError(field, str(error)) from error
+
+
 def prepare_profile_driven_match_creation_v1(
     values: Mapping[str, str],
     *,
@@ -573,6 +591,7 @@ def prepare_profile_driven_match_creation_v1(
             "match_timecode_start" if timecode_start else "match_timecode_end",
             "Video timecodes require one media source.",
         )
+    _validate_source_timecodes(timecode_start, timecode_end)
     platform_ids = tuple(_trimmed(values, f"{seat}_platform_id") for seat in _SEATS)
     save_players = _checkbox(values, "save_players")
     save_platform = _checkbox(values, "save_platform")

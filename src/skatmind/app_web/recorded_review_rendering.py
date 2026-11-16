@@ -11,9 +11,13 @@ def render_recorded_review_chooser_v1(discoveries, *, profile, locale, active_so
     """Render strict discovery classifications, never decision eligibility or Requests."""
     body = '<div id="recorded-review-chooser">' + paragraph(locale, "recordings.introduction")
     body += paragraph(locale, "recordings.lifetime")
-    body += '<p class="entry-actions"><a class="button-link secondary" href="/review">'
+    body += '<p class="entry-actions"><a class="button-link secondary" href="/analyze">'
+    body += translated(locale, "entry.decision.heading") + '</a> '
+    body += '<a class="button-link secondary" href="/review">'
     body += translated(locale, "recordings.manual") + '</a></p>'
     body += paragraph(locale, "recordings.manual_help")
+    body += '<p class="entry-actions"><a class="button-link secondary" href="/learning">'
+    body += translated(locale, "navigation.learning") + '</a></p>'
     for family in RECORDING_FAMILIES:
         view = discoveries[family].view
         body += '<section><h2>' + translated(locale, f"recordings.{family}") + '</h2>'

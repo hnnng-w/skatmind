@@ -182,6 +182,27 @@ def test_match_builtin_platform_ignores_stale_custom_platform_text() -> None:
     assert prepared.product_values["game_platform"] == "EuroSkat"
 
 
+@pytest.mark.parametrize("start,end,field", (
+    ("bad", "", "match_timecode_start"),
+    ("1:60", "", "match_timecode_start"),
+    ("1:00", "bad", "match_timecode_end"),
+    ("2:00", "1:00", "match_timecode_end"),
+    ("", "1:00", "match_timecode_start"),
+))
+def test_source_timecode_errors_keep_existing_rules_and_name_the_control(start, end, field):
+    from skatmind.app_web.profile_driven_creation import ProfileDrivenCreationFieldError
+
+    def forbidden(_size):
+        pytest.fail("Rejected timecodes must not generate identities")
+
+    with pytest.raises(ProfileDrivenCreationFieldError) as caught:
+        prepare_profile_driven_match_creation_v1(
+            _values(source_url="https://example.invalid/video", match_timecode_start=start,
+                    match_timecode_end=end), profile=None, expected_profile_generation=0,
+            existing_match_ids=(), entropy_source=forbidden)
+    assert caught.value.field_key == field
+
+
 def test_match_does_not_invisibly_copy_saved_platform_player_ids() -> None:
     known = KnownPlayerV1(
         "frontend-player-" + "a" * 64,

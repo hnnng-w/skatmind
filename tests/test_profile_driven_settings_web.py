@@ -255,7 +255,7 @@ def test_player_edit_preferences_and_referenced_removal_use_profile_cas(
     assert status == 200
     assert '<option value="custom" selected>' in html
     assert 'name="custom_platform" maxlength="120" value="Local club"' in html
-    assert '<details class="advanced-settings" open>' in html
+    assert '<details class="advanced-settings"><summary>' in html
     assert f'<option value="{handle}" selected>' not in html
     assert '<option value="forehand" selected>' not in html
 
@@ -724,7 +724,7 @@ def test_language_switch_preserves_match_creation_and_field_local_feedback(
     english = body.decode()
     assert status == 400
     assert 'name="source_kind" aria-invalid="true"' in english
-    assert '<details class="advanced-settings" open>' in english
+    assert '<details class="match-optional-details" open>' in english
     assert "Retained source" in english
     assert server.app_context.managed_stateful.active_match is None
 
@@ -761,7 +761,7 @@ def test_language_switch_preserves_match_creation_and_field_local_feedback(
     assert 'value="00:01:00"' in german and 'value="00:02:00"' in german
     assert 'name="source_kind" aria-invalid="true"' in german
     assert "Quellentyp" in german
-    assert '<details class="advanced-settings" open>' in german
+    assert '<details class="match-optional-details" open>' in german
     assert server.app_context.managed_stateful.active_match is None
 
 

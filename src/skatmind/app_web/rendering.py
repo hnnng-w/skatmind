@@ -106,6 +106,8 @@ def _navigation(
     current_route: str,
     frontend: BrowserSafeFrontendProfileStateV1,
 ) -> str:
+    if current_route in {"/analyze", "/review", "/learning"}:
+        current_route = "/review/recorded"
     items = []
     for item in state.navigation:
         current = ' aria-current="page"' if item.route == current_route else ""

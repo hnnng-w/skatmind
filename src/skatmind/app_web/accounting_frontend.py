@@ -379,6 +379,8 @@ def dispatch_accounting(app, route, values, *, activate_session):
                         if status in ("won", "lost") and declarer is None:
                             declarer = row.context.participant_ids[
                                 _integer(values, "declarer", maximum=3)-1]
+                        if status in ("won", "lost") and values.get("game_value", "") == "":
+                            raise AccountingFormError("missing_game_value", "game_value")
                         confirmations += (ConfirmedGameV1(position=number,
                             status="settled" if status in ("won", "lost") else "passed",
                             provenance="Explicit native game result.",

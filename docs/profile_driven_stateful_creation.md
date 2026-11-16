@@ -96,6 +96,19 @@ generation applies only to normal creation.
 
 ## Creation forms
 
+Issue #324 rearranges existing controls: the required Match title is followed
+immediately by closed **Optional details**, before player setup. It contains the
+date-only field, unchanged nested exact local-time editor, and one Source group
+with adjacent URL/kind, alternate title, channel and video timecodes. All source
+fields are reachable with automatic kind selection and JavaScript disabled.
+Only external Match ID, platform-player IDs and read-only format details remain
+in closed Advanced Match details. The shared closed **Save as defaults** disclosure
+contains Session's existing `save_players`, plus Match's existing `save_platform`.
+Fresh checkboxes remain unchecked; submitted choices and reviewed values survive
+errors and language changes. This supersedes #267's default-open layout, preserving
+its hidden legacy preference compatibility and earlier evidence. See the
+[current layout and verification contract](simple_analysis_entry_and_recording_metadata.md).
+
 Issue #233 supersedes the time-based Session choice with **Which Cards can you supply?**:
 Player-perspective recording (`live`, during or after a Game) or complete-deal
 reconstruction (`retrospective`, all three initial hands plus original Skat).
@@ -170,9 +183,8 @@ review presentation is unchanged. The created Match also displays its accepted
 recording perspective near the current Game heading, including empty positions;
 seat rotation never changes that identity or preselects a per-Game declarer.
 Friendly platform values are `euroskat`, `in_person`, `other_online`,
-`unknown`, and `custom`. An optional Source URL is a normal field; source kind,
-title, channel, timecodes, and other exact Product metadata remain inside
-Advanced settings. A date-only value is private display metadata and does not
+`unknown`, and `custom`. Optional Source URL, source kind, title, channel and
+timecodes share the Optional details Source group. A date-only value is private display metadata and does not
 invent `played_at`. Issue #230 adds optional native local date/time/zone controls;
 only an explicit complete, resolved entry populates that Product field. The separate
 legacy explicit RFC 3339 adapter remains. Saved platform account IDs are not copied invisibly into a new
@@ -204,7 +216,7 @@ changes. Field-specific errors attach to the exact form and open their containin
 Advanced disclosure when necessary. Opaque handles are retained only as bounded
 hidden or select identity values and are never included in visible error text.
 
-### Default-open Match details (Issue #267)
+### Historical default-open Match details (Issue #267, superseded by #324)
 
 `render_profile_driven_match_creation_v1()` supplies `open` directly on the existing
 `<details class="advanced-settings">` with summary key `creation.advanced.heading`.

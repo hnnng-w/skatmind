@@ -20,7 +20,6 @@ from skatmind.app_web.information_architecture import (
 from skatmind.app_web.localization_contracts import BrowserSafeFrontendProfileStateV1
 from skatmind.app_web.rendering import render_app_content_page_v1, render_app_page_v1
 from skatmind.app_web.state import build_browser_safe_application_state_v1
-from skatmind.app_web.translation_catalog import translate_frontend_message_v1
 
 
 def _frontend(locale: str) -> BrowserSafeFrontendProfileStateV1:
@@ -39,26 +38,20 @@ def test_information_architecture_contract_values_are_exact_and_private() -> Non
     assert HOME_GROUP_KEYS == (
         "record_games",
         "analyze_and_review",
-        "learn_across_matches",
     )
     assert HOME_TASK_KEYS == (
         "record_match",
         "record_session",
         "review_game",
-        "analyze_decision",
-        "learning_insights",
     )
     assert HOME_TASK_ROUTE_MAPPINGS == (
         ("record_match", "/matches"),
         ("record_session", "/sessions"),
         ("review_game", "/review/recorded"),
-        ("analyze_decision", "/analyze"),
-        ("learning_insights", "/learning"),
     )
     assert HOME_GROUP_TASK_MEMBERSHIP == (
         ("record_games", ("record_match", "record_session")),
-        ("analyze_and_review", ("review_game", "analyze_decision")),
-        ("learn_across_matches", ("learning_insights",)),
+        ("analyze_and_review", ("review_game",)),
     )
     assert HOME_RELATED_TASK_MEMBERSHIP == ()
     assert FRONTEND_EMPTY_STATE_KEYS == (
@@ -114,13 +107,11 @@ def test_information_architecture_rejects_drift(
             (
                 "Record games",
                 "Analyze and review",
-                "Learn from saved games",
             ),
             (
                 "Record a 36-game Match",
                 "Record an individual game",
-                "Review recorded games",
-                "Analyze one decision",
+                "Analyze",
             ),
             "Which area do I need?",
         ),
@@ -129,19 +120,17 @@ def test_information_architecture_rejects_drift(
             (
                 "Spiele erfassen",
                 "Analysieren und auswerten",
-                translate_frontend_message_v1("de", "home.group.learn_across_matches.title"),
             ),
             (
                 "36er-Match erfassen",
                 "Einzelspiel erfassen",
-                "Erfasste Spiele auswerten",
-                "Eine Entscheidung analysieren",
+                "Analysieren",
             ),
             "Welchen Bereich brauche ich?",
         ),
     ),
 )
-def test_home_groups_match_first_recorded_review_and_fifth_learning_card(
+def test_home_groups_match_first_and_one_analysis_entry(
     locale: str,
     group_headings: tuple[str, ...],
     task_titles: tuple[str, ...],
@@ -154,8 +143,8 @@ def test_home_groups_match_first_recorded_review_and_fifth_learning_card(
     groups_html = main[main.index('<section class="home-group"') :]
 
     assert f'<html lang="{locale}">' in html
-    assert html.count('<section class="home-group"') == 3
-    assert html.count('<article class="task-card">') == 5
+    assert html.count('<section class="home-group"') == 2
+    assert html.count('<article class="task-card">') == 3
     cards = re.findall(r'<article class="task-card">(.*?)</article>', main, re.DOTALL)
     assert [re.search(r'href="([^"]+)"', card)[1] for card in cards] == [
         route for _, route in HOME_TASK_ROUTE_MAPPINGS]
@@ -163,11 +152,12 @@ def test_home_groups_match_first_recorded_review_and_fifth_learning_card(
                and 'class="button-link"' in card for card in cards)
     assert 'class="task-disclosure"' not in html
     assert 'class="task-scope"' not in html
-    assert html.count('class="task-action"') == 5
+    assert html.count('class="task-action"') == 3
     assert guide_heading not in html and 'class="scope-guide"' not in html
     assert 'href="/about"' not in main
     assert '<a href="/about">' in html.split('<footer>')[1]
     assert 'href="/review/recorded"' in main and 'href="/review"' not in main
+    assert 'href="/analyze"' not in html and 'href="/learning"' not in html
     assert [groups_html.index(value) for value in group_headings] == sorted(
         groups_html.index(value) for value in group_headings
     )

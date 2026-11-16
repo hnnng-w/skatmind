@@ -657,14 +657,18 @@ textarea:focus-visible {
   outline-offset: 0.2rem;
 }
 
-.custom-platform-field,
-.media-source-fields {
+.custom-platform-field {
   display: none;
 }
 
-label:has(select[name="platform_choice"] option[value="custom"]:checked) + .custom-platform-field,
-label:has(select[name="source_kind"] option:is([value="youtube_video"], [value="other_video"]):checked) ~ .media-source-fields {
+label:has(select[name="platform_choice"] option[value="custom"]:checked) + .custom-platform-field {
   display: grid;
+}
+
+.source-location {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
 }
 
 .skip-link {

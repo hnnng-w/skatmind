@@ -21,11 +21,14 @@ def _t(locale: str, key: str, **values: object) -> str:
 
 def _save_controls(locale: str, *, match: bool = False) -> str:
     return (
+        '<details class="save-defaults"><summary>'
+        f"{_t(locale, 'creation.common.save_defaults')}</summary>"
         f"<p>{_t(locale, 'creation.common.local_save_help')}</p>"
         '<label><input type="checkbox" name="save_players" value="on"> '
         f"{_t(locale, 'creation.common.save_players')}</label>"
         + ('<label><input type="checkbox" name="save_platform" value="on"> '
-           f'{_t(locale, "creation.setup.save_platform")}</label>' if match else '')
+            f'{_t(locale, "creation.setup.save_platform")}</label>' if match else '')
+        + '</details>'
     )
 
 
@@ -143,40 +146,27 @@ def render_profile_driven_match_creation_v1(
         + _profile_generation(profile_generation)
         + f"<label>{_t(locale, 'creation.match.title')} "
         '<input name="match_title" maxlength="160" required></label>'
+        '<details class="match-optional-details"><summary>'
+        f"{_t(locale, 'creation.match.optional_details')}</summary>"
         f"<label>{_t(locale, 'creation.match.date')} "
         '<input type="date" name="played_date"></label>'
         + render_local_time_editor(locale, time_context, include_generation=False)
-        +
-        f'<label>{_t(locale, "creation.match.platform")}<select name="platform_choice">'
-        f"{_platform_options(profile, locale)}</select></label>"
-        f'<label class="custom-platform-field">{_t(locale, "creation.match.custom_platform")} '
-        f'<input name="custom_platform" maxlength="120" '
-        f'value="{escaped_custom_platform}"></label>'
-        + render_fixed_match_format_v1(locale)
-        + render_seat_setup_v1(profile, locale, family="matches", setup=setup)
-        + f"<label>{_t(locale, 'creation.match.source_url')} "
+        + '<fieldset class="match-source"><legend>'
+        f"{_t(locale, 'creation.match.source')}</legend>"
+        '<div class="source-location">'
+        f"<label>{_t(locale, 'creation.match.source_url')} "
         '<input type="url" name="source_url" maxlength="2048"></label>'
-        + _save_controls(locale, match=True)
-        + '<details class="advanced-settings" open><summary>'
-        f"{_t(locale, 'creation.advanced.heading')}</summary>"
-        f"<p>{_t(locale, 'creation.advanced.help')}</p>"
-        f"<label>{_t(locale, 'creation.advanced.external_match_id')} "
-        '<input name="external_match_id"></label>'
-        f"<small>{_t(locale, 'creation.advanced.external_match_id_help')}</small>"
-        + platform_ids
-        + f"<small>{_t(locale, 'creation.advanced.player_platform_id_help')}</small>"
         + f'<label>{_t(locale, "creation.advanced.source_kind")}<select name="source_kind">'
         f'<option value="">{_t(locale, "creation.advanced.source_auto")}</option>'
         f'<option value="youtube_video">{_t(locale, "creation.advanced.source_youtube")}</option>'
         f'<option value="other_video">{_t(locale, "creation.advanced.source_other")}</option>'
         '<option value="manual_observation">'
         f"{_t(locale, 'creation.advanced.source_manual')}</option>"
-        "</select></label>"
+        "</select></label></div>"
         f"<small>{_t(locale, 'creation.advanced.source_kind_help')}</small>"
         f"<label>{_t(locale, 'creation.advanced.source_title')} "
         '<input name="source_title" maxlength="160"></label>'
         f"<small>{_t(locale, 'creation.advanced.source_title_help')}</small>"
-        '<div class="media-source-fields">'
         f"<label>{_t(locale, 'creation.advanced.source_channel')} "
         '<input name="source_channel_name" maxlength="160"></label>'
         f"<small>{_t(locale, 'creation.advanced.source_channel_help')}</small>"
@@ -185,7 +175,23 @@ def render_profile_driven_match_creation_v1(
         f"<label>{_t(locale, 'creation.advanced.timecode_end')} "
         '<input name="match_timecode_end" placeholder="02:03:04"></label>'
         f"<small>{_t(locale, 'creation.advanced.timecode_help')}</small>"
-        "</div>"
+        "</fieldset></details>"
+        f'<label>{_t(locale, "creation.match.platform")}<select name="platform_choice">'
+        f"{_platform_options(profile, locale)}</select></label>"
+        f'<label class="custom-platform-field">{_t(locale, "creation.match.custom_platform")} '
+        f'<input name="custom_platform" maxlength="120" '
+        f'value="{escaped_custom_platform}"></label>'
+        + render_fixed_match_format_v1(locale)
+        + render_seat_setup_v1(profile, locale, family="matches", setup=setup)
+        + _save_controls(locale, match=True)
+        + '<details class="advanced-settings"><summary>'
+        f"{_t(locale, 'creation.advanced.heading')}</summary>"
+        f"<p>{_t(locale, 'creation.advanced.help')}</p>"
+        f"<label>{_t(locale, 'creation.advanced.external_match_id')} "
+        '<input name="external_match_id"></label>'
+        f"<small>{_t(locale, 'creation.advanced.external_match_id_help')}</small>"
+        + platform_ids
+        + f"<small>{_t(locale, 'creation.advanced.player_platform_id_help')}</small>"
         + technical_details(locale, EUROSKAT_36_STANDARD_V1_FORMAT.to_dict())
         +
         "</details>"

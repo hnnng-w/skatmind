@@ -1,11 +1,13 @@
 from dataclasses import replace
 from fractions import Fraction
+from html import escape
 
 import pytest
 from test_event_context_web import activate_match, create_context, native_submit
 from test_frontend_language_switching import localized_server as _localized_server
 from test_language_switch_context import switch
 from test_match_recording_recovery_web import follow
+from test_recording_task_focus import Hierarchy
 from test_session_recorded_review_web import Browser, Forms
 
 from skatmind.accounting_store import (
@@ -397,6 +399,60 @@ def test_native_retry_language_switch_stale_and_pre_simplification_recovery(
     follow(browser, native_submit(browser, returned, game_value="24"))
     row = load_accounting(app.managed_home.root).round_heads[0]
     assert row.game(1)[1][0].gross.value == -Fraction(48, 100)
+
+
+@pytest.mark.parametrize("locale", ("de", "en"))
+@pytest.mark.parametrize("status", ("won", "lost"))
+@pytest.mark.parametrize("omitted", (False, True))
+def test_missing_cent_value_has_specific_accessible_retry_and_exact_settlement(
+    localized_server, locale, status, omitted,
+):
+    app = localized_server.app_context
+    active = activate_session(app)
+    original = active.path.read_bytes()
+    browser = Browser(localized_server)
+    page = switch(browser, start(browser), locale)
+    form = game_form(page, 1)
+    if omitted:
+        del form["values"]["game_value"]
+    path = app.managed_home.root / ACCOUNTING_FILENAME
+    before = path.read_bytes()
+    response = native_submit(browser, form, game_status=status, declarer="1")
+    assert response[0] == 400 and path.read_bytes() == before
+    page = response[2].decode()
+    for language in (locale, "en" if locale == "de" else "de"):
+        if language != locale:
+            page = switch(browser, page, language)
+        assert escape(text(language, "validation.accounting.missing_game_value")) in page
+        assert text(language, "validation.accounting.invalid") not in page
+        tree = Hierarchy(page)
+        field = next(n for n in tree.nodes if n["attrs"].get("name") == "game_value")
+        assert field["attrs"]["aria-invalid"] == "true" and tree.visible(field)
+        assert tree.by_id(field["attrs"]["aria-describedby"])["text"] == text(
+            language, "validation.accounting.missing_game_value")
+        assert game_form(page, 1)["values"]["game_status"] == status
+    page = follow(browser, native_submit(browser, game_form(page, 1), game_value="23"))
+    row = load_accounting(app.managed_home.root).round_heads[0]
+    assert row.confirmations[0].settlement == (23 if status == "won" else -46)
+    assert row.game(1)[1][0].gross.value == Fraction(23 if status == "won" else -46, 100)
+    assert row.game(1)[1][0].fee.value == (Fraction(1, 100) if status == "won" else 0)
+    assert active.path.read_bytes() == original
+    assert native_submit(browser, form, game_status=status, declarer="1")[0] == 409
+
+
+@pytest.mark.parametrize("value", ("bad", " ", "0", "-23", "23.5", "50001"))
+def test_nonmissing_invalid_cent_values_keep_generic_validation(localized_server, value):
+    app = localized_server.app_context
+    activate_session(app)
+    browser = Browser(localized_server)
+    page = start(browser)
+    before = load_accounting(app.managed_home.root)
+    response = native_submit(browser, game_form(page, 1), game_status="lost",
+                             declarer="1", game_value=value)
+    assert response[0] == 400
+    assert text("en", "validation.accounting.invalid") in response[2].decode()
+    assert text("en", "validation.accounting.missing_game_value") not in response[2].decode()
+    assert load_accounting(app.managed_home.root) == before
 
 
 def test_passed_missing_and_unfinished_remain_distinct(localized_server):

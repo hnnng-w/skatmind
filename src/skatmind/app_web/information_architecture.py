@@ -9,26 +9,20 @@ FRONTEND_INFORMATION_ARCHITECTURE_VERSION = 1
 HOME_GROUP_KEYS: Final[tuple[str, ...]] = (
     "record_games",
     "analyze_and_review",
-    "learn_across_matches",
 )
 HOME_TASK_KEYS: Final[tuple[str, ...]] = (
     "record_match",
     "record_session",
     "review_game",
-    "analyze_decision",
-    "learning_insights",
 )
 HOME_TASK_ROUTE_MAPPINGS: Final[tuple[tuple[str, str], ...]] = (
     ("record_match", "/matches"),
     ("record_session", "/sessions"),
     ("review_game", "/review/recorded"),
-    ("analyze_decision", "/analyze"),
-    ("learning_insights", "/learning"),
 )
 HOME_GROUP_TASK_MEMBERSHIP: Final[tuple[tuple[str, tuple[str, ...]], ...]] = (
     ("record_games", ("record_match", "record_session")),
-    ("analyze_and_review", ("review_game", "analyze_decision")),
-    ("learn_across_matches", ("learning_insights",)),
+    ("analyze_and_review", ("review_game",)),
 )
 HOME_RELATED_TASK_MEMBERSHIP: Final[tuple[tuple[str, tuple[str, ...]], ...]] = ()
 FRONTEND_EMPTY_STATE_KEYS: Final[tuple[str, ...]] = (
@@ -58,7 +52,7 @@ def validate_frontend_information_architecture_v1(
     ),
     empty_state_keys: tuple[str, ...] = FRONTEND_EMPTY_STATE_KEYS,
 ) -> None:
-    """Rejects drift in the private Home contract revised by Issue #229."""
+    """Rejects drift in the private Home contract revised by Issue #324."""
 
     if type(version) is not int or version != FRONTEND_INFORMATION_ARCHITECTURE_VERSION:
         raise ValueError("version must equal the frontend information architecture version.")
@@ -84,4 +78,4 @@ def validate_frontend_information_architecture_v1(
     if tuple(group_key for group_key, _members in group_membership) != group_keys:
         raise ValueError("Every Home group must have exact ordered membership.")
     if mapped_routes != APP_HOME_TASK_ROUTES:
-        raise ValueError("Home task Routes must cover the five ordered task Routes exactly.")
+        raise ValueError("Home task Routes must cover the three ordered task Routes exactly.")

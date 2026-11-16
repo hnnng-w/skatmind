@@ -1,4 +1,4 @@
-"""R01g: one fresh-open disclosure and lossless hidden Settings compatibility."""
+"""Grouped native creation controls and lossless hidden Settings compatibility."""
 
 import json
 import re
@@ -10,6 +10,7 @@ from frontend_creation_forms import new_name_roster
 from test_frontend_language_switching import localized_server as _localized_server
 from test_language_switch_context import switch
 from test_match_recording_recovery_web import follow
+from test_recording_task_focus import Hierarchy
 from test_session_recorded_review_web import Browser, Forms
 from test_task_first_language_preservation import enhanced_switch, envelope
 
@@ -28,7 +29,10 @@ CREATE = "/matches/api/v1/create"
 FIELD = "advanced_settings_expanded"
 ADVANCED_FIELDS = (
     "external_match_id", "forehand_platform_id", "middlehand_platform_id",
-    "rearhand_platform_id", "source_kind", "source_title", "source_channel_name",
+    "rearhand_platform_id",
+)
+SOURCE_FIELDS = (
+    "source_url", "source_kind", "source_title", "source_channel_name",
     "match_timecode_start", "match_timecode_end",
 )
 
@@ -71,15 +75,15 @@ def profile_bytes(app):
     return path.read_bytes() if path.exists() else None
 
 
-def outer_details(page):
+def outer_details(page, kind="advanced-settings"):
     return next(d for d in Markup(form_block(page, CREATE)).details
-                if d.get("class") == "advanced-settings")
+                if d.get("class") == kind)
 
 
 @pytest.mark.parametrize("stored,zone", ((None, None), (False, None), (True, None),
                                          (False, "UTC"), (True, "Europe/Berlin")))
 @pytest.mark.parametrize("locale", ("de", "en"))
-def test_fresh_open_is_independent_of_profile_and_preserves_optional_fields(
+def test_fresh_closed_groups_are_independent_of_profile_and_preserve_optional_fields(
     localized_server, stored, zone, locale,
 ):
     app = localized_server.app_context
@@ -91,13 +95,30 @@ def test_fresh_open_is_independent_of_profile_and_preserves_optional_fields(
                                headers={"Accept-Language": locale})[2].decode()
         block = form_block(page, CREATE)
         parsed = Markup(block)
-        assert "open" in outer_details(page)
+        assert "open" not in outer_details(page)
         assert [(d.get("class"), "open" in d) for d in parsed.details] == [
-            ("local-time-editor", False), ("advanced-settings", True), ("technical-details", False)]
+            ("match-optional-details", False), ("local-time-editor", False),
+            ("save-defaults", False), ("advanced-settings", False), ("technical-details", False)]
         assert "id" not in outer_details(page)
         controls = [c for c in parsed.controls if c.get("name") in ADVANCED_FIELDS]
         assert tuple(c["name"] for c in controls) == ADVANCED_FIELDS
         assert all("required" not in c and not c.get("value") for c in controls)
+        tree = Hierarchy(block)
+        fields = [n for n in tree.nodes if n["tag"] in {"input", "select", "textarea"}]
+        for name in (*ADVANCED_FIELDS, *SOURCE_FIELDS, "played_date", "local_date", "local_time",
+                     "local_zone", "save_players", "save_platform"):
+            matches = [n for n in fields if n["attrs"].get("name") == name]
+            assert len(matches) == 1 and "disabled" not in matches[0]["attrs"]
+            classes = [p["attrs"].get("class") for p in matches[0]["parents"]]
+            assert ("advanced-settings" in classes) == (name in ADVANCED_FIELDS)
+            assert ("match-source" in classes) == (name in SOURCE_FIELDS)
+            assert ("save-defaults" in classes) == name.startswith("save_")
+        assert block.index('name="match_title"') < block.index('class="match-optional-details"')
+        assert block.index('name="match_timecode_end"') < block.index('class="seat-entry"')
+        assert [n["attrs"]["name"] for n in fields
+                if n["attrs"].get("name") in SOURCE_FIELDS] == list(SOURCE_FIELDS)
+        for name in ("save_players", "save_platform"):
+            assert name not in Forms(page).find(CREATE)["values"]
         assert Forms(page).find(CREATE)["values"]["time_form"] == "match-create"
     assert profile_bytes(app) == before and app.frontend_profile.generation == generation
     assert load_frontend_profile_file_v1(app.managed_home.root).status == (
@@ -189,9 +210,9 @@ def test_language_closure_then_fresh_default_and_error_priority(localized_server
     assert Forms(page).find(CREATE)["values"]["source_title"] == "Unsent title"
     # Consumed language overlay is not a persistent preference.
     page = browser.page("/matches/new")
-    assert "open" in outer_details(page)
+    assert "open" not in outer_details(page)
     page = switch(browser, page, "en")  # Native/no-script language form, no DOM collapse payload.
-    assert "open" in outer_details(page)
+    assert "open" not in outer_details(page)
     response = browser.submit(Forms(page).find(CREATE), **new_name_roster(),
         match_title="Synthetic Match", perspective_seat="forehand", setup_action="update",
         source_kind="manual_observation", source_url="https://example.invalid/video")
@@ -199,13 +220,15 @@ def test_language_closure_then_fresh_default_and_error_priority(localized_server
     page = response[2].decode()
     assert 'name="source_kind" aria-invalid="true"' in page
     page = follow(browser, enhanced_switch(browser, page, envelope(page, CREATE, {})))
-    assert "open" in outer_details(page)
+    assert "open" in outer_details(page, "match-optional-details")
     assert 'name="source_kind" aria-invalid="true"' in page
     assert localized_server.app_context.managed_stateful.active_match is None
 
 
 @pytest.mark.parametrize("stored", (None, False, True))
-def test_update_opens_but_changed_advanced_values_still_require_review(localized_server, stored):
+def test_closed_groups_keep_reviewed_values_and_changed_source_still_requires_review(
+    localized_server, stored,
+):
     app = localized_server.app_context
     seed_profile(app, stored)
     browser = Browser(localized_server)
@@ -214,7 +237,7 @@ def test_update_opens_but_changed_advanced_values_still_require_review(localized
         perspective_seat="forehand", source_title="Reviewed title", setup_action="update")
     assert response[0] == 303 and response[1]["location"] == "/matches/new#match-setup-review"
     page = follow(browser, response)
-    assert "open" in outer_details(page)
+    assert "open" not in outer_details(page)
     form = Forms(page).find(CREATE)
     assert form["values"]["source_title"] == "Reviewed title"
     before = profile_bytes(app)
@@ -223,7 +246,7 @@ def test_update_opens_but_changed_advanced_values_still_require_review(localized
     assert profile_bytes(app) == before
     page = response[2].decode()
     page = follow(browser, browser.submit(Forms(page).find(CREATE), setup_action="update"))
-    assert "open" in outer_details(page)
+    assert "open" not in outer_details(page)
     form = Forms(page).find(CREATE)
     response = browser.submit(form, setup_action="create")
     assert response[0] == 303 and response[1]["location"] == "/matches/position/1#match-recording"
@@ -235,6 +258,99 @@ def test_update_opens_but_changed_advanced_values_still_require_review(localized
     saved = active.path.read_bytes()
     assert browser.submit(form, setup_action="create")[0] == 409
     assert active.path.read_bytes() == saved and app.managed_stateful.active_match is active
+
+
+@pytest.mark.parametrize("field,values,containers", (
+    ("source_channel_name", {"source_channel_name": "Synthetic channel"},
+     ("match-optional-details",)),
+    ("match_timecode_start", {"source_url": "https://example.invalid/video",
+                              "match_timecode_start": "bad"}, ("match-optional-details",)),
+    ("match_timecode_end", {"source_url": "https://example.invalid/video",
+                            "match_timecode_start": "00:02:00", "match_timecode_end": "00:01:00"},
+     ("match-optional-details",)),
+    ("local_time", {"local_date": "2026-03-29", "local_time": "02:30"},
+     ("match-optional-details", "local-time-editor")),
+    ("forehand_platform_id", {"forehand_platform_id": "x" * 256}, ("advanced-settings",)),
+))
+def test_errors_reveal_nested_controls_and_language_cannot_hide_them(
+    localized_server, field, values, containers,
+):
+    browser = Browser(localized_server)
+    response = browser.submit(Forms(browser.page("/matches/new")).find(CREATE),
+        **new_name_roster(), match_title="Synthetic retry", perspective_seat="forehand",
+        setup_action="update", save_players="on", save_platform="on", **values)
+    assert response[0] == 400
+    page = response[2].decode()
+    for locale in ("de", "en"):
+        page = follow(browser, enhanced_switch(browser, page, envelope(page, CREATE, {}), locale))
+        node = next(n for n in Hierarchy(page).nodes if n["attrs"].get("name") == field)
+        assert node["attrs"]["aria-invalid"] == "true"
+        assert Hierarchy.visible(node)
+        assert [p["attrs"].get("class") for p in node["parents"]
+                if p["tag"] == "details"] == list(containers)
+        form = Forms(page).find(CREATE)
+        assert form["values"][field] == values[field]
+        assert form["values"]["save_players"] == form["values"]["save_platform"] == "on"
+    assert localized_server.app_context.managed_stateful.active_match is None
+
+
+@pytest.mark.parametrize("family", ("sessions", "matches"))
+def test_save_defaults_unsent_choices_disclosures_and_native_review_survive_language(
+    localized_server, family,
+):
+    app = localized_server.app_context
+    browser = Browser(localized_server)
+    route, action, title = (("/sessions", "/sessions/create", "game_name") if family == "sessions"
+                            else ("/matches/new", CREATE, "match_title"))
+    page = browser.page(route)
+    fields = ("save_players",) if family == "sessions" else ("save_players", "save_platform")
+    assert all(name not in Forms(page).find(action)["values"] for name in fields)
+    for locale, selected in (("de", True), ("en", False), ("de", True)):
+        disclosures = [d.get("class") == "save-defaults" for d in Markup(page).details]
+        values = {name: ["on"] if selected else [] for name in fields}
+        values[title] = ["Unsent synthetic title"]
+        page = follow(browser, enhanced_switch(browser, page,
+            envelope(page, action, values, disclosures=disclosures), locale))
+        assert "open" in next(d for d in Markup(page).details
+                              if d.get("class") == "save-defaults")
+        form = Forms(page).find(action)
+        assert form["values"][title] == "Unsent synthetic title"
+        assert all((name in form["values"]) is selected for name in fields)
+        assert app.frontend_profile.document.known_players == ()
+        assert app.frontend_profile.document.preferred_game_platform is None
+    page = follow(browser, browser.submit(form, **new_name_roster(),
+        perspective_seat="forehand", setup_action="update"))
+    page = switch(browser, page, "en")
+    form = Forms(page).find(action)
+    assert all(form["values"][name] == "on" for name in fields)
+    follow(browser, browser.submit(form, setup_action="create"))
+    assert len(app.frontend_profile.document.known_players) == 3
+    assert app.frontend_profile.document.preferred_game_platform == (
+        "Unknown" if family == "matches" else None)
+
+
+@pytest.mark.parametrize("url,kind,title", (
+    ("https://www.youtube.com/watch?v=synthetic", "youtube_video", ""),
+    ("https://example.invalid/video", "other_video", "Alternate title"),
+))
+def test_automatic_source_and_title_fallback_survive_collapsed_native_submission(
+    localized_server, url, kind, title,
+):
+    browser = Browser(localized_server)
+    page = follow(browser, browser.submit(Forms(browser.page("/matches/new")).find(CREATE),
+        **new_name_roster(), match_title="Synthetic source", perspective_seat="forehand",
+        setup_action="update", source_url=url, source_title=title,
+        source_channel_name="Synthetic channel", match_timecode_start="00:01:00",
+        match_timecode_end="00:02:00", played_date="2026-09-01"))
+    assert "open" not in outer_details(page, "match-optional-details")
+    assert Forms(page).find(CREATE)["values"]["source_kind"] == ""
+    follow(browser, browser.submit(Forms(page).find(CREATE), setup_action="create"))
+    active = localized_server.app_context.managed_stateful.active_match
+    definition = active.workspace.match_definition
+    assert definition.source.source_kind == kind and definition.source.source_url == url
+    assert definition.source.source_title == (title or "Synthetic source")
+    assert definition.source.source_channel_name == "Synthetic channel"
+    assert definition.played_at is None
 
 
 @pytest.mark.parametrize("value,expected", ((None, False), ("", False), ("on", True)))
@@ -251,7 +367,7 @@ def test_legacy_omitted_empty_on_remain_real_supported_changes(localized_server,
     assert app.frontend_profile.document.interface_preferences.to_dict() == {
         FIELD: expected, "time_zone": "UTC"}
     assert app.frontend_profile.generation == 2
-    assert "open" in outer_details(browser.page("/matches/new"))
+    assert "open" not in outer_details(browser.page("/matches/new"))
 
 
 @pytest.mark.parametrize("value", ("true", "off", ["on", ""], ["on", "on"]))

@@ -264,9 +264,10 @@ def test_all_authenticated_routes_render_shared_navigation_and_one_h1(
         assert html.count("<h1>") == 1
         assert '<a class="skip-link" href="#main-content">Skip to main content</a>' in html
         assert "<header" in html and "<nav" in html and "<main" in html and "<footer" in html
-        assert html.count('aria-current="page"') == int(route in APP_NAVIGATION_ROUTE_PATHS)
-        if route in APP_NAVIGATION_ROUTE_PATHS:
-            assert f'href="{route}" aria-current="page"' in html
+        parent = "/review/recorded" if route in {"/analyze", "/review", "/learning"} else route
+        assert html.count('aria-current="page"') == int(parent in APP_NAVIGATION_ROUTE_PATHS)
+        if parent in APP_NAVIGATION_ROUTE_PATHS:
+            assert f'href="{parent}" aria-current="page"' in html
         positions = [html.index(f">{escape(label)}</a>") for label in APP_NAVIGATION_LABELS]
         assert positions == sorted(positions)
         script = '<script src="/matches/assets/capture.js"></script>'
@@ -287,16 +288,16 @@ def test_home_has_exact_tasks_local_no_cloud_copy_and_honest_status(
     main = html[html.index("<main") : html.index("</main>")]
     groups_html = main[main.index('<section class="home-group"') :]
     assert "Local Skat analysis. No cloud service." in html
-    assert html.count('<article class="task-card">') == 5
-    assert html.count('<section class="home-group"') == 3
-    assert html.count('class="task-action"') == 5
+    assert html.count('<article class="task-card">') == 3
+    assert html.count('<section class="home-group"') == 2
+    assert html.count('class="task-action"') == 3
     assert '<details class="task-disclosure"' not in html
     assert "Which area do I need?" not in html
     assert groups_html.index("Record a 36-game Match") < groups_html.index(
         "Record an individual game"
     )
     assert groups_html.index("Record an individual game") < groups_html.index(
-        "Analyze one decision"
+        "Analyze"
     )
     assert "Available now." not in html
     assert "not yet available" not in html
@@ -411,7 +412,7 @@ def test_home_rendering_executes_no_product_work(
         "/",
         headers={"Cookie": cookie},
     )
-    assert status == 200 and b"Review recorded games" in body
+    assert status == 200 and b"Analyze" in body
     assert server.app_context.managed_stateful.discoveries == before_discoveries
     assert server.app_context.managed_stateful.generations == before_generations
 

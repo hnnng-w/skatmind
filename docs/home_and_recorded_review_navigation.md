@@ -1,5 +1,14 @@
 # Home and recorded-game review navigation
 
+Issue #324 supersedes the five-task presentation below with one ordinary **Analyze**
+entry at `/review/recorded`. Home has three tasks in two groups; main navigation is
+Home, Match recording, individual recording, Analyze, Settings. The existing chooser
+links to single-situation `/analyze`, manual completed-game `/review`, and secondary
+`/learning`. Its source lists and native `POST /review/open-recording` owner remain.
+See [Simple analysis entry and grouped recording metadata](simple_analysis_entry_and_recording_metadata.md)
+for the current layout, passive-operation guarantees and scoped acceptance boundary.
+Earlier navigation/browser evidence below remains point-in-time history.
+
 Issue #229 connects **Home → choose a recording → existing review action → Result
 → the same recording**. It deliberately supersedes the earlier scope guide,
 per-task unit/timing/detail blocks, generic related-area panels, and large Home

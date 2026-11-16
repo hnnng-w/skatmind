@@ -2,7 +2,16 @@
 
 ## Status
 
-Issue #303 changes the operative `home.task.analyze_decision.summary` to **Enter a
+Issue #324 replaces the five-task/three-group layout with three tasks in two groups:
+`record_games` contains `record_match` and `record_session`; `analyze_and_review`
+contains `review_game`, presented as **Analyze** at `/review/recorded`. The chooser
+provides native links to `/analyze`, `/review` and secondary `/learning`. The last
+three destinations highlight the Analyze parent while retaining their workflow
+identities. The private version and served route inventory remain unchanged.
+See [the current #324 contract](simple_analysis_entry_and_recording_metadata.md).
+The five-task values and labels below describe the superseded presentation.
+
+Issue #303 changed the then-operative `home.task.analyze_decision.summary` to **Enter a
 card situation yourself and analyze one decision**, with the corresponding German
 catalog text. The five tasks, order, groups, destinations and primary navigation
 remain exact. Independent analysis now directly links to the recorded chooser;

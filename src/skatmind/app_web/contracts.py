@@ -32,40 +32,32 @@ APP_ROUTE_PATHS = (
     "/review/recorded",
 )
 APP_NAVIGATION_ROUTE_PATHS = (
-    "/", "/matches", "/sessions", "/review/recorded", "/analyze", "/learning", "/settings",
+    "/", "/matches", "/sessions", "/review/recorded", "/settings",
 )
-APP_HOME_TASK_ROUTES = ("/matches", "/sessions", "/review/recorded", "/analyze", "/learning")
+APP_HOME_TASK_ROUTES = ("/matches", "/sessions", "/review/recorded")
 APP_NAVIGATION_LABELS = (
     "Home",
     "Record a 36-game Match",
     "Record an individual game",
-    "Review recorded games",
-    "Analyze one decision",
-    "Learning",
+    "Analyze",
     "Settings",
 )
 APP_HOME_TASK_TITLES = (
     "Record a 36-game Match",
     "Record an individual game",
-    "Review recorded games",
-    "Analyze one decision",
-    "Learn from saved games",
+    "Analyze",
 )
 APP_NAVIGATION_MESSAGE_KEYS = (
     "navigation.home",
     "navigation.matches",
     "navigation.sessions",
     "navigation.review",
-    "navigation.analyze",
-    "navigation.learning",
     "navigation.settings",
 )
 APP_HOME_TASK_MESSAGE_KEY_PREFIXES = (
     "home.tasks.matches",
     "home.tasks.sessions",
     "home.tasks.review",
-    "home.tasks.analyze",
-    "home.tasks.learning",
 )
 MANAGED_LOCAL_DATA_CATEGORIES = (
     "sessions",

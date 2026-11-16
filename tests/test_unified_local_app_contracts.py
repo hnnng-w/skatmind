@@ -69,20 +69,16 @@ def test_routes_navigation_home_tasks_and_categories_are_exact_and_ordered() -> 
         "Home",
         "Record a 36-game Match",
         "Record an individual game",
-        "Review recorded games",
-        "Analyze one decision",
-        "Learning",
+        "Analyze",
         "Settings",
     )
     assert APP_HOME_TASK_TITLES == (
         "Record a 36-game Match",
         "Record an individual game",
-        "Review recorded games",
-        "Analyze one decision",
-        "Learn from saved games",
+        "Analyze",
     )
     assert APP_NAVIGATION_ROUTE_PATHS == (
-        "/", "/matches", "/sessions", "/review/recorded", "/analyze", "/learning", "/settings",
+        "/", "/matches", "/sessions", "/review/recorded", "/settings",
     )
     assert MANAGED_LOCAL_DATA_CATEGORIES == ("sessions", "matches", "corpora")
     validate_unified_local_frontend_contract_v1()
@@ -221,8 +217,6 @@ def test_browser_state_is_immutable_canonical_and_contains_no_private_values() -
         f"{prefix}.title" for prefix in APP_HOME_TASK_MESSAGE_KEY_PREFIXES
     )
     assert tuple(task.available for task in state.home_tasks) == (
-        True,
-        True,
         True,
         True,
         True,

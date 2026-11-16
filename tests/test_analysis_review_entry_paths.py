@@ -77,9 +77,8 @@ def test_delivered_independent_entry_has_direct_form_and_one_native_recorded_act
         "/actions/profile/language", "/actions/analyze/run-guided",
         "/actions/analyze/import-json", "/actions/analyze/reset"]
     home = browser.request("GET", "/", headers={"Accept-Language": locale})[2].decode()
-    expected = ("Enter a card situation yourself and analyze one decision." if locale == "en"
-                else "Eine Kartensituation selbst eingeben und eine Entscheidung analysieren.")
-    assert f'<p class="task-summary">{expected}</p>' in home
+    assert text(locale, "home.task.review_game.summary") in home
+    assert 'href="/analyze"' not in home
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))
@@ -204,12 +203,18 @@ def test_passive_entry_links_preserve_files_and_require_exact_recording_open_for
                         forbidden)
     monkeypatch.setattr("skatmind.app_web.learning_frontend.prepare_learning_corpus_artifacts_web_v1",
                         forbidden)
+    monkeypatch.setattr(
+        "skatmind.app_web.automatic_learning_controller.AutomaticLearningController.bind",
+        forbidden)
     browser = Browser(localized_server)
     initial = (context.analyze_state, context.review_state)
     page = browser.page(recorded_link(browser.page("/analyze"), "en", primary=True))
     page = browser.page(entry_link(page, "/review", text("en", "recordings.manual")))
     browser.page(entry_link(page, "/sessions", text("en", "entry.recording_action")))
     page = browser.page(recorded_link(browser.page("/review"), "en"))
+    page = switch(browser, page, "de")
+    entry_link(page, "/analyze", text("de", "entry.decision.heading"))
+    entry_link(page, "/learning", text("de", "navigation.learning"))
     assert context.managed_stateful.active_session is context.managed_stateful.active_match is None
     assert (context.analyze_state, context.review_state) == initial
     form = chooser_form(page, family)
@@ -223,7 +228,8 @@ def test_passive_entry_links_preserve_files_and_require_exact_recording_open_for
     # An openable setup/empty Game still has no eligible decision to execute.
     assert not any(f["action"] == "/sessions/review-decision"
                    or f["values"].get("operation") == "analyze_decision" for f in Forms(page).forms)
-    assert {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()} == before
+    assert {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()
+            and p.name != "frontend-profile.json"} == before
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))
@@ -241,6 +247,8 @@ def test_chooser_manual_action_precedes_both_lists_and_family_entries_match(
     page = browser.request("GET", "/review/recorded",
                            headers={"Accept-Language": locale})[2].decode()
     entry_link(page, "/review", text(locale, "recordings.manual"))
+    entry_link(page, "/analyze", text(locale, "entry.decision.heading"))
+    entry_link(page, "/learning", text(locale, "navigation.learning"))
     for family in ("sessions", "matches"):
         entry_link(page, "/" + family, text(locale, "navigation." + family))
     tree = Hierarchy(page)
@@ -257,3 +265,16 @@ def test_chooser_manual_action_precedes_both_lists_and_family_entries_match(
     assert len(forms) == (7 if populated else 0)
     for form in forms:
         assert set(form["values"]) == {"family", "handle", "generation", "_frontend_form_instance"}
+
+
+@pytest.mark.parametrize("route,parent", (
+    ("/review/recorded", "/review/recorded"), ("/analyze", "/review/recorded"),
+    ("/review", "/review/recorded"), ("/learning", "/review/recorded"),
+    ("/sessions", "/sessions"), ("/matches", "/matches"),
+))
+def test_analysis_parent_does_not_replace_workflow_identity(localized_server, route, parent):
+    page = Browser(localized_server).page(route)
+    tree = Hierarchy(page)
+    current = [node for node in tree.nodes if node["attrs"].get("aria-current") == "page"]
+    assert len(current) == 1 and current[0]["attrs"]["href"] == parent
+    assert tree.by_id("main-content")["attrs"]["data-workflow"] == route.removeprefix("/")

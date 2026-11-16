@@ -28,7 +28,7 @@ TECHNICAL = {
 }
 TECHNICAL_FILES = ["README.md", "docs/installed_cli.md", "docs/public_python_api_v1.md",
                    "docs/unified_local_frontend_contract.md"]
-TASKS = ["/matches", "/sessions", "/review/recorded", "/analyze", "/learning"]
+TASKS = ["/matches", "/sessions", "/review/recorded"]
 NAVIGATION = ["/", *TASKS, "/settings"]
 
 
@@ -65,13 +65,13 @@ def test_recording_entry_literal_meaning_and_existing_destinations(localized_ser
         cards = re.findall(r'<article class="task-card">(.*?)</article>', page, re.S)
         assert [re.search(r'href="([^"]+)"', card)[1] for card in cards] == TASKS
         assert re.findall(r'<section class="home-group" aria-labelledby="([^"]+)"', page) == [
-            "home-group-record_games", "home-group-analyze_and_review",
-            "home-group-learn_across_matches"]
+            "home-group-record_games", "home-group-analyze_and_review"]
         assert f'<p class="task-summary">{ENTRY[locale]}</p>' in cards[1]
         assert escape(t(locale, "home.task.record_session.title")) in cards[1]
         assert escape(t(locale, "home.task.record_session.action")) in cards[1]
         assert escape(t(locale, "home.task.review_game.summary")) in cards[2]
-        assert escape(t(locale, "home.task.analyze_decision.summary")) in cards[3]
+        assert 'href="/analyze"' not in main_content(page)
+        assert 'href="/learning"' not in main_content(page)
     else:
         assert f'<p class="entry-introduction">{ENTRY[locale]}</p>' in page
         assert len(re.findall('class="entry-introduction"', page)) == 1

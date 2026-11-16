@@ -1,5 +1,13 @@
 # Mode-specific accounting and three-game Cent rounds
 
+The maintainer accepted and closed #321/#322 before #324. Their earlier pending
+and installed-observation statements below are historical; accepted Tournament
+and Cent evidence remains valid. Issue #324 adds only a dedicated bilingual
+`game_value` error for won/lost results with an omitted or empty value, requesting
+the value before loss doubling. Nonempty invalid values keep existing validation;
+passed/derived results, source freshness, fees and exactly-once doubling retain
+their existing behavior. See [the #324 verification boundary](simple_analysis_entry_and_recording_metadata.md).
+
 Current ordinary behavior is defined by the maintainer-approved
 [A–F simplification](simple_event_and_cent_forms.md): one title, actual-platform
 rules, conditional checkpoints, cost-only Tournament inputs, reused Cent players
