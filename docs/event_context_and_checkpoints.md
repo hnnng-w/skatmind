@@ -1,6 +1,14 @@
 # Event context and chronological checkpoints
 
-## Scope and ordinary use
+The approved #322 A–F follow-up replaces the ordinary questionnaires below with
+[simple event and Cent forms](simple_event_and_cent_forms.md). That document is
+authoritative for current visible inputs, platform-bound rules and conditional
+checkpoints. The original #321 workflow descriptions and verification below remain
+historical; its source, chronological and frozen-evidence protections still apply.
+New private terms use explicit wire version 2 for the actual platform, while old
+version-1 terms and original frozen values retain their exact serialized shape.
+
+## Original #321 scope and ordinary use (historical)
 
 The subsequent [Issue #322 accounting/round workflow](mode_accounting_and_cent_rounds.md)
 consumes these retained contracts without changing their historical semantics.

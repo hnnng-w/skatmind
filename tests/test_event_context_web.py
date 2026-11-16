@@ -37,11 +37,16 @@ def activate_match(app, *, position=25):
 def create_context(browser, *, family="matches", **overrides):
     page = browser.page("/matches/current" if family == "matches" else "/sessions/current")
     form = Forms(page).find(f"/{family}/event-context/create")
-    return follow(browser, browser.submit(form, event_name="Synthetic event",
-        series_name="Actual list 1", event_mode="tournament", through_position="24",
-        personal_points="780", own_losses="3", provenance="Confirmed synthetic list",
-        scoring_source="Confirmed synthetic tournament rules", scoring_edition="1",
-        **overrides))
+    page = follow(browser, native_submit(browser, form, title="Synthetic event", **overrides))
+    return follow(browser, native_submit(browser, Forms(page).find(
+        f"/{family}/event-context/checkpoint"), through_position="24",
+        personal_points="780", own_losses="3"))
+
+
+def native_submit(browser, form, **overrides):
+    """Ordinary tests can change emitted inputs, never add hidden questionnaire answers."""
+    assert set(overrides) <= set(form["values"]), set(overrides) - set(form["values"])
+    return browser.submit(form, **overrides)
 
 
 @pytest.mark.parametrize("locale", ["en", "de"])
@@ -64,6 +69,8 @@ def test_native_forms_checkpoint_continuation_freeze_restart_and_passive_isolati
     path = app.managed_home.root / EVENT_CONTEXT_FILENAME
     first = path.read_bytes()
     assert text(locale, "event.status.ready") in page
+    assert text(locale, "event.correct_score") in page
+    assert '<details open><summary>' + text(locale, "event.checkpoint") not in page
     page = browser.page("/matches/position/26")
     assert "780" in page and text(locale, "event.status.ready") in page
     checkpoint = Forms(page).find("/matches/event-context/checkpoint")
@@ -155,10 +162,10 @@ def test_session_explicit_attachment_native_mapping_and_same_position_dedup(loca
     before = active.path.read_bytes(), match.path.read_bytes()
     page = browser.page("/sessions/current")
     form = Forms(page).find("/sessions/event-context/attach")
-    bad = browser.submit(form, game_position="26", selected_player="1", provenance="Same event")
+    assert not any(key.startswith("map_") for key in form["values"])
+    bad = native_submit(browser, form, game_position="26", selected_player="1")
     assert bad[0] == 400  # Fixed seat rotation is checked, not just similar names.
-    page = follow(browser, browser.submit(form, game_position="27", selected_player="1",
-                                          provenance="Confirmed same game at position 27"))
+    page = follow(browser, native_submit(browser, form, game_position="27", selected_player="1"))
     journal = load_event_context_v1(app.managed_home.root)
     assert len(journal.heads) == 1 and len(journal.heads[0].bindings) == 2
     assert text("en", "event.title") in page
@@ -167,26 +174,20 @@ def test_session_explicit_attachment_native_mapping_and_same_position_dedup(loca
     assert before == (active.path.read_bytes(), match.path.read_bytes())
 
 
-def test_financial_facts_exact_tariff_source_compatibility_and_old_terms(localized_server):
+def test_generated_edited_title_and_platform_follow_the_recording(localized_server):
     app = localized_server.app_context
-    activate_match(app)
+    active = activate_match(app)
     browser = Browser(localized_server)
-    page = create_context(browser)
+    form = Forms(browser.page("/matches/current")).find("/matches/event-context/create")
+    assert form["values"]["title"] == active.workspace.match_definition.title
+    assert "platform" not in form["values"]
+    page = follow(browser, native_submit(browser, form))
     form = Forms(page).find("/matches/event-context/terms")
-    values = dict(event_mode="tournament_cent", cent_tariff="1/4", currency="EUR",
-        entry_paid="5.00", table_committed="0.75", financial_provenance="Confirmed event receipt",
-        from_position="25", change_kind="later", provenance="Changed from game 25")
-    invalid = browser.submit(form, **{**values, "cent_tariff": "1"})
-    assert invalid[0] == 400
-    page = follow(browser, browser.submit(form, **values))
+    page = follow(browser, native_submit(browser, form, title="Edited event"))
     event = load_event_context_v1(app.managed_home.root).heads[0]
-    assert event.applicable_terms(24).financial.currency is None
-    terms = event.applicable_terms(25)
-    assert terms.financial.entry_paid.numerator == 5 and terms.financial.entry_paid.denominator == 1
-    assert terms.financial.table_committed.numerator == 3
-    assert terms.financial.table_committed.denominator == 4
-    page = browser.page("/matches/position/12")
-    assert Forms(page).find("/matches/event-context/terms")["values"]["currency"] == ""
+    assert event.event_name == "Edited event"
+    assert event.terms[0].platform == "euroskat" and event.terms[0].version == 2
+    assert Forms(page).find("/matches/event-context/terms")["values"]["title"] == "Edited event"
 
 
 def test_native_reconciliation_requires_the_displayed_exact_disagreement(localized_server):
@@ -195,13 +196,13 @@ def test_native_reconciliation_requires_the_displayed_exact_disagreement(localiz
     browser = Browser(localized_server)
     page = create_context(browser)
     page = follow(browser, browser.submit(Forms(page).find("/matches/event-context/checkpoint"),
-        through_position="25", personal_points="999", own_losses="3", provenance="Supplied total"))
+        through_position="25", personal_points="999", own_losses="3"))
     page = browser.page("/matches/position/26")
     assert text("en", "event.status.conflict") in page
     form = Forms(page).find("/matches/event-context/reconfirm")
-    response = browser.submit(form, provenance="Checked original list", disagreement="a" * 64)
+    response = native_submit(browser, form, disagreement="a" * 64)
     assert response[0] == 409
-    page = follow(browser, browser.submit(form, provenance="Checked original list"))
+    page = follow(browser, native_submit(browser, form))
     assert text("en", "event.status.ready") in page
     journal = load_event_context_v1(app.managed_home.root)
     assert journal.heads[0].checkpoints[-1].acknowledged_disagreement is not None
@@ -251,7 +252,7 @@ def test_context_does_not_retrofit_native_results_or_independent_collections(loc
     assert independent == {path: path.read_bytes() for path in root.rglob("*") if path.is_file()}
 
 
-def test_cent_creation_requires_explicit_mode_consistent_source_without_javascript(
+def test_session_context_platform_once_retry_language_and_old_form_recovery(
         localized_server):
     app = localized_server.app_context
     document = build_session_persistence_document_v1(_complete_retrospective_session(
@@ -262,19 +263,18 @@ def test_cent_creation_requires_explicit_mode_consistent_source_without_javascri
     original = active.path.read_bytes()
     browser = Browser(localized_server)
     form = Forms(browser.page()).find("/sessions/event-context/create")
-    response = browser.submit(form, event_name="Actual Cent table", series_name="Actual block",
-        game_position="1", selected_player="1", event_mode="cent")
-    assert response[0] == 400  # No tournament-scoring provenance may be silently confirmed.
-    returned = Forms(response[2].decode()).find("/sessions/event-context/create")
-    assert returned["values"]["event_mode"] == "cent"
-    assert returned["values"]["scoring_source"] == ""
-    page = follow(browser, browser.submit(returned,
-        scoring_source="Confirmed Cent game-point rules",
-        scoring_edition="event-notice-1", currency="EUR", cent_tariff="1/2",
-        financial_provenance="Confirmed tariff notice"))
+    response = native_submit(browser, form, title="Edited before retry", selected_player="1")
+    assert response[0] == 400
+    page = switch(browser, response[2].decode(), "de")
+    returned = Forms(page).find("/sessions/event-context/create")
+    assert returned["values"]["title"] == "Edited before retry"
+    page = follow(browser, native_submit(browser, returned, platform="in_person"))
     context = load_event_context_v1(app.managed_home.root).heads[0]
-    assert context.terms[0].scoring_rule == "cent_game_points_v1"
-    assert context.terms[0].scoring_source.reference == "Confirmed Cent game-point rules"
-    assert Forms(page).find("/sessions/event-context/terms")["values"]["scoring_source"] == (
-        "Confirmed Cent game-point rules")
+    assert context.terms[0].platform == "in_person"
+    assert "platform" not in Forms(page).find("/sessions/event-context/terms")["values"]
+    assert "scoring_source" not in returned["values"]
+    bad = browser.submit(Forms(page).find("/sessions/event-context/terms"), event_name="Old form",
+                         scoring_source="Obsolete technical entry")
+    assert bad[0] == 400
+    assert load_event_context_v1(app.managed_home.root).heads[0] == context
     assert active.path.read_bytes() == original

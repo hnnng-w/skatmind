@@ -4,10 +4,19 @@ from __future__ import annotations
 
 import hashlib
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from fractions import Fraction
+from typing import get_type_hints
 
-from .automatic_learning_codec import Record, canonical_json, digest, integer, text, unique
+from .automatic_learning_codec import (
+    Record,
+    _convert,
+    canonical_json,
+    digest,
+    integer,
+    text,
+    unique,
+)
 
 EVENT_CONTEXT_VERSION = 1
 TOURNAMENT_RULE = "fixed_three_player_isko_v1"
@@ -145,6 +154,34 @@ class EventTermsV1(Record):
     scoring_source: RuleSourceV1
     financial: FinancialFactsV1 = FinancialFactsV1()
     version: int = 1
+    platform: str | None = None
+
+    def validate(self):
+        # The original closed v1 wire shape and fingerprints remain exact. Only
+        # explicit v2 terms carry the actual platform; legacy terms do not imply it.
+        for name, annotation in get_type_hints(type(self)).items():
+            _convert(annotation, getattr(self, name), decode=False)
+        if self.version == 1 and self.platform is None:
+            return
+        if self.version != 2 or self.platform not in ("euroskat", "in_person", "unknown"):
+            raise ValueError("Unsupported event terms version/platform.")
+
+    def to_dict(self):
+        value = Record.to_dict(self)
+        if self.version == 1:
+            del value["platform"]
+        return value
+
+    @classmethod
+    def from_dict(cls, value):
+        expected = {field.name for field in fields(cls)}
+        if type(value) is not dict:
+            raise ValueError("Invalid event terms.")
+        if type(value.get("version")) is int and value["version"] == 1:
+            if set(value) != expected - {"platform"}:
+                raise ValueError("Invalid legacy event terms field set.")
+            value = {**value, "platform": None}
+        return Record.from_dict.__func__(cls, value)
 
     def __post_init__(self):
         self.validate()

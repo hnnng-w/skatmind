@@ -1,5 +1,13 @@
 # Mode-specific accounting and three-game Cent rounds
 
+Current ordinary behavior is defined by the maintainer-approved
+[A–F simplification](simple_event_and_cent_forms.md): one title, actual-platform
+rules, conditional checkpoints, cost-only Tournament inputs, reused Cent players
+and results, and local-only completion. The original questionnaires and prepared
+installed checklist below are historical and are superseded by that short combined
+check. Existing source-review and verification records remain point-in-time history.
+The installed EUR 9 observation remains unresolved; no installed acceptance is claimed.
+
 ## Delivery and acceptance boundary
 
 Issue #322 starts on `feat/322-mode-accounting-cent-rounds` at
@@ -15,7 +23,7 @@ durations and outcomes are reported in the implementation handoff after verifica
 Exact-commit hosted gates and the single combined installed acceptance remain
 maintainer work; neither a source HTTP test nor Quick authorizes issue closure.
 
-## Ordinary tournament workflow
+## Original tournament workflow (historical)
 
 1. Open the Match or attached Session and confirm its existing **Event and
    chronological score** context. A Match checkpoint such as 24 / 780 / 3 needs
@@ -66,7 +74,7 @@ Match source adapter remains fixed-36, while Session/context capture retains its
 existing bounded applicability. This is a source-adapter limitation, not a blanket
 v1 scope exclusion.
 
-## Ordinary Cent workflow
+## Original Cent workflow (historical)
 
 Open or create a normal Session, then choose **Start Cent round with this Session**.
 Confirm its three participants, seating, perspective, tariff and actual conditions
@@ -193,7 +201,7 @@ but write no accounting, execute no Card analysis and do not update Learning.
 Learning Update has no dependency on these monetary modules. Existing admitted
 invocation ownership, feedback and cancellation guards remain intact.
 
-## Focused evidence and registry review
+## Original focused evidence and registry review (historical)
 
 The new domain module tests arithmetic without repeated archives. A small genuine
 fixture set exercises established accepted Session Logs, normal Match outcomes,
@@ -235,7 +243,7 @@ modules precede the affected exclusive phase, then explicit Quick and tracked/ne
 file whitespace checks. No routine Full, new hosted trigger, measurement-only run,
 CI-policy change, installed environment or maintainer UAT data is involved.
 
-## Prepared-data plan for one later combined installed check (not executed)
+## Original prepared-data plan (historical, superseded, not completed)
 
 The developer-owned generator only writes three disposable source files into an
 already existing external directory, refusing overwrite:

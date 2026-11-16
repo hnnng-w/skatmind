@@ -3,10 +3,11 @@
 from html import escape
 
 from skatmind.errors import SkatMindError
-from skatmind.event_context_contracts import EVENT_MODES, FinancialFactsV1
 from skatmind.event_context_sources import recording_players_v1, recording_version_v1
 
-from .event_context_frontend import capture_event_page, checkpoint_review
+from .event_context_forms import actual_platform
+from .event_context_frontend import capture_event_page, checkpoint_review, platform_document
+from .stateful_localization import managed_name
 from .translation_catalog import translate_frontend_message_v1 as translate
 from .workflow_state import StaleFrontendWorkflowRevisionError
 
@@ -48,48 +49,36 @@ def _amount(value):
     return f"{value.numerator}/{value.denominator}"
 
 
-def _terms_fields(locale, terms=None, *, match=False):
-    unknown = translate(locale, "event.unknown")
-    modes = EVENT_MODES[:-1] if match else EVENT_MODES
-    body = _select(locale, "event_mode", [("", unknown), *[(mode, translate(locale,
-        "event.mode." + mode)) for mode in modes]], "" if terms is None else terms.mode)
-    body += _input(locale, "scoring_source", ""
-                    if terms is None else terms.scoring_source.reference, required=True)
-    edition = "" if terms is None else terms.scoring_source.edition
-    body += _input(locale, "scoring_edition", edition, required=True)
-    facts = FinancialFactsV1() if terms is None else terms.financial
-    body += (f'<details><summary>{_text(locale, "financial")}</summary>'
-             f'<p>{_text(locale, "facts_only")}</p>')
-    body += _input(locale, "currency", facts.currency or "")
-    for name in ("entry_paid", "entry_committed", "table_paid", "table_committed"):
-        body += _input(locale, name, _amount(getattr(facts, name)))
-    body += _select(locale, "cent_tariff", [("", unknown), ("1/4", "0.25"), ("1/2", "0.5"),
-        *[(value, value) for value in ("1", "2", "3", "5")]], facts.cent_tariff or "")
-    for name in ("fee", "payout"):
-        source = getattr(facts, name + "_source")
-        body += _input(locale, name + "_source", "" if source is None else source.reference)
-        body += _input(locale, name + "_edition", "" if source is None else source.edition)
-    body += f'<details><summary>{_text(locale, "pools")}</summary>'
-    choices = [(value, translate(locale, "event." + value)) for value in ("unknown", "yes", "no")]
-    for index in range(1, min(8, len(facts.pools) + 1) + 1):
-        pool = facts.pools[index - 1] if index <= len(facts.pools) else None
-        body += _input(locale, f"pool_{index}_name",
-                       "" if pool is None else pool.pool_id, key="pool_name")
-        for field in ("participation", "entitlement"):
-            body += _select(locale, f"pool_{index}_{field}", choices,
-                "unknown" if pool is None else getattr(pool, field), key=field)
-    body += '</details>'
-    body += _input(locale, "prize_facts", facts.prize_facts or "")
-    body += _select(locale, "prize_completeness", [(value, translate(locale, "event." + value))
-        for value in ("unknown", "partial", "complete")], facts.prize_completeness)
-    body += _input(locale, "financial_provenance", facts.provenance or "")
-    return body + '</details>'
+def suggested_title(app, document, locale):
+    source = recording_version_v1(document).source
+    fallback = (document.workspace.match_definition.title if source.family == "match" else
+                translate(locale, "event.suggested_title", players=", ".join(
+                    label for _, label in _players(document))))
+    return managed_name(locale, app.frontend_profile.document, source.family + "es"
+        if source.family == "match" else "sessions", source.product_id, fallback)[:500].rstrip()
 
 
-def _checkpoint_fields(locale, checkpoint=None, *, optional=False):
-    return ''.join(_input(locale, name, "" if checkpoint is None else getattr(checkpoint, name),
-        required=not optional, kind="number" if name != "provenance" else "text")
-        for name in ("through_position", "personal_points", "own_losses", "provenance"))
+def platform_field(document, locale, terms=None):
+    platform = actual_platform(document, terms)
+    if platform is not None:
+        return f'<p>{_text(locale, "platform")}: {_text(locale, "platform." + platform)}</p>'
+    return _select(locale, "platform", [("", translate(locale, "event.choose")),
+        *[(value, translate(locale, "event.platform." + value))
+          for value in ("euroskat", "in_person")]])
+
+
+def _terms_fields(document, locale, terms=None):
+    modes = ("tournament", "tournament_cent")
+    body = _select(locale, "event_mode", [(mode, translate(locale, "event.mode." + mode))
+        for mode in modes], "tournament" if terms is None else terms.mode)
+    return body + platform_field(document, locale, terms)
+
+
+def _checkpoint_fields(locale, checkpoint=None, *, through=None):
+    return ''.join(_input(locale, name, getattr(checkpoint, name) if checkpoint is not None
+        else through if name == "through_position" and through is not None else "",
+        required=True, kind="number")
+        for name in ("through_position", "personal_points", "own_losses"))
 
 
 def _players(document):
@@ -121,7 +110,7 @@ def _attach_forms(app, active, family, page, locale):
             if binding is not None:
                 labels.update({binding.player(player): label
                                for player, label in _players(document)})
-        fields = (f'<p>{_e(event.event_name)} · {_e(event.series_name)}</p>'
+        fields = (f'<p>{_e(event.event_name)}</p>'
                   f'<input type="hidden" name="event_choice" value="{_e(event.event_id)}">')
         existing = event.binding(recording_version_v1(page.document).source)
         game = "" if existing is None else existing.game_position
@@ -129,6 +118,8 @@ def _attach_forms(app, active, family, page, locale):
         fields += _selected_field(page.document, locale)
         for index, (player, label) in enumerate(_players(page.document), 1):
             mapped = existing.player(player) if existing is not None else player
+            if mapped in event.participant_ids:
+                continue
             selected = (str(event.participant_ids.index(mapped) + 1)
                         if mapped in event.participant_ids else "")
             choices = [("", translate(locale, "event.choose")), *[(str(number), labels.get(identity,
@@ -136,7 +127,6 @@ def _attach_forms(app, active, family, page, locale):
                 for number, identity in enumerate(event.participant_ids, 1)]]
             fields += f'<p>{_e(label)}</p>' + _select(locale, f"map_{index}", choices, selected,
                                                                    key="maps_to")
-        fields += _input(locale, "provenance", required=True)
         body += _form(choice, active, family, "attach", fields, locale)
     return body + '</details>'
 
@@ -165,8 +155,6 @@ def _projection(value, locale):
             derived=item.derived_points, derived_losses=item.derived_losses)}</p>'
         if value.acknowledges(item):
             body += f'<p>{_text(locale, "acknowledged")}</p>'
-    if value.financial_missing:
-        body += f'<p>{_text(locale, "financial_unknown")}</p>'
     return body
 
 
@@ -174,22 +162,25 @@ def render_event_context(app, active, family, locale):
     try:
         with active.capture.lock if family == "matches" else active.lock:
             page = capture_event_page(app, active, family)
+        if family == "sessions":
+            from skatmind.accounting_state import CentRoundV1
+            from skatmind.accounting_store import load_accounting
+
+            if type(load_accounting(app.managed_home.root).for_source(
+                    recording_version_v1(page.document).source)) is CentRoundV1:
+                return ""
         body = f'<section class="panel" id="event-context"><h2>{_text(locale, "title")}</h2>'
         body += f'<p>{_text(locale, "capture_only")}</p>'
         if page.context is None:
             body += f'<details><summary>{_text(locale, "create")}</summary>'
             fields = _selected_field(page.document, locale)
-            fields += _input(locale, "event_name", required=True)
-            fields += _input(locale, "series_name", required=True)
-            if family == "sessions":
-                fields += _input(locale, "game_position", required=True, kind="number")
-            fields += _terms_fields(locale, match=family == "matches")
-            fields += f'<p>{_text(locale, "checkpoint_optional")}</p>'
-            fields += _checkpoint_fields(locale, optional=True)
+            fields += _input(locale, "title", suggested_title(app, page.document, locale),
+                             key="editable_title", required=True)
+            fields += _terms_fields(page.document, locale)
             body += _form(page, active, family, "create", fields, locale) + '</details>'
         else:
             event = page.context
-            body += f'<p>{_e(event.event_name)} · {_e(event.series_name)}</p>'
+            body += f'<p>{_e(event.event_name)}</p>'
             if recording_players_v1(page.document)[1]:
                 body += _selected_field(page.document, locale)
             else:
@@ -205,8 +196,13 @@ def render_event_context(app, active, family, locale):
                 if latest is not None:
                     body += f'<p>{_text(locale, "saved_anchor", through=latest.through_position,
                         points=latest.personal_points, losses=latest.own_losses)}</p>'
-                body += _form(page, active, family, "checkpoint",
-                              _checkpoint_fields(locale, latest), locale)
+                needs_anchor = bool(page.prepared.unresolved)
+                body += (f'<details{" open" if needs_anchor else ""}><summary>'
+                         f'{_text(locale, "checkpoint" if needs_anchor else "correct_score")}'
+                         '</summary>')
+                body += _form(page, active, family, "checkpoint", _checkpoint_fields(locale,
+                    None if needs_anchor else latest,
+                    through=page.prepared.game_position - 1), locale) + '</details>'
                 if event.checkpoints:
                     body += f'<details><summary>{_text(locale, "reconciliation")}</summary>'
                     for checkpoint in event.checkpoints:
@@ -226,26 +222,17 @@ def render_event_context(app, active, family, locale):
                                     f' value="{checkpoint.through_position}">'
                                     '<input type="hidden" name="disagreement"'
                                     f' value="{review.disagreement_identity(item)}">')
-                                fields += _input(locale, "provenance", required=True)
                                 body += _form(page, active, family, "reconfirm", fields, locale)
                             else:
                                 body += f'<p>{_text(locale, "acknowledged")}</p>'
                     fields = _select(locale, "through_position", [(str(c.through_position),
                         str(c.through_position)) for c in event.checkpoints])
-                    fields += _input(locale, "provenance", required=True)
                     body += _form(page, active, family, "remove", fields, locale)
                     body += '</details>'
             body += f'<details><summary>{_text(locale, "terms")}</summary>'
             term = page.prepared.terms
-            fields = _input(locale, "event_name", event.event_name, required=True)
-            fields += _input(locale, "series_name", event.series_name, required=True)
-            fields += _input(locale, "from_position", term.from_position,
-                             required=True, kind="number")
-            fields += _select(locale, "change_kind", [(value, translate(locale, "event." + value))
-                for value in ("correction", "later")], "correction")
-            fields += _terms_fields(locale, term,
-                match=any(b.source.family == "match" for b in event.bindings))
-            fields += _input(locale, "provenance", required=True)
+            fields = _input(locale, "title", event.event_name, key="editable_title", required=True)
+            fields += _terms_fields(platform_document(page), locale, term)
             body += _form(page, active, family, "terms", fields, locale) + '</details>'
             body += (f'<details><summary>{_text(locale, "frozen")}</summary>'
                      f'<p>{_text(locale, "no_ranking")}</p>')

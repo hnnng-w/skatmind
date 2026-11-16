@@ -38,7 +38,8 @@ from .event_context_forms import (
     EventFormError,
     number,
     parse_event_checkpoint,
-    parse_event_terms,
+    resolve_platform,
+    supported_terms,
 )
 from .managed_item_discovery import discover_managed_items_v1
 from .recorded_review_opening import RecordingOpenConflict, require_recording_fresh_v1
@@ -131,7 +132,7 @@ def capture_event_page(app, active, family, *, event_id=None):
         active.selected_position if family == "matches" else None,
         [recording_version_v1(item).to_dict() for _, item in documents], event_id]
     selection = hmac.new(app.language_context.key,
-        b"event_context_form_v1\0" + canonical_json(scope), hashlib.sha256).hexdigest()
+        b"event_context_form_v2\0" + canonical_json(scope), hashlib.sha256).hexdigest()
     return EventPage(journal, event, document, documents, prepared, selection)
 
 
@@ -149,6 +150,12 @@ def checkpoint_review(page, through):
         acknowledgement_aliases=page.journal.reconciliation_aliases)
 
 
+def platform_document(page):
+    """An attached Match's actual platform also governs its Session context."""
+    return next((document for _, document in page.documents if hasattr(document, "workspace")),
+                page.document)
+
+
 def _selected(document, values):
     players, selected = recording_players_v1(document)
     if selected is None:
@@ -163,7 +170,10 @@ def _attach(app, page, values):
     if event is None:
         raise EventFormError("attachment", "event_choice")
     players, _ = recording_players_v1(page.document)
-    mapping = {player: event.participant_ids[number(values, f"map_{index}", minimum=1, maximum=3)-1]
+    previous = event.binding(recording_version_v1(page.document).source)
+    mapping = {player: previous.player(player) if previous is not None else player
+               if player in event.participant_ids else
+               event.participant_ids[number(values, f"map_{index}", minimum=1, maximum=3)-1]
                for index, player in enumerate(players, 1)}
     binding = build_event_binding_v1(page.document,
         game_position=number(values, "game_position", minimum=1), player_map=mapping,
@@ -188,7 +198,7 @@ def _attach(app, page, values):
             and replace(binding, attached_source=previous.attached_source) == previous):
         return event
     return revise_event_context_v1(event, expected_revision=event.revision, change="attachment",
-        provenance=values.get("provenance", "").strip(), bindings=tuple(
+        provenance="Explicit native source attachment.", bindings=tuple(
             item for item in event.bindings if item.source != binding.source) + (binding,))
 
 
@@ -219,20 +229,16 @@ def dispatch_event_context(app, route, values):
                     raise EventFormConflict()
                 binding = build_event_binding_v1(page.document,
                     game_position=None if family == "matches" else
-                    number(values, "game_position", minimum=1),
+                    1,
                     selected_player_id=_selected(page.document, values))
-                checkpoints = ()
-                if any(values.get(name, "") for name in ("through_position", "personal_points",
-                                                        "own_losses")):
-                    checkpoints = (parse_event_checkpoint(values),)
+                title = values.get("title", "").strip()
                 context = EventContextV1(event_id="event-" + secrets.token_hex(16),
                     series_id="series-" + secrets.token_hex(16),
-                    event_name=values.get("event_name", "").strip(),
-                    series_name=values.get("series_name", "").strip(),
+                    event_name=title, series_name=title,
                     participant_ids=tuple(p.event_player_id for p in binding.players),
                     selected_participant_id=binding.player(binding.source_selected_player_id),
-                    bindings=(binding,), terms=(parse_event_terms(values, from_position=1),),
-                    checkpoints=checkpoints)
+                    bindings=(binding,), terms=(supported_terms(values.get("event_mode"),
+                        resolve_platform(page.document, values)),))
             elif action == "attach":
                 context = _attach(app, page, values)
             elif context is None:
@@ -241,19 +247,18 @@ def dispatch_event_context(app, route, values):
                 context = set_event_checkpoint_v1(context, parse_event_checkpoint(values),
                                                    expected_revision=context.revision)
             elif action == "terms":
-                if values.get("change_kind") not in ("correction", "later"):
-                    raise EventFormError("applicability", "change_kind")
-                context = set_event_terms_v1(context, parse_event_terms(values,
-                    from_position=number(values, "from_position", minimum=1)),
+                term = page.prepared.terms
+                context = set_event_terms_v1(context, supported_terms(values.get("event_mode"),
+                    resolve_platform(platform_document(page), values, term),
+                    from_position=term.from_position),
                     expected_revision=context.revision,
-                    correction=values["change_kind"] == "correction",
-                    provenance=values.get("provenance", "").strip(),
-                    event_name=values.get("event_name", "").strip(),
-                    series_name=values.get("series_name", "").strip())
+                    correction=True, provenance="Explicit native context correction.",
+                    event_name=values.get("title", "").strip(),
+                    series_name=context.series_name)
             elif action == "remove":
                 through = number(values, "through_position")
                 context = revise_event_context_v1(context, expected_revision=context.revision,
-                    change="checkpoint_removed", provenance=values.get("provenance", "").strip(),
+                    change="checkpoint_removed", provenance="Explicit native checkpoint removal.",
                     checkpoints=tuple(c for c in context.checkpoints
                                       if c.through_position != through))
             elif action == "reconfirm":
@@ -268,7 +273,7 @@ def dispatch_event_context(app, route, values):
                     raise EventFormConflict()
                 context = reconfirm_event_checkpoint_v1(context, prepared, through_position=through,
                     expected_revision=context.revision,
-                    provenance=values.get("provenance", "").strip())
+                    provenance="Explicit reconfirmation of the displayed exact disagreement.")
             elif action == "freeze":
                 game = (active.selected_position if family == "matches"
                         else context.binding(source).game_position)
@@ -295,7 +300,7 @@ def dispatch_event_context(app, route, values):
                 raise EventFormConflict() from error
             except OSError as error:
                 raise EventFormConflict("save") from error
-            if family == "matches" and action in ("create", "checkpoint") and context.checkpoints:
+            if family == "matches" and action == "checkpoint":
                 from .match_frontend import select_unified_match_position_v1
 
                 through = number(values, "through_position")

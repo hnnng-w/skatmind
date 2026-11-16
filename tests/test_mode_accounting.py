@@ -55,6 +55,14 @@ def test_half_cent_principal_and_known_fee_are_retained_without_balancing():
     assert 3 * obolus_cents(101) == 12 != obolus_cents(303)
 
 
+def test_non_provider_arithmetic_does_not_apply_euroskat_charges_or_invent_zero_fees():
+    rows = cent_transfers(("a", "b", "c"), "a", 23, "1/2", provider_fees=False)
+    assert tuple(r.gross.value for r in rows) == (Fraction(23, 100),
+                                                 Fraction(-23, 200), Fraction(-23, 200))
+    assert all(r.fee is None and r.net is None for r in rows)
+    assert all(r.unresolved == ("local_fees_unknown",) for r in rows)
+
+
 @pytest.mark.parametrize("value", [True, 0.5, "NaN", "1e3", "-0.0000001", "1/0"])
 def test_strict_money_rejects_nonexact_or_unbounded_input(value):
     with pytest.raises(ValueError):

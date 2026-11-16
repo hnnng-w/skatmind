@@ -11,8 +11,6 @@ from dataclasses import dataclass, replace
 from skatmind.accounting_state import (
     CentRoundV1,
     ConfirmedGameV1,
-    ExternalAdjustmentV1,
-    NetConfirmationV1,
     TournamentAccountingV1,
     accounting_boundary_prefix,
     freeze_preparation,
@@ -25,11 +23,8 @@ from skatmind.accounting_store import (
 )
 from skatmind.automatic_learning_codec import canonical_json
 from skatmind.event_context_contracts import (
-    CENT_RULE,
+    AmountV1,
     EventContextV1,
-    EventTermsV1,
-    FinancialFactsV1,
-    RuleSourceV1,
     bounded_text,
 )
 from skatmind.event_context_recording_files import load_event_recording_v1
@@ -40,20 +35,22 @@ from skatmind.event_context_sources import (
     recording_version_v1,
 )
 from skatmind.mode_accounting import (
-    CENT_SOURCE,
+    CENT_ACCOUNTING_RULE,
+    CENT_PAIRWISE_RULE,
+    STANDARD_RULE,
     STANDARD_SOURCE,
     ObligationV1,
-    PersonalReceiptV1,
-    SignedMoneyV1,
     plus_table_cents,
 )
 
-from .accounting_forms import ACCOUNTING_FIELDS, AccountingFormError, obligation, optional_amount
+from .accounting_forms import ACCOUNTING_FIELDS, AccountingFormError, optional_amount
+from .event_context_forms import LOCAL_SOURCE, actual_platform, resolve_platform, supported_terms
 from .event_context_frontend import (
     EventFormConflict,
     _documents,
     capture_event_page,
     checkpoint_review,
+    platform_document,
 )
 from .managed_item_discovery import discover_managed_items_v1
 from .session_frontend import (
@@ -82,7 +79,7 @@ def capture_accounting_page(app, active, family):
     scope = [event.selection, journal.fingerprint,
              [recording_version_v1(doc).to_dict() for _, doc in documents]]
     selection = hmac.new(app.language_context.key,
-        b"mode_accounting_form_v1\0" + canonical_json(scope), hashlib.sha256).hexdigest()
+        b"mode_accounting_form_v2\0" + canonical_json(scope), hashlib.sha256).hexdigest()
     return AccountingPage(event, journal, current, documents, selection)
 
 
@@ -91,11 +88,6 @@ def _integer(values, field, minimum=1, maximum=36):
     if not value.isascii() or not value.isdecimal() or not minimum <= int(value) <= maximum:
         raise AccountingFormError("invalid", field)
     return int(value)
-
-
-def _source(values, default):
-    return RuleSourceV1(reference=values.get("fee_reference", default.reference).strip(),
-                        edition=values.get("fee_edition", default.edition).strip())
 
 
 def _round_facts(context, documents):
@@ -107,7 +99,30 @@ def _round_facts(context, documents):
 
 def fresh_round(row, documents):
     # Refresh only on an accepted action. Passive rendering labels this as a preview.
-    return replace(row, status="open", recordings=_round_facts(row.context, documents))
+    return replace(row, status="open", recordings=_round_facts(row.context, documents),
+        rule=CENT_ACCOUNTING_RULE if all(t.platform == "euroskat" for t in row.context.terms)
+            else CENT_PAIRWISE_RULE)
+
+
+def ordinary_round(row, documents):
+    """Read-only game arithmetic excludes old monetary overrides and adjustments."""
+    return replace(fresh_round(row, documents),
+        confirmations=tuple(c for c in row.confirmations if c.status != "external"),
+        adjustment=None, net_confirmation=None)
+
+
+def known_declarer(row, number):
+    binding = next((b for b in row.context.bindings if b.game_position == number), None)
+    if binding is None:
+        return None
+    recording = next((r for r in row.recordings if r.source.source == binding.source), None)
+    if recording is not None and recording.signatures:
+        seat = next((d.value for d in recording.signatures[0].declaration
+                     if d.name == "declarer_seat"), None)
+        if seat is not None:
+            index = ("forehand", "middlehand", "rearhand").index(seat)
+            return binding.players[index].event_player_id
+    return None
 
 
 def _start(page, values):
@@ -115,84 +130,108 @@ def _start(page, values):
         raise AccountingFormError("owned")
     document = page.event_page.document
     players, selected = recording_players_v1(document)
-    if selected is None:
-        selected = players[_integer(values, "selected_player", maximum=3) - 1]
-    if values.get("confirm_terms") != "yes":
-        raise AccountingFormError("confirm", "confirm_terms")
-    provenance = values.get("provenance", "").strip()
     existing = page.event_page.context
+    if selected is None:
+        selected = (existing.binding(recording_version_v1(document).source)
+                    .source_selected_player_id
+                    if existing is not None else
+                    players[_integer(values, "selected_player", maximum=3) - 1])
+    provenance = "Explicit native three-game round start."
     if existing is not None:
         if existing.tournament:
             raise AccountingFormError("owned")
-        context = existing
-        if values.get("cent_tariff") != context.applicable_terms(1).financial.cent_tariff:
-            raise AccountingFormError("terms")
+        term = existing.applicable_terms(1)
+        platform = resolve_platform(document, values, term)
+        context = replace(existing, event_name=values.get("title", "").strip(),
+            terms=tuple(supported_terms("cent", platform, from_position=prior.from_position,
+                tariff=values.get("cent_tariff") if prior.from_position == 1
+                    else prior.financial.cent_tariff) for prior in existing.terms))
     else:
         binding = build_event_binding_v1(document, game_position=1, selected_player_id=selected)
         context = EventContextV1(event_id="round-" + secrets.token_hex(16),
             series_id="block-" + secrets.token_hex(16),
-            event_name=values.get("round_name", "").strip(),
-            series_name=values.get("round_name", "").strip(), participant_ids=players,
+            event_name=values.get("title", "").strip(),
+            series_name="Local round 1", participant_ids=players,
             selected_participant_id=selected, bindings=(binding,), provenance=provenance,
-            terms=(EventTermsV1(from_position=1, mode="cent", scoring_rule=CENT_RULE,
-                scoring_source=CENT_SOURCE, financial=FinancialFactsV1(currency="EUR",
-                    cent_tariff=values.get("cent_tariff"), fee_source=_source(values, CENT_SOURCE),
-                    provenance=provenance)),))
+            terms=(supported_terms("cent", resolve_platform(document, values),
+                tariff=values.get("cent_tariff")),))
     selected_binding = context.binding(recording_version_v1(document).source)
     labels = {selected_binding.player(player.player_id): player.player_label or player.player_id
               for player in document.state.players}
     return CentRoundV1(context=context, table_id="table-" + secrets.token_hex(16),
         participant_labels=tuple(labels.get(player, player) for player in context.participant_ids),
         recordings=_round_facts(context, page.documents), confirmations=(),
-        rule_source=_source(values, CENT_SOURCE), provenance=provenance)
+        rule_source=context.terms[0].scoring_source, provenance=provenance,
+        rule=CENT_ACCOUNTING_RULE if context.terms[0].platform == "euroskat"
+            else CENT_PAIRWISE_RULE)
+
+
+def tournament_preparation(page):
+    event = page.event_page
+    if event.context is None or not event.context.tournament:
+        raise AccountingFormError("context")
+    if recording_version_v1(event.document).source.family != "match":
+        return event.prepared
+    facts = build_recording_facts_v1(event.document, through_position=36)
+    through = max((f.position for f in facts.outcomes if f.status != "missing"), default=0)
+    through = max(through, max((c.through_position for c in event.context.checkpoints), default=0))
+    return checkpoint_review(event, through)
+
+
+def tournament_values(page):
+    row = page.current
+    values = {}
+    for kind in ("entry", "table"):
+        item = None if row is None else next((o for o in row.obligations if o.kind == kind), None)
+        if item is not None:
+            values[kind + "_total"] = str(item.total.numerator) + "/" + str(item.total.denominator)
+    if row is not None and row.plus_level is not None:
+        values["plus_level"] = str(row.plus_level)
+    return values
 
 
 def _tournament(page, values):
     event = page.event_page
-    if event.context is None or not event.context.tournament:
-        raise AccountingFormError("context")
-    prepared = (checkpoint_review(event, _integer(values, "through_position", minimum=0))
-                if recording_version_v1(event.document).source.family == "match"
-                else event.prepared)
-    legacy = prepared.terms.financial
-    if legacy.currency not in (None, "EUR"):
-        raise AccountingFormError("amount")
-    if values.get("table_rule") == "published_plus":
-        proposed = SignedMoneyV1.exact(plus_table_cents(
-            _integer(values, "plus_level", minimum=0, maximum=8)))
+    prepared = tournament_preparation(page)
+    platform = actual_platform(platform_document(event), prepared.terms)
+    provenance = "Explicit native cost selection; bank facts excluded."
+    plus = (_integer(values, "plus_level", minimum=0, maximum=8)
+            if values.get("plus_level") else None)
+    table = optional_amount(values, "table_total")
+    if platform == "euroskat" and plus is not None:
         from fractions import Fraction
 
-        supplied = optional_amount(values, "table_total")
-        expected = proposed.value / 100
-        if supplied is not None and Fraction(supplied.numerator, supplied.denominator) != expected:
-            raise AccountingFormError("amount", "table_total")
-        values = {**values, "table_total": str(expected)}
-    obligations = tuple(item for kind in ("entry", "table")
-                        if (item := obligation(values, kind, legacy)) is not None)
-    earlier = optional_amount(values, "earlier_losses")
-    if earlier is not None:
-        obligations += (ObligationV1(kind="earlier_losses", total=earlier,
-            paid=optional_amount(values, "earlier_paid"), provenance=values["provenance"].strip()),)
-    boundary = _integer(values, "rule_from_position", maximum=37)
+        amount = Fraction(plus_table_cents(plus), 100)
+        table = AmountV1(numerator=amount.numerator, denominator=amount.denominator)
+    obligations = tuple(ObligationV1(kind=kind, total=amount, paid=None, provenance=provenance)
+        for kind, amount in (("entry", optional_amount(values, "entry_total")), ("table", table))
+        if amount is not None)
+    # The first cumulative anchor starts the additional-fee interval. Later
+    # checkpoints update that interval's total, rather than reset its fee base.
+    boundary = max(prepared.terms.from_position,
+        event.context.checkpoints[0].through_position + 1 if event.context.checkpoints else 1)
+    previous = page.current
+    if (type(previous) is TournamentAccountingV1 and previous.rule == STANDARD_RULE
+            and previous.rule_source == STANDARD_SOURCE
+            and prepared.terms.from_position <= previous.rule_from_position
+            <= prepared.game_position):
+        boundary = previous.rule_from_position
+    boundary = min(boundary, prepared.game_position)
     prefix = accounting_boundary_prefix(event.context, prepared, boundary)
+    rule_known = platform == "euroskat" and prefix.status == "ready"
     if prefix.status != "ready":
-        raise AccountingFormError("context", "rule_from_position")
+        # Preserve cost entry despite a missing fee boundary. The empty prefix is
+        # only a storage basis here; it cannot authorize a historical fee policy.
+        boundary = 1
+        prefix = accounting_boundary_prefix(event.context, prepared, boundary)
     losses = prefix.own_losses
-    receipts = tuple(PersonalReceiptV1(pool=pool, participation=True,
-        personal_entitlement=value.numerator > 0, received=value,
-        provenance=values.get("provenance", "").strip()) for pool in ("base", "plus", "tandem")
-        if (value := optional_amount(values, pool + "_receipt")) is not None)
     return TournamentAccountingV1(context=event.context, preparation=freeze_preparation(prepared),
-        rule=values.get("rule", "unverified"), rule_source=_source(values, STANDARD_SOURCE),
+        rule=STANDARD_RULE if rule_known else "unverified",
+        rule_source=STANDARD_SOURCE if platform == "euroskat" else LOCAL_SOURCE,
         rule_from_position=boundary, losses_before=losses, obligations=obligations,
-        receipts=receipts, receipts_complete=values.get("receipts_complete") == "yes",
-        currency="EUR", provenance=values.get("provenance", "").strip(),
-        plus_level=_integer(values, "plus_level", minimum=0, maximum=8)
-            if values.get("plus_level") else None,
-        tandem_participation=values.get("tandem_participation", "unknown"),
-        table_rule=values.get("table_rule", "supplied"),
-        side_settlement=SignedMoneyV1.parse(values["side_settlement"])
-            if values.get("side_settlement") else None, status=values.get("status", "open"))
+        receipts=(), receipts_complete=False, currency="EUR", provenance=provenance,
+        plus_level=plus if platform == "euroskat" else None,
+        table_rule="published_plus" if platform == "euroskat" and plus is not None else "supplied")
 
 
 def session_choices(app):
@@ -226,8 +265,6 @@ def _open_position(app, row, number, values):
     binding = next((b for b in row.context.bindings if b.game_position == number), None)
     entries = session_choices(app)
     created = None
-    if binding is None:
-        bounded_text(values.get("provenance", "").strip())
     if binding is not None:
         matches = [entry for entry in entries if entry.summary.semantic_product_id
                    == binding.source.product_id]
@@ -251,6 +288,10 @@ def _open_position(app, row, number, values):
             if mapping[player] == row.context.selected_participant_id)
         binding = build_event_binding_v1(created.document, game_position=number,
             player_map=mapping, selected_player_id=selected)
+        ids = row.context.participant_ids
+        expected = ids[number - 1:] + ids[:number - 1]
+        if tuple(p.event_player_id for p in binding.players) != expected:
+            raise AccountingFormError("source", "source_choice")
         row = replace(row, context=replace(row.context, bindings=row.context.bindings + (binding,)))
     facts = build_recording_facts_v1(created.document, through_position=1,
                                     selected_player_id=binding.source_selected_player_id)
@@ -278,7 +319,7 @@ def dispatch_accounting(app, route, values, *, activate_session):
                 raise EventFormConflict()
             row = page.current
             opened = None
-            provenance = values.get("provenance", "").strip()
+            provenance = "Explicit native round action."
             if action == "save":
                 row = _tournament(page, values)
             elif action == "start":
@@ -297,22 +338,27 @@ def dispatch_accounting(app, route, values, *, activate_session):
             elif type(row) is not CentRoundV1:
                 raise AccountingFormError("context")
             elif action == "next":
-                if row.status == "open" or values.get("continuing_terms") != "yes":
+                if row.status == "open":
                     raise AccountingFormError("confirm")
-                bounded_text(values.get("round_name", "").strip())
-                bounded_text(provenance)
+                bounded_text(values.get("title", "").strip())
+                term = row.context.applicable_terms(3)
+                term = supported_terms("cent", resolve_platform(page.event_page.document,
+                    values, term), tariff=values.get("cent_tariff"))
                 opened = _create_round_session(app, row, 1)
                 binding = build_event_binding_v1(opened.document, game_position=1)
+                count = 1 + sum(r.table_id == row.table_id for r in page.journal.round_heads)
                 context = replace(row.context, event_id="round-" + secrets.token_hex(16),
                     series_id="block-" + secrets.token_hex(16), revision=0, change="created",
-                    event_name=values.get("round_name", "").strip(),
-                    series_name=values.get("round_name", "").strip(), bindings=(binding,),
-                    terms=(replace(row.context.applicable_terms(3), from_position=1),),
+                    event_name=values.get("title", "").strip(),
+                    series_name=f"Local round {count}",
+                    bindings=(binding,), terms=(term,),
                     provenance=provenance)
                 row = CentRoundV1(context=context, table_id=row.table_id,
                     participant_labels=row.participant_labels,
                     recordings=_round_facts(context, ((opened.path, opened.document),)),
-                    confirmations=(), rule_source=row.rule_source, provenance=provenance,
+                    confirmations=(), rule_source=term.scoring_source, provenance=provenance,
+                    rule=CENT_ACCOUNTING_RULE if term.platform == "euroskat"
+                        else CENT_PAIRWISE_RULE,
                     previous_round_id=row.identity)
             else:
                 if row.status != "open" and not (
@@ -327,63 +373,38 @@ def dispatch_accounting(app, route, values, *, activate_session):
                     if not any(b.game_position == number for b in row.context.bindings):
                         raise AccountingFormError("source")
                     confirmations = tuple(c for c in row.confirmations if c.position != number)
-                    if values.get("game_status") != "derived":
-                        status = values.get("game_status")
-                        confirmations += (ConfirmedGameV1(position=number, status=status,
-                            provenance=provenance, declarer_id=(row.context.participant_ids[
+                    status = values.get("game_status")
+                    if status not in ("derived", "won", "lost", "passed"):
+                        raise AccountingFormError("invalid", "game_status")
+                    if status != "derived":
+                        declarer = known_declarer(row, number)
+                        if status in ("won", "lost") and declarer is None:
+                            declarer = row.context.participant_ids[
                                 _integer(values, "declarer", maximum=3)-1]
-                                if status == "settled" else None),
-                            settlement=int(values.get("settlement", ""))
-                                if status == "settled" else None,
-                            personal_net=SignedMoneyV1.parse(values.get("personal_net", ""))
-                                if status == "external" else None,
-                            reconciliation=values.get("reconciliation", "").strip() or None),)
+                        confirmations += (ConfirmedGameV1(position=number,
+                            status="settled" if status in ("won", "lost") else "passed",
+                            provenance="Explicit native game result.",
+                            declarer_id=declarer if status != "passed" else None,
+                            settlement=_integer(values, "game_value", maximum=50000) * (
+                                -2 if status == "lost" else 1) if status != "passed" else None,
+                            reconciliation="Explicit native result correction." if any(
+                                c.position == number for c in row.confirmations) else None),)
                     old = next((c for c in row.confirmations if c.position == number), None)
                     updated = next((c for c in confirmations if c.position == number), None)
-                    if (old is not None and old != updated
-                            and not values.get("reconciliation", "").strip()):
-                        raise AccountingFormError("reconcile", "reconciliation")
+                    if old is not None and updated is not None and replace(updated,
+                            reconciliation=old.reconciliation) == old:
+                        confirmations = tuple(old if c.position == number else c
+                                              for c in confirmations)
                     row = replace(row, confirmations=tuple(sorted(confirmations,
                         key=lambda c: c.position)), provenance=provenance)
                 elif action == "lifecycle":
-                    if values.get("cent_tariff"):
-                        from skatmind.event_context_operations import set_event_terms_v1
-
-                        boundary = _integer(values, "from_position", maximum=3)
-                        term = row.context.applicable_terms(boundary)
-                        if values.get("change_kind") not in ("correction", "later"):
-                            raise AccountingFormError("terms")
-                        term = replace(term, from_position=boundary,
-                            financial=replace(term.financial,
-                            cent_tariff=values["cent_tariff"], provenance=provenance))
-                        context = set_event_terms_v1(row.context, term,
-                            expected_revision=row.context.revision,
-                            correction=values["change_kind"] == "correction", provenance=provenance)
-                        row = replace(row, context=context)
-                    row = replace(row, adjustment=ExternalAdjustmentV1(
-                        amount=SignedMoneyV1.parse(values["adjustment"]),
-                        provenance=values.get("adjustment_provenance", "").strip())
-                        if values.get("adjustment") else None)
-                    net_action = values.get("net_action", "keep")
-                    if net_action not in ("keep", "confirm", "remove"):
-                        raise AccountingFormError("invalid", "net_action")
-                    net = row.net_confirmation
-                    if net_action == "remove":
-                        net = None
-                    elif net_action == "confirm":
-                        scope = values.get("net_scope")
-                        coverage = (row.identity,) if scope == "block" else tuple(
-                            r.identity for r in page.journal.round_heads
-                            if r.table_id == row.table_id)
-                        net = NetConfirmationV1(scope=scope, round_ids=coverage,
-                            activity_fingerprints=tuple((row if identity == row.identity else
-                                page.journal.head(identity)).activity_fingerprint
-                                for identity in coverage),
-                            personal_net=SignedMoneyV1.parse(values["personal_net"]),
-                            provenance=values.get("net_provenance", "").strip())
-                    row = replace(row, status=values.get("status"), provenance=provenance,
-                        actual_block_complete=values.get("actual_complete") == "yes",
-                        net_confirmation=net)
+                    # A local lifecycle action must neither clear nor renew retained
+                    # external confirmations. Their exact historical basis survives.
+                    if values.get("status") == "finished" and any(
+                            ordinary_round(row, page.documents).game(n)[0] not in (
+                                "settled", "passed") for n in range(1, 4)):
+                        raise AccountingFormError("context")
+                    row = replace(row, status=values.get("status"), provenance=provenance)
             journal = append_accounting(page.journal, row)
 
             def guard():

@@ -17,6 +17,7 @@ from .event_context_projection import (
 )
 from .mode_accounting import (
     CENT_ACCOUNTING_RULE,
+    CENT_PAIRWISE_RULE,
     STANDARD_RULE,
     ObligationV1,
     PersonalReceiptV1,
@@ -223,8 +224,12 @@ class CentRoundV1(Record):
 
     def __post_init__(self):
         self.validate()
-        if self.context.tournament or self.rule != CENT_ACCOUNTING_RULE or self.currency != "EUR":
+        if (self.context.tournament or self.rule not in (CENT_ACCOUNTING_RULE, CENT_PAIRWISE_RULE)
+                or self.currency != "EUR"):
             raise ValueError("A Cent round requires its distinct exact accounting rule.")
+        if any(term.version == 2 and term.platform != "euroskat" for term in self.context.terms
+               ) and self.rule == CENT_ACCOUNTING_RULE:
+            raise ValueError("EuroSkat fees require an actual EuroSkat platform.")
         if self.status not in ("open", "finished", "interrupted"):
             raise ValueError("Unsupported round lifecycle state.")
         integer(self.revision)
@@ -309,7 +314,8 @@ class CentRoundV1(Record):
             return fact.status, None, "derived"
         tariff = self.context.applicable_terms(number).financial.cent_tariff
         return "settled", cent_transfers(self.context.participant_ids, fact.declarer_id,
-            fact.settlement_score, tariff), "supplied" if supplied else "derived"
+            fact.settlement_score, tariff, provider_fees=self.rule == CENT_ACCOUNTING_RULE
+            ), "supplied" if supplied else "derived"
 
     def personal_totals(self):
         """Known per-game net subtotal and completeness; aggregates reconcile, never add."""

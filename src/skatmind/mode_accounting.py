@@ -12,6 +12,7 @@ from .event_context_contracts import CENT_TARIFFS, AmountV1, RuleSourceV1, bound
 
 STANDARD_RULE = "euroskat_standard_2026_11_v1"
 CENT_ACCOUNTING_RULE = "euroskat_cent_2026_11_v1"
+CENT_PAIRWISE_RULE = "cent_pairwise_unverified_fees_v1"
 STANDARD_SOURCE = RuleSourceV1(reference="https://www.euroskat.com/turniere/gebuehren",
                                edition="Published wording reviewed 2026-11-15")
 CENT_SOURCE = RuleSourceV1(reference="https://www.euroskat.com/spiele/cent-skat",
@@ -171,7 +172,7 @@ class CentPlayerV1(Record):
         bounded_text(self.player_id)
 
 
-def cent_transfers(players, declarer, settlement, tariff):
+def cent_transfers(players, declarer, settlement, tariff, *, provider_fees=True):
     """Loss doubling is already in settlement. Do not call the tournament scorer."""
     unique(players)
     if len(players) != 3 or declarer not in players or tariff not in CENT_TARIFFS:
@@ -184,11 +185,11 @@ def cent_transfers(players, declarer, settlement, tariff):
         gaps = []
         # Current evidence establishes the winning declarer's individual fee base.
         # Winning defenders' allocation/rounding remains a separate provider gap.
-        fee = Fraction(0) if cents < 0 else (
+        fee = None if not provider_fees else Fraction(0) if cents < 0 else (
             Fraction(obolus_cents(cents), 100) if player == declarer else None)
         if fee is None:
-            gaps.append("defender_fee_allocation")
-        if cents.denominator != 1:
+            gaps.append("defender_fee_allocation" if provider_fees else "local_fees_unknown")
+        if provider_fees and cents.denominator != 1:
             gaps.append("fractional_principal_posting")
         gross = SignedMoneyV1.exact(cents / 100)
         rows.append(CentPlayerV1(player_id=player, gross=gross,

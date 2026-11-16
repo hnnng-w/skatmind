@@ -1193,14 +1193,17 @@ assert {form.action_route for form in accounting} == {
     "/sessions/accounting/next",
 }
 assert len(accounting) == 7
-net_form, = (form for form in accounting if form.form_key == "accounting.sessions.lifecycle")
-assert tuple(field.field_key for field in net_form.safe_fields) == (
-    "status", "actual_complete", "personal_net", "net_scope", "net_action", "net_provenance",
-    "adjustment", "adjustment_provenance", "provenance", "cent_tariff",
-    "from_position", "change_kind",
-)
-net_action = next(field for field in net_form.safe_fields if field.field_key == "net_action")
-assert net_action.allowed_values == ("keep", "confirm", "remove")
+expected_accounting_fields = {
+    "save": ("entry_total", "table_total", "plus_level"),
+    "start": ("title", "cent_tariff", "platform", "selected_player"),
+    "game": ("position", "game_status", "declarer", "game_value"),
+    "open": ("position", "source_choice", "map_1", "map_2", "map_3"),
+    "lifecycle": ("status",),
+    "next": ("title", "cent_tariff", "platform"),
+}
+for form in accounting:
+    assert tuple(field.field_key for field in form.safe_fields) == expected_accounting_fields[
+        form.form_key.rsplit(".", 1)[1]]
 assert all(form.body_limit == 16384 for form in accounting)
 recording_input, = (form for form in FRONTEND_FORM_REGISTRY
                    if form.form_key == "match.recording_input")

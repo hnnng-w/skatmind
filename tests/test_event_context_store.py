@@ -33,6 +33,33 @@ def fixture():
     return document, context, prepared
 
 
+def test_explicit_platform_terms_roundtrip_without_rewriting_legacy_frozen_basis(tmp_path):
+    from skatmind.event_context_contracts import EventTermsV1
+
+    document, context, prepared = fixture()
+    legacy = context.terms[0].to_dict()
+    assert "platform" not in legacy and legacy["version"] == 1
+    assert EventTermsV1.from_dict(legacy).to_dict() == legacy
+    empty = load_event_context_v1(tmp_path)
+    original = append_event_revision_v1(empty, context, prepared=prepared)
+    term = replace(context.terms[0], version=2, platform="euroskat")
+    corrected = set_event_terms_v1(context, term, expected_revision=0, correction=True,
+                                   provenance="Explicit actual platform selection")
+    current = append_event_revision_v1(original, corrected)
+    save_event_context_v1(tmp_path, current, expected_fingerprint=empty.fingerprint)
+    restored = load_event_context_v1(tmp_path)
+    assert restored == current and restored.preparations == (prepared,)
+    assert restored.revisions[0].terms[0].to_dict() == legacy
+    assert restored.heads[0].terms[0].platform == "euroskat"
+    for invalid in ({**legacy, "platform": "euroskat"},
+                    {**term.to_dict(), "version": 1},
+                    {k: v for k, v in term.to_dict().items() if k != "platform"},
+                    {**term.to_dict(), "platform": "name-inferred"},
+                    {**term.to_dict(), "version": True}):
+        with pytest.raises(ValueError):
+            EventTermsV1.from_dict(invalid)
+
+
 def test_save_reopen_frozen_basis_survives_correction_and_unknown_original(tmp_path):
     document, context, prepared = fixture()
     empty = load_event_context_v1(tmp_path)

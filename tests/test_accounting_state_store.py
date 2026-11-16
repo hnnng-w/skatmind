@@ -87,6 +87,20 @@ def test_genuine_outcome_reuse_and_contradiction_reconciliation(genuine_sources)
     assert external.personal_totals() == (Fraction(-123, 100), None)
 
 
+def test_platform_bound_round_rejects_provider_rule_for_in_person_and_resumes(genuine_sources):
+    from skatmind.mode_accounting import CENT_PAIRWISE_RULE
+
+    row = cent(genuine_sources[1])
+    context = replace(row.context, terms=(replace(row.context.terms[0],
+        version=2, platform="in_person"),))
+    with pytest.raises(ValueError, match="actual EuroSkat"):
+        replace(row, context=context)
+    current = replace(row, context=context, rule=CENT_PAIRWISE_RULE)
+    journal = append_accounting(AccountingJournalV1(), current)
+    assert resume_accounting(accounting_bytes(journal)) == journal
+    assert all(r.fee is None and r.net is None for r in current.game(1)[1])
+
+
 def test_checkpoint_fee_continuation_backfill_and_duplicate_match_session(genuine_sources):
     match, session = genuine_sources
     context = synthetic_context(match)
