@@ -279,8 +279,8 @@ def test_retained_evaluation_survives_navigation_refresh_language_duplicate_and_
     current = active.corpus.store.document.catalog.current_matches
     assert tuple(learning.build_unified_learning_state_v1(active)["prepared"][key] for key in (
         "observed_decision_count", "record_count", "skipped_decision_count")) == (6, 2, 4)
-    # Each destination is present on the preceding page; no source is opened.
-    for route in ("/", "/matches", "/learning"):
+    # Learning is secondary under Analyze; follow each emitted link without opening a source.
+    for route in ("/", "/matches", "/review/recorded", "/learning"):
         assert f'href="{route}"' in page
         page = browser.page(route)
         assert downloads(browser) == retained

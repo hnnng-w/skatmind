@@ -133,3 +133,77 @@ review, maintainer integration, automatic successful complete exact-commit main
 acceptance of these entry/forms. No manual Check dispatch is required. Existing
 accepted Tournament, Cent and Learning scenarios need no replay. #208 and release
 acceptance remain separate.
+
+## Main Check failure correction
+
+The continuation starts on `feat/324-simple-entry-forms` at
+`8c822c9f08a704660881deb077243ef107e276a5`, with a clean index/worktree.
+Authenticated read-only retrieval verified existing [Check run 43944221564](https://github.com/hnnng-w/skatmind/actions/runs/43944221564):
+`push`, `main`, attempt `1`, that exact SHA, failure, 79m21s, 20 successful and
+three failed jobs. The twelve installation cells and platform-matrix gate passed;
+both regressions failed, and the final `check` log reports
+`gate_prerequisites_invalid` with regression as the failed prerequisite.
+
+| Platform | Regression job | Artifact | ZIP SHA-256 |
+| --- | --- | --- | --- |
+| Ubuntu | `133569650897` | `14271301502` | `9bcca8671f99d3dc6307adcd378643f7d96c32cd1f46a31bbb60f57dbe7dfbe7` |
+| Windows | `133569650651` | `14272986636` | `938504044fafc98546469c275685563928ce3e7f7048829649c6d97c520d9fca` |
+
+Both archive hashes match API metadata and the corresponding job's upload record.
+Both summaries name the exact SHA and source digest
+`5046976447c21b47a78689dd180ab46c80560a4d9fe2f694725e6832b726ba3d`, also
+recomputed from the untouched local checkout. API run/job metadata binds the
+archives to attempt 1. Both hosted interpreters were CPython 3.13.15 with four workers.
+Raw metadata, ZIPs, extracted reports, full regression job logs, complete failure
+tracebacks and independently reconciled `verified-accounting.json` are retained
+outside the repository in `opencode/324-main-43944221564`.
+
+Each platform's complete collection contains **12,724** identical node IDs.
+All four worker collections agree on the **12,629** parallel nodes; each selected
+node has exactly its required setup/call/teardown reports, including skipped setup
+handling. There are no setup or teardown failures.
+
+| Platform | Parallel passed / failed / skipped | Setup passed / skipped | Call passed / failed / skipped | Teardown passed | Parallel wall / total pytest-stage wall |
+| --- | --- | --- | --- | --- | --- |
+| Ubuntu | 12,623 / 1 / 5 | 12,626 / 3 | 12,623 / 1 / 2 | 12,629 | 3720.040s / 3735.161s |
+| Windows | 12,628 / 1 / 0 | 12,629 / 0 | 12,628 / 1 / 0 | 12,629 | 4613.266s / 4632.728s |
+
+The exclusive phase **did not execute** on either platform. The complete reports
+contain zero executions of its 95 collected nodes; full logs proceed directly from
+parallel failure to the final summary/upload. The exact runner returns at the failed
+parallel stage before launching exclusive execution. Those 95 are unexecuted, not
+skipped: early-rejection observer 6, local Corpus web 27, Match analysis action
+placement 25, and unified rejection transport 37.
+
+Both platforms have exactly this one failed node, in **call**, with passed setup
+and teardown:
+
+```text
+tests/test_learning_source_navigation.py::test_retained_evaluation_survives_navigation_refresh_language_duplicate_and_stale_remedy
+```
+
+Both relevant tracebacks are complete in `pytest-parallel.log` lines 187–245 and
+the external `ubuntu-failure.txt` / `windows-failure.txt`. They terminate at test
+line 284, `assert f'href="{route}"' in page`, for `route == "/learning"` after
+visiting `/matches`. This is an obsolete navigation expectation: approved G/H
+removed equal-primary Learning access and placed its native link under Analyze.
+The correction changes only that test's route sequence to
+`/` → `/matches` → `/review/recorded` → `/learning`, preserving the assertion that
+each next link is actually emitted and all existing download-byte, prepared-object,
+Current-selection, source-file, stale-recovery and operation-count assertions.
+No Product code, assertion strength, skip, timeout or CI policy changes.
+
+Local CPython 3.13.7 reproduction of that exact node failed at the same assertion
+in **7.35s**. After correction, the complete `tests/test_learning_source_navigation.py`
+module passed **17 tests in 27.19s**. Both used
+`-n 2 --dist=loadfile --max-worker-restart=0`, external temporary/cache/JUnit outputs,
+and 7,200,000 ms invocation timeouts. The changed verification document additionally
+requires the complete rename guard against its final text, followed by explicit
+Quick and whitespace checks; final outcomes are reported in the handoff. No
+exclusive module is affected by this test-path/documentation correction. The
+earlier 22-module selection, Full and installed scenarios are not repeated.
+
+This corrects the demonstrated local failure but does not establish new hosted
+acceptance. Keep #324 open for the normal publication sequence and planned narrow
+installed acceptance. Accepted #316–#323 evidence, including completed #321/#322
+installed acceptance, remains intact; #208 stays open.
