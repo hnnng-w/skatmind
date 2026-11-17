@@ -361,8 +361,10 @@ def test_stateful_landing_empty_states_explain_scope_prerequisite_and_next_actio
             "Use Create Match below",
         ),
         "/learning": (
-            "Uses saved Matches, Sessions and completed manual Reviews "
-            "with their retained analyses",
+            "Uses saved Matches and Sessions with their retained analyses, "
+            "including completed-game analyses of recorded Matches.",
+            "Standalone manual Reviews are saved separately and do not contribute to Learning.",
+            "Updating Learning runs no new card analysis.",
             "Independent collections",
             "Creates an empty collection. Add saved Matches afterward",
         ),

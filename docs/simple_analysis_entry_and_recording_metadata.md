@@ -439,3 +439,75 @@ Keep #324 open for subsequent publication/source review, automatic complete exac
 main gates and the later narrow installed follow-up. No intermediate maintainer UAT
 or manual Check dispatch is requested. Earlier valid evidence and #208's separate
 open boundary remain intact.
+
+## Main Check scope-copy expectation correction
+
+This bounded continuation starts on `feat/324-simple-entry-forms` at
+`46d0298a0f04bb36aad058d502961be1ce613dd5`, with a clean index/worktree.
+Authenticated read-only retrieval verified [Main Check 44080685237](https://github.com/hnnng-w/skatmind/actions/runs/44080685237):
+`push`, `main`, attempt `1`, that exact SHA, failed after 106m08s, with 20 successful
+and three failed jobs. All twelve installation cells, both matrix-result jobs and
+the platform-matrix gate succeeded. Final `check` job `134089334653` explicitly
+reports `gate_prerequisites_invalid`, with regression as the failed prerequisite.
+
+| Platform | Regression job | Artifact | Verified ZIP SHA-256 |
+| --- | --- | --- | --- |
+| Ubuntu | `134030313953` | `14330624051` | `7eaa7b18c7b2512ea911508fa25f6a322118deeda4e9ab565ac290ef18e7c183` |
+| Windows | `134030314242` | `14334692018` | `1071319574a4bfd955c88ba367feb47e1eda44dcb5d742d82454726c8f75367d` |
+
+Both ZIP digests match API metadata and their exact job upload records. Job metadata
+binds those uploads to run/attempt/SHA. Both summaries match the untouched checkout's
+recomputed source digest
+`5e00a28830b23fab091bd99c62e5cd394bf80fb1eb46c241161f65d1c0eb502d`.
+Both hosted interpreters were CPython 3.13.15, using four file-grouped workers.
+Raw metadata, ZIPs, extracted structured reports, complete regression/final-check
+logs, full failure tracebacks and `verified-accounting.json` are saved externally
+under `opencode/324-main-44080685237`.
+
+Both platforms collected the same **12,770** unique node IDs. All four workers on
+each platform agreed on the **12,675** parallel nodes. Reconciliation verifies one
+set of setup/call/teardown records per selected node, allowing skipped setup without
+a call. There are no setup or teardown failures.
+
+| Platform | Parallel passed / failed / skipped | Setup passed / skipped | Call passed / failed / skipped | Teardown passed | Parallel wall / total pytest-stage wall |
+| --- | --- | --- | --- | --- | --- |
+| Ubuntu | 12,669 / 1 / 5 | 12,672 / 3 | 12,669 / 1 / 2 | 12,675 | 3642.109s / 3658.295s |
+| Windows | 12,674 / 1 / 0 | 12,675 / 0 | 12,674 / 1 / 0 | 12,675 | 6221.809s / 6244.477s |
+
+The **95 exclusive tests did not execute** on either platform. Structured execution
+records contain zero exclusive-node reports, full logs go directly from parallel
+failure to summary/upload, and the exact runner returns before exclusive execution
+on that failed stage. These are unexecuted, not skipped: early-rejection observer 6,
+local Corpus web 27, Match action placement 25, unified rejection transport 37.
+
+Both platforms have exactly this failed node, in **call**, with passed setup and
+teardown:
+
+```text
+tests/test_unified_local_app_web.py::test_stateful_landing_empty_states_explain_scope_prerequisite_and_next_action
+```
+
+Both full relevant tracebacks are retained in external `ubuntu-failure.txt` and
+`windows-failure.txt`. At test line 386, `assert value in html` fails for the obsolete
+literal `Uses saved Matches, Sessions and completed manual Reviews with their retained analyses`
+on the delivered `/learning` page. The current catalog correctly describes recorded
+Match/Session inclusion, recorded Match Historical evidence and standalone Review
+exclusion under the explicit installed-UAT follow-up. This is an obsolete test
+expectation, not a demonstrated Product or test-synchronization defect.
+
+Before editing, the exact node reproduced the same failure locally on development
+CPython 3.13.7 in **2.44s**. The correction changes only that test's expected Learning
+scope text: it now asserts eligible recorded-source inclusion, standalone manual
+Review exclusion, and no new card analysis during explicit Update. Existing HTTP
+200, guided-empty-state, Session/Match guidance, independent collection and next-action
+assertions remain. Product code, source ownership, saved bytes/downloads, freshness,
+passive-operation behavior and both delivery optimizations are unchanged.
+
+Final validation selects the complete `tests/test_unified_local_app_web.py` module
+and the complete rename guard against this final documentation, using two file-grouped
+workers, disabled restarts, external outputs and 7,200,000 ms timeouts. No exclusive
+module or architecture boundary is changed. Explicit Quick and tracked/new-file
+whitespace checks follow worker exit; final outcomes and commands are in the handoff.
+No Full, hosted rerun or unchanged browser check is needed. Keep #324 open for new
+exact-commit main acceptance and the later narrow installed follow-up. Original
+installed A–D acceptance and unaffected earlier evidence remain valid; #208 stays open.
