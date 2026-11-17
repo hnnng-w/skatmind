@@ -7,6 +7,7 @@ is held with a Product lock.
 """
 
 from contextlib import ExitStack, contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, replace
 
 from skatmind import automatic_learning_io as io
@@ -60,6 +61,15 @@ from .automatic_session_inventory import (
 )
 from .saved_match_analyses import archive_store
 
+_DELIVERY_OPERATION = ContextVar("automatic_learning_delivery_operation", default=None)
+
+
+@dataclass(slots=True)
+class _DeliveryOperation:
+    service: object
+    binding: object = None
+    store: object = None
+
 
 @dataclass(frozen=True, slots=True)
 class AutomaticMatchServiceResult:
@@ -111,7 +121,8 @@ def _selection(inventory, resumed):
     exclusions = {row.source: row for row in manifest.exclusions}
     for row in inventory.rows:
         if row.source is not None and row.status != "selected":
-            exclusions[row.source] = ExclusionV1(source=row.source, reason=row.status)
+            exclusions[row.source] = ExclusionV1(source=row.source,
+                reason="unsupported" if row.status == "ineligible" else row.status)
     live = {row.source for row in inventory.rows if row.source is not None}
     # Unknown invalid candidates never inherit a guessed Product identity. A prior
     # aggregate is hidden conservatively when its identity cannot be found alive.
@@ -522,11 +533,52 @@ class AutomaticMatchLearningServiceV1:
             inventory = capture_match_inventory(self.home)
         binding = AutomaticDeliveryBinding(self, attempt, installed, result, resumed,
                                             inventory, self.coordinator.generation)
+        self._remember_delivery(binding)
         self.validate_delivery(binding)
         return binding
 
+    @contextmanager
+    def delivery_operation(self):
+        """One landing response shares capture work, never final authorization or a later GET."""
+        token = _DELIVERY_OPERATION.set(_DeliveryOperation(self))
+        try:
+            yield
+        finally:
+            _DELIVERY_OPERATION.reset(token)
+
+    def _remember_delivery(self, binding):
+        operation = _DELIVERY_OPERATION.get()
+        if operation is not None and operation.service is self:
+            operation.binding, operation.store = binding, self.store
+
+    def validate_final_delivery(self, binding):
+        """Always re-read exact archive/source bytes immediately before response headers."""
+        operation = _DELIVERY_OPERATION.get()
+        if (operation is not None and operation.service is self
+                and self.store is not operation.store):
+            raise StoreConflictError("Automatic delivery store owner changed.")
+        token = _DELIVERY_OPERATION.set(None)
+        try:
+            self.validate_delivery(binding)
+            if (operation is not None and operation.service is self
+                    and self.store is not operation.store):
+                raise StoreConflictError("Automatic delivery store changed during final checks.")
+        finally:
+            _DELIVERY_OPERATION.reset(token)
+
     def validate_delivery(self, binding):
         """After serialization, immediately before headers; a projection is not authority."""
+        operation = _DELIVERY_OPERATION.get()
+        if (operation is not None and operation.service is self
+                and operation.binding == binding):
+            with self.app.lock, self.coordinator.lock:
+                if (binding.owner is not self or not self._owner(binding.attempt)
+                        or self.store is not operation.store
+                        or self.attempt is not binding.attempt
+                        or self._installed is not binding.installed
+                        or self.coordinator.generation != binding.epoch):
+                    raise StoreConflictError("Automatic delivery owner changed during rendering.")
+            return
         result, resumed, inventory = self._inspect()
         if inventory is None:
             inventory = capture_match_inventory(self.home)
@@ -542,6 +594,7 @@ class AutomaticMatchLearningServiceV1:
                     or not inventory_still_current(self.home, binding.inventory)
                     or resumed is not None and self.store._manifest() != resumed.manifest):
                 raise StoreConflictError("Automatic delivery binding changed.")
+        self._remember_delivery(binding)
 
     @contextmanager
     def delivery_reader(self, binding):

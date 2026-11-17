@@ -24,7 +24,7 @@ class HistoricalInventoryRow(Record):
             digest(value)
         if (self.family != "historical_review" or self.source.family != self.family
                 or self.status not in (
-                    "selected", "explicit", "ambiguous", "invalid", "unsupported")):
+                    "selected", "explicit", "ambiguous", "invalid", "unsupported", "ineligible")):
             raise ValueError("Invalid saved Review inventory outcome.")
 
 
@@ -42,8 +42,7 @@ def capture_historical_inventory(store, resumed, exclusions):
     manifest = resumed.manifest
     records = {row.source_version.identity: row for row in manifest.sources}
     states = {row.reference: row.consumption_status for row in resumed.objects}
-    excluded = {row.source for row in exclusions}
-    rows, sources, captions = [], [], []
+    rows, captions = [], []
     for head in manifest.historical_heads:
         record = records[head.source_version_id]
         status = states[record.object_ref]
@@ -51,17 +50,16 @@ def capture_historical_inventory(store, resumed, exclusions):
             obj = store.read_object(record.object_ref)
             source = decode_historical_source(obj, record)
             captions.append((head.source, source.name, record.revision))
-            status = "explicit" if head.source in excluded else "selected"
-            if status == "selected":
-                sources.append((obj, record, source))
+            # A live saved Review remains independently readable and protected.
+            # Family eligibility is not a user opt-out or a deletion signal.
+            status = "ineligible"
         elif status != "unsupported":
             status = "invalid"
         rows.append(HistoricalInventoryRow(candidate_id=head.source.identity,
             content_digest=fingerprint("historical_head_v1", head.to_dict()), status=status,
             source=head.source, source_version_id=head.source_version_id))
     return HistoricalInventory(tuple(sorted(rows, key=lambda row: row.candidate_id)),
-        tuple(sorted(sources, key=lambda row: row[1].source_version.source.product_id)),
-        manifest.historical_heads, tuple(captions))
+        (), manifest.historical_heads, tuple(captions))
 
 
 def reconcile_imported_claims(inventory):

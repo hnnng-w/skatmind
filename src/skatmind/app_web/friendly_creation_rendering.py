@@ -167,15 +167,16 @@ def render_profile_driven_match_creation_v1(
         f"<label>{_t(locale, 'creation.advanced.source_title')} "
         '<input name="source_title" maxlength="160"></label>'
         f"<small>{_t(locale, 'creation.advanced.source_title_help')}</small>"
+        '<div class="video-source-fields">'
         f"<label>{_t(locale, 'creation.advanced.source_channel')} "
-        '<input name="source_channel_name" maxlength="160"></label>'
+        '<input name="source_channel_name" maxlength="160" placeholder=" "></label>'
         f"<small>{_t(locale, 'creation.advanced.source_channel_help')}</small>"
         f"<label>{_t(locale, 'creation.advanced.timecode_start')} "
         '<input name="match_timecode_start" placeholder="01:02:03"></label>'
         f"<label>{_t(locale, 'creation.advanced.timecode_end')} "
         '<input name="match_timecode_end" placeholder="02:03:04"></label>'
         f"<small>{_t(locale, 'creation.advanced.timecode_help')}</small>"
-        "</fieldset></details>"
+        "</div></fieldset></details>"
         f'<label>{_t(locale, "creation.match.platform")}<select name="platform_choice">'
         f"{_platform_options(profile, locale)}</select></label>"
         f'<label class="custom-platform-field">{_t(locale, "creation.match.custom_platform")} '

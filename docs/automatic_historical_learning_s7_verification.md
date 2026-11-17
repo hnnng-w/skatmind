@@ -1,5 +1,11 @@
 # Historical automatic Learning: S7 delivery and verification (Issue #316)
 
+Historical verification record: accepted S7 evidence remains intact. The later
+[Issue #324 installed follow-up](simple_analysis_entry_and_recording_metadata.md#installed-acceptance-follow-up)
+changes only current Learning eligibility for standalone saved Reviews, preserving
+their native saved lifecycle and strict archive admission. Recorded Match Historical
+evidence remains eligible. Earlier inclusion observations below are point-in-time history.
+
 ## Baseline and acceptance boundary
 
 Expected/actual branch: `feat/316-automatic-historical-learning`. Expected/actual

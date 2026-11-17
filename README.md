@@ -721,7 +721,7 @@ without normal-user paths or ports. Normal creation uses names and saved Players
 generates internal Product identities, presents friendly Match platform/date/
 source fields, and keeps Session and Match JSON import secondary. Open **Settings**
 to add/edit Players, identify **Your player**, and choose local creation defaults.
-Successful manual completed-game Reviews also save their input and execution;
+Successful manual completed-game Reviews save input and execution separately from Learning;
 **Saved Reviews and evidence** provides reopening, correction, deletion and original
 downloads. Check the saving receipt before closing the process.
 
@@ -2168,10 +2168,13 @@ have independent source-local participants even when their internal placeholder 
 repeat. Imported Historical identity claims remain strict. Drafts and unexecuted
 imports are not saved Games.
 
-Automatic Learning includes these saved sources and existing Match Historical
+The [Issue #324 follow-up](docs/simple_analysis_entry_and_recording_metadata.md#installed-acceptance-follow-up)
+excludes standalone manual Reviews from Learning while preserving their saved access.
+Automatic Learning includes eligible recorded sources and existing Match Historical
 findings through the ordinary explicit Create/Update action. Historical findings
 remain per-game evidence, separate from Session comparisons and qualified Match
 focuses. A Match Historical execution adds no duplicate Game or Teacher Report.
 Restart, passive navigation, language switching and downloads run no new card analysis.
-New exact-commit hosted CI and the narrow maintainer installed A–D workflows for #316
-remain pending; #316 and #208 stay open and release preparation is not authorized.
+Accepted #316–#323 evidence and #324's original installed A–D observations remain valid.
+The #324 follow-up needs its own exact-commit hosted gates and narrow installed check;
+#208 stays open and release preparation is not authorized.

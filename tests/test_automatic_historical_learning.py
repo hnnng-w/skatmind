@@ -54,6 +54,32 @@ def remove_head(app, controller, index=0):
     delete_review(app, controller, preview)
 
 
+def prepare_legacy_generation(service, monkeypatch):
+    """Publish the original codec-4 semantics from genuine saved sources/executions."""
+    import skatmind.app_web.automatic_match_learning as module
+    from skatmind.automatic_historical_evidence import decode_historical_source
+
+    original = module.capture_match_inventory
+    def legacy(*args, **kwargs):
+        inventory = original(*args, **kwargs)
+        manifest, store = kwargs["resumed"].manifest, kwargs["store"]
+        ids = {row.source_version_id for row in inventory.historical.rows
+               if row.status == "ineligible"}
+        sources = tuple((store.read_object(row.object_ref), row, decode_historical_source(
+            store.read_object(row.object_ref), row)) for row in manifest.sources
+            if row.source_version.identity in ids)
+        sources = tuple(sorted(sources, key=lambda row: row[1].source_version.source.product_id))
+        return replace(inventory, historical=replace(inventory.historical, sources=sources,
+            rows=tuple(replace(row, status="selected") if row.source_version_id in ids else row
+                       for row in inventory.historical.rows)))
+    with monkeypatch.context() as patch:
+        patch.setattr(module, "capture_match_inventory", legacy)
+        service._delivery_snapshot_receipt = None
+        assert service.update().status == "prepared"
+    service._delivery_snapshot_receipt = None
+    return service._installed
+
+
 def test_two_genuine_guided_producers_keep_independent_people_and_games(tmp_path):
     app, service = setup_service(tmp_path)
     draft = update_historical_options_v1(_completed_example_draft())
@@ -68,10 +94,14 @@ def test_two_genuine_guided_producers_keep_independent_people_and_games(tmp_path
     assert len(archive_store(app).snapshot().manifest.historical_heads) == 2
     assert service.update().status == "prepared"
     bundle = service._installed.bundle
-    assert dict((row.name, row.value) for row in bundle.historical_coverage)["participants"] == "6"
-    assert len(bundle.historical_sources) == 2
-    assert len({row.game.game_id for row in bundle.historical_sources}) == 1
-    assert len({row.record.scope for row in bundle.historical_sources}) == 2
+    assert dict((row.name, row.value) for row in bundle.historical_coverage)["participants"] == "0"
+    assert bundle.historical_sources == bundle.historical_evidence == ()
+    manifest = archive_store(app).snapshot().manifest
+    retained = archive_store(app).read_evidence_many(
+        tuple(head.evidence_id for head in manifest.historical_heads),
+        expected_manifest=manifest.fingerprint)
+    assert len(retained) == 2 and len({row.source.record.scope for row in retained}) == 2
+    assert len({row.game.game_id for row in retained}) == 1
     assert bundle.sources == bundle.evidence == ()
 
 
@@ -95,15 +125,16 @@ def test_restart_exact_bytes_no_evaluation_and_unchanged_update(
     assert restarted.update().status == "reused"
 
 
-def test_imported_placeholder_claims_remain_ambiguous(tmp_path, genuine_historical):
+def test_imported_and_guided_standalone_sources_are_ineligible(tmp_path, genuine_historical):
     app, service = setup_service(tmp_path)
     retain_fixture(app, genuine_historical, imported=True)
     retain_fixture(app, genuine_historical, imported=True)
     retain_fixture(app, genuine_historical)
     assert service.update().status == "prepared"
-    assert len(service._installed.bundle.historical_sources) == 1
+    assert service._installed.bundle.historical_sources == ()
     assert [row.reason for row in service._installed.generation.recipe.exclusions] == [
-        "ambiguous", "ambiguous"]
+        "unsupported", "unsupported", "unsupported"]
+    assert {row.status for row in service._installed.generation.inventory} == {"ineligible"}
 
 
 def test_correction_isolated_and_deleted_head_never_resurrects(tmp_path, genuine_historical):
@@ -129,12 +160,12 @@ def test_correction_isolated_and_deleted_head_never_resurrects(tmp_path, genuine
     view = controller.capture()
     index = view.binding.resumed.manifest.historical_heads.index(corrected)
     remove_head(app, controller, index)
-    assert service.inspect().status == "deleted"
+    assert service.inspect().status == "outdated"
     assert service.update().status == "prepared"
-    assert len(service._installed.bundle.historical_sources) == 1
+    assert service._installed.bundle.historical_sources == ()
     restarted = AutomaticMatchLearningServiceV1.open(AppWebContextV1.create(app.managed_home))
     assert restarted.update().status == "rebuilt"
-    assert len(restarted._installed.bundle.historical_sources) == 1
+    assert restarted._installed.bundle.historical_sources == ()
     assert first.evidence_id in archive_store(app).snapshot().available_evidence_ids
 
 
@@ -158,7 +189,8 @@ def test_historical_cleanup_retires_both_generations_preserves_ten_match_bytes(
     preview = controller.preview_cleanup(controller.capture(), old_evidence=True)
     assert len(preview.evidence) == 2
     controller.confirm(preview.token)
-    assert service.store.snapshot().manifest.generations == ()
+    # Current descriptors contain no standalone dependencies to retire.
+    assert service.store.snapshot().manifest.current_generation is not None
     preview = controller.preview_cleanup(controller.capture(), obsolete_sources=True)
     assert len(preview.sources) == 2
     controller.confirm(preview.token)
@@ -287,8 +319,110 @@ def test_new_execution_options_preserve_same_saved_game_version(tmp_path, genuin
     assert head.source_version_id == original.source_version_id
     assert head.evidence_id != original.evidence_id
     assert service.update().status == "prepared"
-    assert len(service._installed.bundle.historical_sources) == 1
-    assert len(service._installed.bundle.historical_evidence) == 2
+    assert service._installed.bundle.historical_sources == ()
+    assert service._installed.bundle.historical_evidence == ()
+    assert len(archive_store(app).snapshot().available_evidence_ids) == 2
     controller = automatic_controller(app)
     reopen_review(app, controller, controller.capture(), 0)
     assert app.review_state.draft.options.decision_snapshots is True
+
+
+def test_old_mixed_generation_is_readable_but_withheld_until_update(
+    tmp_path, genuine_historical, monkeypatch,
+):
+    from test_automatic_match_learning_evidence import forbid_execution
+    from test_automatic_session_web import install_session
+
+    from skatmind.automatic_mixed_preparation import admit_generation
+
+    app, service = setup_service(tmp_path)
+    match, _ = save(app)
+    session = install_session(app, missing=True)
+    head = retain_fixture(app, genuine_historical)
+    legacy = prepare_legacy_generation(service, monkeypatch)
+    assert len(legacy.bundle.historical_sources) == 1
+    assert len(legacy.bundle.historical_evidence) == 1
+    store = service.store
+    manifest = store.snapshot().manifest
+    descriptor = store.read_object(legacy.reference)
+    assert admit_generation(descriptor, manifest) == legacy.generation
+    before = {p: p.read_bytes() for p in app.managed_home.root.rglob("*") if p.is_file()}
+    forbid_execution(monkeypatch)
+    assert service.inspect().status == "excluded"  # Even a retained old bundle is not deliverable.
+    with pytest.raises(StoreConflictError):
+        service.consume(lambda bundle: bundle, allow_outdated=True)
+    app = AppWebContextV1.create(app.managed_home)
+    restarted = AutomaticMatchLearningServiceV1.open(app)
+    assert restarted.inspect().status == "excluded"
+    assert all(p.read_bytes() == raw for p, raw in before.items())
+    assert restarted.update().status == "prepared"
+    bundle = restarted._installed.bundle
+    assert bundle.historical_sources == bundle.historical_evidence == ()
+    assert len(bundle.sources) == len(bundle.session_sources) == 1
+    assert bundle.downloads == legacy.bundle.downloads
+    assert match.read_bytes() == before[match] and session.path.read_bytes() == before[session.path]
+    current = restarted.store.snapshot().manifest
+    assert current.previous_generation == legacy.reference
+    assert admit_generation(descriptor, current) == legacy.generation
+    assert restarted.store.read_evidence(head.evidence_id).downloads == (
+        legacy.bundle.historical_evidence[0].downloads)
+    assert restarted.update().status == "reused"
+    newer = AutomaticMatchLearningServiceV1.open(AppWebContextV1.create(app.managed_home))
+    assert newer.inspect().status == "reconstruction_needed"
+    assert newer.update().status == "rebuilt"
+
+
+@pytest.mark.parametrize("imported", (False, True))
+def test_live_ineligible_reviews_have_no_opt_in_and_remain_cleanup_protected(
+    tmp_path, genuine_historical, imported,
+):
+    from skatmind.app_web.automatic_learning_controller import source_keys
+
+    app, service = setup_service(tmp_path)
+    head = retain_fixture(app, genuine_historical, imported=imported)
+    if imported:
+        from skatmind.automatic_learning_contracts import ExclusionV1
+
+        store = archive_store(app)
+        before = store.snapshot().manifest
+        assert store.update_manifest(replace(before, revision=before.revision + 1,
+            exclusions=(ExclusionV1(source=head.source, reason="explicit"),)),
+            expected_manifest=before.fingerprint).status == "saved"
+    assert service.update().status == "prepared"
+    controller = automatic_controller(app)
+    view = controller.capture()
+    assert source_keys(view) == ()
+    with pytest.raises(StoreConflictError):
+        controller.preview_exclusion(view, 0)
+    for mode in ("old_evidence", "obsolete_sources"):
+        preview = controller.preview_cleanup(controller.capture(), **{mode: True})
+        assert preview.evidence == preview.sources == ()
+        assert not preview.source_release_blocked
+        assert preview.cleanup.manifest.historical_heads == (head,)
+    assert service.store.read_evidence(head.evidence_id).execution == genuine_historical[1]
+
+
+def test_ineligible_imported_game_claim_does_not_block_recorded_match(
+    tmp_path, genuine_historical,
+):
+    from test_match_decision_analysis import _complete_workspace
+
+    from skatmind.api.v1 import parse_request
+    from skatmind.app_web.execution import execute_guided_frontend_review_v1
+    from skatmind.private_execution_capture import capture_native_execution
+
+    app, service = setup_service(tmp_path)
+    workspace = _complete_workspace()
+    save(app, workspace=workspace)
+    root = genuine_historical[1].request.to_dict()["document"]
+    root["historical_game_input"]["game_id"] = workspace.slots[2].observed_game.game_id
+    with capture_native_execution() as native:
+        execution = execute_guided_frontend_review_v1(parse_request(root),
+            options=genuine_historical[1].options)
+    head = retain_fixture(app, (None, execution, native[0]), imported=True)
+    assert service.update().status == "prepared"
+    bundle, generation = service._installed.bundle, service._installed.generation
+    assert len(bundle.sources) == 1 and bundle.historical_sources == ()
+    assert [(row.source, row.reason) for row in generation.recipe.exclusions] == [
+        (head.source, "unsupported")]
+    assert service.store.read_evidence(head.evidence_id).source.origin == "imported"

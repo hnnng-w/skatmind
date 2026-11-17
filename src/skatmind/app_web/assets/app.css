@@ -671,6 +671,11 @@ label:has(select[name="platform_choice"] option[value="custom"]:checked) + .cust
   gap: 1rem;
 }
 
+.match-source:has(select[name="source_kind"] option[value="manual_observation"]:checked)
+  .video-source-fields:not(:has(input:not(:placeholder-shown), [aria-invalid="true"])) {
+  display: none;
+}
+
 .skip-link {
   position: fixed;
   z-index: 2;

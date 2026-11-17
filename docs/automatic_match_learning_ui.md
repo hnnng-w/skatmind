@@ -1,5 +1,11 @@
 # Automatic Match Learning review and maintenance UI (Issue #313, S5)
 
+The current [Issue #324 installed follow-up](simple_analysis_entry_and_recording_metadata.md#installed-acceptance-follow-up)
+separates saved standalone Reviews from Learning eligibility and coalesces repeated
+validation within one `/learning` response, preserving full capture/final-delivery
+checks. Its measurements include the remaining cold-start admission cost. Accepted
+earlier scopes and installed evidence below remain historical evidence.
+
 Current S7 status: S1–S6 are maintainer-accepted; #314/#315 are closed and S6 installed
 acceptance completed on main `08022a6def9f06891d99e1097c2bf0ba84d77039`. Earlier
 pending paragraphs below are historical records. [Issue #316](automatic_historical_learning_s7_verification.md)

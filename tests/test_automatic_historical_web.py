@@ -65,19 +65,29 @@ def test_saved_discovery_download_reopen_delete_and_original_consent(
     assert "/evidence/" in historical
 
 
-def test_automatic_historical_download_and_stale_final_delivery(
+def test_old_automatic_historical_link_is_withheld_and_saved_download_stays_guarded(
     localized_server, genuine_historical, monkeypatch,
 ):
     from dataclasses import replace
 
+    from test_automatic_historical_learning import prepare_legacy_generation
+
+    from skatmind.app_web.automatic_learning_controller import automatic_controller
     from skatmind.app_web.server import SkatMindAppWebRequestHandlerV1 as Handler
     app = localized_server.app_context
     retain_fixture(app, genuine_historical)
     browser = Browser(localized_server)
-    page = create(browser)
+    controller = automatic_controller(app)
+    prepare_legacy_generation(controller.service, monkeypatch)
+    old_view = controller.capture()
+    assert old_view.binding.result.status == "excluded"
+    old_route = old_view.base + "/historical/evidence/0"
+    assert browser.request("GET", old_route + "/result.json")[0] == 409
+    page = create(browser)  # Explicit Update installs only eligible recording contributions.
     assert "Session coverage and comparisons" not in page
     assert "Historical game reviews" in page
-    route = re.search(r'href="(/learning/automatic/[0-9a-f]+/historical/evidence/[0-9]+)"', page)[1]
+    assert re.search(r'/historical/evidence/[0-9]+', page) is None
+    route = evidence_link(browser.page("/review/saved"))
     assert browser.request("GET", route + "/result.json")[2] == (
         genuine_historical[1].result_json_bytes)
     original = Handler._send_bytes
@@ -243,7 +253,7 @@ def test_ordinary_imports_are_independent_and_reset_keeps_saved_sources(localize
     assert store.snapshot().manifest == before
     create(browser)
     assert app.automatic_match_learning._installed.bundle.historical_sources == ()
-    assert all(row.reason == "ambiguous"
+    assert all(row.reason == "unsupported"
                for row in app.automatic_match_learning._installed.generation.recipe.exclusions)
 
 

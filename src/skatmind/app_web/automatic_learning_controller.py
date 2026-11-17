@@ -122,11 +122,12 @@ class AutomaticLearningController:
             raise StoreConflictError("Automatic storage has not been created.")
         manifest = view.binding.resumed.manifest
         current = {row.source_version_id for row in view.binding.inventory.rows
-                   if row.status in ("selected", "explicit")}
+                   if row.status in ("selected", "explicit", "ineligible")}
         entries = tuple(row for row in manifest.evidence
                          if old_evidence and row.source_version_id not in current)
-        release_blocked = obsolete_sources and any(row.status not in ("selected", "explicit")
-                                                   for row in view.binding.inventory.rows)
+        release_blocked = obsolete_sources and any(row.status not in (
+            "selected", "explicit", "ineligible")
+                                                    for row in view.binding.inventory.rows)
         releases = (() if not obsolete_sources or release_blocked else
                     _releasable_sources(view))
         # Capture typed captions/effects BEFORE preview. All reader pins end here.
@@ -260,7 +261,9 @@ def source_keys(view):
                      if row.source.family in ("match", "session", "historical_review"))
     if view.binding.result.generation is not None:
         keys.update(row.source for row in view.binding.result.generation.recipe.exclusions)
-    return tuple(sorted(keys, key=lambda row: row.identity))
+    # Standalone Reviews cannot override family eligibility with an inclusion action.
+    return tuple(sorted((key for key in keys if key.family != "historical_review"),
+                        key=lambda row: row.identity))
 
 
 def automatic_controller(app):

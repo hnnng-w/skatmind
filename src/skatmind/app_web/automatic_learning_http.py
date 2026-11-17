@@ -69,7 +69,7 @@ def authorize_response(handler, controller, view, *, confirmation=None):
     def guard():
         if handler.server.app_context.automatic_learning_ui is not controller:
             raise StoreConflictError("Automatic frontend changed.")
-        controller.service.validate_delivery(view.binding)
+        controller.service.validate_final_delivery(view.binding)
         if confirmation is not None:
             controller.require_confirmation(confirmation.token)
     handler._retained_delivery_guard = guard
@@ -103,11 +103,12 @@ def _entry_view(handler, controller):
 def send_landing(handler, manual_body, *, status=200):
     try:
         controller = automatic_controller(handler.server.app_context)
-        view = _entry_view(handler, controller)
-        with controller.service.delivery_reader(view.binding):
-            send_page(handler, controller, view, "/learning",
-                render_entry(view, handler._frontend_state().locale, landing=True) + manual_body,
-                status=status)
+        with controller.service.delivery_operation():
+            view = _entry_view(handler, controller)
+            with controller.service.delivery_reader(view.binding):
+                body = render_entry(view, handler._frontend_state().locale, landing=True)
+                send_page(handler, controller, view, "/learning",
+                    body + manual_body, status=status)
     except (OSError, ValueError, SkatMindError) as error:
         recovery(handler, failure_kind(error))
 

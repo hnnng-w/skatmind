@@ -486,11 +486,12 @@ def test_mixed_update_bulk_keeps_original_evidence_and_publication_checks(
     assert service.update().status == "prepared"
     assert len(phases) == 1 and phases[0][1]["admissions"] == 1
     assert phases[0][1]["retained_results_loaded"] == 5
-    assert phases[0][0] == tuple(sorted(before.available_evidence_ids))
+    assert phases[0][0] == tuple(sorted(entry.identity for entry in before.manifest.evidence
+        if entry.envelope.kind != "historical_review"))
     generation = service._installed.generation
     assert generation.recipe.evidence_ids == phases[0][0]
     assert len(service._installed.bundle.session_evidence) == 1
-    assert len(service._installed.bundle.historical_evidence) == 2
+    assert service._installed.bundle.historical_evidence == ()
     assert archive.snapshot().manifest.evidence == before.manifest.evidence
     print({"consumer": "update", "fallback": fallback, "bulk_work": dict(phases[0][1]),
            "operation_work": dict(counts)})

@@ -112,6 +112,8 @@ def test_fresh_closed_groups_are_independent_of_profile_and_preserve_optional_fi
             classes = [p["attrs"].get("class") for p in matches[0]["parents"]]
             assert ("advanced-settings" in classes) == (name in ADVANCED_FIELDS)
             assert ("match-source" in classes) == (name in SOURCE_FIELDS)
+            assert ("video-source-fields" in classes) == (name in (
+                "source_channel_name", "match_timecode_start", "match_timecode_end"))
             assert ("save-defaults" in classes) == name.startswith("save_")
         assert block.index('name="match_title"') < block.index('class="match-optional-details"')
         assert block.index('name="match_timecode_end"') < block.index('class="seat-entry"')
@@ -351,6 +353,35 @@ def test_automatic_source_and_title_fallback_survive_collapsed_native_submission
     assert definition.source.source_title == (title or "Synthetic source")
     assert definition.source.source_channel_name == "Synthetic channel"
     assert definition.played_at is None
+
+
+@pytest.mark.parametrize("locale", ("en", "de"))
+def test_manual_source_error_keeps_video_values_reachable_through_language(
+    localized_server, locale,
+):
+    browser = Browser(localized_server)
+    page = switch(browser, browser.page("/matches/new"), locale)
+    response = browser.submit(Forms(page).find(CREATE), **new_name_roster(),
+        match_title="Synthetic manual correction", perspective_seat="forehand",
+        setup_action="update", source_kind="manual_observation", source_channel_name="Channel",
+        match_timecode_start="01:00", match_timecode_end="02:00")
+    assert response[0] == 400
+    page = switch(browser, response[2].decode(), "en" if locale == "de" else "de")
+    form = Forms(page).find(CREATE)
+    assert form["values"]["source_kind"] == "manual_observation"
+    for name, value in (("source_channel_name", "Channel"), ("match_timecode_start", "01:00"),
+                        ("match_timecode_end", "02:00")):
+        assert form["values"][name] == value
+    field = next(n for n in Hierarchy(page).nodes
+                 if n["attrs"].get("name") == "source_channel_name")
+    assert field["attrs"]["aria-invalid"] == "true" and Hierarchy.visible(field)
+    page = follow(browser, browser.submit(form, source_kind="other_video",
+        source_url="https://example.invalid/video", setup_action="update"))
+    follow(browser, browser.submit(Forms(page).find(CREATE), setup_action="create"))
+    active = localized_server.app_context.managed_stateful.active_match
+    definition = active.workspace.match_definition
+    assert definition.source.source_channel_name == "Channel"
+    assert definition.source.source_kind == "other_video"
 
 
 @pytest.mark.parametrize("value,expected", ((None, False), ("", False), ("on", True)))

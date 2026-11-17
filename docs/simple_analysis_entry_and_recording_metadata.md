@@ -1,5 +1,11 @@
 # Simple analysis entry and grouped recording metadata
 
+Current status: the maintainer accepted the original functional installed A–D
+observations. Main Check `43965683990` passed all 23 jobs at
+`4b653587088741306d921d66425a52fbdf374047`. The
+[installed follow-up](#installed-acceptance-follow-up) below extends #324; it does
+not restart or invalidate that acceptance. Earlier pending statements are history.
+
 ## Scope and authority
 
 Issue #324 implements approved G, H, I, K and corrected J: source URL, kind and
@@ -207,3 +213,136 @@ This corrects the demonstrated local failure but does not establish new hosted
 acceptance. Keep #324 open for the normal publication sequence and planned narrow
 installed acceptance. Accepted #316–#323 evidence, including completed #321/#322
 installed acceptance, remains intact; #208 stays open.
+
+## Installed acceptance follow-up
+
+The maintainer explicitly approved these additional changes after the original
+A–D observations passed. Actual starting branch is `feat/324-simple-entry-forms`,
+HEAD `4b653587088741306d921d66425a52fbdf374047`, with a clean index/worktree.
+Cent accounting, the accepted missing-value message and saved round titles are
+unchanged. Accepted #316–#323 evidence and completed #321/#322 installed acceptance
+remain valid. This follow-up requires its own publication, source review, automatic
+exact-commit main gates and one later narrow installed check. #324/#208 remain open.
+
+### Saved existence is separate from Learning eligibility
+
+`automatic_historical_inventory.py` retains every live saved Review head, exact
+identity and readable source caption. An admitted standalone `historical_review`
+row is now `ineligible`, with no selected source tuple. This applies equally to
+guided and imported Reviews and cannot be overridden by an old explicit exclusion
+or a new inclusion action. `source_keys()` offers only recorded source families.
+Generation diagnostics use the existing `unsupported` exclusion reason; no new
+ordinary field, preference, route or transport is introduced.
+
+`automatic_session_inventory.py` still captures the complete mixed live inventory
+and exact head/source changes. Imported-claim reconciliation receives only eligible
+source tuples, so an ineligible imported standalone Review cannot block a recorded
+Match/Session. Existing duplicate recording identities and untrusted explicit
+cross-source binding safeguards remain unchanged. There is no blanket filter on
+`evidence_class == "historical"`: executed Historical evidence attached to an actual
+recorded Match remains eligible through the existing Historical bundle builder.
+
+Old codec-4 descriptors keep their original adapter/builder constants and strict
+admission semantics in `automatic_historical_preparation.py`. Historical selected
+rows remain readable. When a retained generation references a standalone Review,
+current live inventory blocks its delivery as `excluded`, including an installed
+old bundle and after restart. Passive access neither rewrites the descriptor nor
+prepares a replacement. Explicit Update publishes a new generation without that
+contribution, retains the old descriptor as previous where applicable, and preserves
+the independent Match exports. Unchanged Update and restart reconstruction retain
+their ordinary reuse/rebuild behavior.
+
+Live `ineligible` versions count as current for old-evidence cleanup, do not block
+otherwise valid obsolete-source preview, and remain protected from source release.
+They are not deleted or obsolete merely because Learning does not select them.
+Saved Review discovery, reopening/correction, explicit deletion and original
+Request/Result downloads still use their existing head/owner and strict archive
+readers. DE/EN saving, current-version, deletion and Learning scope text now describe
+that separation. No archive migration or split is needed.
+
+### Applicable source controls
+
+Within the existing Match Source group, `.video-source-fields` contains only the
+channel, start/end timecodes, their labels and video help. Native CSS hides that
+group only when explicit manual observation is selected, all three values are
+empty, and none is marked invalid. URL/kind stay together and alternate source title
+stays reachable. Automatic and both video choices show the group without JavaScript.
+Any populated or invalid field exposes it, even after clearing an invalid value
+until successful validation. Controls remain enabled, single-owned and present in
+native POSTs; switching kinds preserves values. Parsing, classification, title
+fallback and persistence are unchanged.
+
+One compact checkout-only Edge check used disposable synthetic inputs, actual native
+keyboard submissions and no installed/UAT data. Ten observations and five POSTs
+verified automatic/empty manual/populated manual/video visibility, JavaScript-disabled
+operation, channel-error recovery, DE/EN language return, enhanced unsent preservation
+and one submitted copy of each video field. Screenshots and POST evidence are external
+under `opencode/324-manual-source-browser-01`; the driver is
+`opencode/324-manual-source-browser.py`. This is developer evidence only.
+
+### Measured landing work and bounded correction
+
+The actual path is managed collection discovery/rendering → `send_landing` →
+controller capture → service `_inspect`/`_capture` → archive delivery snapshot and
+mixed recording inventory. Previously immediate capture validation, reader entry,
+language-context resolution and final response authorization each repeated inspection.
+First entry also strictly initializes separate saved-archive and automatic-service
+owners. The landing already omits full maintenance/source-exception rendering.
+
+`delivery_operation()` now scopes one captured binding to that response's execution
+context, with `finally` reset. Intermediate checks reuse only that exact binding and
+still check process owner, store identity, attempt, installed bundle and source epoch.
+`validate_final_delivery()` bypasses this scope and performs the full fresh archive,
+manifest and recording checks immediately before headers, checking store identity
+before and after validation. Reader pins remain held through body writing. Other
+routes and POSTs retain their existing validation work. A later GET starts a new
+operation; there is no TTL, metadata-only cache, persistent cache or raised bound.
+`_snapshot_for_delivery` still checks every indexed byte and storage inventory and
+keeps its complete strict-admission fallback above existing limits.
+
+Before/after measurements use the **same unchanged recorded-Match archive**, one
+genuine retained Immediate execution and a current generation. No standalone Review
+is present, so eligibility changes cannot explain the work reduction. The existing
+`measure_work` / `publish_fresh_archive` helpers separate fixture costs from HTTP:
+execution 4.683s, publication 2.923s, explicit Update 15.590s. Each measured sequence
+starts fresh app/service owners, then sends one subsequent unchanged GET. Card
+analysis, all Learning preparation builders and archive writes were prohibited;
+all managed file bytes remained identical.
+
+| Operation | Before | After |
+| --- | ---: | ---: |
+| First GET elapsed | 8.744s | 9.821s |
+| First admissions / retained-result decodes | 3 / 3 | 3 / 3 |
+| First indexed object reads / bytes | 37 / 41,515,449 | 22 / 27,667,350 |
+| First recording inventory captures / bytes | 32 / 262,608 | 14 / 114,891 |
+| Unchanged GET elapsed | 1.066s | 0.386s |
+| Unchanged admissions / retained-result decodes | 0 / 0 | 0 / 0 |
+| Unchanged indexed object reads / bytes | 25 / 23,080,165 | 10 / 9,232,066 |
+| Unchanged recording inventory captures / bytes | 28 / 229,782 | 10 / 82,065 |
+
+Evidence is external `opencode/324-learning-entry-measurement/{before,after}-work.json`,
+from `opencode/324-learning-entry-work.py`. Elapsed observations are not thresholds or
+an installed-latency claim. **Cold latency did not improve in this observation**;
+three strict startup admissions/decodes remain. The installed delay is not proven
+solved. A bounded subsequent proposal is to seed a store-owner-specific startup
+receipt from constructor admission, bracketed by exact bytes, limits and inventory,
+so first capture need not repeat it. Sharing admission across independent archive
+and service owners additionally needs explicit ownership design and adversarial
+tests; this follow-up does not expand into that change.
+
+### Follow-up validation boundary
+
+Complete selected modules cover Historical eligibility/lifecycle/native access,
+old-descriptor compatibility, genuine recorded Match Historical evidence, Match and
+Session service behavior, receipt/bulk/fallback reads, Learning UI/maintenance/source
+release, language ownership, and the new landing capture/final races and reader pins.
+Creation detail/settings/shared-preservation and catalog modules cover conditional
+source rendering. The existing actual 67-object over-limit fixture is included with
+the complete bulk-read module; tightened-limit landing checks separately exercise
+both required HTTP boundaries without truncation. Timing assertions use structural
+work counts, never elapsed gates. Final documentation is checked by the complete
+rename guard. None of the repository's four exclusive modules is affected: no
+standalone Corpus transport, rejection teardown or Match action-placement code changes.
+Final commands/results are recorded in the handoff, using development CPython 3.13,
+two file-grouped workers, disabled worker restarts, external outputs and 7,200,000 ms
+timeouts, followed by explicit Quick and tracked/new-file whitespace checks.

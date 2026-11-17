@@ -1,5 +1,12 @@
 # Automatic Learning integration and evidence lifetime (Issue #308)
 
+Current eligibility amendment: the maintainer-approved
+[Issue #324 installed follow-up](simple_analysis_entry_and_recording_metadata.md#installed-acceptance-follow-up)
+excludes the standalone `historical_review` source family from automatic Learning.
+Saved Review access, identities, original evidence, correction and explicit deletion
+remain supported; recorded Match Historical evidence remains eligible. Earlier S7
+inclusion requirements and verification below retain their historical meaning.
+
 ## 1. Status, decision and reading guide
 
 **Status: documentation contract and recommended implementation sequence.** This
