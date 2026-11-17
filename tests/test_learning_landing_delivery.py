@@ -84,7 +84,7 @@ def test_fresh_and_unchanged_get_share_work_but_keep_both_boundaries(
         start = perf_counter()
         assert passive_browser.request("GET", "/learning")[0] == 200
         assert counts["inspections"] == 2
-        expected_admissions = (4 if first else 2) if fallback else (3 if first else 0)
+        expected_admissions = (4 if first else 2) if fallback else (2 if first else 0)
         assert counts["admissions"] == expected_admissions
         assert counts["retained_results_loaded"] == counts["admissions"]
         assert counts["object_reads"] > 0

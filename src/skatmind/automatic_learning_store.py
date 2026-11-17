@@ -175,7 +175,8 @@ def resolve_automatic_learning_root_v1(managed_home: Path) -> Path:
 class AutomaticLearningStoreV1:
     """Fresh process-local owner over one strictly resumed explicit private root."""
 
-    def __init__(self, root: Path, *, limits: StoreLimitsV1 = DEFAULT_LIMITS):
+    def __init__(self, root: Path, *, limits: StoreLimitsV1 = DEFAULT_LIMITS,
+                 _seed_delivery_receipt: bool = False):
         if not isinstance(root, Path) or type(limits) is not StoreLimitsV1:
             raise ValueError("Expected an explicit Path and exact store limits.")
         self.root = root.absolute()
@@ -187,7 +188,19 @@ class AutomaticLearningStoreV1:
             for path in (self.root, *(self.root / area for area in OBJECT_AREAS))
         }
         self._coordination_stamp = io.stamp(io.checked_path(self.root / ".coordination.lock"))
-        self.snapshot()  # A failed resume never creates, repairs or rewrites anything.
+        self._startup_delivery_receipt = None
+        if _seed_delivery_receipt:
+            # This performs the mandatory strict admission once, byte-bracketed for
+            # this new owner. Ordinary construction retains its original snapshot path.
+            _resumed, self._startup_delivery_receipt = self._snapshot_for_delivery()
+        else:
+            self.snapshot()  # A failed resume never creates, repairs or rewrites anything.
+
+    def _take_startup_delivery_receipt(self):
+        """One-shot handoff; the receiver must still run fresh delivery validation."""
+        with self._coordinator.lock:
+            receipt, self._startup_delivery_receipt = self._startup_delivery_receipt, None
+            return receipt
 
     def _check_root(self):
         io.checked_root(self.root)

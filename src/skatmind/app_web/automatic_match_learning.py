@@ -231,7 +231,8 @@ class AutomaticMatchLearningServiceV1:
         if archive is not None and self.store is None:
             # Fresh store owner shares root quotas/pins/lock, never S2/S3 reservations.
             self.archive = archive
-            self.store = AutomaticLearningStoreV1(archive.root, limits=archive.limits)
+            self.store = AutomaticLearningStoreV1(archive.root, limits=archive.limits,
+                                                 _seed_delivery_receipt=True)
         if not self._owner():
             raise StoreConflictError("Automatic Match archive owner changed.")
         return self.store
@@ -239,8 +240,9 @@ class AutomaticMatchLearningServiceV1:
     def _capture(self, store):
         epoch = self.coordinator.generation
         previous = self._delivery_snapshot_receipt
+        startup = store._take_startup_delivery_receipt()
         resumed, archive = store._snapshot_for_delivery(
-            None if previous is None else previous.archive)
+            startup if previous is None else previous.archive)
         if (previous is not None and archive is not None and archive is previous.archive
                 and epoch == previous.epoch
                 and inventory_still_current(self.home, previous.inventory)):
@@ -248,6 +250,12 @@ class AutomaticMatchLearningServiceV1:
         else:
             inventory = capture_match_inventory(self.home, resumed.manifest.exclusions,
                                                 store=store, resumed=resumed)
+        if (archive is not None and archive is startup
+                and not _bounded_delivery_inputs(resumed, inventory)):
+            # Constructor seeding knows only archive bounds. If the complete live
+            # input set exceeds the combined bound, retain strict capture admission.
+            if store.snapshot() != resumed:
+                raise StoreConflictError("Archive changed during unbounded startup capture.")
         with self.coordinator.lock:
             if epoch != self.coordinator.generation or not inventory_still_current(
                     self.home, inventory):

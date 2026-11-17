@@ -346,3 +346,96 @@ standalone Corpus transport, rejection teardown or Match action-placement code c
 Final commands/results are recorded in the handoff, using development CPython 3.13,
 two file-grouped workers, disabled worker restarts, external outputs and 7,200,000 ms
 timeouts, followed by explicit Quick and tracked/new-file whitespace checks.
+
+## Owner-local startup admission
+
+The next bounded #324 continuation starts on `feat/324-simple-entry-forms` at
+`b17e04ffc64a47f630347e44e1c484bf3beddc4f`, with a clean index/worktree. Automatic
+partial feedback run `44059621703` passed at that commit; published-source review
+found no concrete blocker in the preceding eligibility, preservation, conditional
+source controls or response-local landing changes. Those changes and original
+installed A–D acceptance are preserved. This implements the owner-local portion
+of the startup proposal above, not admission sharing between independent owners.
+
+### Constructor and first-capture contract
+
+Ordinary `AutomaticLearningStoreV1` construction still performs its original
+mandatory `snapshot()`. Only the Automatic Learning service opts its own new store
+into `_seed_delivery_receipt=True`. That constructor performs its mandatory strict
+admission through `_snapshot_for_delivery()` instead, using the existing exact-byte
+bracketing, manifest, root, storage-inventory and limit checks. It does not first
+perform an ordinary snapshot and then repeat admission to seed the receipt.
+
+At most one private `_startup_delivery_receipt` is retained. Its owner is the newly
+constructed service store, never the saved-analysis archive owner. The first normal
+capture takes and clears that reference under the store coordinator lock, before
+attempting fresh `_snapshot_for_delivery(receipt)` validation. Missing, unusable or
+wrong-owner receipts cause normal strict admission. A failed capture cannot restore
+the consumed reference. The service's existing bounded normal delivery receipt is
+the only retained receipt after capture; clearing it cannot resurrect startup reuse.
+Service replacement and restart create and admit their own independent store owners.
+
+The constructor can establish only archive bounds. When first capture discovers
+that archive plus live recording inputs exceed the existing combined count/byte
+bounds, it performs complete strict capture admission and retains neither receipt.
+Object-count, stored-byte and expanded-data limits retain their existing complete
+fallback; unavailable evidence keeps its strict original classification. No limits
+are raised, inputs truncated, persistent/TTL cache added or size/mtime accepted as
+content proof. The response-local optimization, fresh final-delivery checks, reader
+pins, reservations and publication protocols remain unchanged.
+
+### Same-archive work evidence
+
+The existing disposable `opencode/324-learning-entry-measurement/managed` archive
+was reused without new fixture analysis, publication or Update. It contains the same
+genuine recorded-Match Immediate execution and generation used above, with no
+standalone Review. Both sequences start fresh app/service owners, then perform one
+unchanged subsequent GET. The existing measurement helper prohibits Card analysis,
+all Learning preparation builders and archive writes and compares every managed
+file byte before/after. Fixture costs remain in the preceding separate record.
+
+| Operation | Before startup handoff | After startup handoff |
+| --- | ---: | ---: |
+| First GET elapsed | 6.312s | 5.044s |
+| First complete admissions / retained-result decodes | 3 / 3 | 2 / 2 |
+| First indexed objects admitted | 9 | 6 |
+| First object reads / bytes | 22 / 27,667,350 | 22 / 27,667,350 |
+| First recording inventory captures / bytes | 14 / 114,891 | 14 / 114,891 |
+| Unchanged GET elapsed | 0.249s | 0.314s |
+| Unchanged admissions / retained-result decodes | 0 / 0 | 0 / 0 |
+| Unchanged object reads / bytes | 10 / 9,232,066 | 10 / 9,232,066 |
+| Unchanged recording inventory captures / bytes | 10 / 82,065 | 10 / 82,065 |
+
+The receipt-eligible cold target **3 → 2 complete admissions is achieved**, with
+warm **0 → 0**. Byte/inventory reads remain because reuse still validates exact
+current inputs. The two admissions belong to intentionally independent archive and
+service owners. Larger archives retain complete strict fallback, so this result is
+not extrapolated to them. Observed elapsed times are not gates or installed latency
+evidence; the installed delay is not claimed solved. Raw work is retained in
+`opencode/324-learning-entry-measurement/startup-before-work.json` and
+`startup-after-work.json`, produced by the unchanged external measurement driver.
+
+### Focused validation
+
+The complete receipt and landing modules passed **58 tests in 414.66s** on development
+CPython 3.13.7. Added cases cover unchanged ordinary construction, same-owner reuse,
+one-shot clearing including interrupted capture, absent/unusable/foreign receipts,
+replacement/restart isolation, same-size/same-mtime source and Report corruption,
+manifest/inventory/root/limit changes, unavailable/unsupported evidence, expanded-data
+fallback and combined recording-input bounds. Existing final-delivery races and
+reader-pin-through-body-write coverage remain active.
+
+Remaining complete modules are selected from actual callers: store and lifecycle
+for construction/root/reservation semantics; bulk reads including the actual
+**67-object / 34-evidence** production-limit fixture extended through opt-in startup
+and first capture; Match, Session and Historical lifecycle service consumers; managed
+store wrappers for unchanged ordinary initialization; and the final-document rename
+guard. No exclusive module is affected. All pytest uses two file-grouped workers,
+disabled restarts, external outputs and 7,200,000 ms timeouts. Final command outcomes,
+explicit Quick and tracked/new-file whitespace results are reported in the handoff.
+No broad 23-module replay, routine Full or unchanged source-browser check is required.
+
+Keep #324 open for subsequent publication/source review, automatic complete exact-commit
+main gates and the later narrow installed follow-up. No intermediate maintainer UAT
+or manual Check dispatch is requested. Earlier valid evidence and #208's separate
+open boundary remain intact.

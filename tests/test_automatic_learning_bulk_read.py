@@ -192,6 +192,14 @@ def test_actual_object_limit_fallback_is_complete_with_genuine_evidence(
         assert value.download("request")[1] == execution.request_json_bytes
         assert value.download("result")[1] == execution.result_json_bytes
     print({"production_object_limit_fallback_work": dict(counts)})
+    counts.clear()
+    startup = module.AutomaticLearningStoreV1(store.root, _seed_delivery_receipt=True)
+    assert startup._startup_delivery_receipt is None and counts["admissions"] == 1
+    captured, receipt = startup._snapshot_for_delivery(startup._take_startup_delivery_receipt())
+    assert receipt is None and captured == resumed
+    assert len(captured.available_evidence_ids) == 34
+    assert counts["admissions"] == 2 and counts["retained_results_loaded"] == 68
+    assert counts["indexed_objects_admitted"] == counts["object_reads"] == 134
 
 
 @pytest.mark.parametrize("damage", ("missing", "same_metadata", "unsupported"))

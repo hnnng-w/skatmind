@@ -6,7 +6,7 @@ from dataclasses import replace
 from time import perf_counter
 
 import pytest
-from learning_archive_fixture_helpers import publish_fresh_archive, work_phase
+from learning_archive_fixture_helpers import measure_work, publish_fresh_archive, work_phase
 from test_automatic_match_learning import save, setup_service
 from test_automatic_match_rollout_evidence import executed
 from test_match_rollout_review import alex_workspace, rollout_options
@@ -203,3 +203,232 @@ def test_live_source_same_metadata_change_still_rejects_original_delivery(admitt
     assert path.stat().st_size == stat.st_size
     with pytest.raises(StoreConflictError):
         service.validate_delivery(binding)
+
+
+@pytest.fixture
+def startup_archive(tmp_path, attempts):
+    from skatmind.app_web.saved_match_analyses import archive_store
+
+    app, service = setup_service(tmp_path)
+    save(app, workspace=alex_workspace(count=3))
+    archive = archive_store(app, initialize=True)
+    # Reuse the module's genuine ordinary execution; no new fixture analysis.
+    publish_fresh_archive(archive, archive.snapshot(), attempts[:1])
+    return app, service, archive, attempts[0]
+
+
+def test_opt_in_constructor_admits_once_and_hands_off_only_to_first_capture(
+    startup_archive, monkeypatch,
+):
+    from test_automatic_match_learning_evidence import forbid_execution
+
+    app, service, archive, candidate = startup_archive
+    original = {p: p.read_bytes() for p in app.managed_home.root.rglob("*") if p.is_file()}
+    forbid_execution(monkeypatch)
+    counts = measure_work(monkeypatch, archive)
+    store = service._store()
+    receipt = store._startup_delivery_receipt
+    assert receipt is not None and receipt.owner is store.owner
+    assert store.owner is not archive.owner and archive._startup_delivery_receipt is None
+    assert counts["admissions"] == counts["retained_results_loaded"] == 1
+    counts.clear()
+    resumed, _inventory, _epoch = service._capture(store)
+    assert resumed is receipt.resumed
+    assert resumed.available_evidence_ids == (candidate.evidence.identity,)
+    assert counts["admissions"] == 0 and counts["object_reads"] >= 2
+    assert store._startup_delivery_receipt is None
+    assert service._delivery_snapshot_receipt.archive is receipt
+    assert store._take_startup_delivery_receipt() is None
+    # Clearing the normal receipt cannot recover the already-consumed startup reference.
+    service._delivery_snapshot_receipt = None
+    service._capture(store)
+    assert counts["admissions"] == counts["retained_results_loaded"] == 1
+    assert counts["manifest_publications"] == counts["object_publications"] == 0
+    assert original == {p: p.read_bytes() for p in app.managed_home.root.rglob("*") if p.is_file()}
+
+
+def test_ordinary_constructor_still_uses_its_original_snapshot_path(startup_archive, monkeypatch):
+    _app, _service, archive, _candidate = startup_archive
+    counts = measure_work(monkeypatch, archive)
+    with monkeypatch.context() as patch:
+        patch.setattr(AutomaticLearningStoreV1, "_snapshot_for_delivery",
+                      lambda *a, **kw: pytest.fail("Ordinary construction seeded a receipt"))
+        ordinary = AutomaticLearningStoreV1(archive.root)
+    assert counts["admissions"] == 1
+    assert ordinary._startup_delivery_receipt is None
+    assert ordinary._take_startup_delivery_receipt() is None
+
+
+@pytest.mark.parametrize("receipt_kind", ("absent", "wrong_owner", "unusable"))
+def test_missing_or_foreign_startup_receipt_never_skips_capture_admission(
+    startup_archive, monkeypatch, receipt_kind,
+):
+    _app, service, archive, candidate = startup_archive
+    store = service._store()
+    foreign = archive._snapshot_for_delivery()[1]
+    assert foreign.owner is not store.owner
+    store._startup_delivery_receipt = {
+        "absent": None, "wrong_owner": foreign, "unusable": object()}[receipt_kind]
+    counts = measure_work(monkeypatch, archive)
+    resumed, _inventory, _epoch = service._capture(store)
+    assert counts["admissions"] == counts["retained_results_loaded"] == 1
+    assert resumed.available_evidence_ids == (candidate.evidence.identity,)
+    assert store._startup_delivery_receipt is None
+    assert service._delivery_snapshot_receipt.archive.owner is store.owner
+
+
+def test_failed_first_capture_also_clears_startup_reference(startup_archive, monkeypatch):
+    _app, service, archive, _candidate = startup_archive
+    store = service._store()
+    assert store._startup_delivery_receipt is not None
+    with monkeypatch.context() as patch:
+        def unavailable(*args):
+            raise OSError("Controlled first capture interruption")
+        patch.setattr(store, "_snapshot_for_delivery", unavailable)
+        with pytest.raises(OSError):
+            service._capture(store)
+    assert store._startup_delivery_receipt is None
+    counts = measure_work(monkeypatch, archive)
+    service._capture(store)
+    assert counts["admissions"] == 1
+
+
+@pytest.mark.parametrize("restart", (False, True))
+def test_service_replacement_and_restart_seed_their_own_store_receipt(
+    startup_archive, monkeypatch, restart,
+):
+    from skatmind.app_web.automatic_match_learning import AutomaticMatchLearningServiceV1
+    from skatmind.app_web.context import AppWebContextV1
+
+    app, first, archive, _candidate = startup_archive
+    old = first._store()._startup_delivery_receipt
+    counts = measure_work(monkeypatch, archive)
+    other_app = AppWebContextV1.create(app.managed_home) if restart else app
+    replacement = AutomaticMatchLearningServiceV1.open(other_app)
+    store = replacement._store()
+    fresh = store._startup_delivery_receipt
+    assert fresh is not old and fresh.owner is store.owner and fresh.owner is not old.owner
+    assert counts["admissions"] == (2 if restart else 1)
+    counts.clear()
+    replacement._capture(store)
+    assert counts["admissions"] == 0 and store._startup_delivery_receipt is None
+    if not restart:
+        with pytest.raises(StoreConflictError):
+            first._store()
+
+
+@pytest.mark.parametrize("index", (0, 1), ids=("source", "report"))
+def test_same_metadata_corruption_after_constructor_is_rejected_before_reuse(
+    startup_archive, monkeypatch, index,
+):
+    from skatmind import automatic_learning_io as io
+
+    _app, service, archive, candidate = startup_archive
+    store = service._store()
+    ref = candidate.objects[index].reference
+    rewrite_same_metadata(io.object_path(store.root, ref))
+    counts = measure_work(monkeypatch, archive)
+    resumed, _inventory, _epoch = service._capture(store)
+    assert counts["admissions"] == 1
+    assert candidate.evidence.identity not in resumed.available_evidence_ids
+    assert next(row for row in resumed.objects if row.reference == ref).storage_status == "corrupt"
+    assert store._startup_delivery_receipt is service._delivery_snapshot_receipt is None
+
+
+@pytest.mark.parametrize("change", ("manifest", "inventory", "limits", "root", "invalid_manifest"))
+def test_first_capture_revalidates_constructor_bindings(startup_archive, monkeypatch, change):
+    from automatic_learning_helpers import source_fixture
+
+    from skatmind.automatic_learning_objects import manifest_bytes
+    from skatmind.automatic_learning_store import StoreLimitsV1
+
+    _app, service, archive, candidate = startup_archive
+    store = service._store()
+    receipt = store._startup_delivery_receipt
+    if change == "manifest":
+        before = receipt.resumed.manifest
+        (store.root / "manifest.json").write_bytes(manifest_bytes(
+            replace(before, revision=before.revision + 1)))
+    elif change == "inventory":
+        assert archive.publish_object(source_fixture()[1]) == "saved"
+    elif change == "limits":
+        store.limits = StoreLimitsV1(total_bytes=1)
+    elif change == "root":
+        (store.root / "reports").rename(store.root / "original-reports")
+        (store.root / "reports").mkdir()
+    else:
+        (store.root / "manifest.json").write_bytes(b"{}")
+    counts = measure_work(monkeypatch, archive)
+    if change in ("root", "invalid_manifest"):
+        with pytest.raises(ValueError):
+            service._capture(store)
+    else:
+        resumed, _inventory, _epoch = service._capture(store)
+        assert resumed is not receipt.resumed and counts["admissions"] == 1
+        assert resumed.available_evidence_ids == (candidate.evidence.identity,)
+        assert service._delivery_snapshot_receipt.archive is not receipt
+    assert store._startup_delivery_receipt is None
+
+
+@pytest.mark.parametrize("bound", ("_DELIVERY_RECEIPT_MAX_OBJECTS", "_DELIVERY_RECEIPT_MAX_BYTES"))
+def test_startup_over_archive_bound_keeps_complete_strict_fallback(
+    startup_archive, monkeypatch, bound,
+):
+    import skatmind.automatic_learning_store as storage
+
+    _app, service, archive, candidate = startup_archive
+    monkeypatch.setattr(storage, bound, 1)
+    counts = measure_work(monkeypatch, archive)
+    store = service._store()
+    assert counts["admissions"] == 1 and store._startup_delivery_receipt is None
+    resumed, _inventory, _epoch = service._capture(store)
+    assert counts["admissions"] == 2 and service._delivery_snapshot_receipt is None
+    assert resumed.available_evidence_ids == (candidate.evidence.identity,)
+
+
+@pytest.mark.parametrize("bound", ("_DELIVERY_RECEIPT_MAX_OBJECTS", "_DELIVERY_RECEIPT_MAX_BYTES"))
+def test_startup_receipt_cannot_bypass_combined_recording_input_bound(
+    startup_archive, monkeypatch, bound,
+):
+    import skatmind.app_web.automatic_match_learning as module
+
+    _app, service, archive, candidate = startup_archive
+    store = service._store()
+    receipt = store._startup_delivery_receipt
+    objects = receipt.resumed.manifest.objects
+    monkeypatch.setattr(module, bound, len(objects) if bound.endswith("OBJECTS") else
+                        sum(row.reference.size_bytes for row in objects))
+    counts = measure_work(monkeypatch, archive)
+    resumed, _inventory, _epoch = service._capture(store)
+    assert counts["admissions"] == 1
+    assert resumed.available_evidence_ids == (candidate.evidence.identity,)
+    assert store._startup_delivery_receipt is service._delivery_snapshot_receipt is None
+    service._capture(store)
+    assert counts["admissions"] == 2
+
+
+@pytest.mark.parametrize("defect", ("unsupported", "expanded_limit", "invalid"))
+def test_startup_seeding_preserves_strict_unavailable_evidence_and_expanded_bound(
+    startup_archive, monkeypatch, defect,
+):
+    from test_automatic_match_evidence import commit_candidate, repack
+
+    from skatmind.automatic_learning_codec import decode_json
+
+    _app, service, archive, candidate = startup_archive
+    payload = decode_json(candidate.objects[1].payload)
+    if defect == "expanded_limit":
+        payload["execution"] = {"encoding": "zlib-json-v1", "size": 128 * 1024 * 1024 + 1}
+    elif defect == "invalid":
+        payload["execution"] = None
+    changed = repack(candidate, payload, codec=99 if defect == "unsupported" else 2)
+    assert commit_candidate(archive, changed).status == "saved"
+    counts = measure_work(monkeypatch, archive)
+    store = service._store()
+    assert counts["admissions"] == 1
+    if defect == "expanded_limit":
+        assert store._startup_delivery_receipt is None
+    resumed, _inventory, _epoch = service._capture(store)
+    assert candidate.evidence.identity in resumed.available_evidence_ids
+    assert changed.evidence.identity not in resumed.available_evidence_ids
+    assert store._startup_delivery_receipt is None
