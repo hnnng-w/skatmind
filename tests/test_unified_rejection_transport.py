@@ -363,6 +363,8 @@ def test_cleanup_consumes_buffered_input_before_raw_input():
 @pytest.mark.parametrize("failed_write", (1, 2))
 def test_partial_transport_write_never_sends_second_filesystem_response(status, failed_write):
     handler, timeouts, shutdowns = transport_handler()
+    # Request-local delivery context exists even when authorization ends the POST.
+    handler.server = SimpleNamespace(app_context=object())
     writes, reads = [], []
 
     class BrokenWriter(BytesIO):

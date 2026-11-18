@@ -1,5 +1,10 @@
 # Simple private analysis controls (Issue #325)
 
+The subsequent [Issue #326 response-time follow-up](responsive_analysis.md) adds
+ordinary forced-card guidance, bounded saved-Review delivery reuse and clarified
+input/analysis captions. Effort mappings and explicit custom calculations below
+remain unchanged; a rule-only hint creates no statistical Result or saved evidence.
+
 ## Authority and ordinary behavior
 
 This implements the maintainer-approved L–N boundary from Issue #325 on

@@ -1,7 +1,9 @@
 """Manual Review producer ownership and atomic source/execution/head publication."""
 
 import secrets
+from contextvars import ContextVar
 from dataclasses import dataclass, field, replace
+from functools import wraps
 
 from skatmind.automatic_historical_evidence import build_historical_capture_candidate
 from skatmind.automatic_learning_contracts import (
@@ -10,6 +12,26 @@ from skatmind.automatic_learning_contracts import (
 )
 from skatmind.automatic_learning_store import StoreConflictError
 from skatmind.errors import SkatMindError
+
+_MANUAL_DELIVERY_OPERATION = ContextVar("manual_review_delivery_operation", default=None)
+
+
+def manual_delivery_operation(method):
+    """Request-local intermediate reuse, isolated from automatic Learning receipts."""
+    @wraps(method)
+    def wrapped(handler, *args, **kwargs):
+        token = _MANUAL_DELIVERY_OPERATION.set([handler.server.app_context, None])
+        try:
+            return method(handler, *args, **kwargs)
+        finally:
+            _MANUAL_DELIVERY_OPERATION.reset(token)
+    return wrapped
+
+
+def _remember_delivery(app, value):
+    operation = _MANUAL_DELIVERY_OPERATION.get()
+    if operation is not None and operation[0] is app:
+        operation[1] = value
 
 
 @dataclass(slots=True)
@@ -178,10 +200,14 @@ class ManualReviewDelivery:
             if (app.historical_reviews is not self.owner or app.review_state is not self.state
                     or self.owner.notice is not self.notice
                     or self.owner.pending is not self.pending
-                    or app.saved_match_analyses is not self.archive_owner):
+                    or app.saved_match_analyses is not self.archive_owner
+                    or self.store is not None and self.archive_owner.store is not self.store):
                 raise StoreConflictError("Original manual Review delivery changed.")
         with app.lock:
             require_original()
+        operation = _MANUAL_DELIVERY_OPERATION.get()
+        if operation is not None and operation[0] is app and operation[1] is self:
+            return
         if self.store is not None:
             current, receipt = self.store._snapshot_for_delivery(self.owner.delivery_receipt)
             if current != self.resumed or self.archive_owner.store is not self.store:
@@ -189,6 +215,15 @@ class ManualReviewDelivery:
             with app.lock:
                 require_original()
                 self.owner.delivery_receipt = receipt
+        _remember_delivery(app, self)
+
+    def validate_final(self, app):
+        """Final delivery always rechecks exact bytes, even inside the same request."""
+        token = _MANUAL_DELIVERY_OPERATION.set(None)
+        try:
+            self.validate(app)
+        finally:
+            _MANUAL_DELIVERY_OPERATION.reset(token)
 
 
 def capture_manual_delivery(app):
@@ -214,6 +249,9 @@ def capture_manual_delivery(app):
         if value is None:
             value = ManualReviewDelivery(secrets.token_hex(32), owner, state, notice, pending,
                                          archive_owner, store, resumed)
+    # The snapshot above was freshly admitted for this exact manual owner. Reuse
+    # only intermediate work; validate still checks original in-memory ownership.
+    _remember_delivery(app, value)
     value.validate(app)
     with app.lock:
         while len(owner.views) >= 32 and value.token not in owner.views:

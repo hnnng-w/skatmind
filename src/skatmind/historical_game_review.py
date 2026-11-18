@@ -133,6 +133,7 @@ def _build_reviewed_decision_pre_actual_analysis(
             random_seed=effective_random_seed,
             opponent_response_policy_by_player=opponent_response_policy_by_player,
             public_hand_constraints=position.public_hand_constraints,
+            hidden_card_inference_model=hidden_card_inference_model,
         )
     )
     analysis_report = build_card_analysis_report_from_values(

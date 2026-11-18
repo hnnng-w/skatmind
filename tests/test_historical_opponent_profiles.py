@@ -230,6 +230,7 @@ def stub_expected_value_recommendation(
     use_basic_opponent_strategy=True,
     opponent_response_policy_by_player=None,
     public_hand_constraints=(),
+    hidden_card_inference_model=None,
 ):
     del (
         left_hand_size,
@@ -239,6 +240,7 @@ def stub_expected_value_recommendation(
         use_basic_opponent_strategy,
         opponent_response_policy_by_player,
         public_hand_constraints,
+        hidden_card_inference_model,
     )
     legal_cards = get_legal_cards(state.hand, state.current_trick, state.game_type)
     values = {

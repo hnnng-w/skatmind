@@ -533,6 +533,29 @@ class AutomaticMatchLearningServiceV1:
         return self.store.read_evidence_many(evidence_ids,
             expected_manifest=binding.resumed.manifest.fingerprint)
 
+    def read_delivery_historical_sources(self, binding, source_version_ids):
+        """Project distinct admitted source versions, never load Reports for captions.
+
+        These operation-local values are data only. Readers and fresh final delivery
+        still protect the complete original evidence closure, including Report bytes.
+        """
+        from skatmind.automatic_historical_evidence import decode_historical_source
+
+        self.validate_delivery(binding)
+        if binding.resumed is None:
+            raise StoreConflictError("Saved Review storage is unavailable.")
+        records = {row.source_version.identity: row for row in binding.resumed.manifest.sources}
+        states = {row.reference: row.consumption_status for row in binding.resumed.objects}
+        values = {}
+        for identity in dict.fromkeys(source_version_ids):
+            record = records[identity]
+            if (record.source_version.source.family != "historical_review"
+                    or states[record.object_ref] != "available"):
+                raise StoreConflictError("Saved Review source is unavailable.")
+            values[identity] = decode_historical_source(
+                self.store.read_object(record.object_ref), record)
+        return values
+
     def capture_delivery(self):
         """Capture exact HTML/control authority, including absent-store membership."""
         attempt, installed = self.attempt, self._installed

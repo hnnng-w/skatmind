@@ -131,6 +131,7 @@ from .guided_contracts import (
     REVIEW_UPDATE_OPTIONS_ACTION_ROUTE_PATH,
     REVIEW_UPDATE_PLAYERS_ACTION_ROUTE_PATH,
 )
+from .historical_review_retention import manual_delivery_operation
 from .historical_review_routes import HISTORICAL_POST_ROUTES
 from .json_transfer import FRONTEND_JSON_MAX_FILE_BYTES, parse_frontend_json_import_v1
 from .language_context import (
@@ -965,7 +966,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             except (OSError, ValueError, SkatMindError):
                 recovery(self)
                 return
-            self._retained_delivery_guard = lambda: manual.validate(self.server.app_context)
+            self._retained_delivery_guard = lambda: manual.validate_final(self.server.app_context)
             self._retained_delivery_recovery = lambda: recovery(self)
         self._rendered_language_source = capture_language_source_v1(
             self.server.app_context, route, historical_delivery=manual)
@@ -2014,7 +2015,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             except (OSError, ValueError, SkatMindError):
                 recovery(self)
                 return
-            self._retained_delivery_guard = lambda: manual.validate(self.server.app_context)
+            self._retained_delivery_guard = lambda: manual.validate_final(self.server.app_context)
             self._retained_delivery_recovery = lambda: recovery(self)
         with self.server.app_context.lock:
             if path == ANALYZE_REQUEST_DOWNLOAD_ROUTE_PATH:
@@ -3100,6 +3101,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         values = dict(values)
         del values["expected_revision"]
         if path == "/sessions/review-whole-game":
+            from .forced_card_guidance import session_guidance
+            if session_guidance(self, active, values):
+                return
             try:
                 selection = parse_recorded_review_selection_v1({
                     "decision_selection": values.get("decision_selection", "")})
@@ -3143,6 +3147,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             )
         elif path == "/sessions/analyze":
             export_options = build_session_position_options_from_form_v1(values)
+            from .forced_card_guidance import session_guidance
+            if session_guidance(self, active, values, export_options=export_options):
+                return
             operation = execute_guided_session_position_v1(
                 active,
                 export_options=export_options,
@@ -3274,6 +3281,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         elif path.endswith("/analysis"):
             decision_binding = None
             if values.get("operation") == "analyze_decision":
+                from .forced_card_guidance import match_guidance
+                if match_guidance(self, active, values):
+                    return
                 with active.capture.lock:
                     require_bound_match_decision(active, values)
                     decision_binding = dict(values)
@@ -3329,6 +3339,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             return
         elif path == "/matches/review-whole-game":
             self._match_review_return = True
+            from .forced_card_guidance import match_guidance
+            if match_guidance(self, active, values):
+                return
             self._rollout_execution_started = True
             with active.capture.lock:
                 require_bound_match_decision(active, values)
@@ -3764,6 +3777,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         else:
             raise RuntimeError("Stateful POST route dispatch is incomplete.")
 
+    @manual_delivery_operation
     def do_GET(self) -> None:
         self._declaration_return_token = None
         self._declaration_draft_return = None
@@ -3859,6 +3873,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         except Exception:
             self._send_common_error(HTTPStatus.INTERNAL_SERVER_ERROR)
 
+    @manual_delivery_operation
     def do_POST(self) -> None:
         self._declaration_return_token = None
         self._declaration_draft_return = None

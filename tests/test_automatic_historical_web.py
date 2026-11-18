@@ -21,6 +21,69 @@ def evidence_link(page):
     return re.search(r'href="(/review/saved/[0-9a-f]+/evidence/[0-9]+)"', page)[1]
 
 
+def test_source_caption_projection_reads_each_exact_revision_once_and_keeps_deleted_history(
+    localized_server, genuine_historical, monkeypatch,
+):
+    from collections import Counter
+    from dataclasses import replace
+
+    from learning_archive_fixture_helpers import measure_work, publish_fresh_archive
+    from test_automatic_match_learning_evidence import forbid_execution
+
+    from skatmind.app_web.automatic_learning_controller import automatic_controller
+    from skatmind.app_web.saved_match_analyses import archive_store
+    from skatmind.automatic_historical_evidence import build_historical_capture_candidate
+    from skatmind.automatic_learning_contracts import HistoricalReviewHeadV1
+
+    app = localized_server.app_context
+    draft, execution, native = genuine_historical
+    candidates = tuple(build_historical_capture_candidate("same-source", revision,
+        execution, native, draft=draft) for revision in (0, 1))
+    store = archive_store(app, initialize=True)
+    manifest = publish_fresh_archive(store, store.snapshot(), candidates)
+    current = candidates[-1]
+    head = HistoricalReviewHeadV1(source=current.source.source_version.source,
+        source_version_id=current.source.source_version.identity,
+        evidence_id=current.evidence.identity)
+    assert store.update_manifest(replace(manifest, revision=2, historical_heads=(head,)),
+                                 expected_manifest=manifest.fingerprint).status == "saved"
+    browser = Browser(localized_server)
+    browser.page("/review/saved")  # Seed this owner's exact bounded admission.
+    service = automatic_controller(app).service
+    original = service.read_delivery_historical_sources
+    projections = []
+    def project(*args):
+        reads = Counter()
+        read = service.store.read_object
+        def reading(reference):
+            reads[reference] += 1
+            return read(reference)
+        with monkeypatch.context() as patch:
+            patch.setattr(service.store, "read_object", reading)
+            result = original(*args)
+        projections.append(reads)
+        return result
+    monkeypatch.setattr(service, "read_delivery_historical_sources", project)
+    forbid_execution(monkeypatch)
+    with monkeypatch.context() as patch:
+        work = measure_work(patch, store)
+        page = browser.page("/review/saved")
+        assert work["retained_results_loaded"] == work["admissions"] == 0
+    assert projections == [Counter({candidate.source.object_ref: 1 for candidate in candidates})]
+    assert "revision 0" in page and "revision 1" in page
+    assert len(re.findall(r'href="/review/saved/[0-9a-f]+/source/[0-9]+"', page)) == 1
+    routes = re.findall(r'href="(/review/saved/[0-9a-f]+/evidence/[0-9]+)"', page)
+    assert [route.rsplit("/", 1)[-1] for route in routes] == ["0", "1"]
+    for route in routes:
+        assert browser.request("GET", route + "/result.json")[2] == execution.result_json_bytes
+    source = browser.page(source_link(page))
+    preview = follow(browser, browser.submit(Forms(source).find("/review/delete-preview")))
+    assert browser.submit(Forms(preview).find("/review/delete-confirm"),
+                          confirm_delete="on")[0] == 303
+    page = browser.page("/review/saved")
+    assert "/source/" not in page and "revision 0" in page and "revision 1" in page
+
+
 def test_pre325_source_reopens_with_original_downloads(
     localized_server, genuine_historical, legacy_candidate, monkeypatch,
 ):

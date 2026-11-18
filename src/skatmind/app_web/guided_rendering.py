@@ -448,6 +448,12 @@ def render_analyze_workflow_v1(state: ProcessLocalFrontendWorkflowStateV1) -> st
     declarer = draft.declarer_player if draft else "me"
     leader = draft.trick_leader if draft else "me"
     current = draft.current_trick if draft else ()
+    from .forced_card_guidance import forced_card_guidance, render_guidance
+    from .position_form import build_guided_position_execution_v1
+    guidance = None
+    if (draft is not None and draft.form_values is not None
+            and draft.form_values.singular("settings_mode") == "ordinary"):
+        guidance = forced_card_guidance(build_guided_position_execution_v1(draft)[0])
     run_control = (
         f'<p class="execution-status" role="status">{_t("guided.running")}</p>'
         if state.execution_source_revision is not None
@@ -456,6 +462,9 @@ def render_analyze_workflow_v1(state: ProcessLocalFrontendWorkflowStateV1) -> st
     content = [
         _process_local_notice(),
         _error_summary(messages),
+        render_guidance(guidance, _RENDER_LOCALE.get()),
+        ('<p>' + _t("analysis.forced_previous") + '</p>'
+         if guidance is not None and state.latest_successful_result is not None else ''),
         _result(state, page="analyze"),
         '<form novalidate id="workflow-form" class="workflow-form" method="post" action="'
         + ANALYZE_RUN_GUIDED_ACTION_ROUTE_PATH

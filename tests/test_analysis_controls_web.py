@@ -33,10 +33,10 @@ def last_session_form(browser):
     return Forms(browser.page()).find("/sessions/review-whole-game", index=9)
 
 
-def last_match(server):
+def last_match(server, *, decision=30):
     browser, path, page = open_alex(server, count=30)
     page = follow(browser, browser.submit(Forms(page).find("/matches/select-decision"),
-                                          decision_index="30"))
+                                          decision_index=str(decision)))
     return browser, path, page
 
 
@@ -46,14 +46,14 @@ def test_native_rollout_presets_custom_retry_languages_and_downloads(localized_s
         active = activate_ten_decisions(localized_server, bid_value=18)
         browser, path = Browser(localized_server), active.path
         def form():
-            return last_session_form(browser)
+            return Forms(browser.page()).find("/sessions/review-whole-game", index=8)
         def retained():
             return active.rollout_execution.request.document["whole_game_rollout_settings"]
         def artifacts():
             return {kind: browser.request("GET", f"/sessions/downloads/rollout-{kind}.json")[2]
                     for kind in ("request", "result")}
     else:
-        browser, path, _ = last_match(localized_server)
+        browser, path, _ = last_match(localized_server, decision=27)
         active = localized_server.app_context.managed_stateful.active_match
         def form():
             return Forms(browser.page("/matches/review/2")).find("/matches/review-whole-game")
@@ -136,7 +136,7 @@ def test_reopened_retained_configuration_is_timeout_authority(localized_server, 
 
 def test_guided_native_position_effective_presets_and_preserved_custom(localized_server):
     active = activate_ten_decisions(localized_server, bid_value=18)
-    root = active.decision_checkpoints[-1].request.to_dict()["document"]
+    root = active.decision_checkpoints[-2].request.to_dict()["document"]
     browser = Browser(localized_server)
     page = browser.page("/analyze")
     base = {name: root[name] for name in ("game_type", "player_role", "player_position",
@@ -214,7 +214,7 @@ def test_fresh_manual_default_native_options_additional_and_result_only(localize
 
 
 def test_match_legacy_native_custom_and_existing_profile_availability(localized_server):
-    browser, _, page = last_match(localized_server)
+    browser, _, page = last_match(localized_server, decision=27)
     active = localized_server.app_context.managed_stateful.active_match
     for effort, count, _, _ in PRESETS:
         page = follow(browser, browser.submit(operation_form(page, "analyze_decision"),
@@ -302,7 +302,7 @@ def test_session_current_position_native_presets_and_custom_are_source_scoped(lo
     from skatmind.session_history import build_session_state_from_accepted_prefix_v1
 
     document = ten_decision_document(bid_value=18)
-    checkpoint = document.decision_checkpoints[-1]
+    checkpoint = document.decision_checkpoints[-2]
     prefix = build_session_state_from_accepted_prefix_v1(document.state,
         target_revision=checkpoint.source_revision)
     current = session_api.build_session_persistence_document(prefix).value

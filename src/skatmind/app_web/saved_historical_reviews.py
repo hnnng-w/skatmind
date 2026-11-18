@@ -11,7 +11,11 @@ from skatmind.errors import SkatMindError
 from .automatic_learning_controller import automatic_controller
 from .automatic_learning_http import authorize_response
 from .automatic_learning_rendering import link
-from .historical_learning_rendering import historical_caption, render_historical_evidence
+from .historical_learning_rendering import (
+    historical_caption,
+    historical_source_caption,
+    render_historical_evidence,
+)
 from .historical_review_routes import HISTORICAL_EXECUTION_DOWNLOAD, HISTORICAL_VIEW, SAVED_REVIEWS
 from .language_context import capture_language_source_v1
 from .stateful_localization import text
@@ -113,13 +117,21 @@ def recovery(handler):
 
 
 def handle_get(handler, path):
+    if path == SAVED_REVIEWS or HISTORICAL_VIEW.fullmatch(path):
+        controller = automatic_controller(handler.server.app_context)
+        with controller.service.delivery_operation():
+            return _handle_get(handler, path)
+    return _handle_get(handler, path)
+
+
+def _handle_get(handler, path):
     download = HISTORICAL_EXECUTION_DOWNLOAD.fullmatch(path)
     if download is not None:
         app = handler.server.app_context
         try:
             value = app.historical_reviews.views[download[1]]
             value.validate(app)
-            handler._retained_delivery_guard = lambda: value.validate(app)
+            handler._retained_delivery_guard = lambda: value.validate_final(app)
             handler._retained_delivery_recovery = lambda: recovery(handler)
             raw = getattr(value.state, download[2] + "_json_bytes")
             if raw is None:
@@ -172,11 +184,15 @@ def handle_get(handler, path):
                                       "historical_learning.retained")
                     body += render_historical_evidence(value, path, locale)
                 elif kind == "source":
-                    head, value = _head_value(controller, view, index)
-                    body += '<h2>' + escape(historical_caption(value, locale)) + '</h2>'
+                    head = view.binding.resumed.manifest.historical_heads[index]
+                    if head.evidence_id not in view.binding.resumed.available_evidence_ids:
+                        raise StoreConflictError("Saved Review evidence is unavailable.")
+                    source = controller.service.read_delivery_historical_sources(
+                        view.binding, (head.source_version_id,))[head.source_version_id]
+                    body += '<h2>' + escape(historical_source_caption(source, locale)) + '</h2>'
                     body += paragraph(locale, "historical_learning.source", plays=sum(
-                        len(trick.plays) for trick in value.game.tricks), origin=text(
-                            locale, "historical_learning.origin." + value.source.origin))
+                        len(trick.plays) for trick in source.game.tricks), origin=text(
+                            locale, "historical_learning.origin." + source.origin))
                     fields = hidden("view", view.token) + hidden("source", index)
                     body += form(locale, "/review/reopen", fields, "historical_learning.reopen")
                     body += form(locale, "/review/delete-preview", fields,
@@ -211,24 +227,27 @@ def handle_get(handler, path):
             else:
                 manifest = None if view.binding.resumed is None else view.binding.resumed.manifest
                 entries = _entries(view)
-                values = (() if manifest is None else
-                    controller.service.read_delivery_evidence_many(view.binding,
-                        tuple(entry.identity for entry in entries
+                sources = ({} if manifest is None else
+                    controller.service.read_delivery_historical_sources(view.binding,
+                        tuple(entry.source_version_id for entry in entries
                         if entry.identity in view.binding.resumed.available_evidence_ids)))
-                by_id = {value.entry.identity: value for value in values}
+                body += paragraph(locale, "historical_learning.saved_relationship")
+                body += '<h2>' + escape(text(locale, "historical_learning.inputs")) + '</h2>'
                 for index, head in enumerate(() if manifest is None else manifest.historical_heads):
                     if head.evidence_id not in view.binding.resumed.available_evidence_ids:
                         body += paragraph(locale, "saved_analysis.excluded")
                         continue
-                    value = by_id[head.evidence_id]
+                    source = sources[head.source_version_id]
                     body += '<p>' + link(base + "/source/" + str(index),
-                                        historical_caption(value, locale)) + '</p>'
+                        text(locale, "historical_learning.open_input") + " · "
+                        + historical_source_caption(source, locale)) + '</p>'
                 body += '<h2>' + escape(text(locale, "historical_learning.evidence")) + '</h2>'
                 for index, entry in enumerate(entries):
                     if entry.identity in view.binding.resumed.available_evidence_ids:
-                        value = by_id[entry.identity]
+                        source = sources[entry.source_version_id]
                         body += '<p>' + link(base + "/evidence/" + str(index),
-                                            historical_caption(value, locale)) + '</p>'
+                            text(locale, "historical_learning.view_analysis") + " · "
+                            + historical_source_caption(source, locale)) + '</p>'
             body += link(SAVED_REVIEWS, text(locale, "historical_learning.saved"))
             body += link("/review", text(locale, "historical_learning.manual"))
             body += link("/learning/automatic", text(locale, "automatic.back"))
@@ -243,6 +262,12 @@ def handle_get(handler, path):
 
 
 def handle_post(handler, path, values):
+    controller = automatic_controller(handler.server.app_context)
+    with controller.service.delivery_operation():
+        return _handle_post(handler, path, values)
+
+
+def _handle_post(handler, path, values):
     app = handler.server.app_context
     try:
         from .historical_review_retention import capture_manual_delivery
@@ -255,7 +280,7 @@ def handle_post(handler, path, values):
             delivery = capture_manual_delivery(app)
             if pending is None or delivery.state is not pending.state:
                 raise StoreConflictError("The original retry delivery changed.")
-            handler._retained_delivery_guard = lambda: delivery.validate(app)
+            handler._retained_delivery_guard = lambda: delivery.validate_final(app)
             destination = "/review"
         elif path == "/review/delete-confirm":
             handler._exact_fields(values, {"confirmation", "confirm_delete"})
@@ -280,8 +305,8 @@ def handle_post(handler, path, values):
                 if delivery.state is not state:
                     raise StoreConflictError("Reopened Review delivery was superseded.")
                 def guard():
-                    controller.service.validate_delivery(view.binding)
-                    delivery.validate(app)
+                    controller.service.validate_final_delivery(view.binding)
+                    delivery.validate_final(app)
                 handler._retained_delivery_guard = guard
                 destination = "/review"
             else:
@@ -291,7 +316,7 @@ def handle_post(handler, path, values):
                     controller.service.validate_delivery(view.binding)
                     app.historical_reviews.confirmation = preview
                 def guard():
-                    controller.service.validate_delivery(view.binding)
+                    controller.service.validate_final_delivery(view.binding)
                     if app.historical_reviews.confirmation is not preview:
                         raise StoreConflictError("Original deletion preview changed.")
                 handler._retained_delivery_guard = guard

@@ -97,7 +97,7 @@ def parse_recorded_rollout_form_v1(
                                 for name, value in values.items() if name.startswith("analysis_")}
 
 
-def parse_recorded_rollout_supplements_v1(values, root, objective):
+def parse_recorded_rollout_supplements_v1(values, root, objective, *, require_missing=True):
     missing = missing_rollout_settlement_inputs(root)
     if set(values) - set(missing):
         raise RecordedRolloutFormError("known_input")
@@ -112,6 +112,8 @@ def parse_recorded_rollout_supplements_v1(values, root, objective):
         reason = "invalid_bid" if name == "bid_value" else (
             "invalid_matadors_grand" if root["game_type"] == "grand" else "invalid_matadors_suit")
         if not raw:
+            if not require_missing:
+                continue
             raise RecordedRolloutFormError("required_" + name, field)
         try:
             if re.fullmatch(r"-?[0-9]{1,20}", raw) is None:

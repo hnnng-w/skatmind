@@ -125,6 +125,46 @@ def build_typed_historical_review_inputs(data: dict):
     return record, snapshot_summary
 
 
+@pytest.mark.parametrize("game_type", ("grand", "hearts", "null"))
+def test_immediate_reuses_prepared_inference_with_identical_seeded_values(monkeypatch, game_type):
+    import skatmind.historical_game_review as module
+    import skatmind.simulation as simulation
+
+    record, snapshots = build_typed_historical_review_inputs(build_historical_input(game_type))
+    snapshot = next(row for row in snapshots.snapshots if build_hidden_card_inference_model(
+        (position := build_position_from_historical_snapshot(row, record)).state,
+        position.left_hand_size, position.right_hand_size, position.public_hand_constraints)
+        is not None)
+    original_builder = module.build_hidden_card_inference_model
+    original_recommender = module.recommend_card_by_expected_value
+    original_sample = simulation.generate_sampled_hidden_state
+    samples = []
+    def sample(*args, **kwargs):
+        samples.append(1)
+        return original_sample(*args, **kwargs)
+    models = []
+    def build(*args):
+        model = original_builder(*args)
+        models.append(model)
+        return model
+    def recommend(**kwargs):
+        assert kwargs["hidden_card_inference_model"] is models[-1]
+        reused = original_recommender(**kwargs)
+        reused_samples = len(samples)
+        independent = original_recommender(**{key: value for key, value in kwargs.items()
+                                             if key != "hidden_card_inference_model"})
+        assert reused == independent
+        assert len(samples) - reused_samples == reused_samples > 0
+        print({"game_type": game_type, "before_samples": reused_samples,
+               "after_samples": reused_samples, "values_identical": True})
+        return reused
+    monkeypatch.setattr(module, "build_hidden_card_inference_model", build)
+    monkeypatch.setattr(module, "recommend_card_by_expected_value", recommend)
+    monkeypatch.setattr(simulation, "generate_sampled_hidden_state", sample)
+    module._build_reviewed_decision(snapshot, record, 25, 11)
+    assert len(models) == 1 and models[0] is not None
+
+
 def build_stub_expected_value_recommendation(
     state,
     left_hand_size,

@@ -21,6 +21,12 @@ def historical_caption(value, locale):
                 revision=value.source.record.revision)
 
 
+def historical_source_caption(source, locale):
+    return text(locale, "historical_learning.caption",
+        name=text(locale, "task.value." + source.game.declaration.game_type),
+        people=source.name, revision=source.record.revision)
+
+
 def render_historical_evidence(value, route, locale):
     internal = value.internal_execution
     public = (value.execution.result if value.execution is not None else ExecutionResultV1(

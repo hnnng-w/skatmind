@@ -637,6 +637,7 @@ def test_app_web_layering_and_startup_execution_boundaries() -> None:
     public_api_adapters = {
         "card_entry_http.py",
         "execution.py",
+        "forced_card_guidance.py",  # Strict Position/Session export; no analysis execution.
         "historical_form.py",
         "historical_learning_rendering.py",  # Wraps retained public Results without execution.
         "json_transfer.py",

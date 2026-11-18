@@ -363,11 +363,13 @@ def test_native_lists_and_maintenance_use_one_bulk_phase_with_original_content(
             page = browser.page(route)
             selected = tuple(value for value in values
                              if value.source.record.source_version.source.family == family)
-            assert len(phases) == 1
-            assert phases[0][0] == tuple(value.entry.identity for value in selected)
-            assert phases[0][1]["admissions"] == int(family != "historical_review" or fallback)
-            assert phases[0][1]["retained_results_loaded"] == (
-                5 * int(family != "historical_review" or fallback))
+            if family == "historical_review":
+                assert phases == []  # Captions read admitted sources, never bulk executions.
+            else:
+                assert len(phases) == 1
+                assert phases[0][0] == tuple(value.entry.identity for value in selected)
+                assert phases[0][1]["admissions"] == 1
+                assert phases[0][1]["retained_results_loaded"] == 5
             for value in selected:
                 assert _caption(value, "en") in unescape(page)
             if family == "historical_review":
@@ -380,7 +382,7 @@ def test_native_lists_and_maintenance_use_one_bulk_phase_with_original_content(
                 assert evidence_routes == [route + "/" + app.saved_match_analyses.token(
                     original.manifest.space_id, value.entry) for value in selected]
             print({"consumer": family, "fallback": fallback, "operation_work": dict(counts),
-                   "bulk_work": dict(phases[0][1])})
+                   "bulk_work": dict(phases[0][1]) if phases else {}})
     view = controller.capture()
     with monkeypatch.context() as patch:
         store = controller.service.store
@@ -515,15 +517,20 @@ def test_list_bulk_values_do_not_authorize_corrupt_final_delivery(
 
     _app, archive, controller = consumer_archive
     store = controller.service.store if family == "historical_review" else archive
-    name = "read_delivery_evidence_many" if family == "historical_review" else "read_evidence_many"
-    original = getattr(store, name)
+    owner = controller.service if family == "historical_review" else store
+    name = ("read_delivery_historical_sources" if family == "historical_review" else
+            "read_evidence_many")
+    original = getattr(owner, name)
     fired = []
     def changed(*args, **kwargs):
         values = original(*args, **kwargs)
-        rewrite_same_metadata(io.object_path(store.root, values[0].entry.envelope))
+        ref = (next(entry.envelope for entry in args[0].resumed.manifest.evidence
+                    if entry.envelope.kind == "historical_review")
+               if family == "historical_review" else values[0].entry.envelope)
+        rewrite_same_metadata(io.object_path(store.root, ref))
         fired.append(True)
         return values
-    monkeypatch.setattr(store, name, changed)
+    monkeypatch.setattr(owner, name, changed)
     forbid_execution(monkeypatch)
     route = {"match": "/matches/saved-analyses", "session": "/sessions/saved-analyses",
              "historical_review": "/review/saved"}[family]

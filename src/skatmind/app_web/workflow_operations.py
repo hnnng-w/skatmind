@@ -182,6 +182,15 @@ def run_guided_analyze_v1(
         state = context.analyze_state.begin_candidate(
             expected_revision=expected_revision,
         )
+        from .forced_card_guidance import forced_card_guidance
+        if (draft.form_values.singular("settings_mode") == "ordinary"
+                and forced_card_guidance(request) is not None):
+            # Keep earlier original downloads separate from this non-analysis fact.
+            context.analyze_state = replace(state, revision=state.revision + 1, draft=draft,
+                imported_request=None, execution_source_revision=None,
+                request_json_bytes=state.request_json_bytes
+                    if state.latest_successful_result is not None else None)
+            return
         context.analyze_state = state
         execution_revision = state.revision
     try:
