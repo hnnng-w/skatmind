@@ -4,13 +4,13 @@ import re
 from html import unescape
 
 import pytest
-from test_automatic_historical_evidence import genuine_historical
+from test_automatic_historical_evidence import genuine_historical, legacy_candidate
 from test_automatic_historical_learning import retain_fixture
 from test_automatic_learning_ui import create, localized_server
 from test_match_recording_recovery_web import follow
 from test_session_recorded_review_web import Browser, Forms
 
-__all__ = ["genuine_historical", "localized_server"]
+__all__ = ["genuine_historical", "legacy_candidate", "localized_server"]
 
 
 def source_link(page):
@@ -19,6 +19,115 @@ def source_link(page):
 
 def evidence_link(page):
     return re.search(r'href="(/review/saved/[0-9a-f]+/evidence/[0-9]+)"', page)[1]
+
+
+def test_pre325_source_reopens_with_original_downloads(
+    localized_server, genuine_historical, legacy_candidate, monkeypatch,
+):
+    from dataclasses import replace
+
+    from test_automatic_match_evidence import commit_candidate
+    from test_automatic_match_learning_evidence import forbid_execution
+    from test_automatic_session_review_corrections import archive_bytes
+
+    from skatmind.app_web.saved_match_analyses import archive_store
+    from skatmind.automatic_learning_contracts import HistoricalReviewHeadV1
+
+    app = localized_server.app_context
+    store = archive_store(app, initialize=True)
+    assert commit_candidate(store, legacy_candidate).status == "saved"
+    before = store.snapshot().manifest
+    head = HistoricalReviewHeadV1(source=legacy_candidate.source.source_version.source,
+        source_version_id=legacy_candidate.source.source_version.identity,
+        evidence_id=legacy_candidate.evidence.identity)
+    assert store.update_manifest(replace(before, revision=before.revision + 1,
+        historical_heads=(head,)), expected_manifest=before.fingerprint).status == "saved"
+    original = archive_bytes(store)
+    forbid_execution(monkeypatch)
+    browser = Browser(localized_server)
+    page = browser.page("/review/saved")
+    source = browser.page(source_link(page))
+    response = browser.submit(Forms(source).find("/review/reopen"))
+    assert response[0] == 303 and response[1]["location"] == "/review"
+    assert app.historical_reviews.head == head
+    assert app.review_state.draft == genuine_historical[0]
+    assert app.review_state.latest_successful_options == genuine_historical[1].options
+    route = evidence_link(page)
+    for kind in ("request", "result"):
+        status, _, raw = browser.request("GET", route + "/" + kind + ".json")
+        assert status == 200 and raw == getattr(genuine_historical[1], kind + "_json_bytes")
+    assert archive_bytes(store) == original
+
+
+def test_native_ordinary_guided_review_is_saved_and_reopened(localized_server, monkeypatch):
+    from dataclasses import replace
+
+    from test_automatic_match_learning_evidence import forbid_execution
+    from test_guided_historical_review_form import _completed_example_draft
+
+    from skatmind.app_web.automatic_historical_inventory import capture_historical_inventory
+    from skatmind.app_web.saved_match_analyses import archive_store
+    from skatmind.automatic_learning_codec import decode_json
+
+    browser = Browser(localized_server)
+    page = follow(browser, browser.submit(Forms(browser.page("/review")).find(
+        "/actions/review/start")))
+    app = localized_server.app_context
+    fresh = app.review_state.draft
+    assert fresh.options.immediate_review
+    app.review_state = replace(app.review_state, draft=replace(_completed_example_draft(),
+        options=fresh.options, analysis_form_values=fresh.analysis_form_values))
+    page = browser.page("/review")
+    response = browser.submit(Forms(page).find("/actions/review/update-options"),
+        analysis_effort="quick", immediate_sample_count="7", immediate_base_random_seed="invalid")
+    assert response[0] == 400 and app.historical_reviews.head is None
+    page = response[2].decode()
+    for locale in ("de", "en"):
+        page = follow(browser, browser.submit(Forms(page).find("/actions/profile/language"),
+                                              language=locale))
+        values = Forms(page).find("/actions/review/update-options")["values"]
+        assert values["settings_mode"] == "ordinary" and values["analysis_effort"] == "quick"
+        assert values["immediate_sample_count"] == "7"
+    page = follow(browser, browser.submit(Forms(page).find("/actions/review/update-options"),
+        immediate_base_random_seed="11"))
+    draft = app.review_state.draft
+    assert draft.analysis_form_values.singular("immediate_sample_count") == "7"
+    assert draft.options.immediate_review and draft.options.immediate_sample_count == 25
+    response = browser.submit(Forms(page).find("/actions/review/run-guided"))
+    assert response[0] == 303
+    assert app.historical_reviews.notice[1] == "saved"
+    assert app.historical_reviews.pending is None
+    head = app.historical_reviews.head
+    assert head is not None
+    state = app.review_state
+    assert state.draft is draft  # Saving does not erase the process-local inactive controls.
+    assert state.latest_successful_options.workflow_options["immediate_sample_count"] == 25
+    assert state.latest_successful_options.workflow_options["immediate_base_random_seed"] == 11
+    store = archive_store(app)
+    assert head.evidence_id in store.snapshot().available_evidence_ids
+    inventory = capture_historical_inventory(store, store.snapshot(), ())
+    assert inventory.sources == () and inventory.rows[0].status == "ineligible"
+    retained = store.read_evidence(head.evidence_id)
+    source_wire = decode_json(store.read_object(retained.source.record.object_ref).payload)["draft"]
+    envelope = decode_json(store.read_object(retained.entry.envelope).payload)
+    for wire in (source_wire, envelope["guided_draft"]):
+        assert [key for key, _ in wire["value"]] == [
+            "step", "players", "skat", "declaration", "discarded_cards", "plays", "options"]
+    assert retained.guided_draft == replace(draft, analysis_form_values=None)
+    assert retained.execution.options == state.latest_successful_options
+    forbid_execution(monkeypatch)
+    page = browser.page("/review/saved")
+    route = evidence_link(page)
+    for kind in ("request", "result"):
+        status, _, raw = browser.request("GET", route + "/" + kind + ".json")
+        assert status == 200 and raw == getattr(state, kind + "_json_bytes")
+    source = browser.page(source_link(page))
+    assert browser.submit(Forms(source).find("/review/reopen"))[0] == 303
+    assert app.historical_reviews.head == head
+    assert app.review_state.draft == retained.guided_draft
+    assert app.review_state.latest_successful_options == state.latest_successful_options
+    assert app.review_state.request_json_bytes == state.request_json_bytes
+    assert app.review_state.result_json_bytes == state.result_json_bytes
 
 
 @pytest.mark.parametrize("locale", ("de", "en"))

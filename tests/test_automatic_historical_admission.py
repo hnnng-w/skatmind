@@ -7,7 +7,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-from test_automatic_historical_evidence import genuine_historical
+from test_automatic_historical_evidence import genuine_historical, legacy_candidate
 from test_automatic_match_evidence import commit_candidate
 from test_automatic_match_learning_evidence import forbid_execution
 from test_automatic_session_review_corrections import archive_bytes
@@ -33,8 +33,29 @@ from skatmind.automatic_match_execution_codec import (
 )
 from skatmind.private_execution_capture import capture_native_execution
 
-__all__ = ["genuine_historical"]
+__all__ = ["genuine_historical", "legacy_candidate"]
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_original_pre325_source_is_admitted_without_rewrite(
+    tmp_path, genuine_historical, legacy_candidate, monkeypatch,
+):
+    store = initialize_automatic_learning_store_v1(tmp_path / "archive")
+    assert commit_candidate(store, legacy_candidate).status == "saved"
+    before = archive_bytes(store)
+    forbid_execution(monkeypatch)
+    restarted = resume_automatic_learning_store_v1(store.root)
+    snapshot = restarted.snapshot()
+    assert next(row for row in snapshot.objects
+        if row.reference == legacy_candidate.source.object_ref).consumption_status == "available"
+    assert snapshot.available_evidence_ids == (legacy_candidate.evidence.identity,)
+    retained = restarted.read_evidence(legacy_candidate.evidence.identity)
+    assert retained.source.record == legacy_candidate.source
+    assert restarted.read_object(legacy_candidate.source.object_ref).raw == (
+        legacy_candidate.objects[0].raw)
+    assert retained.download("request")[1] == genuine_historical[1].request_json_bytes
+    assert retained.download("result")[1] == genuine_historical[1].result_json_bytes
+    assert archive_bytes(store) == before
 
 
 @pytest.mark.parametrize("example", (

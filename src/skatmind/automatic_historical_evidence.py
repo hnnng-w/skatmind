@@ -46,7 +46,20 @@ def _payload(obj, kind):
 
 
 def draft_wire(draft):
-    return None if draft is None else encode_execution_value(asdict(draft))
+    if draft is None:
+        return None
+    # Preserve the original producer fields and their mapping/sequence order.
+    # Project before dataclass recursion: private UI state is neither archived
+    # nor part of source identity, even when a frontend draft gains new fields.
+    return encode_execution_value({
+        "step": draft.step,
+        "players": tuple(asdict(player) for player in draft.players),
+        "skat": draft.skat,
+        "declaration": None if draft.declaration is None else asdict(draft.declaration),
+        "discarded_cards": draft.discarded_cards,
+        "plays": tuple(asdict(play) for play in draft.plays),
+        "options": asdict(draft.options),
+    })
 
 
 def resume_guided_draft(wire):
