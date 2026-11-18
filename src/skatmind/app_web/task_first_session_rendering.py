@@ -261,21 +261,34 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
 
 
 def _analysis_controls(context, locale, view):
+    from .analysis_controls import (
+        ADDITIONAL_FIELDS,
+        effort_fields,
+        mode_fields,
+        native_analysis_form,
+        remembered_controls,
+        restore_controls,
+        session_scope,
+        values_dict,
+    )
     base = hidden("managed_handle", context.handle) + hidden("expected_revision", context.state.revision)
     position_fields = (
         input_field(locale, "sample_count", "task.field.sample_count", 100, kind="number")
         + input_field(locale, "random_seed", "task.field.random_seed", 0, kind="number")
         + _choice(locale, "opponent_strategy", ("basic", "random"))
         + select_field(locale, "recommendation_method", "task.field.recommendation_method", (
-            ("", text(locale, "task.value.automatic")),
+            ("", text(locale, "task.value.immediate_expected_value")),
             *((value, text(locale, f"task.value.{value}")) for value in
               ("immediate_expected_value", "bounded_search", "auto"))))
         + _choice(locale, "search_budget_profile", ("interactive_v1", "historical_review_v1")))
+    historical_names = ("decision_snapshots", "immediate_review", "search_review",
+                      "information_set_search_review", "replay_coaching",
+                      "information_set_replay_coaching", "historical_tactical_motif_review")
     historical_fields = ''.join(boolean_field(locale, name, f"task.field.{name}",
                                                name == "immediate_review")
-        for name in ("decision_snapshots", "immediate_review", "search_review",
-                     "information_set_search_review", "replay_coaching",
-                     "information_set_replay_coaching", "historical_tactical_motif_review"))
+        for name in historical_names if name not in ADDITIONAL_FIELDS)
+    additional = ''.join(boolean_field(locale, name, f"task.field.{name}")
+                         for name in historical_names if name in ADDITIONAL_FIELDS)
     historical_fields += ''.join(input_field(locale, name, f"task.field.{name}", default, kind="number")
         for name, default in (("sample_count", 100), ("random_seed", 0), ("search_seed", 0)))
     historical_fields += _choice(locale, "search_budget_profile", ("historical_review_v1", "interactive_v1"))
@@ -285,8 +298,14 @@ def _analysis_controls(context, locale, view):
         ("review", historical_fields, "task.session.review", view.historical_available),
     ):
         if available:
-            controls += form(locale, f"/sessions/{route}", base
-                + disclosure(locale, "task.advanced", fields), label)
+            remembered, _ = remembered_controls(context, "session." + route, session_scope(context))
+            values = values_dict(remembered)
+            content = (effort_fields(locale, values, fresh=remembered is None)
+                + disclosure(locale, "analysis.technical",
+                    mode_fields(locale, values, fresh=remembered is None) + fields)
+                + (disclosure(locale, "analysis.additional", additional) if route == "review" else ""))
+            controls += native_analysis_form(form(locale, f"/sessions/{route}", base
+                + restore_controls(content, remembered), label))
         else:
             controls += paragraph(locale, f"recorded_review.{route}_unavailable")
     diagnostics = context.state.validation.diagnostics

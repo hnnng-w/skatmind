@@ -12,6 +12,7 @@ from skatmind.match_player_statistics_preparation import (
     build_match_player_statistics_preparation_v1,
 )
 
+from .analysis_controls import retained_match_controls
 from .recorded_decision_context_sources import match_analysis_explanation, match_decision_context
 from .recorded_trick_progress import project_match_trick_progress
 from .unplayed_card_summary import project_unplayed_cards
@@ -34,6 +35,7 @@ def build_task_first_match_page_state_v1(context, view, *, report_id=None):
     recorded = project_match_trick_progress(workspace, view.selected_position)
     preparation = _decision_preparation_summary(workspace, view.selected_position)
     return {
+        "analysis_forms": retained_match_controls(context, reports, preparation),
         "selected_position": view.selected_position,
         "recorded_progress": recorded,
         "unplayed_cards": project_unplayed_cards(

@@ -25,6 +25,7 @@ from skatmind.side_ownership import get_winner_role
 from skatmind.simulation import DEFAULT_IMMEDIATE_ANALYSIS_SAMPLE_COUNT
 from skatmind.turn_phase import CONCRETE_PLAYERS, normalize_turn_phase_for_position
 
+from .analysis_controls import CONTROL_FIELDS, AnalysisControlError, resolve_analysis_controls
 from .card_form import (
     CardZoneSelectionV1,
     find_card_zone_conflicts_v1,
@@ -102,7 +103,7 @@ POSITION_FORM_FIELDS_V1 = (
     "compare_policies",
     "comparison_only",
     "include_provenance",
-) + POSITION_COMPLETED_TRICK_SELECTOR_FIELDS_V1
+) + POSITION_COMPLETED_TRICK_SELECTOR_FIELDS_V1 + CONTROL_FIELDS
 POSITION_FORM_CARD_FIELDS_V1 = (
     "hand",
     "skat",
@@ -463,6 +464,17 @@ def parse_position_form_v1(
     )
     form_values = mapping_result.values
     errors = list(mapping_result.errors)
+    original_values = form_values
+    try:
+        resolved = resolve_analysis_controls(
+            {key: form_values.singular(key) for key in values
+             if key not in POSITION_FORM_CARD_FIELDS_V1}, path="position")
+        effective = {key: [value] for key, value in resolved.items() if value is not None}
+        effective.update({key: form_values.all(key) for key in POSITION_FORM_CARD_FIELDS_V1})
+        form_values = parse_form_mapping_v1(effective, allowed_fields=POSITION_FORM_FIELDS_V1,
+            multi_value_fields=POSITION_FORM_CARD_FIELDS_V1).values
+    except AnalysisControlError as error:
+        _add_error(errors, error.field_key, str(error))
     analysis_mode = _text(
         form_values,
         errors,
@@ -779,7 +791,7 @@ def parse_position_form_v1(
 
     draft = PositionFormDraftV1(
         form_version=GUIDED_POSITION_FORM_VERSION,
-        form_values=form_values,
+        form_values=original_values,
         analysis_mode=analysis_mode,
         game_type=game_type,
         player_role=player_role,

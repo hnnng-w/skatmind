@@ -88,6 +88,7 @@ class UnifiedMatchContextV1:
     review_selection_pending: bool = False
     review_selection_native_ready: bool = False
     rollout_attempt: object | None = field(default=None, repr=False)
+    analysis_forms: dict = field(default_factory=dict, repr=False)
     rollout_notice: tuple[MatchAnalysisReportV1, int] | None = field(default=None, repr=False)
     declaration_draft_return: object | None = field(default=None, repr=False)
     declaration_draft_authorization: object | None = field(default=None, repr=False)
@@ -296,6 +297,12 @@ def execute_unified_match_analysis_v1(
     decision_binding: Mapping[str, object] | None = None,
     app_context=None,
 ) -> MatchCaptureWebResultV1:
+    from .analysis_controls import match_scope, remember_controls, resolve_analysis_controls
+    submitted_values = dict(values)
+    operation = values.get("operation")
+    if operation in {"analyze_decision", "analyze_historical_game"}:
+        values = resolve_analysis_controls(values, path=(
+            "match_decision" if operation == "analyze_decision" else "match_history"))
     with context.capture.lock:
         context.require_attached()
         attempt = object()
@@ -357,6 +364,10 @@ def execute_unified_match_analysis_v1(
     )
     with context.capture.lock:
         context.require_attached()
+        if result.http_status == 200 and source_guard() and operation in {
+                "analyze_decision", "analyze_historical_game"}:
+            remember_controls(context, f"match.analysis.{operation}", match_scope(context),
+                              submitted_values)
     selected = result.state.get("selected_position")
     if type(selected) is int and 1 <= selected <= 36:
         select_unified_match_position_v1(context, selected)

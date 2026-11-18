@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from skatmind.errors import SkatMindValidationError
 
+from .analysis_controls import safe_controls
 from .context import AppWebContextV1
 from .execution import (
     ExecutionOptionsV1,
@@ -29,6 +30,7 @@ from .guided_contracts import (
 )
 from .historical_form import (
     HistoricalFormDraftV1,
+    HistoricalFormOptionsV1,
     build_historical_execution_options_v1,
     build_historical_request_v1,
     create_historical_form_draft_v1,
@@ -330,7 +332,10 @@ def start_review_v1(context: AppWebContextV1, *, expected_revision: int) -> None
     with context.lock:
         context.review_state = context.review_state.mutate(
             expected_revision=expected_revision,
-            draft=create_historical_form_draft_v1(),
+            draft=replace(create_historical_form_draft_v1(),
+                options=HistoricalFormOptionsV1(immediate_review=True),
+                analysis_form_values=safe_controls({"settings_mode": "ordinary",
+                    "analysis_effort": "standard"})),
         )
         context.historical_reviews.new("guided")
 

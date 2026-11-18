@@ -14,6 +14,12 @@ from skatmind.match_decision_analysis import (
 )
 from skatmind.rollout_derivation import missing_rollout_settlement_inputs
 
+from .analysis_controls import (
+    match_scope,
+    remember_controls,
+    remembered_controls,
+    values_dict,
+)
 from .match_decision_selection import require_bound_match_decision
 from .recorded_review_opening import RecordingOpenConflict, require_recording_fresh_v1
 from .session_recorded_review_form import (
@@ -46,16 +52,26 @@ def project_match_rollout_form(active, preparation):
         match_position=active.selected_position, decision_index=decision,
         options=MatchDecisionAnalysisOptionsV1(use_profile_presets=False)).request
     root = request.to_dict()["document"]
-    settings = {"objective": "complete_settlement", "requested_worlds": 100, "random_seed": 0}
+    settings = {"objective": "complete_settlement", "requested_worlds": 100, "random_seed": 0,
+                "settings_mode": "ordinary", "analysis_effort": "standard"}
     supplied = {}
     for report in reversed(active.capture.report_store.list()):
         if (report.match_position == active.selected_position and report.decision_index == decision
                 and report.workspace_revision == active.workspace.revision
                 and report.value.status == "executed"
                 and report.value.options.recommendation_method == "whole_game_rollout"):
-            settings = report.value.request.document["whole_game_rollout_settings"]
+            settings = dict(report.value.request.document["whole_game_rollout_settings"])
+            settings["settings_mode"] = "custom"
             supplied = report.value.options.settlement_supplements
             break
+    remembered, timeout = remembered_controls(active, "match.review_whole_game",
+                                          (*match_scope(active), decision))
+    settings.update(values_dict(remembered))
+    if timeout is not None:
+        settings["wall_clock_timeout_ms"] = timeout
+    supplied = dict(supplied)
+    supplied.update({name: settings["analysis_" + name]
+        for name in missing_rollout_settlement_inputs(root) if "analysis_" + name in settings})
     return {"decision": decision, "selection": match_rollout_binding(active, decision),
             "settings": settings, "supplied": supplied,
             "native_ready": active.review_selection_native_ready,
@@ -97,7 +113,19 @@ def execute_unified_match_rollout(active, values, *, app_context=None, admission
         active.rollout_evidence_binding = None
         generation = active.capture.report_store.generation
         workspace = active.workspace
-        _, settings, submitted = parse_recorded_rollout_form_v1(values)
+        scope = (*match_scope(active), decision)
+        _, timeout = remembered_controls(active, "match.review_whole_game", scope)
+        retained_settings = next((old.value.options.rollout_settings
+            for old in reversed(active.capture.report_store.list())
+            if old.match_position == position and old.decision_index == decision
+            and old.workspace_revision == workspace.revision
+            and old.match_id == workspace.match_definition.match_id
+            and old.value.status == "executed"
+            and old.value.options.recommendation_method == "whole_game_rollout"), None)
+        _, settings, submitted = parse_recorded_rollout_form_v1(values, retained_timeout=timeout,
+            retained_settings=retained_settings)
+        remember_controls(active, "match.review_whole_game", scope, values,
+                          timeout=settings.wall_clock_timeout_ms)
         try:
             original = build_match_decision_position_request_v1(workspace,
                 match_position=position, decision_index=decision,

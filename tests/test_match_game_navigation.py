@@ -56,7 +56,8 @@ def workspace_for(states):
 def rendered(workspace, selected, locale):
     """Intermediate renderer output for projection assertions, not browser submission."""
     view = project_task_first_match_v1(workspace, selected_position=selected)
-    context = SimpleNamespace(workspace=workspace,
+    context = SimpleNamespace(workspace=workspace, analysis_forms={},
+                              selected_position=selected, selected_review_decision=None,
                               capture=SimpleNamespace(report_store=MatchAnalysisReportStoreV1()))
     state = build_task_first_match_page_state_v1(context, view)
     html = render_task_first_match_v1(state, view, managed_handle="a" * 64, locale=locale)

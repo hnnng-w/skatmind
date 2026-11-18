@@ -82,7 +82,8 @@ def test_selection_only_refreshes_context_then_explicit_action_is_alex(
     assert "hidden" not in controls(page)["attrs"]
     selector = next(n for n in Hierarchy(page).nodes if "data-decision-selector" in n["attrs"])
     assert "hidden" in selector["attrs"]  # Script alone exposes the editable selector here.
-    response = browser.submit(form(page), requested_worlds="1", analysis_matadors="1")
+    response = browser.submit(form(page), settings_mode="custom", requested_worlds="1",
+                              analysis_matadors="1")
     assert response[0] == 303
     page = follow(browser, response)
     active = localized_server.app_context.managed_stateful.active_match
@@ -97,14 +98,16 @@ def test_selection_only_refreshes_context_then_explicit_action_is_alex(
 def test_selection_keeps_prior_evidence_and_legacy_action_independent(localized_server):
     browser, path, page = open_alex(localized_server, count=30)
     page = follow(browser, choose(browser, page, 1))
-    page = follow(browser, browser.submit(form(page), requested_worlds="1", analysis_matadors="2"))
+    page = follow(browser, browser.submit(form(page), settings_mode="custom", requested_worlds="1",
+                                         analysis_matadors="2"))
     prior = downloads(browser, page)
     active = localized_server.app_context.managed_stateful.active_match
     first = active.capture.report_store.list()[0]
     page = choose(browser, page, 3, enhanced=True)[2].decode()
     assert downloads(browser, page) == prior
     assert form(page)["values"]["analysis_matadors"] == ""
-    response = browser.submit(operation_form(page, "analyze_decision"), immediate_sample_count="1")
+    response = browser.submit(operation_form(page, "analyze_decision"), settings_mode="custom",
+                              immediate_sample_count="1")
     assert response[0] == 303
     report = active.capture.report_store.list()[-1]
     assert report.value.decision_index == 3
@@ -246,7 +249,7 @@ def test_superseded_rollout_rejection_cannot_invalidate_new_selection_response(
     monkeypatch.setattr(handler, "_send_text", sent)
     with ThreadPoolExecutor(2) as pool:
         first = pool.submit(browser.submit, form(page), objective="played_game_goal",
-                            requested_worlds="1")
+                            settings_mode="custom", requested_worlds="1")
         assert entered.wait(10)
         second = pool.submit(choose, browser, page, 3, enhanced=True)
         assert rendering.wait(10)
@@ -261,7 +264,8 @@ def test_superseded_rollout_rejection_cannot_invalidate_new_selection_response(
 def test_language_return_retains_exact_selected_controls_and_values(localized_server):
     browser, path, page = open_alex(localized_server, count=30)
     page = choose(browser, page, 3, enhanced=True)[2].decode()
-    response = browser.submit(form(page), requested_worlds="1", analysis_matadors="0")
+    response = browser.submit(form(page), settings_mode="custom", requested_worlds="1",
+                              analysis_matadors="0")
     assert response[0] == 400
     page = response[2].decode()
     for locale in ("de", "en"):
@@ -331,7 +335,8 @@ def test_failed_enhanced_selection_retains_the_page_manifest_and_report_owner(
 ):
     browser, path, page = open_alex(localized_server, count=30)
     page = follow(browser, choose(browser, page, 3))
-    page = follow(browser, browser.submit(form(page), requested_worlds="1", analysis_matadors="1"))
+    page = follow(browser, browser.submit(form(page), settings_mode="custom", requested_worlds="1",
+                                         analysis_matadors="1"))
     prior = downloads(browser, page)
     if view == "recording":
         page = browser.page("/matches/position/2")

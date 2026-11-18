@@ -121,6 +121,7 @@ class GuidedSessionContextV1:
     rollout_review_source: RecordedReviewSourceV1 | None = field(default=None, repr=False)
     rollout_notice: object | None = field(default=None, repr=False)
     execution_attempt: object | None = field(default=None, repr=False)
+    analysis_forms: dict = field(default_factory=dict, repr=False)
     pending_evidence: object | None = field(default=None, repr=False)
     evidence_notice: object | None = field(default=None, repr=False)
     operation_feedback: PendingOperationFeedback = field(
@@ -163,6 +164,7 @@ class GuidedSessionContextV1:
     def clear_execution(self) -> None:
         """Discard source-scoped execution and correction work on lifecycle invalidation."""
         self.execution = None
+        self.analysis_forms.clear()
         self.recorded_review_source = None
         self.rollout_execution = None
         self.rollout_review_source = None
@@ -542,6 +544,7 @@ def execute_guided_session_position_v1(
     *,
     export_options: session_api.SessionPositionExportOptionsV1,
     execution_options: ExecutionOptionsV1,
+    frontend_form_values: Mapping[str, str] | None = None,
 ) -> GuidedSessionOperationResultV1:
     with context.lock:
         context.require_attached()
@@ -593,6 +596,10 @@ def execute_guided_session_position_v1(
         else:
             context.execution = execution
             context.recorded_review_source = None
+            if frontend_form_values is not None:
+                from .analysis_controls import remember_controls, session_scope
+                remember_controls(context, "session.analyze", session_scope(context),
+                                  frontend_form_values)
             operation = GuidedSessionOperationResultV1(
                 status="executed",
                 message="Position analysis completed for the current Session revision.",
@@ -606,6 +613,7 @@ def execute_guided_session_historical_v1(
     context: GuidedSessionContextV1,
     *,
     execution_options: ExecutionOptionsV1,
+    frontend_form_values: Mapping[str, str] | None = None,
 ) -> GuidedSessionOperationResultV1:
     with context.lock:
         context.require_attached()
@@ -639,6 +647,10 @@ def execute_guided_session_historical_v1(
         else:
             context.execution = execution
             context.recorded_review_source = None
+            if frontend_form_values is not None:
+                from .analysis_controls import remember_controls, session_scope
+                remember_controls(context, "session.review", session_scope(context),
+                                  frontend_form_values)
             operation = GuidedSessionOperationResultV1(
                 status="executed",
                 message="Completed-game Review finished for the current Session revision.",

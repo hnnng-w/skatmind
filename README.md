@@ -2176,5 +2176,9 @@ remain per-game evidence, separate from Session comparisons and qualified Match
 focuses. A Match Historical execution adds no duplicate Game or Teacher Report.
 Restart, passive navigation, language switching and downloads run no new card analysis.
 Accepted #316–#323 evidence and #324's original installed A–D observations remain valid.
-The #324 follow-up needs its own exact-commit hosted gates and narrow installed check;
-#208 stays open and release preparation is not authorized.
+The maintainer accepted the #324 follow-up before the #325 baseline at `fca6b3a`.
+Issue #325 adds [simple analysis controls](docs/simple_analysis_controls.md): bounded
+Quick/Standard/More-time effort choices, explicit custom settings, secondary
+additional reviews and the existing eligible opponent-information choice.
+#325 needs its own hosted gates and later narrow installed check; #208 stays open
+and release preparation is not authorized.

@@ -574,6 +574,7 @@ def test_form_domain_has_no_persistence_or_other_product_area_objects() -> None:
         "discarded_cards",
         "plays",
         "options",
+        "analysis_form_values",
     }
     source = SOURCE_PATH.read_text(encoding="utf-8")
     assert "validate_observed_game_trace_v1" in source

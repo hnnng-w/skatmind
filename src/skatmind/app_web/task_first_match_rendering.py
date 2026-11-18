@@ -5,6 +5,15 @@ from html import escape
 
 from skatmind.game_result import COMPLETED_TRICK_COUNT
 
+from .analysis_controls import (
+    ADDITIONAL_FIELDS,
+    CONTROL_FIELDS,
+    effort_fields,
+    mode_fields,
+    native_analysis_form,
+    restore_controls,
+    values_dict,
+)
 from .compact_card_rendering import compact_card_selector
 from .compact_declaration_rendering import accepted_declaration_summary, compact_declaration_fields
 from .form_registry import get_frontend_form_by_key_v1
@@ -112,9 +121,19 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
         fields += hidden("visible_decision_index", bound["decision"])
     technical = ""
     advanced = ""
+    additional = ""
+    remembered = state.get("analysis_forms", {}).get(f"match.analysis.{operation}")
+    simplified = analysis and operation in {"analyze_decision", "analyze_historical_game"}
+    if simplified:
+        fields += effort_fields(locale, values_dict(remembered), fresh=remembered is None)
+        advanced += mode_fields(locale, values_dict(remembered), fresh=remembered is None)
+    actor = next((row["acting_player_id"] for row in state.get("decision_preparation", {}).get(
+        "decisions", ()) if bound is not None and row["decision_index"] == bound["decision"]), None)
+    profiles_available = any(player.get("statistics_eligible_for_match_analysis")
+        and player["player_id"] != actor for player in state["participants"])
     for field in definition.safe_fields:
         name = field.field_key
-        if name == "decision_selection":
+        if name == "decision_selection" or name in CONTROL_FIELDS:
             continue
         if name == "decision_index" and bound is not None:
             fields += hidden(name, bound["decision"])
@@ -124,6 +143,8 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
                 original=values.get("played_at"), new=False)
             continue
         key = f"task.field.{name}"
+        if name == "use_profile_presets" and profiles_available:
+            key = "analysis.opponents"
         value = values.get(name, "")
         if name == "cards" and operation in {"set_perspective_hand", "set_original_skat", "set_discarded_cards"}:
             control = card_palette(locale, value)
@@ -148,20 +169,29 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
             control = input_field(locale, name, key, value)
         if name in {"game_id", "snapshot_id", "external_match_id", "source_player_id"} or name.endswith("_platform_id"):
             technical += control
-        elif analysis and operation == "analyze_decision" and name != "decision_index":
+        elif analysis and name in ADDITIONAL_FIELDS:
+            additional += control
+        elif analysis and name == "use_profile_presets" and profiles_available:
+            fields += control
+        elif analysis and name != "decision_index":
             advanced += control
         else:
             fields += control
-    trailing_content = (disclosure(locale, "recordings.match.advanced", paragraph(locale, "task.analysis_help") + advanced)
+    if simplified and not profiles_available:
+        advanced += paragraph(locale, "analysis.no_opponents")
+    trailing_content = (disclosure(locale, "analysis.technical", paragraph(locale, "task.analysis_help") + advanced)
                         if advanced else "")
+    if additional:
+        trailing_content += disclosure(locale, "analysis.additional", additional)
     if technical:
         fields += disclosure(locale, "task.technical", technical, technical=True)
-    return form(locale, f"/matches/api/v1/{'analysis' if analysis else 'operation'}", fields,
+    markup = restore_controls(form(locale, f"/matches/api/v1/{'analysis' if analysis else 'operation'}", fields,
                 f"task.match.action.{operation}", primary=primary, disabled=disabled,
                 trailing_content=trailing_content,
                 destructive=operation in {"clear_position", "truncate_plays", "remove_commentary",
                     "remove_response_link", "clear_player_statistics_snapshot"},
-                confirm_key="task.match.remove_note_help" if operation == "remove_commentary" else None)
+        confirm_key="task.match.remove_note_help" if operation == "remove_commentary" else None), remembered)
+    return native_analysis_form(markup) if simplified else markup
 
 
 def _card_form(state, handle, locale, operation, binding, *, cards=(), play=False):

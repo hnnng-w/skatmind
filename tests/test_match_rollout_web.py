@@ -77,7 +77,7 @@ def test_real_native_root_supplement_result_and_matched_downloads(localized_serv
     nodes = Hierarchy(page).nodes
     control = next(node for node in nodes if node["attrs"].get("name") == "analysis_matadors")
     assert not any(node["tag"] == "details" for node in control["parents"])
-    response = browser.submit(form(page), requested_worlds="2")
+    response = browser.submit(form(page), settings_mode="custom", requested_worlds="2")
     assert response[0] == 400
     page = response[2].decode()
     assert 'aria-invalid="true"' in page and not calls
@@ -117,7 +117,7 @@ def test_real_native_root_supplement_result_and_matched_downloads(localized_serv
 def test_invalid_attempt_keeps_report_bytes_and_scoped_choices(localized_server):
     browser, path, page = open_alex(localized_server)
     page = follow(browser, browser.submit(form(page), objective="played_game_goal",
-                                         requested_worlds="1"))
+                                         settings_mode="custom", requested_worlds="1"))
     prior = downloads(browser, page)
     active = localized_server.app_context.managed_stateful.active_match
     report, = active.capture.report_store.list()
@@ -140,11 +140,11 @@ def test_superseded_unlocked_work_cannot_publish(localized_server, rollout_probe
     rollout_probe.phase = phase
     with ThreadPoolExecutor(2) as pool:
         first = pool.submit(browser.submit, form(page), objective="played_game_goal",
-                            requested_worlds="2", random_seed="7")
+                            settings_mode="custom", requested_worlds="2", random_seed="7")
         try:
             assert rollout_probe.entered.wait(60)
             response = browser.submit(form(page), objective="played_game_goal",
-                                      requested_worlds="2")
+                                      settings_mode="custom", requested_worlds="2")
             assert response[0] == 303
         finally:
             rollout_probe.release.set()
@@ -210,12 +210,12 @@ def test_same_decision_superseded_rejection_cannot_invalidate_new_report_get(
     monkeypatch.setattr(handler, "_retain_form_feedback", retained)
     with ThreadPoolExecutor(2) as pool:
         first = pool.submit(browser.submit, form(page), objective="played_game_goal",
-                            requested_worlds="2", random_seed="7")
+                            settings_mode="custom", requested_worlds="2", random_seed="7")
         try:
             assert rollout_probe.entered.wait(60)
             first_attempt = active.rollout_attempt
             response = browser.submit(form(page), objective="played_game_goal",
-                                      requested_worlds="2", random_seed="0")
+                                      settings_mode="custom", requested_worlds="2", random_seed="0")
             assert response[0] == 303
             report, = active.capture.report_store.list()
             assert report.value.options.rollout_settings.random_seed == 0
@@ -301,7 +301,8 @@ def test_external_file_conflict_prevents_publication(localized_server, monkeypat
     monkeypatch.setattr(frontend, "execute_match_decision_analysis_v1", run)
     if when == "before":
         change_file()
-    response = browser.submit(form(page), objective="played_game_goal", requested_worlds="1")
+    response = browser.submit(form(page), settings_mode="custom", objective="played_game_goal",
+                              requested_worlds="1")
     assert response[0] == 409 and not active.capture.report_store.list()
     assert len(calls) == (0 if when == "before" else 1)
 
@@ -313,7 +314,7 @@ def test_timeout_retains_completed_bytes_and_names_attempt_separately(
 
     browser, path, page = open_alex(localized_server)
     page = follow(browser, browser.submit(form(page), objective="played_game_goal",
-                                         requested_worlds="1"))
+                                         settings_mode="custom", requested_worlds="1"))
     prior = downloads(browser, page)
     active = localized_server.app_context.managed_stateful.active_match
     report, = active.capture.report_store.list()
@@ -336,7 +337,7 @@ def test_timeout_retains_completed_bytes_and_names_attempt_separately(
 def test_failed_execution_keeps_previous_report(localized_server, monkeypatch):
     browser, path, page = open_alex(localized_server)
     page = follow(browser, browser.submit(form(page), objective="played_game_goal",
-                                         requested_worlds="1"))
+                                         settings_mode="custom", requested_worlds="1"))
     prior = downloads(browser, page)
     def failed(*args, **kwargs):
         raise ValueError("Synthetic execution failure")
@@ -365,7 +366,8 @@ def test_exact_tied_set_and_actual_membership_use_shared_renderer(localized_serv
                        tied_best_cards=cards, recommended_card=cards[0])
     monkeypatch.setattr(workflow, "evaluate_whole_game_rollout_v1", tied)
     browser, path, page = open_alex(localized_server)
-    page = follow(browser, browser.submit(form(page), requested_worlds="1", analysis_matadors="1"))
+    page = follow(browser, browser.submit(form(page), settings_mode="custom", requested_worlds="1",
+                                         analysis_matadors="1"))
     prior = downloads(browser, page)
     for locale in ("de", "en"):
         page = follow(browser, browser.submit(Forms(page).find("/actions/profile/language"),
@@ -385,7 +387,8 @@ def test_known_value_injection_and_explicit_objective_switch(localized_server):
     assert not active.capture.report_store.list()
     page = browser.page("/matches/review/2")
     response = browser.submit(form(page), objective="played_game_goal",
-                              requested_worlds="1", analysis_matadors="not a number")
+                              settings_mode="custom", requested_worlds="1",
+                              analysis_matadors="not a number")
     assert response[0] == 303
     report, = localized_server.app_context.managed_stateful.active_match.capture.report_store.list()
     assert not report.value.options.settlement_supplements
@@ -396,7 +399,7 @@ def test_invalid_new_attempt_supersedes_old_inflight_work(localized_server, roll
     browser, path, page = open_alex(localized_server)
     original = path.read_bytes()
     page = follow(browser, browser.submit(form(page), objective="played_game_goal",
-                                         requested_worlds="2"))
+                                         settings_mode="custom", requested_worlds="2"))
     prior = downloads(browser, page)
     app = localized_server.app_context
     active = app.managed_stateful.active_match
@@ -405,7 +408,7 @@ def test_invalid_new_attempt_supersedes_old_inflight_work(localized_server, roll
     archive_bytes = {path: path.read_bytes() for path in store.root.rglob("*.json")}
     with ThreadPoolExecutor(2) as pool:
         first = pool.submit(browser.submit, form(page), objective="played_game_goal",
-                            requested_worlds="2", random_seed="7")
+                            settings_mode="custom", requested_worlds="2", random_seed="7")
         try:
             assert rollout_probe.entered.wait(60)
             assert browser.submit(form(page), objective="complete_settlement",
@@ -432,7 +435,7 @@ def test_unchanged_passive_reads_and_language_do_not_cancel(localized_server, ro
     original = path.read_bytes()
     with ThreadPoolExecutor(1) as pool:
         future = pool.submit(browser.submit, form(page), objective="played_game_goal",
-                             requested_worlds="2", random_seed="7")
+                             settings_mode="custom", requested_worlds="2", random_seed="7")
         try:
             assert rollout_probe.entered.wait(60)
             browser.page("/")
@@ -455,7 +458,8 @@ def test_both_missing_inputs_stay_visible_and_values_survive_rejection(localized
     before = path.read_bytes()
     assert form(page)["values"]["analysis_bid_value"] == ""
     assert form(page)["values"]["analysis_matadors"] == ""
-    response = browser.submit(form(page), requested_worlds="1", analysis_bid_value="18")
+    response = browser.submit(form(page), settings_mode="custom", requested_worlds="1",
+                              analysis_bid_value="18")
     assert response[0] == 400
     page = response[2].decode()
     assert form(page)["values"]["analysis_bid_value"] == "18"
@@ -468,7 +472,8 @@ def test_both_missing_inputs_stay_visible_and_values_survive_rejection(localized
 
 def test_retained_downloads_ignore_current_game_then_invalidate_on_reload(localized_server):
     browser, path, page = open_alex(localized_server)
-    page = follow(browser, browser.submit(form(page), requested_worlds="1", analysis_matadors="1"))
+    page = follow(browser, browser.submit(form(page), settings_mode="custom", requested_worlds="1",
+                                         analysis_matadors="1"))
     prior = downloads(browser, page)
     active = localized_server.app_context.managed_stateful.active_match
     report, = active.capture.report_store.list()

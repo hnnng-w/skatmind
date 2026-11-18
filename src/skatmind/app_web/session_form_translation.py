@@ -352,6 +352,8 @@ def build_session_edit_from_form_v1(
 def build_session_position_options_from_form_v1(
     values: Mapping[str, str],
 ) -> session_api.SessionPositionExportOptionsV1:
+    from .analysis_controls import resolve_analysis_controls
+    values = resolve_analysis_controls(values, path="session_position")
     _require_keys(
         values,
         {
@@ -391,6 +393,8 @@ def build_session_position_options_from_form_v1(
 def build_session_historical_execution_options_from_form_v1(
     values: Mapping[str, str],
 ) -> ExecutionOptionsV1:
+    from .analysis_controls import resolve_analysis_controls
+    values = resolve_analysis_controls(values, path="session_history")
     option_names = (
         "decision_snapshots",
         "immediate_review",

@@ -116,6 +116,8 @@ _FILE_FIELDS = {
 }
 _BOOLEAN_CHOICES = ("false", "true")
 _SELECT_CHOICES = {
+    "analysis_effort": ("quick", "standard", "more_time"),
+    "settings_mode": ("ordinary", "custom"),
     "perspective_mode": ("own", "manual"),
     "own_seat": ("", "forehand", "middlehand", "rearhand"),
     **{f"{seat}_mode": ("saved", "new") for seat in ("forehand", "middlehand", "rearhand")},
@@ -132,6 +134,8 @@ _SELECT_CHOICES = {
     "account_action": ("keep", "edit"),
 }
 _LABEL_KEYS = {
+    "analysis_effort": "validation.field.analysis_effort",
+    "settings_mode": "validation.field.settings_mode",
     "own_seat": "validation.field.own_seat",
     **{f"{seat}_{suffix}": f"validation.field.{seat}_{label}"
        for seat in ("forehand", "middlehand", "rearhand")
@@ -380,6 +384,7 @@ def _definition(
 
 
 _REVIEW_OPTIONS = (
+    "analysis_effort", "settings_mode",
     "decision_snapshots",
     "immediate_review",
     "search_review",
@@ -532,6 +537,7 @@ _MATCH_MUTATION_FIELDS = {
 _MATCH_ANALYSIS_FIELDS = {
     "prepare_materialization": (),
     "analyze_decision": (
+        "analysis_effort", "settings_mode",
         "decision_index",
         "decision_selection",
         "recommendation_method",
@@ -542,6 +548,7 @@ _MATCH_ANALYSIS_FIELDS = {
         "use_profile_presets",
     ),
     "analyze_historical_game": (
+        "analysis_effort", "settings_mode",
         "decision_snapshots",
         "tactical_motif_review",
         "immediate_review",
@@ -984,6 +991,7 @@ _FORMS: list[FrontendFormDefinitionV1] = [
         "session.analyze",
         "/sessions/analyze",
         (
+            "analysis_effort", "settings_mode",
             "sample_count",
             "random_seed",
             "opponent_strategy",
@@ -1020,7 +1028,8 @@ _FORMS: list[FrontendFormDefinitionV1] = [
     _definition(
         "session.review_whole_game",
         "/sessions/review-whole-game",
-        ("decision_selection", "objective", "requested_worlds", "random_seed",
+        ("analysis_effort", "settings_mode", "decision_selection", "objective",
+         "requested_worlds", "random_seed",
          "analysis_bid_value", "analysis_matadors"),
         page="/sessions/current", active="sessions",
         success="/sessions/current#session-rollout-result",
@@ -1033,7 +1042,8 @@ _FORMS: list[FrontendFormDefinitionV1] = [
     ),
     _definition(
         "match.review_whole_game", "/matches/review-whole-game",
-        ("decision_selection", "objective", "requested_worlds", "random_seed",
+        ("analysis_effort", "settings_mode", "decision_selection", "objective",
+         "requested_worlds", "random_seed",
          "analysis_bid_value", "analysis_matadors"),
         page="/matches/current", active="matches", success="contextual",
         choice_overrides={"objective": ("played_game_goal", "complete_settlement")},
@@ -1052,6 +1062,7 @@ _FORMS: list[FrontendFormDefinitionV1] = [
         "session.review",
         "/sessions/review",
         (
+            "analysis_effort", "settings_mode",
             "decision_snapshots",
             "immediate_review",
             "search_review",

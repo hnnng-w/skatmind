@@ -910,8 +910,7 @@ def test_validation_is_field_local_accessible_and_advanced_groups_are_exact(
         "Analysis method",
         "Runtime and reproducibility",
         "Opponent behavior",
-        "Simulation and comparison",
-        "Technical evidence",
+        "Additional reviews",
         "Dataset and evaluation",
     )
     for page_html in (analyze_html, review_html):

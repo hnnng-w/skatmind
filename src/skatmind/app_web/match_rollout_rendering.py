@@ -63,7 +63,7 @@ def render_match_rollout_form(state, handle, locale, *, legacy=""):
     if "matadors" in view["missing"]:
         content += '<p id="match-rollout-matadors-help">' + translated(
             locale, "declaration.count_examples") + '</p>'
-    content += ('<form class="recorded-rollout-form" method="post" '
+    content += ('<form novalidate class="recorded-rollout-form" method="post" '
                 'action="/matches/review-whole-game">')
     for name, value in (("managed_handle", handle),
                         ("expected_revision", state["workspace_revision"]),

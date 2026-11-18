@@ -1,5 +1,11 @@
 # Explicit recorded whole-game review
 
+Current control simplification: [Issue #325](simple_analysis_controls.md) adds
+25/100/400-world ordinary efforts with 5000/30000/60000-ms timeouts and explicit
+custom mode. Freshly validated owner-bound retained settings preserve effective
+custom timeouts when reopening or retrying. The older form observations below
+remain point-in-time evidence for their respective issues.
+
 Issue #288 adds [selected Match whole-game review](match_whole_game_review.md) with
 its own reconstructed-source derivation. It shares the native objective/supplement
 and technical-control helpers and the Result builder/renderer described here.

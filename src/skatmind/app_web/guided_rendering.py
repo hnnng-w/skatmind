@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from html import escape
 
+from .analysis_controls import effort_fields, mode_fields, restore_controls, values_dict
 from .card_form import CANONICAL_CARD_CONTROLS_V1
 from .compact_card_rendering import compact_card_groups
 from .guided_contracts import (
@@ -44,8 +45,8 @@ from .position_form import (
     POSITION_POLICY_PRESETS_V1,
     PositionFormDraftV1,
 )
+from .render_locale import _RENDER_LOCALE, localized_card_name, localized_render
 from .render_locale import html_message as _t
-from .render_locale import localized_card_name, localized_render
 from .render_locale import message as _m
 from .result_presentation import build_result_presentation_v1
 from .result_rendering import render_result_presentation_v1
@@ -386,9 +387,11 @@ def _advanced_position(
             f'{_options(policy_options, current or "")}</select></label>',
         )
 
-    return f'''
+    controls = values_dict(draft.form_values) if draft else {}
+    return restore_controls(effort_fields(_RENDER_LOCALE.get(), controls, fresh=draft is None, position=True) + f'''
       <section class="advanced-settings" aria-labelledby="advanced-heading">
-        <h2 id="advanced-heading">{_t("task.advanced")}</h2>
+        <details><summary id="advanced-heading">{_t("analysis.technical")}</summary>
+        {mode_fields(_RENDER_LOCALE.get(), controls, fresh=draft is None)}
         <p>{_t("task.analysis_help")}</p>
         <details><summary>{_t("task.field.recommendation_method")}</summary>
           {_field_group(messages, "analysis_method", f'<label>{_t("task.field.recommendation_method")}<select name="analysis_method">{_options(method_options, method)}</select></label>')}
@@ -411,6 +414,7 @@ def _advanced_position(
           {policy_select("right_opponent_response_policy", _m("guided.advanced.right_response"))}
           {_field_group(messages, "use_profile_presets", f'<label><input type="checkbox" name="use_profile_presets"{_checked(draft.use_profile_presets if draft else False)}> {_t("task.field.use_profile_presets")}</label>')}
           <p>{_t("guided.advanced.policy_help")}</p>
+          <p>{_t("analysis.no_opponents")}</p>
         </details>
         <details><summary>{_t("guided.advanced.simulation")}</summary>
           {_field_group(messages, "multi_step_count", f'<label>{_t("guided.advanced.steps")}<input name="multi_step_count" type="number" min="1" value="{_e(draft.multi_step_count or "" if draft else "")}"></label>')}
@@ -421,14 +425,14 @@ def _advanced_position(
           {_field_group(messages, "comparison_only", f'<label><input type="checkbox" name="comparison_only"{_checked(draft.comparison_only if draft else False)}> {_t("guided.advanced.comparison_only")}</label>')}
           <p>{_t("guided.advanced.simulation_help")}</p>
         </details>
-        <details><summary>{_t("guided.advanced.evidence")}</summary>
+        </details><details><summary>{_t("analysis.additional")}</summary>
           {_field_group(messages, "include_provenance", f'<label><input type="checkbox" name="include_provenance"{_checked(draft.include_provenance if draft else False)}> {_t("guided.advanced.provenance")}</label>')}
           <p>{_t("guided.advanced.provenance_help")}</p>
         </details>
         <details><summary>{_t("guided.advanced.dataset")}</summary>
           <p>{_t("guided.advanced.dataset_help")}</p>
         </details>
-      </section>'''
+      </section>''', draft.form_values if draft else None)
 
 
 @localized_render
@@ -453,7 +457,7 @@ def render_analyze_workflow_v1(state: ProcessLocalFrontendWorkflowStateV1) -> st
         _process_local_notice(),
         _error_summary(messages),
         _result(state, page="analyze"),
-        '<form id="workflow-form" class="workflow-form" method="post" action="'
+        '<form novalidate id="workflow-form" class="workflow-form" method="post" action="'
         + ANALYZE_RUN_GUIDED_ACTION_ROUTE_PATH
         + '">',
         _revision(state),
@@ -617,11 +621,13 @@ def _review_step(
           <p>{_t("guided.rules_help")}</p></section>'''
     elif draft.step == 6:
         options = draft.options
-        body = f'''<form id="workflow-form" method="post" action="{REVIEW_UPDATE_OPTIONS_ACTION_ROUTE_PATH}">{_revision(state)}
+        controls = values_dict(draft.analysis_form_values)
+        body = f'''<form novalidate id="workflow-form" method="post" action="{REVIEW_UPDATE_OPTIONS_ACTION_ROUTE_PATH}">{_revision(state)}
           <h2>{_t("guided.review.step.6")}</h2><p>{_t("guided.review.options_help")}</p>
-          <section class="advanced-settings" aria-labelledby="advanced-heading"><h3 id="advanced-heading">{_t("task.advanced")}</h3>
+          {effort_fields(_RENDER_LOCALE.get(), controls)}
+          <section class="advanced-settings" aria-labelledby="advanced-heading"><details><summary id="advanced-heading">{_t("analysis.technical")}</summary>
+          {mode_fields(_RENDER_LOCALE.get(), controls)}
           <details><summary>{_t("task.field.recommendation_method")}</summary>
-            {_field_group(messages, "decision_snapshots", f'<label><input type="checkbox" name="decision_snapshots"{_checked(options.decision_snapshots)}> {_t("task.field.decision_snapshots")}</label>')}
             {_field_group(messages, "immediate_review", f'<label><input type="checkbox" name="immediate_review"{_checked(options.immediate_review)}> {_t("task.field.immediate_review")}</label>')}
             {_field_group(messages, "search_review", f'<label><input type="checkbox" name="search_review"{_checked(options.search_review)}> {_t("task.field.search_review")}</label>')}
             {_field_group(messages, "information_set_search_review", f'<label><input type="checkbox" name="information_set_search_review"{_checked(options.information_set_search_review)}> {_t("task.field.information_set_search_review")}</label>')}
@@ -634,18 +640,21 @@ def _review_step(
             <p>{_t("guided.review.runtime_help")}</p>
           </details>
           <details><summary>{_t("task.field.opponent_strategy")}</summary><p>{_t("guided.review.policy_help")}</p></details>
-          <details><summary>{_t("guided.advanced.simulation")}</summary>
+          </details><details><summary>{_t("analysis.additional")}</summary>
+            {_field_group(messages, "decision_snapshots", f'<label><input type="checkbox" name="decision_snapshots"{_checked(options.decision_snapshots)}> {_t("task.field.decision_snapshots")}</label>')}
             {_field_group(messages, "replay_coaching", f'<label><input type="checkbox" name="replay_coaching"{_checked(options.replay_coaching)}> {_t("task.field.replay_coaching")}</label>')}
             {_field_group(messages, "information_set_replay_coaching", f'<label><input type="checkbox" name="information_set_replay_coaching"{_checked(options.information_set_replay_coaching)}> {_t("task.field.information_set_replay_coaching")}</label>')}
             {_field_group(messages, "tactical", f'<label><input type="checkbox" name="tactical"{_checked(options.tactical)}> {_t("task.field.tactical_motif_review")}</label>')}
             <p>{_t("guided.review.coaching_help")}</p>
-          </details>
-          <details><summary>{_t("guided.advanced.evidence")}</summary>
             {_field_group(messages, "include_provenance", f'<label><input type="checkbox" name="include_provenance"{_checked(options.include_provenance)}> {_t("guided.advanced.provenance")}</label>')}
             <p>{_t("guided.advanced.provenance_help")}</p>
           </details>
           <details><summary>{_t("guided.advanced.dataset")}</summary><p>{_t("guided.advanced.dataset_help")}</p></details>
           </section><button type="submit">{_t("guided.review.selections")}</button></form>'''
+        # Only previously submitted fields override defaults; the fresh marker
+        # has no method fields and must not clear the frontend Immediate default.
+        if draft.analysis_form_values is not None and len(controls) > 2:
+            body = restore_controls(body, draft.analysis_form_values)
     else:
         summary = build_historical_options_summary_v1(draft)
         selected = ", ".join(_m(f"guided.review.output.{value}") for value in summary.selected_outputs) or _m("guided.review.no_optional")

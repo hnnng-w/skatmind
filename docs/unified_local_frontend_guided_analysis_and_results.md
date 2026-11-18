@@ -2,6 +2,11 @@
 
 ## Status
 
+Issue #325 adds the shared private [simple analysis controls](simple_analysis_controls.md).
+Fresh manual guided Reviews explicitly select Immediate Review in the frontend;
+existing drafts/imports and public defaults retain their original selections.
+The linked contract defines native preset/custom precedence and exact finite budgets.
+
 Current S7 extension: [Issue #316](automatic_historical_learning_s7_verification.md)
 saves a successful manual guided/imported Historical Review's exact input and genuine
 execution at the manual producer's guarded publication boundary. `/review/saved`

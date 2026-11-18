@@ -123,6 +123,7 @@ def execute_recorded_session_decision_v1(
     app: AppWebContextV1, context: GuidedSessionContextV1, *, selection: str,
     rollout_settings: WholeGameRolloutSettingsV1 | None = None,
     rollout_supplements: dict[str, str] | None = None,
+    rollout_form: dict[str, str] | None = None,
 ) -> RecordedRolloutNoticeV1 | None:
     """Publish after unlocked execution; return only the source-checked incomplete notice."""
     from .session_evidence_retention import retain_published_session, session_source_epoch
@@ -135,6 +136,25 @@ def execute_recorded_session_decision_v1(
         if decision is None:
             raise RecordedDecisionReviewConflictError()
         require_recorded_review_file_fresh_v1(context)
+        if rollout_form is not None:
+            from .analysis_controls import remember_controls, remembered_controls, session_scope
+            from .session_recorded_review_form import parse_recorded_rollout_form_v1
+
+            scope = (*session_scope(context), selection)
+            _, timeout = remembered_controls(context, "session.review_whole_game", scope)
+            retained = context.rollout_review_source
+            retained_settings = None
+            if retained is not None and (
+                    retained.document == context.document
+                    and retained.generation == context.generation
+                    and retained.decision == decision):
+                from skatmind.whole_game_rollout_workflow import parse_rollout_settings
+                retained_settings = parse_rollout_settings(dict(
+                    context.rollout_execution.request.document["whole_game_rollout_settings"]))
+            _, rollout_settings, rollout_supplements = parse_recorded_rollout_form_v1(
+                rollout_form, retained_timeout=timeout, retained_settings=retained_settings)
+            remember_controls(context, "session.review_whole_game", scope, rollout_form,
+                              timeout=rollout_settings.wall_clock_timeout_ms)
         coordinator, epoch = session_source_epoch(context)
         exported = session_api.export_session_checkpoint_review_request(
             state=context.state, checkpoint=decision.checkpoint,

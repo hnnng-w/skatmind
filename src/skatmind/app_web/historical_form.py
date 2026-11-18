@@ -16,6 +16,7 @@ from skatmind.rules import get_legal_cards
 from skatmind.search_budget_profiles import HISTORICAL_REVIEW_SEARCH_BUDGET_PROFILE
 from skatmind.simulation import DEFAULT_IMMEDIATE_ANALYSIS_SAMPLE_COUNT
 
+from .form_parsing import FormValuesV1
 from .historical_deal_feedback import HistoricalDealCountError, HistoricalDealCountV1
 
 HISTORICAL_FORM_STEPS = (
@@ -133,6 +134,7 @@ class HistoricalFormDraftV1:
     discarded_cards: tuple[str, ...] = ()
     plays: tuple[HistoricalFormPlayV1, ...] = ()
     options: HistoricalFormOptionsV1 = HistoricalFormOptionsV1()
+    analysis_form_values: FormValuesV1 | None = None
 
     def __post_init__(self) -> None:
         if type(self.step) is not int or not 1 <= self.step <= len(HISTORICAL_FORM_STEPS):
@@ -158,6 +160,9 @@ class HistoricalFormDraftV1:
             raise ValueError("declaration must be an exact Historical form declaration.")
         if type(self.options) is not HistoricalFormOptionsV1:
             raise ValueError("options must be exact Historical form options.")
+        if (self.analysis_form_values is not None
+                and type(self.analysis_form_values) is not FormValuesV1):
+            raise ValueError("analysis_form_values must be private immutable form values.")
 
     @property
     def step_name(self) -> str:

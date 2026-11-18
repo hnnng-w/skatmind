@@ -4,6 +4,7 @@ from html import escape
 
 from skatmind.rollout_derivation import missing_rollout_settlement_inputs
 
+from .analysis_controls import remembered_controls, session_scope, values_dict
 from .rollout_form_rendering import rollout_basic_fields, rollout_technical_fields
 from .session_frontend import GuidedSessionContextV1
 from .session_recorded_review import (
@@ -63,16 +64,27 @@ def render_recorded_session_decisions_v1(
                   + hidden("expected_revision", context.state.revision)
                   + hidden("decision_selection", row.selection))
         # Presentation initialization only; core and public defaults are independent.
-        settings = {"objective": "complete_settlement", "requested_worlds": 100, "random_seed": 0}
+        settings = {"objective": "complete_settlement", "requested_worlds": 100, "random_seed": 0,
+                    "settings_mode": "ordinary", "analysis_effort": "standard"}
         if (context.rollout_review_source is not None
                 and context.rollout_review_source.decision.selection == row.selection):
-            settings = context.rollout_execution.request.document["whole_game_rollout_settings"]
+            settings = dict(context.rollout_execution.request.document[
+                "whole_game_rollout_settings"])
+            settings["settings_mode"] = "custom"
+        remembered, timeout = remembered_controls(context, "session.review_whole_game",
+            (*session_scope(context), row.selection))
+        settings.update(values_dict(remembered))
+        if timeout is not None:
+            settings["wall_clock_timeout_ms"] = timeout
         missing = missing_inputs[index]
         supplied = {}
         if (context.rollout_review_source is not None
                 and context.rollout_review_source.decision.selection == row.selection):
             supplied = context.rollout_execution.request.document.get(
                 "whole_game_rollout_derivation", {}).get("supplements", {})
+        supplied = dict(supplied)
+        supplied.update({name: settings["analysis_" + name] for name in missing
+                         if "analysis_" + name in settings})
         basic = rollout_basic_fields(locale, settings, missing, supplied)
         advanced = rollout_technical_fields(locale, settings)
         method = row.checkpoint.request.document.get(
@@ -80,7 +92,7 @@ def render_recorded_session_decisions_v1(
         content += (
             '<li>'
             + f'<p id="{label_id}">{_decision_label(locale, context.state.players, row)}</p>'
-            + '<form class="recorded-rollout-form" method="post" '
+            + '<form novalidate class="recorded-rollout-form" method="post" '
             + 'action="/sessions/review-whole-game">' + fields
             + '<div class="recorded-basic">' + basic + '</div>'
             + '<div class="recorded-actions">'

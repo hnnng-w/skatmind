@@ -328,8 +328,8 @@ from .session_recorded_review import (
     require_recorded_review_file_fresh_v1,
 )
 from .session_recorded_review_form import (
+    RecordedRolloutFormError,
     parse_recorded_review_selection_v1,
-    parse_recorded_rollout_form_v1,
     recorded_review_feedback_v1,
     recorded_rollout_feedback_v1,
     recorded_rollout_notice_feedback_v1,
@@ -3100,11 +3100,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         values = dict(values)
         del values["expected_revision"]
         if path == "/sessions/review-whole-game":
-            selection, settings, supplements = parse_recorded_rollout_form_v1(values)
+            try:
+                selection = parse_recorded_review_selection_v1({
+                    "decision_selection": values.get("decision_selection", "")})
+            except ValueError as error:
+                raise RecordedRolloutFormError("invalid_selection") from error
             self._rollout_execution_started = True
             notice = execute_recorded_session_decision_v1(
-                self.server.app_context, active, selection=selection, rollout_settings=settings,
-                rollout_supplements=supplements,
+                self.server.app_context, active, selection=selection, rollout_form=values,
             )
             if notice is None:
                 self._redirect("/sessions/current#session-rollout-result")
@@ -3144,12 +3147,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 active,
                 export_options=export_options,
                 execution_options=default_guided_session_execution_options_v1(),
+                frontend_form_values=values,
             )
         else:
             execution_options = build_session_historical_execution_options_from_form_v1(values)
             operation = execute_guided_session_historical_v1(
                 active,
                 execution_options=execution_options,
+                frontend_form_values=values,
             )
         if operation.status in {"rejected", "unavailable", "conflict", "stale"}:
             status = (

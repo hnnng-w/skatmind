@@ -370,7 +370,8 @@ def test_analysis_errors_keep_review_options_language_and_reject_old_source(loca
     page = follow(browser, browser.submit(chooser_form(home_chooser(browser), "matches")))
     page = select_game(browser, page, 3)
     form = operation_form(page, "analyze_decision")
-    status, _, body = browser.submit(form, immediate_sample_count="-1", immediate_random_seed="27")
+    status, _, body = browser.submit(form, settings_mode="custom", immediate_sample_count="-1",
+                                    immediate_random_seed="27")
     assert status == 400 and 'id="match-review"' in body.decode()
     assert 'id="match-recording"' not in body.decode()
     language = Forms(body.decode()).find("/actions/profile/language")

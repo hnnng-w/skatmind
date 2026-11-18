@@ -1219,6 +1219,7 @@ assert rollout.action_route == "/sessions/review-whole-game"
 assert rollout.originating_page == "/sessions/current"
 assert rollout.success_redirect == "/sessions/current#session-rollout-result"
 assert {field.field_key for field in rollout.safe_fields} == {
+    "analysis_effort", "settings_mode",
     "decision_selection", "objective", "requested_worlds", "random_seed",
     "analysis_bid_value", "analysis_matadors"}
 match_rollout, = (form for form in FRONTEND_FORM_REGISTRY
@@ -1226,6 +1227,7 @@ match_rollout, = (form for form in FRONTEND_FORM_REGISTRY
 assert match_rollout.action_route == "/matches/review-whole-game"
 assert match_rollout.active_context_requirement == "matches"
 assert {field.field_key for field in match_rollout.safe_fields} == {
+    "analysis_effort", "settings_mode",
     "decision_selection", "objective", "requested_worlds", "random_seed",
     "analysis_bid_value", "analysis_matadors"}
 selection, = (form for form in FRONTEND_FORM_REGISTRY if form.form_key == "match.select_decision")

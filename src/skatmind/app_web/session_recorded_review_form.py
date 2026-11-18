@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
+from dataclasses import replace
 
 from skatmind.game_declaration import validate_bid_value, validate_matadors
 from skatmind.rollout_derivation import missing_rollout_settlement_inputs
 from skatmind.whole_game_rollout_contracts import WholeGameRolloutSettingsV1
-from skatmind.whole_game_rollout_workflow import PUBLIC_ROLLOUT_TIMEOUT_MS
 
 from .session_recorded_review import RecordedDecisionReviewConflictError, RecordedRolloutNoticeV1
 from .validation_contracts import FrontendValidationIssueV1
@@ -61,7 +61,18 @@ def recorded_rollout_notice_feedback_v1(
         message_key="validation.rollout." + (reason or "incomplete_attempt"))
 
 
-def parse_recorded_rollout_form_v1(values: Mapping[str, str]):
+def parse_recorded_rollout_form_v1(
+    values: Mapping[str, str], *, retained_timeout=None,
+    retained_settings: WholeGameRolloutSettingsV1 | None = None,
+):
+    from .analysis_controls import AnalysisControlError, resolve_analysis_controls
+    if retained_timeout is None and retained_settings is not None:
+        retained_timeout = retained_settings.wall_clock_timeout_ms
+    try:
+        values, timeout = resolve_analysis_controls(values, path="rollout",
+                                                    retained_timeout=retained_timeout)
+    except AnalysisControlError as error:
+        raise RecordedRolloutFormError("invalid_fields", error.field_key) from error
     required = {"decision_selection", "objective", "requested_worlds", "random_seed"}
     if not required <= set(values) or set(values) - required - {
         "analysis_bid_value", "analysis_matadors"
@@ -78,9 +89,9 @@ def parse_recorded_rollout_form_v1(values: Mapping[str, str]):
         if (re.fullmatch(r"[0-9]{1,20}", values[name]) is None
                 or not minimum <= int(values[name]) <= maximum):
             raise RecordedRolloutFormError("invalid_" + name, name)
-    settings = WholeGameRolloutSettingsV1(
+    settings = replace(retained_settings or WholeGameRolloutSettingsV1(random_seed=0),
         objective=values["objective"], requested_worlds=int(values["requested_worlds"]),
-        random_seed=int(values["random_seed"]), wall_clock_timeout_ms=PUBLIC_ROLLOUT_TIMEOUT_MS,
+        random_seed=int(values["random_seed"]), wall_clock_timeout_ms=timeout,
     )
     return selection, settings, {name.removeprefix("analysis_"): value
                                 for name, value in values.items() if name.startswith("analysis_")}

@@ -21,6 +21,7 @@ import skatmind.capture_web.analysis as analysis
 import skatmind.capture_web.context as capture
 import skatmind.capture_web.state as capture_state
 import skatmind.match_decision_analysis as decision_analysis
+from skatmind.app_web.analysis_controls import resolve_analysis_controls
 from skatmind.app_web.form_registry import get_frontend_form_by_key_v1
 from skatmind.app_web.json_transfer import canonical_frontend_json_bytes_v1 as canonical
 from skatmind.app_web.language_form_preservation import instrument_language_forms_v1
@@ -34,11 +35,13 @@ from skatmind.match_analysis_contracts import MatchDecisionAnalysisOptionsV1
 from skatmind.match_decision_analysis import build_match_decision_position_request_v1
 
 ADVANCED = (
+    "settings_mode",
     "recommendation_method", "immediate_sample_count", "immediate_random_seed",
     "search_random_seed", "search_budget_profile", "use_profile_presets",
 )
 DEFAULTS = dict(zip(ADVANCED, (
-    "immediate_expected_value", "100", "0", "0", "historical_review_v1", "on"), strict=True))
+    "ordinary", "immediate_expected_value", "100", "0", "0", "historical_review_v1", "on"),
+    strict=True))
 METHODS = ("immediate_expected_value", "bounded_search", "auto", "information_set_search")
 BUDGETS = ("historical_review_v1", "interactive_v1")
 
@@ -75,7 +78,8 @@ def assert_decision_form(page, locale, *, indexes, focused, ordered=True):
         assert nodes.index(selector) < nodes.index(button) < nodes.index(advanced)
     controls = [n for n in nodes if n["tag"] in {"input", "select", "textarea"}]
     assert Counter(n["attrs"]["name"] for n in controls) == Counter({
-        **{key: 1 for key in (*ADVANCED, "decision_index", "managed_handle", "operation",
+        **{key: 1 for key in (*ADVANCED, "analysis_effort", "decision_index",
+                              "managed_handle", "operation",
                              "decision_selection", "visible_decision_index",
                              "match_position", "expected_revision", "_frontend_form_instance")},
         **({"review_binding": 1} if focused else {}),
@@ -98,7 +102,7 @@ def assert_decision_form(page, locale, *, indexes, focused, ordered=True):
         options = [n for n in nodes if n["tag"] == "option"
                    and any(p is select for p in n["parents"])]
         assert tuple(n["attrs"]["value"] for n in options) == expected
-    assert set(owner["attrs"]["data-preserve-fields"].split()) == set(ADVANCED)
+    assert set(owner["attrs"]["data-preserve-fields"].split()) == {*ADVANCED, "analysis_effort"}
     assert re.fullmatch("[0-9a-f]{64}", owner["attrs"]["data-language-form"])
     return owner, advanced
 
@@ -212,7 +216,8 @@ def test_multiple_choices_error_language_recovery_exact_execution_and_stale_sour
                                           decision_index="6"))
     submitted = operation_form(page, "analyze_decision")
     submitted["values"].pop("use_profile_presets")
-    response = browser.submit(submitted, decision_index="6", immediate_sample_count="-1",
+    response = browser.submit(submitted, settings_mode="custom", decision_index="6",
+        immediate_sample_count="-1",
         immediate_random_seed="27", search_random_seed="91")
     assert response[0] == 400 and len(calls) == 1
     page = response[2].decode()
@@ -239,7 +244,8 @@ def test_multiple_choices_error_language_recovery_exact_execution_and_stale_sour
         assert not any(p is owner for p in error["parents"])
         retry = operation_form(page, "analyze_decision")
         assert {name: retry["values"].get(name) for name in (*ADVANCED, "decision_index")} == {
-            **DEFAULTS, "decision_index": "6", "use_profile_presets": None,
+            **DEFAULTS, "settings_mode": "custom", "decision_index": "6",
+            "use_profile_presets": None,
             "immediate_sample_count": "-1", "immediate_random_seed": "27",
             "search_random_seed": "91"}
         assert len(calls) == 1 and canonical(first.to_dict()) == before
@@ -261,11 +267,12 @@ def test_multiple_choices_error_language_recovery_exact_execution_and_stale_sour
     assert invocations[-1].options == prepared.application_options
     assert invocations[-1].external_documents == prepared.external_documents
     assert len(calls) == len(invocations) == 2
-    # The explicitly applied decision owns both actions; a retained Report does not
-    # supply different advanced defaults or silently reset that selection.
+    # The exact owner retains deliberate custom values without resetting selection.
     values = operation_form(page, "analyze_decision")["values"]
     assert values["decision_index"] == "6"
-    assert {key: values[key] for key in ADVANCED} == DEFAULTS
+    assert {key: values.get(key) for key in ADVANCED} == {
+        **DEFAULTS, "settings_mode": "custom", "immediate_sample_count": "3",
+        "immediate_random_seed": "27", "search_random_seed": "91", "use_profile_presets": None}
     retained = canonical(report.to_dict())
     stale = operation_form(page, "analyze_decision")
     browser.page("/matches/review/2")
@@ -284,8 +291,9 @@ def test_emitted_settings_keep_method_normalization(method, seed, normalized):
     view, state, _ = rendered(workspace, 3, "en")
     page = render_match_review_v1(state, view, managed_handle="a" * 64, locale="en")
     values = operation_form(page, "analyze_decision")["values"]
-    options = _decision_options({**values, "recommendation_method": method,
-                                 "search_random_seed": seed}, browser_form=True)
+    options = _decision_options(resolve_analysis_controls({**values, "settings_mode": "custom",
+        "recommendation_method": method, "search_random_seed": seed}, path="match_decision"),
+        browser_form=True)
     assert options.search_random_seed == normalized
     assert options.recommendation_method == method and options.use_profile_presets
 
@@ -396,7 +404,8 @@ def test_returned_form_executes_small_late_search(localized_server):
     page = follow(browser, browser.submit(Forms(page).find("/matches/select-decision"),
                                           decision_index="28"))
     offered = operation_form(page, "analyze_decision")
-    response = browser.submit(offered, decision_index="28", recommendation_method="bounded_search",
+    response = browser.submit(offered, settings_mode="custom", decision_index="28",
+        recommendation_method="bounded_search",
         immediate_sample_count="1", immediate_random_seed="13", search_random_seed="7",
         search_budget_profile="interactive_v1")
     follow(browser, response)

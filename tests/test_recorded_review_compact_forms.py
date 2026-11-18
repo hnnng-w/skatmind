@@ -74,12 +74,15 @@ def test_ten_decisions_separate_basic_actions_and_technical_controls(
         basic_names = {node["attrs"]["name"] for node in descendants(tree, basic)
                        if "name" in node["attrs"]}
         assert basic_names == (
-            {"objective", "analysis_bid_value"} if bid is None else {"objective"})
+            {"objective", "analysis_effort", "analysis_bid_value"} if bid is None
+            else {"objective", "analysis_effort"})
         assert all(Hierarchy.visible(node) for node in descendants(tree, basic))
         technical = [node for node in descendants(tree, details) if "name" in node["attrs"]]
-        assert [node["attrs"]["name"] for node in technical] == ["requested_worlds", "random_seed"]
-        assert [node["attrs"]["value"] for node in technical] == ["100", "0"]
-        assert all("required" in node["attrs"] for node in technical)
+        assert [node["attrs"]["name"] for node in technical] == [
+            "settings_mode", "requested_worlds", "random_seed"]
+        assert [node["attrs"]["value"] for node in technical[1:]] == ["100", "0"]
+        assert all("required" in node["attrs"] for node in technical[1:])
+        assert "novalidate" in form["attrs"]  # Mode-aware server validation owns these fields.
         primary, secondary = descendants(tree, actions, "button")
         assert primary["attrs"]["class"] == "primary" and "form" not in primary["attrs"]
         assert secondary["attrs"]["class"] == "secondary"
@@ -88,7 +91,7 @@ def test_ten_decisions_separate_basic_actions_and_technical_controls(
         assert not descendants(tree, legacy, "form") and not descendants(tree, form, "form")
         assert len([node for node in owned if node["attrs"].get("class") == "primary"]) == 1
         for node in descendants(tree, basic):
-            if node["tag"] in {"input", "select"}:
+            if node["tag"] in {"input", "select"} and node["attrs"]["name"] != "analysis_effort":
                 assert all(tree.by_id(identity)["text"] for identity in
                            node["attrs"]["aria-describedby"].split())
     assert context.path.read_bytes() == saved and context.document.to_dict() == frozen
@@ -135,6 +138,7 @@ def test_technical_values_submit_in_the_owning_form_open_or_closed(localized_ser
     browser = Browser(localized_server)
     page = browser.page()
     page = follow(browser, enhanced_switch(browser, page, envelope(page, ROUTE, {
+        "settings_mode": ["custom"],
         "objective": ["played_game_goal"], "requested_worlds": ["1"], "random_seed": ["9"],
     }, index=4, disclosures=disclosure_state(page, 4, opened))))
     response = browser.submit(Forms(page).find(ROUTE, index=4))
@@ -173,7 +177,7 @@ def test_errors_target_only_the_correct_decision_and_technical_disclosure(
     browser = Browser(localized_server)
     monkeypatch.setattr(execution_module, "execute", forbidden)
     submitted = Forms(browser.page()).find(ROUTE, index=6)
-    response = browser.submit(submitted, **{field: value})
+    response = browser.submit(submitted, settings_mode="custom", **{field: value})
     assert response[0] == 400
     page = response[2].decode()
     tree = Hierarchy(page)

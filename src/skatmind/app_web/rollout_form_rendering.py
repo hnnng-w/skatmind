@@ -2,6 +2,7 @@
 
 from html import escape
 
+from .analysis_controls import effort_fields, mode_fields
 from .stateful_localization import translated
 from .task_first_rendering import disclosure, select_field
 
@@ -22,18 +23,22 @@ def rollout_basic_fields(locale, settings, missing, supplied, *, help_prefix="re
             + f'name="analysis_{name}" aria-describedby="{help_ids}" '
             + f'value="{escape(str(supplied.get(name, "")))}"></label>'
             + f'<!-- validation-messages:analysis_{name} --></div>')
-    return basic
+    return basic + '<div class="recorded-field">' + effort_fields(locale, settings) + '</div>'
 
 
 def rollout_technical_fields(locale, settings):
-    advanced = '<div class="recorded-technical-fields">'
+    advanced = mode_fields(locale, settings) + '<div class="recorded-technical-fields">'
     for name, key, maximum in (("requested_worlds", "rollout.worlds", 1000),
                                ("random_seed", "rollout.seed", 2**64 - 1)):
         advanced += (f'<div class="recorded-field"><label>{translated(locale, key)} '
             '<input type="number" '
             f'name="{name}" min="{1 if name == "requested_worlds" else 0}" '
-            f'max="{maximum}" step="1" required value="{settings[name]}"></label>'
+            f'max="{maximum}" step="1" required value="{escape(str(settings[name]))}"></label>'
             f'<!-- validation-messages:{name} --></div>')
-    advanced = disclosure(locale, "task.advanced", advanced + '</div>')
+    advanced += '<p>' + translated(locale, "analysis.rollout_timeout",
+        timeout=settings.get("wall_clock_timeout_ms", 30000),
+        preparation=settings.get("max_preparation_work", 100000),
+        transitions=settings.get("max_card_transitions", 300000)) + '</p>'
+    advanced = disclosure(locale, "analysis.technical", advanced + '</div>')
     return advanced.replace('</summary>', ' <span class="recorded-technical-error">'
         + translated(locale, "rollout.technical_invalid") + '</span></summary>', 1)

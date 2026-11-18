@@ -6,6 +6,7 @@ from dataclasses import dataclass, replace
 from skatmind.input_validation import MAX_SAMPLE_COUNT
 from skatmind.simulation import DEFAULT_IMMEDIATE_ANALYSIS_SAMPLE_COUNT
 
+from .analysis_controls import CONTROL_FIELDS, AnalysisControlError, resolve_analysis_controls
 from .form_parsing import (
     FormFieldErrorV1,
     FormValuesV1,
@@ -199,15 +200,7 @@ def parse_historical_play_form_v1(
     if draft.step != 5:
         raise ValueError("Historical form step 5 (play) is required.")
     if len(draft.plays) == 30 and not raw:
-        return HistoricalFormDraftV1(
-            step=6,
-            players=draft.players,
-            skat=draft.skat,
-            declaration=draft.declaration,
-            discarded_cards=draft.discarded_cards,
-            plays=draft.plays,
-            options=draft.options,
-        )
+        return replace(draft, step=6)
     values = _values(raw, allowed=("card",))
     return append_historical_play_v1(draft, _required_text(values, "card"))
 
@@ -229,8 +222,14 @@ def parse_historical_options_form_v1(
         "immediate_sample_count",
         "immediate_base_random_seed",
     )
-    values = _values(raw, allowed=fields)
-    return update_historical_options_v1(
+    original = _values(raw, allowed=fields + CONTROL_FIELDS)
+    try:
+        effective = resolve_analysis_controls(
+            {key: original.singular(key) for key in raw}, path="history")
+    except AnalysisControlError as error:
+        raise HistoricalFormInputError((FormFieldErrorV1(error.field_key, str(error)),)) from error
+    values = _values({key: [value] for key, value in effective.items()}, allowed=fields)
+    updated = update_historical_options_v1(
         draft,
         decision_snapshots=_checkbox(values, "decision_snapshots"),
         immediate_review=_checkbox(values, "immediate_review"),
@@ -258,6 +257,8 @@ def parse_historical_options_form_v1(
             default=0,
         ),
     )
+    from .analysis_controls import safe_controls
+    return replace(updated, analysis_form_values=safe_controls(raw, "review.options"))
 
 
 def historical_player_label_v1(draft: HistoricalFormDraftV1, player_id: str) -> str:

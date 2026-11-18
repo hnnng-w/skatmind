@@ -50,7 +50,7 @@ def test_fresh_native_form_defaults_and_exposes_only_missing_inputs(
     page = browser.page()
     values = form(page)["values"]
     assert values["objective"] == "complete_settlement"
-    assert {name for name in values if name.startswith("analysis_")} == {
+    assert {name for name in values if name in {"analysis_bid_value", "analysis_matadors"}} == {
         "analysis_" + name for name in missing}
     tree = Hierarchy(page)
     for name in missing:
@@ -80,7 +80,7 @@ def test_explicit_alternative_survives_invalid_numeric_and_both_language_returns
     assert response[0] == 303
     page = follow(browser, response)
     assert form(page)["values"]["objective"] == "played_game_goal"
-    response = browser.submit(form(page), requested_worlds="0")
+    response = browser.submit(form(page), settings_mode="custom", requested_worlds="0")
     assert response[0] == 400
     page = response[2].decode()
     assert form(page)["values"]["objective"] == "played_game_goal"
@@ -150,7 +150,7 @@ def test_retained_choice_and_rejected_choice_are_decision_bound(localized_server
     app.managed_stateful.activate_session(context)
     browser = Browser(localized_server)
     assert browser.submit(form(browser.page()), objective="played_game_goal",
-                          requested_worlds="1")[0] == 303
+                          settings_mode="custom", requested_worlds="1")[0] == 303
     retained, source = context.rollout_execution, context.rollout_review_source
     saved, frozen = context.path.read_bytes(), document.to_dict()
     monkeypatch.setattr(execution_module, "execute", forbidden)
