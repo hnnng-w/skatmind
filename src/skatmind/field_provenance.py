@@ -185,6 +185,10 @@ def parse_json_pointer(pointer: str) -> tuple[str, ...]:
             "Non-root JSON Pointer paths must begin with '/'.",
             path=pointer,
         )
+    # Without an escape character, splitting a slash-prefixed path is already
+    # the canonical round trip (including empty tokens). No document is trusted.
+    if type(pointer) is str and "~" not in pointer:
+        return tuple(pointer[1:].split("/"))
     try:
         tokens = tuple(unescape_json_pointer_token(token) for token in pointer[1:].split("/"))
     except SkatMindValidationError as error:

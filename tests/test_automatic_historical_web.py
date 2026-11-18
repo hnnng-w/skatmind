@@ -21,6 +21,30 @@ def evidence_link(page):
     return re.search(r'href="(/review/saved/[0-9a-f]+/evidence/[0-9]+)"', page)[1]
 
 
+@pytest.mark.parametrize("locale", ("de", "en"))
+def test_superseded_service_recovers_at_saved_get_and_post_entry(localized_server, locale):
+    from skatmind.app_web.automatic_match_learning import AutomaticMatchLearningServiceV1
+    from skatmind.app_web.stateful_localization import text
+
+    browser = Browser(localized_server)
+    app = localized_server.app_context
+    headers = {"Accept-Language": locale}
+    assert browser.request("GET", "/review/saved", headers=headers)[0] == 200
+    controller = app.automatic_learning_ui
+    token, = controller.views
+    old = controller.service
+    new = AutomaticMatchLearningServiceV1.open(app)
+    assert new._owner() and not old._owner()
+    for method, route, values in (("GET", "/review/saved", None),
+            ("POST", "/review/reopen", {"view": token, "source": "0"})):
+        status, _, raw = browser.request(method, route, values, headers=headers)
+        assert status == 409
+        assert text(locale, "historical_learning.conflict") in unescape(raw.decode())
+        assert b'href="/review/saved"' in raw
+        assert controller.service is old and app.automatic_match_learning is new
+    assert not (app.managed_home.root / "automatic-learning").exists()
+
+
 def test_source_caption_projection_reads_each_exact_revision_once_and_keeps_deleted_history(
     localized_server, genuine_historical, monkeypatch,
 ):

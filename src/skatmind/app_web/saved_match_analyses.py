@@ -91,101 +91,100 @@ def saved_analyses_link(locale):
             + escape(text(locale, "saved_analysis.title")) + '</a></p>')
 
 
-def retention_feedback(context, active, report_id, locale):
-    from .match_evidence_retention import require_capture_owner, require_pending_owner
-
-    notice = active.evidence_notice
-    if notice is None or notice[0] != report_id:
-        return ""
-    binding = active.rollout_evidence_binding
-    if binding is not None and binding.report.report_id == report_id:
-        try:
-            with active.capture.lock:
-                with context.lock:
-                    require_capture_owner(context, active, binding)
-        except RecordingOpenConflict:
-            # Navigation expires the receipt/retry, not the earlier live comparison.
-            return ""
-    status = notice[1]
-    if status == "saved":
-        try:
-            store = archive_store(context)
-            if store is None or notice[2] not in store.snapshot().available_evidence_ids:
-                status = "unknown"
-        except (OSError, ValueError, SkatMindError):
-            status = "unknown"
-    pending = active.pending_evidence
-    retry = False
-    if pending is not None and pending.report.report_id == report_id:
-        try:
-            with active.capture.lock:
-                with context.lock:
-                    require_pending_owner(context, active, pending)
-            retry = True
-        except RecordingOpenConflict:
-            return ""
-    elif status not in {"saved", "unknown"}:
-        status = "unavailable"
-    report = active.capture.report_store.get(report_id)
-    if active.rollout_notice is not None and active.rollout_notice[0].report_id == report_id:
-        report = active.rollout_notice[0]
-    prefix = ("saved_analysis.rollout." if (binding is not None
-              and binding.report.report_id == report_id) or (report is not None
-               and getattr(report.value.options, "recommendation_method", None)
-               == "whole_game_rollout")
-              else "saved_analysis.")
+def _retention_feedback(locale, active, status, retry, rollout):
+    prefix = "saved_analysis.rollout." if rollout else "saved_analysis."
     body = '<div role="status">' + paragraph(locale, prefix + status) + '</div>'
-    if retry:
+    if retry is not None:
         body += (f'<form method="post" action="{RETRY_MATCH_ROUTE}">'
             f'<input type="hidden" name="managed_handle" value="{active.handle}">'
-            f'<input type="hidden" name="save_token" value="{pending.token}">'
+            f'<input type="hidden" name="save_token" value="{retry.token}">'
             '<button type="submit">' + escape(text(locale, "saved_analysis.retry")) + '</button>'
             '</form>')
     return body
 
 
-def live_retention_delivery_guard(context, active, report_id):
-    """Bind the new receipt/retry presentation through final HTML delivery."""
-    from .match_evidence_retention import require_capture_owner, require_pending_owner
+def live_retention_delivery(context, active, report_id, locale):
+    """Prepare feedback and its header guard together for this one response."""
+    from .match_evidence_retention import _selection, require_capture_owner, require_pending_owner
     from .recorded_review_opening import require_recording_fresh_v1
 
     with active.capture.lock:
         notice = active.evidence_notice
         if notice is None or notice[0] != report_id:
-            return None
+            return "", None
         pending = active.pending_evidence
         fingerprint = active.capture.content_fingerprint
         generation = active.capture.report_store.generation
         report = active.capture.report_store.get(report_id)
         binding = active.rollout_evidence_binding
-        if binding is not None and binding.report.report_id == report_id:
-            try:
-                with context.lock:
+        bound_rollout = binding is not None and binding.report.report_id == report_id
+        retry = pending if pending is not None and pending.report.report_id == report_id else None
+        attempt, selection = active.rollout_attempt, _selection(active)
+        with context.lock:
+            scope = context.saved_match_analyses
+            if bound_rollout:
+                try:
                     require_capture_owner(context, active, binding)
-            except RecordingOpenConflict:
-                return None
+                except RecordingOpenConflict:
+                    return "", None  # Navigation expired this rollout's feedback.
+            show_feedback = True
+            if retry is not None:
+                try:
+                    require_pending_owner(context, active, retry)
+                except RecordingOpenConflict:
+                    # Omit expired consent but retain the original final owner guard.
+                    show_feedback = False
+        rollout = bound_rollout or (report is not None and getattr(
+            report.value.options, "recommendation_method", None) == "whole_game_rollout")
 
-    def guard():
+    store = resumed = receipt = None
+    status = notice[1]
+    if status == "saved":
+        try:
+            store = archive_store(context)
+            if store is not None:
+                resumed, receipt = store._snapshot_for_delivery()
+            if resumed is None or notice[2] not in resumed.available_evidence_ids:
+                status = "unknown"
+        except (OSError, ValueError, SkatMindError):
+            status = "unknown"
+    elif retry is None and status != "unknown":
+        status = "unavailable"
+
+    def require_live_owner():
         with active.capture.lock:
             with context.lock:
                 if (context.managed_stateful.active_match is not active or active.retired
                         or active.evidence_notice is not notice
+                        or context.saved_match_analyses is not scope
+                        or (notice[1] == "saved" and scope.store is not store)
+                        or active.rollout_attempt is not attempt or _selection(active) != selection
                         or active.capture.content_fingerprint != fingerprint
                         or active.capture.report_store.generation != generation
                         or active.capture.report_store.get(report_id) is not report):
                     raise RecordingOpenConflict()
                 require_recording_fresh_v1(active, "matches")
-                if binding is not None and binding.report.report_id == report_id:
+                if bound_rollout:
                     if active.rollout_evidence_binding is not binding:
                         raise RecordingOpenConflict()
                     require_capture_owner(context, active, binding)
                 if pending is not None:
                     require_pending_owner(context, active, pending)
+
+    def guard():
         if notice[1] == "saved":
-            store = archive_store(context)
-            if store is None or notice[2] not in store.snapshot().available_evidence_ids:
+            if (store is None or context.saved_match_analyses is not scope
+                    or scope.store is not store):
                 raise RecordingOpenConflict()
-    return guard
+            # The store rereads exact bytes + inventory even on a hit. No entry
+            # survives this response; above the bounds both snapshots are strict.
+            final, _ = store._snapshot_for_delivery(receipt)
+            if (resumed is not None and final != resumed
+                    or notice[2] not in final.available_evidence_ids):
+                raise RecordingOpenConflict()
+        require_live_owner()  # Unlocked archive validation may race a recording change.
+    body = _retention_feedback(locale, active, status, retry, rollout) if show_feedback else ""
+    return body, guard
 
 
 def _caption(value, locale):

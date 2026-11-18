@@ -204,12 +204,14 @@ def _resolve_covered_leaf_paths(
     field_path: str,
     coverage_kind: str,
 ) -> tuple[str, ...] | None:
+    # The set was built from this document in this very audit, using canonical
+    # pointers. Exact membership proves both resolution and leaf (not container).
+    if coverage_kind == "field":
+        return (field_path,) if field_path in leaf_path_set else None
     try:
         resolve_json_pointer(document, field_path)
     except SkatMindValidationError:
         return None
-    if coverage_kind == "field":
-        return (field_path,) if field_path in leaf_path_set else None
     covered = tuple(
         leaf_path
         for leaf_path in leaf_paths

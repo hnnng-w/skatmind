@@ -23,6 +23,117 @@ def saved_route(page):
     return re.findall(r'href="(/matches/saved-analyses/[0-9a-f]{64})"', page)[0]
 
 
+def _live_quick(server, rollout=False):
+    from test_match_rollout_web import form
+
+    browser, path, page = open_alex(server)
+    original = path.read_bytes()
+    native = form(page) if rollout else operation_form(page, "analyze_decision")
+    response = browser.submit(native, settings_mode="ordinary", analysis_effort="quick",
+                              **({"objective": "played_game_goal"} if rollout else {}))
+    assert response[0] == 303
+    return browser, path, original, response[1]["location"]
+
+
+@pytest.mark.parametrize("rollout", (False, True))
+def test_live_quick_receipt_is_response_local_and_fresh_at_headers(
+    localized_server, monkeypatch, rollout,
+):
+    from learning_archive_fixture_helpers import measure_work
+    from test_automatic_match_learning_evidence import forbid_execution
+
+    from skatmind.app_web.saved_match_analyses import archive_store
+
+    browser, path, original, route = _live_quick(localized_server, rollout)
+    store = archive_store(localized_server.app_context)
+    manifest = store.snapshot().manifest
+    entry, = manifest.evidence
+    saved = store.read_evidence(entry.identity)
+    forbid_execution(monkeypatch)
+    for _ in range(2):
+        with monkeypatch.context() as patch:
+            work = measure_work(patch, store)
+            page = browser.page(route)
+            assert work["admissions"] == work["retained_results_loaded"] == 1
+            assert work["object_reads"] == 4 * len(manifest.objects)
+            assert work["manifest_publications"] == work["object_publications"] == 0
+        assert text("en", "saved_analysis." + ("rollout." if rollout else "") + "saved") in page
+        outputs = downloads(browser, page).values()
+        # Live Immediate offers Result and Strategy source; rollout offers Request and Result.
+        assert saved.download("result")[1] in outputs
+        if rollout:
+            assert saved.download("request")[1] in outputs
+        assert path.read_bytes() == original
+
+
+@pytest.mark.parametrize("change", ("corruption", "selection", "report", "archive_owner"))
+def test_live_match_refuses_changed_authority_at_final_receipt_check(
+    localized_server, monkeypatch, change,
+):
+    from test_automatic_learning_delivery_receipt import rewrite_same_metadata
+    from test_automatic_match_learning_evidence import forbid_execution
+
+    from skatmind import automatic_learning_io as io
+    from skatmind.app_web.saved_match_analyses import SavedMatchAnalyses, archive_store
+
+    browser, path, original, route = _live_quick(localized_server)
+    app = localized_server.app_context
+    store = archive_store(app)
+    active = app.managed_stateful.active_match
+    ref = store.snapshot().manifest.evidence[0].envelope
+    read = store._snapshot_for_delivery
+    fired = []
+    def changed(receipt=None):
+        if receipt is None:
+            return read()
+        assert receipt.owner is store.owner
+        fired.append(True)
+        if change == "corruption":
+            rewrite_same_metadata(io.object_path(store.root, ref))
+        result = read(receipt)
+        if change == "selection":
+            active.review_decision_generation += 1
+        elif change == "report":
+            active.capture.report_store.clear()
+        elif change == "archive_owner":
+            app.saved_match_analyses = SavedMatchAnalyses(store=store)
+        return result
+    forbid_execution(monkeypatch)
+    monkeypatch.setattr(store, "_snapshot_for_delivery", changed)
+    status, _, raw = browser.request("GET", route)
+    assert status == 409 and fired == [True]
+    assert text("en", "saved_analysis.saved") not in unescape(raw.decode())
+    assert path.read_bytes() == original
+
+
+def test_live_quick_genuine_above_limit_fully_admits_at_capture_and_headers(
+    localized_server, monkeypatch,
+):
+    from learning_archive_fixture_helpers import measure_work, publish_fresh_archive
+    from test_automatic_historical_evidence import genuine_historical
+    from test_automatic_match_learning_evidence import forbid_execution
+
+    from skatmind.app_web.saved_match_analyses import archive_store
+    from skatmind.automatic_historical_evidence import build_historical_capture_candidate
+
+    store = archive_store(localized_server.app_context, initialize=True)
+    # Reuse a genuine execution under distinct disposable source identities.
+    draft, execution, native = genuine_historical.__wrapped__()
+    publish_fresh_archive(store, store.snapshot(), tuple(build_historical_capture_candidate(
+        f"above-{i}", 0, execution, native, draft=draft) for i in range(32)))
+    browser, path, original, route = _live_quick(localized_server)
+    snapshot = store.snapshot()
+    assert len(snapshot.manifest.objects) == 66 and len(snapshot.available_evidence_ids) == 33
+    forbid_execution(monkeypatch)
+    work = measure_work(monkeypatch, store)
+    page = browser.page(route)
+    assert text("en", "saved_analysis.saved") in page
+    assert (work["admissions"], work["retained_results_loaded"]) == (2, 66)
+    assert work["object_reads"] == 132 and work["object_bytes"] == 2 * snapshot.retained_bytes
+    assert not work["object_publications"] and not work["manifest_publications"]
+    assert path.read_bytes() == original
+
+
 def test_native_genuine_capture_and_saved_downloads(localized_server):
     browser, path, page = open_alex(localized_server)
     before = path.read_bytes()
@@ -87,6 +198,22 @@ def test_native_save_only_retry_counts_exact_writes(localized_server, monkeypatc
                       "reports": 1, "automatic-learning": 1}
     assert len(store.snapshot().manifest.evidence) == 1
     assert browser.submit(retry)[0] == 409
+
+
+def test_already_expired_immediate_retry_does_not_drop_final_guard(localized_server, monkeypatch):
+    from skatmind.app_web.saved_match_analyses import archive_store
+
+    browser, _, page = open_alex(localized_server)
+    app = localized_server.app_context
+    store = archive_store(app, initialize=True)
+    monkeypatch.setattr(store, "publish_object", lambda *a, **kw: "conflict")
+    response = browser.submit(operation_form(page, "analyze_decision"), immediate_sample_count="1")
+    assert response[0] == 303
+    active = app.managed_stateful.active_match
+    assert active.pending_evidence is not None
+    active.rollout_attempt = object()
+    status, _, raw = browser.request("GET", response[1]["location"])
+    assert status == 409 and b'action="/matches/retry-saving"' not in raw
 
 
 def test_passive_absent_store_does_not_initialize(localized_server, monkeypatch):

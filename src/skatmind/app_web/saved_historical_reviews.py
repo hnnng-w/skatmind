@@ -117,14 +117,6 @@ def recovery(handler):
 
 
 def handle_get(handler, path):
-    if path == SAVED_REVIEWS or HISTORICAL_VIEW.fullmatch(path):
-        controller = automatic_controller(handler.server.app_context)
-        with controller.service.delivery_operation():
-            return _handle_get(handler, path)
-    return _handle_get(handler, path)
-
-
-def _handle_get(handler, path):
     download = HISTORICAL_EXECUTION_DOWNLOAD.fullmatch(path)
     if download is not None:
         app = handler.server.app_context
@@ -152,14 +144,15 @@ def _handle_get(handler, path):
     app = handler.server.app_context
     locale = handler._frontend_state().locale
     try:
-        controller = automatic_controller(app)
-        pending = getattr(handler, "_language_return", None)
-        original = None if pending is None else pending[0].source.automatic_view
-        view = (controller.resolve(match[1]) if match else controller.resolve(original.token)
-                if original is not None else controller.capture())
-        if original is not None and view is not original:
-            raise StoreConflictError("Original Review view changed.")
         with ExitStack() as stack:
+            controller = automatic_controller(app)
+            stack.enter_context(controller.service.delivery_operation())
+            pending = getattr(handler, "_language_return", None)
+            original = None if pending is None else pending[0].source.automatic_view
+            view = (controller.resolve(match[1]) if match else controller.resolve(original.token)
+                    if original is not None else controller.capture())
+            if original is not None and view is not original:
+                raise StoreConflictError("Original Review view changed.")
             stack.enter_context(controller.service.delivery_reader(view.binding))
             if view.binding.resumed is not None:
                 refs = tuple(entry.envelope for entry in _entries(view)
@@ -262,66 +255,66 @@ def _handle_get(handler, path):
 
 
 def handle_post(handler, path, values):
-    controller = automatic_controller(handler.server.app_context)
-    with controller.service.delivery_operation():
-        return _handle_post(handler, path, values)
-
-
-def _handle_post(handler, path, values):
     app = handler.server.app_context
     try:
-        from .historical_review_retention import capture_manual_delivery
         controller = automatic_controller(app)
-        if path == "/review/retry-saving":
-            from .historical_review_retention import save_pending_historical
-            handler._exact_fields(values, {"save_token"})
-            pending = app.historical_reviews.pending
-            save_pending_historical(app, values["save_token"])
-            delivery = capture_manual_delivery(app)
-            if pending is None or delivery.state is not pending.state:
-                raise StoreConflictError("The original retry delivery changed.")
-            handler._retained_delivery_guard = lambda: delivery.validate_final(app)
-            destination = "/review"
-        elif path == "/review/delete-confirm":
-            handler._exact_fields(values, {"confirmation", "confirm_delete"})
-            preview = app.historical_reviews.confirmation
-            if (preview is None or values["confirmation"] != preview.token
-                    or values["confirm_delete"] != "on"):
-                raise StoreConflictError("Explicit original consent is required.")
-            authority = delete_review(app, controller, preview)
-            current = controller.capture()
-            if (current.binding.resumed.manifest != authority
-                    or current.binding.attempt is not preview.view.binding.attempt):
-                raise StoreConflictError("Review deletion committed before newer publication.")
-            authorize_response(handler, controller, current)
-            destination = SAVED_REVIEWS
-        else:
-            handler._exact_fields(values, {"view", "source"})
-            from .automatic_learning_http import _index
-            view, index = controller.resolve(values["view"]), _index(values["source"])
-            if path == "/review/reopen":
-                state = reopen_review(app, controller, view, index)
-                delivery = capture_manual_delivery(app)
-                if delivery.state is not state:
-                    raise StoreConflictError("Reopened Review delivery was superseded.")
-                def guard():
-                    controller.service.validate_final_delivery(view.binding)
-                    delivery.validate_final(app)
-                handler._retained_delivery_guard = guard
-                destination = "/review"
-            else:
-                head, value = _head_value(controller, view, index)
-                preview = ReviewDeletionPreview(secrets.token_hex(32), view, index, head, value)
-                with app.lock:
-                    controller.service.validate_delivery(view.binding)
-                    app.historical_reviews.confirmation = preview
-                def guard():
-                    controller.service.validate_final_delivery(view.binding)
-                    if app.historical_reviews.confirmation is not preview:
-                        raise StoreConflictError("Original deletion preview changed.")
-                handler._retained_delivery_guard = guard
-                destination = SAVED_REVIEWS + "/" + view.token + "/delete/" + str(index)
-        handler._retained_delivery_recovery = lambda: recovery(handler)
-        handler._redirect(destination)
+        with controller.service.delivery_operation():
+            _handle_post(handler, path, values, app, controller)
     except (OSError, ValueError, KeyError, IndexError, SkatMindError):
         recovery(handler)
+
+
+def _handle_post(handler, path, values, app, controller):
+    from .historical_review_retention import capture_manual_delivery
+
+    if path == "/review/retry-saving":
+        from .historical_review_retention import save_pending_historical
+        handler._exact_fields(values, {"save_token"})
+        pending = app.historical_reviews.pending
+        save_pending_historical(app, values["save_token"])
+        delivery = capture_manual_delivery(app)
+        if pending is None or delivery.state is not pending.state:
+            raise StoreConflictError("The original retry delivery changed.")
+        handler._retained_delivery_guard = lambda: delivery.validate_final(app)
+        destination = "/review"
+    elif path == "/review/delete-confirm":
+        handler._exact_fields(values, {"confirmation", "confirm_delete"})
+        preview = app.historical_reviews.confirmation
+        if (preview is None or values["confirmation"] != preview.token
+                or values["confirm_delete"] != "on"):
+            raise StoreConflictError("Explicit original consent is required.")
+        authority = delete_review(app, controller, preview)
+        current = controller.capture()
+        if (current.binding.resumed.manifest != authority
+                or current.binding.attempt is not preview.view.binding.attempt):
+            raise StoreConflictError("Review deletion committed before newer publication.")
+        authorize_response(handler, controller, current)
+        destination = SAVED_REVIEWS
+    else:
+        handler._exact_fields(values, {"view", "source"})
+        from .automatic_learning_http import _index
+        view, index = controller.resolve(values["view"]), _index(values["source"])
+        if path == "/review/reopen":
+            state = reopen_review(app, controller, view, index)
+            delivery = capture_manual_delivery(app)
+            if delivery.state is not state:
+                raise StoreConflictError("Reopened Review delivery was superseded.")
+            def guard():
+                controller.service.validate_final_delivery(view.binding)
+                delivery.validate_final(app)
+            handler._retained_delivery_guard = guard
+            destination = "/review"
+        else:
+            head, value = _head_value(controller, view, index)
+            preview = ReviewDeletionPreview(secrets.token_hex(32), view, index, head, value)
+            with app.lock:
+                controller.service.validate_delivery(view.binding)
+                app.historical_reviews.confirmation = preview
+            def guard():
+                controller.service.validate_final_delivery(view.binding)
+                if app.historical_reviews.confirmation is not preview:
+                    raise StoreConflictError("Original deletion preview changed.")
+            handler._retained_delivery_guard = guard
+            destination = SAVED_REVIEWS + "/" + view.token + "/delete/" + str(index)
+    handler._retained_delivery_recovery = lambda: recovery(handler)
+    handler._redirect(destination)

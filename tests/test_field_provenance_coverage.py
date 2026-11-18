@@ -119,6 +119,21 @@ def test_exact_subtree_and_mixed_coverage_are_audited() -> None:
         assert summary.provenance_complete is True
 
 
+def test_exact_coverage_proves_resolution_from_current_canonical_leaves(monkeypatch):
+    import skatmind.field_provenance_coverage as coverage
+
+    def unexpected(*args):
+        pytest.fail("An exact field should not traverse the document twice")
+    monkeypatch.setattr(coverage, "resolve_json_pointer", unexpected)
+    document = {"items": [{"": 2}], "a/b": {"~": []}, "00": {}}
+    ledger = _complete(*(_entry(path) for path in (
+        "/items/0/", "/a~1b/~0", "/00", "/items", "/items/00/", "/items/0/missing")))
+    summary = build_field_provenance_coverage_summary(document, ledger)
+    assert summary.provenanced_path_count == 3 and summary.uncovered_paths == ()
+    assert summary.orphaned_entry_paths == ("/items", "/items/0/missing", "/items/00/")
+    assert not summary.provenance_complete
+
+
 def test_partial_legacy_can_account_for_all_leaves_without_complete_provenance() -> None:
     document = {"tracked": 1, "legacy": {"a": 2, "b": 3}}
     ledger = FieldProvenanceLedger(

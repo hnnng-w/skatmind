@@ -1,5 +1,9 @@
 # Responsive advice and saved Reviews (Issue #326)
 
+For the correction based on the published candidate, see
+[Published-source follow-up](#published-source-follow-up). Earlier measurements
+and validation below describe the initial implementation, not installed acceptance.
+
 ## Baseline and boundary
 
 Implementation starts on `task/326-responsive-analysis` at
@@ -247,3 +251,223 @@ partial branch feedback, published-source review, automatic exact-commit main
 follow-up with existing #325 data. #208 and the existing paused UAT/release
 boundaries remain open. Remaining multi-second and tens-of-seconds costs above
 are explicit; source-only improvement does not resolve the installed findings.
+
+## Published-source follow-up
+
+Branch `task/326-responsive-analysis` started this follow-up clean at
+`e518f97e94f9d00858eae4a44f367d7729e3f7d6`. Branch feedback run `44378038599`
+passed its sole partial job. This is not main integration or complete acceptance.
+
+### Recovery before and after
+
+A source-only native HTTP probe bound the controller with a successful saved-list
+GET, opened a new `AutomaticMatchLearningServiceV1` for the same app, then
+retried the list and Reopen with the superseded owner. The published GET returned
+500 without the saved-Review recovery link; the POST returned 400. The outer
+wrappers acquired the controller before the localized conflict handler, and
+the inner handlers acquired it a second time.
+
+Both routes now acquire one controller and enter the operation inside the
+existing recovery boundary. The GET's operation encloses view capture/resolution,
+reader pins, projection and final delivery; the POST's encloses the original
+mutation and redirect guard. Original-owner failure returns localized **409**
+with the saved-Review recovery link for both requests. A German/English native
+regression uses an empty archive location, checks the old owner is no longer
+current and leaves the replacement owner intact. Transport byte-write handling
+is unchanged.
+
+### Why these two cost reductions
+
+**Live Match result.** The saved-status renderer and header callback previously
+performed independent full snapshots. A single private helper now captures the
+status and its delivery guard together. Only for a saved notice it obtains a
+fresh strict snapshot and optional bounded receipt from the Match archive store.
+Only this response's guard holds the receipt. It asks that same store to recheck
+exact bytes, manifest and inventory before delivering; it compares the admitted
+snapshot and requires the exact evidence ID. After that unlocked work it checks
+the archive owner/store, live Match, file, attempt, selection and Report again.
+Pending, retry and incomplete-rollout display bindings retain their own checks.
+No producer writes, other saved routes or Learning owner receipts change.
+
+This deliberately buys **less semantic reconstruction, not less I/O**. An
+eligible cold capture reads each object before, during and after admission;
+final delivery reads it again. Beyond receipt bounds there is no receipt, so
+both calls perform full strict admission. The genuine fallback regression uses
+66 objects and 33 admitted executions, including the displayed Match analysis:
+two admissions, 66 Result decodes and 132 reads, without changing limits.
+Corrupting the displayed report with the same length and mtime between capture
+and delivery yields 409. Changing the archive owner, live Report or selection
+during final validation also withholds the prepared HTML.
+
+**Guided Quick.** Profiling one original retained thirty-Play Quick envelope
+(`0ad8ad0d340ee883c822fce041a5ef8302d175e78ef603cff799ebb9f5330d6a`)
+separately from fixture construction identified repeat work *inside* necessary
+validation. The audit already enumerates every canonical leaf in the current
+document. For every exact field it then parsed the path, traversed the document
+again and tested membership in that same leaf set. Membership alone proves
+both resolution and leaf status, including empty containers. Subtree traversal,
+coverage counts, overlap/exemption/orphan detection and all attachment checks
+still run. The other local change directly splits slash-prefixed ordinary string
+pointers with no `~`: their tokens are already unescaped and their canonical
+re-encoding is identical, including empty tokens. Escaped pointers retain the
+original strict decoder and round-trip check. Neither optimization caches a
+document, skips a validation stage or changes any wire representation.
+
+| One strict Historical decode (cProfile; inclusive) | Published | Follow-up |
+| --- | ---: | ---: |
+| `decode_historical_execution` | 79.663 s | 43.117 s |
+| `unpack_native` (3 calls) | 49.725 s | 29.672 s |
+| `decode_execution_value` (6 calls) | 43.851 s | 23.720 s |
+| `validate_execution` | 27.820 s | 11.396 s |
+| `validate_v1_retained_stage_linkage` | 25.152 s | 10.510 s |
+| `build_field_provenance_coverage_summary` (282 calls) | 21.122 s | 4.782 s |
+| `parse_json_pointer` | 309,605 calls / 31.828 s | 188,552 calls / 0.532 s |
+| `resolve_json_pointer` | 126,541 calls / 16.294 s | 5,488 calls / 0.068 s |
+
+All 121,053 exact-field lookups still ran. A count probe found **all 309,605**
+pointer parses in the published fixture had no escape character. These timings
+overlap and include profiler overhead; they are not user wait times. Strict
+reconstruction and canonical re-encoding of the original native tuple remain
+expensive. In particular, its execution and serialization checkpoint both carry
+provenance. A larger, separate decision would be whether to encode the repeated
+bundle once through an exact checked reference in a versioned private codec.
+That could save decoding/round-trip work but would require legacy-wire admission,
+identity, corruption and byte-preserving export evidence. No such format or
+trust change is part of this correction.
+
+### Paired response measurements
+
+The following are sequential, source-only runs on **this** baseline and
+candidate, not comparisons against a different day's machine timings. Each run
+started with its own copy of the original 4-object disposable fixture. The same
+guided draft, seed 11 and 25 samples were used. Both non-forced Match cases
+selected decision 25 of the same genuine synthetic recording; rollout requested
+25 worlds, Immediate 25 samples. Fixture creation/opening and selection are
+outside the named POST/GET timings. Bytes here count archive object reads, not
+HTTP payload size. Admission and decoding times are included in response times.
+
+| Path | Wall s before → after | Full admissions | Retained Result decodes | Object reads | Object bytes read |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Guided Quick POST | 39.522 → 27.215 | 1 → 1 | 3 → 3 | 11 → 11 | 2,383,219 → 2,383,219 |
+| Guided redirect GET | 22.000 → 16.660 | 1 → 1 | 3 → 3 | 20 → 20 | 8,701,764 → 8,701,764 |
+| Match Quick rollout POST | 29.952 → 23.672 | 1 → 1 | 4 → 4 | 13 → 13 | 6,621,969 → 6,621,969 |
+| Match rollout result GET | 52.754 → 20.269 | 2 → 1 | 8 → 4 | 14 → 28 | 8,821,508 → 17,643,016 |
+| Match Quick Immediate POST | 39.164 → 29.199 | 1 → 1 | 5 → 5 | 17 → 17 | 13,292,518 → 13,292,518 |
+| Match Immediate result GET | 62.221 → 24.375 | 2 → 1 | 10 → 5 | 16 → 32 | 17,620,432 → 35,240,864 |
+| Forced current Session POST (direct 200, after other workflows) | 0.383 → 0.385 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 |
+
+Both Match result archives are receipt-eligible: rollout has 7 objects /
+4,410,754 stored / 62,874,427 expanded-accounted bytes; Immediate has 8 /
+8,810,216 / 67,273,889. Candidate GETs spent 18.514 s and 20.425 s respectively
+in admission. The final HTTP phases, including fresh authorization, took 0.175 s
+and 0.313 s (published: 26.314 s and 31.626 s). The measured rollout engine
+took 0.030 s; the delay is not attributable to rollout alone. Guided retention
+took 27.212 → 20.614 s and first redirect admission 21.550 → 16.195 s. Both
+guided runs made 30 recommendations, 1,200 sampled hidden states, two object
+publications and one manifest publication. Lasting storage is not deferred.
+The final stricter forced-card path needed no redirect, statistical work or save.
+
+On the final candidate an independent **first** current-Session Quick request in
+a fresh Python process took **3.380 s**. A separate fresh process timed the call
+to `forced_card_guidance.validate_input_document` within the native request:
+**3.537 s** first POST (**3.202 s** in schema validation), then **0.341 s** on
+repeat (**0.004 s** there). This explains why the already-warm mixed-workflow
+measurement is not a cold-response claim. Both returned the rule hint directly
+(HTTP 200), with identical recording bytes, no execution and no initialized
+archive. These probes used `current_session` and `localized_server` from the
+existing test fixtures, submitting the native `/sessions/analyze` form with
+`analysis_effort=quick`; construction, form retrieval and bootstrap were outside
+POST timing. The two phase measurements are in `issue326-fu-after/final-forced.json`.
+
+The 5,577-byte guided Request and 575,934-byte Result are identical to the
+published bytes and hashes above. Recording SHA-256 is
+`a7a471185e93ae0c8c50fd8c0c98cf059b396d5df79cf906f5c8135d14982ad7` in both runs.
+All three Match Immediate downloads match byte-for-byte across runs. Rollout's
+Request matches; the only differing Result leaf across independent executions
+was `/whole_game_rollout_result/work/elapsed_ms` (44.6501 vs 43.8141). Each
+execution's own original downloads remain exact; no timing field is rewritten.
+
+### Follow-up verification
+
+All commands use development CPython 3.13.7 on Windows, external temporary
+outputs and 7,200,000-ms invocation timeouts. Prefix for the commands below:
+
+```powershell
+$D = "$env:TEMP/opencode"
+```
+
+Timings were obtained with `py -3.13 scripts/measure_responsive_analysis.py
+--counts 2 --output "$D/issue326-fu-before" --fixtures "$D/issue326-fixtures"`
+on the published source, then the same command with `--output
+"$D/issue326-fu-after"` on the follow-up. The two `report.json` files contain
+per-phase timings and work. The separate function profile bracketed only
+`decode_historical_execution(envelope, entry, original_source)` with
+`cProfile.Profile.enable()/disable()` after strict store open and source decode
+on a disposable copy; the candidate profile is `issue326-fu-after/decode.prof`.
+For example, the bounded profile can be reproduced at either source revision
+with the original synthetic envelope (the temporary copy is outside the repo):
+
+```powershell
+@'
+import cProfile, pstats, shutil, tempfile
+from pathlib import Path
+from skatmind.automatic_learning_store import AutomaticLearningStoreV1
+from skatmind.automatic_historical_evidence import decode_historical_source, decode_historical_execution
+base = Path.home() / "AppData/Local/Temp/opencode"
+with tempfile.TemporaryDirectory(dir=base, prefix="issue326-profile-") as work:
+    store = AutomaticLearningStoreV1(shutil.copytree(
+        base / "issue326-after/2/managed/automatic-learning", Path(work) / "archive"))
+    manifest = store.snapshot().manifest
+    entry = next(e for e in manifest.evidence if e.envelope.fingerprint ==
+        "0ad8ad0d340ee883c822fce041a5ef8302d175e78ef603cff799ebb9f5330d6a")
+    record = next(r for r in manifest.sources if r.source_version.identity == entry.source_version_id)
+    source = decode_historical_source(store.read_object(record.object_ref), record)
+    envelope = store.read_object(entry.envelope)
+    profile = cProfile.Profile()
+    profile.runcall(decode_historical_execution, envelope, entry, source)
+    pstats.Stats(profile).strip_dirs().sort_stats("cumtime").print_stats(42)
+'@ | py -3.13 -
+```
+
+Focused regressions (10 passed in 138.52 s):
+
+```powershell
+py -3.13 -m pytest tests/test_automatic_historical_web.py tests/test_saved_match_analyses_web.py tests/test_field_provenance_coverage.py -k 'superseded_service_recovers or live_quick or live_match_refuses or exact_coverage_proves' -n 2 --dist=loadfile --max-worker-restart=0 -o "cache_dir=$D/issue326-fu-cache" "--basetemp=$D/issue326-fu-focused" "--junitxml=$D/issue326-fu-focused.xml" -q --tb=short
+```
+
+Complete module selection follows the saved Review and live Match HTTP/retention
+boundaries, strict archive admission/delivery and the changed JSON Pointer and
+coverage primitives through their Historical, Application, adversarial,
+serialization and public consumers:
+
+```powershell
+$M = @('automatic_historical_web','saved_match_analyses_web','saved_match_rollouts_web','match_evidence_retention','match_rollout_retention','match_rollout_web','automatic_learning_delivery_receipt','automatic_learning_bulk_read','automatic_historical_evidence','automatic_historical_admission','field_provenance','field_provenance_coverage','application_provenance','historical_review_provenance','v1_provenance_enforcement','v1_provenance_serialization','v1_provenance_adversarial','public_field_provenance') | ForEach-Object {"tests/test_$_.py"}
+py -3.13 -m pytest @M -n 2 --dist=loadfile --max-worker-restart=0 -o "cache_dir=$D/issue326-fu-cache" "--basetemp=$D/issue326-fu-affected" "--junitxml=$D/issue326-fu-affected.xml" -q --tb=short
+```
+
+The 18-module run passed **584 tests in 1,845.88 s**. One final retry-specific
+regression verifies that already-expired consent hides the retry form but does
+not drop the existing final owner guard. The complete direct Immediate and
+rollout feedback modules passed **41 tests in 407.34 s** after that adjustment:
+
+```powershell
+py -3.13 -m pytest tests/test_saved_match_analyses_web.py tests/test_saved_match_rollouts_web.py -n 2 --dist=loadfile --max-worker-restart=0 -o "cache_dir=$D/issue326-fu-cache" "--basetemp=$D/issue326-fu-retry" "--junitxml=$D/issue326-fu-retry.xml" -q --tb=short
+```
+
+Final guards and exclusive checks use the following commands, in order. The
+exclusive modules cover native Match result-page placement and rejection after a
+transport write. The implementation does not change the early-observer harness
+or standalone Corpus transport. No new file requires a no-index whitespace check.
+
+```powershell
+py -3.13 -m pytest tests/test_skatmind_rename.py tests/test_cli_internal_architecture.py -n 2 --dist=loadfile --max-worker-restart=0 -o "cache_dir=$D/issue326-fu-cache" "--basetemp=$D/issue326-fu-guards" "--junitxml=$D/issue326-fu-guards.xml" -q --tb=short
+py -3.13 -m pytest tests/test_match_analysis_action_placement.py tests/test_unified_rejection_transport.py -o "cache_dir=$D/issue326-fu-cache" "--basetemp=$D/issue326-fu-exclusive" "--junitxml=$D/issue326-fu-exclusive.xml" -q --tb=short
+.\scripts\check.ps1 -Mode Quick -LogDirectory "$D/issue326-fu-quick"
+git diff --check
+git diff --cached --check
+git ls-files --others --exclude-standard
+```
+
+These are targeted source checks; no full-suite timing, installed UAT or
+publication is authorized. Keep #326 and #208 open. The remaining tens of
+seconds in cold admission and synchronous retention are still user-visible.

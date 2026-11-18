@@ -289,8 +289,7 @@ from .saved_match_analyses import (
     SAVED_MATCH_ROUTE,
     handle_retry_saving,
     handle_saved_analysis_get,
-    live_retention_delivery_guard,
-    retention_feedback,
+    live_retention_delivery,
     saved_analyses_link,
 )
 from .security import (
@@ -2501,9 +2500,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 and report_id == binding.display_report.report_id):
             receipt_id = binding.report.report_id
         if receipt_id is not None:
-            self._retained_delivery_guard = live_retention_delivery_guard(
-                self.server.app_context, active, receipt_id)
-            body = retention_feedback(self.server.app_context, active, receipt_id, locale) + body
+            feedback_html, self._retained_delivery_guard = live_retention_delivery(
+                self.server.app_context, active, receipt_id, locale)
+            body = feedback_html + body
         if draft is not None:
             self._native_declaration_values = draft
             from .validation_rendering import _FORM_BLOCK, _replace_safe_values
