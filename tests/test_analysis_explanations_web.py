@@ -68,9 +68,11 @@ def test_controlled_match_screenshot_points_and_percentages_in_delivered_html(
     browser = Browser(localized_server)
     record_context_match(browser)
     follow(browser, browser.submit(operation_form(browser.page("/matches/review/1"),
-        "analyze_decision"), immediate_sample_count="8"))
+        "analyze_decision"), settings_mode="custom", immediate_sample_count="8"))
     active = localized_server.app_context.managed_stateful.active_match
     report, = active.capture.report_store.list()
+    assert report.value.options.immediate_sample_count == 8
+    assert report.value.request.document["sample_count"] == 8
     exact, disk = canonical(report.to_dict()), active.path.read_bytes()
     routes = (f"/matches/api/v1/reports/{report.report_id}.json",
               f"/matches/api/v1/reports/{report.report_id}/strategy-source.json")
@@ -111,10 +113,16 @@ def test_real_ordinary_numbers_language_return_and_exact_downloads(
         record_context_match(browser, names=("B 1.25", "C 0.125", "A 3.14"))
         record_second_context_game(browser)
         for game in (1, 4):
+            # This deterministic numeric fixture deliberately uses eight samples,
+            # so it must explicitly select custom mode on the returned native form.
             page = follow(browser, browser.submit(operation_form(browser.page(
-                f"/matches/review/{game}"), "analyze_decision"), immediate_sample_count="8"))
+                f"/matches/review/{game}"), "analyze_decision"), settings_mode="custom",
+                immediate_sample_count="8"))
         active = localized_server.app_context.managed_stateful.active_match
         retained, newer = active.capture.report_store.list()
+        for report in (retained, newer):
+            assert report.value.options.immediate_sample_count == 8
+            assert report.value.request.document["sample_count"] == 8
         assert retained.report_id != newer.report_id
         route = f"/matches/reports/{retained.report_id}"
         downloads = {
@@ -312,9 +320,13 @@ def test_real_selected_match_explanation_and_other_game(localized_server, method
     record_second_context_game(browser)
     active = localized_server.app_context.managed_stateful.active_match
     for game in (4, 1):
-        page = follow(browser, browser.submit(operation_form(browser.page(
-            f"/matches/review/{game}"), "analyze_decision"), recommendation_method=method))
+        form = operation_form(browser.page(f"/matches/review/{game}"), "analyze_decision")
+        assert form["values"]["settings_mode"] == "ordinary"
+        page = follow(browser, browser.submit(form, settings_mode="custom",
+                                              recommendation_method=method))
         report = active.capture.report_store.list()[-1]
+        assert report.value.options.recommendation_method == method
+        assert report.value.request.document["recommendation_method"] == method
         assert "Reconstructed situation before this Card in the selected Report" in page
         assert "Hand evidence may have been supplied later" in page
         if method in ("auto", "immediate_expected_value"):

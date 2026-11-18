@@ -283,6 +283,138 @@ the implementation report. Logs and disposable reproduction artifacts remain
 under `%TEMP%/opencode/issue325-compat-*` and
 `%TEMP%/opencode/issue325-pre325-*`. No real maintainer data is used.
 
+## Main Check failure correction at d055996
+
+This follow-up starts on `feat/325-simple-analysis-controls` at
+`d0559960e3edd0a18bf6a5e10f8341fc4b10cf70`, with a clean index/worktree. It addresses
+the demonstrated failures of [Check run 44265874043, attempt 1](https://github.com/hnnng-w/skatmind/actions/runs/44265874043).
+
+### Verified hosted evidence
+
+Authenticated read-only GitHub API retrieval verified the run, attempt-specific
+job list, artifact metadata and complete Ubuntu, Windows and final-gate job logs.
+The run is a `push` on `main` at the exact SHA above, from
+2026-11-18 08:18:36Z through 09:41:20Z: **82m44s**. Its 23 jobs comprise 20
+successes and these three failures:
+
+* `regression (ubuntu)`: job `134670291861`, pytest parallel phase exit 1.
+* `regression (windows)`: job `134670291925`, pytest parallel phase exit 1.
+* `check`: job `134711722012`, exit 1 with
+  `mode=full reason=gate_prerequisites_invalid lookup=gate_prerequisites`.
+  Its retained `NEEDS_JSON` explicitly records the regression prerequisite as
+  failed. This is the resulting acceptance-gate failure, not another test node.
+
+All twelve installation cells and `v1-supported-platform-matrix` succeeded for
+that commit. Those results remain valid within their own scope; the complete
+main gate did not succeed.
+
+Both downloaded ZIP digests matched the supplied values and authenticated
+artifact metadata, including the exact run, branch, repository and commit:
+
+| Artifact | ID | Verified ZIP SHA-256 |
+| --- | --- | --- |
+| `regression-ubuntu` | 14415039145 | `d1b83446edbfe9aad942df5e605402f84d6354b9c77b2c96649e7f3dfc4d174d` |
+| `regression-windows` | 14414004622 | `3335fcd8799344f2507ed8b6466a3157e83459220df5354f2b85e2b722e6ba52` |
+
+Both artifact environment summaries identify CPython **3.13.15**, four hosted
+workers, the same commit and source digest
+`e28f39e1a93921373f7644ef9f8cecebc61927b704676800d2cba584bb166ff4`.
+Full collection and every existing parallel setup/call/teardown report were
+reconciled, including four identical worker collections per platform:
+
+| Accounting | Ubuntu | Windows |
+| --- | ---: | ---: |
+| Full collection, exit 0 | 12816 | 12816 |
+| Parallel selected/accounted nodes | 12721 | 12721 |
+| Passed | 12709 | 12714 |
+| Failed | 7 | 7 |
+| Skipped | 5 | 0 |
+| Missing selected-node reports | 0 | 0 |
+| Exclusive nodes unexecuted | 95 | 95 |
+
+All seven failures occurred in the **call** phase, with successful setup and
+teardown. Ubuntu's five skips are existing Windows-junction cases: the two
+`test_windows_junctions_rejected_without_following_targets[root/sources]` cases
+and `test_real_junction_root_is_not_followed` skip during setup; the
+`root_junction` inventory case and `junction` direct-entry case skip during call.
+Every selected parallel node has successful teardown. Windows has no skips.
+
+The exclusive phase did **not** start. The summaries contain only collection and
+parallel stages; complete job logs contain no exclusive invocation; the runner
+returns immediately on the failed parallel stage. Thus the following collected
+nodes were unexecuted, not reported as skipped or passed:
+
+* `test_early_rejection_observer.py`: 6
+* `test_local_learning_corpus_web.py`: 27
+* `test_match_analysis_action_placement.py`: 25
+* `test_unified_rejection_transport.py`: 37
+
+There is no successful complete-suite accounting artifact for this run.
+
+### Exact failures and demonstrated cause
+
+The full tracebacks show the same seven failures on both platforms. Line numbers
+below refer to the published `d055996` source:
+
+| Failed node | Assertion and actual outcome |
+| --- | --- |
+| `tests/test_analysis_explanations_web.py::test_real_ordinary_numbers_language_return_and_exact_downloads[match]` | Line 148 expected card order `C8, C7, C9`; retained order was `C7, C9, C8`. The exception propagates through the test's concurrent locale-read helper. |
+| `tests/test_analysis_explanations_web.py::test_real_selected_match_explanation_and_other_game[auto]` | Line 325 expected `Auto tried Search first`; the delivered page had no Auto fallback caption. |
+| `tests/test_analysis_explanations_web.py::test_real_selected_match_explanation_and_other_game[bounded_search]` | Line 323 expected no recommendation and no Samples-per-Card section; the no-recommendation caption was absent. |
+| `tests/test_analysis_explanations_web.py::test_real_selected_match_explanation_and_other_game[information_set_search]` | The same line-323 unavailable-result assertion failed. |
+| `tests/test_recorded_decision_context_web.py::test_executed_method_limits_still_have_context[bounded_search]` | Line 167 expected recommendation `None`; actual card was `C7`. |
+| `tests/test_recorded_decision_context_web.py::test_executed_method_limits_still_have_context[information_set_search]` | Line 167 expected recommendation `None`; actual card was `C7`. |
+| `tests/test_recorded_decision_context_web.py::test_executed_method_limits_still_have_context[auto]` | Line 165 expected a true `fallback_used`; actual value was false. |
+
+Before any repository edit, the exact seven hosted nodes reproduced locally:
+**7 failed in 29.26 s**, with the same assertions/outcomes. A separate source-only
+HTTP probe reused one disposable three-Play Match and retained each real native
+submission plus its effective options. The returned forms selected
+`settings_mode=ordinary` and `analysis_effort=standard`; the tests changed only
+the technical sample count or method. Approved ordinary precedence therefore
+correctly executed Immediate with 100 samples, recommendation C7 and no fallback.
+
+On the same source, explicitly selecting `settings_mode=custom` produced the
+intended eight-sample `C8, C7, C9` ordering, Auto fallback, and unavailable
+Bounded/Information-set Search results. The source bytes stayed unchanged. This
+demonstrates outdated native test setup, not a Product, persistence, concurrency,
+timeout or infrastructure defect.
+
+The correction changes only the two test modules: deliberate sample/method
+overrides now explicitly select custom mode, and new assertions check the
+effective retained options and Request settings. Existing deterministic numeric,
+fallback, unavailable-result, context, localization, passive-work and exact
+download assertions remain intact. The related eight-sample controlled-display
+setup uses the same explicit choice. No Product or CI-policy code changes; the
+reviewed seven-field Historical projection and all existing runtime protections
+remain intact.
+
+### Focused validation boundary
+
+The complete affected modules are `test_analysis_explanations_web.py` and
+`test_recorded_decision_context_web.py`, plus `test_skatmind_rename.py` against
+this final documentation. Shared fixture helpers, production imports/layering,
+Match form ownership, persistence and exclusive transport code are unchanged;
+no architecture, compatibility, broad original selection or exclusive module is
+added solely because hosted execution stopped before the exclusive phase.
+
+Use development CPython 3.13, external temporary outputs and 7200000-ms invocation
+timeouts. After the parallel workers exit, run explicit Quick and whitespace:
+
+```powershell
+py -3.13 -m pytest tests/test_analysis_explanations_web.py tests/test_recorded_decision_context_web.py tests/test_skatmind_rename.py -n 2 --dist=loadfile --max-worker-restart=0 -o cache_dir=C:/Users/HENNIN~1/AppData/Local/Temp/opencode/issue325-main-cache --basetemp=C:/Users/HENNIN~1/AppData/Local/Temp/opencode/issue325-main-fixed --junitxml=C:/Users/HENNIN~1/AppData/Local/Temp/opencode/issue325-main-fixed.xml -q --tb=short
+.\scripts\check.ps1 -Mode Quick -LogDirectory C:/Users/HENNIN~1/AppData/Local/Temp/opencode/issue325-main-quick
+git diff --check
+```
+
+Downloaded evidence and derived phase accounting are retained outside the
+repository under `%TEMP%/opencode/issue325-main-44265874043/`; native mode
+observations are in `%TEMP%/opencode/issue325-main-mode-probe/report.json`.
+Final local results accompany the implementation report. This correction requires
+new publication/source review and automatic complete exact-commit main acceptance;
+the already planned narrow installed check remains pending. No Actions dispatch,
+unchanged browser replay or maintainer UAT is performed here.
+
 ## Acceptance boundary
 
 Issue #325 and #208 remain open. After required local checks succeed, report

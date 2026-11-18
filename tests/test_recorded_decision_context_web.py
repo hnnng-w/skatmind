@@ -157,10 +157,14 @@ def test_executed_method_limits_still_have_context(localized_server, method):
     browser = Browser(localized_server)
     record_context_match(browser)
     form = operation_form(browser.page("/matches/review/1"), "analyze_decision")
-    page = follow(browser, browser.submit(form, recommendation_method=method))
+    assert form["values"]["settings_mode"] == "ordinary"
+    page = follow(browser, browser.submit(form, settings_mode="custom",
+                                          recommendation_method=method))
     active = localized_server.app_context.managed_stateful.active_match
     report, = active.capture.report_store.list()
     assert report.value.status == "executed"
+    assert report.value.options.recommendation_method == method
+    assert report.value.request.document["recommendation_method"] == method
     if method == "auto":
         assert report.value.result.document["recommendation_method_summary"]["fallback_used"]
     else:
