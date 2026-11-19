@@ -229,6 +229,27 @@ def test_packaged_validators_retain_input_format_checker_only() -> None:
     assert output_validator.format_checker is None
 
 
+def test_scoped_cold_validation_shares_schema_resources_but_validates_both_roots(monkeypatch):
+    module = schema_validation_module
+    module._validator_for.cache_clear()
+    real, loads = module._schema_resource_root, []
+
+    def resources():
+        loads.append(None)
+        return real()
+
+    monkeypatch.setattr(module, "_schema_resource_root", resources)
+    with module._share_checked_resources():
+        module.validate_input_document(load_example("grand_second_position.json"))
+        with pytest.raises(SkatMindSchemaError):
+            module.validate_output_document({"invalid": True})
+    assert len(loads) == 1
+    module._validator_for.cache_clear()
+    with pytest.raises(SkatMindSchemaError):
+        module.validate_input_document({"invalid": True})
+    assert len(loads) == 2
+
+
 def test_execute_revalidates_direct_requests_and_rejects_forged_workflow() -> None:
     request = RequestDocumentV1(
         workflow=WorkflowV1.HISTORICAL_GAME,

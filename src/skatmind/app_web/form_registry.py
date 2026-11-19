@@ -52,6 +52,7 @@ from .profile_driven_creation import (
 from .recorded_review_opening import OPEN_RECORDING_ROUTE, RECORDED_REVIEW_ROUTE
 from .recording_deletion import DELETION_BODY_LIMIT, DELETION_PAGE, DELETION_POST_ROUTES
 from .session_declaration_correction import CORRECTION_BODY_LIMIT, CORRECTION_ROUTES
+from .session_live_advice import LIVE_ROUTES
 
 _DEFAULT_BODY_LIMIT = FRONTEND_JSON_MAX_FILE_BYTES + 4_096
 _MANAGED_IMPORT_BODY_LIMIT = MANAGED_ITEM_MAX_IMPORT_BYTES + 4_096
@@ -987,6 +988,12 @@ _FORMS: list[FrontendFormDefinitionV1] = [
         active="sessions",
         success="/sessions/current",
     ),
+    *(_definition("session." + route.rsplit("/", 1)[1].replace("-", "_"), route,
+                  ("analysis_effort",) if route.endswith("-effort") else (),
+                  page="/sessions/current", active="sessions",
+                  value_free=not route.endswith("-effort"),
+                  success="/sessions/current#session-recording")
+      for route in LIVE_ROUTES),
     _definition(
         "session.analyze",
         "/sessions/analyze",
@@ -1580,6 +1587,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             *GUIDED_ACTION_ROUTE_PATHS,
             *FRONTEND_PROFILE_ACTION_ROUTES,
             *CARD_ENTRY_ROUTES,
+            *LIVE_ROUTES,
             MATCH_RECORDING_INPUT_ROUTE,
             *CORRECTION_ROUTES,
             OPEN_RECORDING_ROUTE,

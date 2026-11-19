@@ -4,6 +4,9 @@ The subsequent [Issue #326 response-time follow-up](responsive_analysis.md) adds
 ordinary forced-card guidance, bounded saved-Review delivery reuse and clarified
 input/analysis captions. Effort mappings and explicit custom calculations below
 remain unchanged; a rule-only hint creates no statistical Result or saved evidence.
+The separate [current-turn Live assistance](current_turn_live_advice.md) starts
+at Quick when explicitly enabled for one active Session. It does not inherit
+the specialist form's method or change its defaults.
 
 ## Authority and ordinary behavior
 

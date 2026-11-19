@@ -115,7 +115,6 @@ def dispatch_card_entry(app, route, values):
 
 def _session_entry(active, route, values):
     active.require_attached()
-    attempt = active.operation_feedback.begin()
     previous_revision = active.state.revision
     if set(values) - {"managed_handle", "card_selection", "cards"}:
         raise CardEntryError("fields", "cards")
@@ -126,6 +125,7 @@ def _session_entry(active, route, values):
     if (route == "/sessions/play") != (task.kind == "record_play"):
         raise CardEntryConflict()
     _fresh(active, session=True)
+    attempt = active.operation_feedback.begin()
     try:
         candidate = prepare_session_card_candidate(
             active.state, active.decision_checkpoints, _cards(values), task=task)

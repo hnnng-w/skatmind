@@ -322,6 +322,15 @@ from .session_frontend import (
     rewind_guided_session_v1,
 )
 from .session_learning_rendering import session_links
+from .session_live_advice import (
+    LIVE_ROUTES,
+    after_live_edit,
+    configure_live,
+    control_binding,
+    live_delivery_guard,
+    reserve_live_attempt,
+    run_live_attempt,
+)
 from .session_recorded_review import (
     RecordedDecisionReviewConflictError,
     execute_recorded_session_decision_v1,
@@ -463,6 +472,7 @@ _STATEFUL_POST_ROUTES = {
     "/sessions/reload",
     "/sessions/command",
     *CARD_ENTRY_ROUTES,
+    *LIVE_ROUTES,
     "/sessions/undo",
     "/sessions/analyze",
     "/sessions/review",
@@ -1380,7 +1390,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             raise ValueError("revision must not contain leading zeroes.")
         return int(raw[0])
 
-    def _redirect(self, location: str) -> None:
+    def _clear_redirect_feedback(self) -> None:
         definition = getattr(self, "_current_form_definition", None)
         if type(definition) is FrontendFormDefinitionV1:
             with self.server.app_context.lock:
@@ -1395,6 +1405,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     self.server.app_context.form_feedback.clear(
                         definition.active_context_requirement or "profile"
                     )
+
+    def _redirect(self, location: str, *, clear_feedback: bool = True) -> None:
+        if clear_feedback:
+            self._clear_redirect_feedback()
         self._send_text(
             HTTPStatus.SEE_OTHER,
             "",
@@ -2087,6 +2101,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 invalidate_deletion_activation(self.server.app_context, previous, active)
             if previous is not None:
                 with previous.lock:
+                    previous.live.configure(None)
                     previous.clear_execution()
 
     def _activate_match(self, active) -> None:
@@ -2300,19 +2315,20 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         from .session_evidence_retention import session_delivery_guard
         from .session_learning_rendering import session_receipt
 
-        self._retained_delivery_guard = session_delivery_guard(self.server.app_context, active)
+        with active.lock:
+            self._retained_delivery_guard = live_delivery_guard(
+                self.server.app_context, active,
+                session_delivery_guard(self.server.app_context, active))
+            session_body = session_receipt(active, locale) + render_task_first_session_v1(
+                active, app_context=self.server.app_context, locale=locale,
+                show_operation_notice=status < HTTPStatus.BAD_REQUEST,
+                game_label=managed_name(locale, profile, "sessions", active.state.session_id))
         self._content_page(
             "/sessions",
             return_to="/sessions/current",
             title=managed_name(locale, profile, "sessions", active.state.session_id),
-            content=notice + session_receipt(active, locale)
-            + render_task_first_session_v1(
-                active,
-                app_context=self.server.app_context,
-                locale=locale,
-                show_operation_notice=status < HTTPStatus.BAD_REQUEST,
-                game_label=managed_name(locale, profile, "sessions", active.state.session_id),
-            ) + render_event_context(self.server.app_context, active, "sessions", locale)
+            content=notice + session_body
+            + render_event_context(self.server.app_context, active, "sessions", locale)
             + render_accounting(self.server.app_context, active, "sessions", locale),
             status=status,
             feedback_family="sessions",
@@ -3128,23 +3144,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             )
             self._redirect("/sessions/current#session-result")
             return
-        if path == "/sessions/command":
-            edit = build_session_edit_from_form_v1(
-                values,
-                current_revision=expected_revision,
-            )
-            operation = apply_guided_session_edit_v1(active, edit)
-        elif path == "/sessions/undo":
-            self._exact_fields(values, {"target_revision"})
-            operation = rewind_guided_session_v1(
-                active,
-                target_revision=self._form_integer(
-                    values,
-                    "target_revision",
-                    minimum=0,
-                ),
-            )
-        elif path == "/sessions/analyze":
+        if path == "/sessions/analyze":
             export_options = build_session_position_options_from_form_v1(values)
             from .forced_card_guidance import session_guidance
             if session_guidance(self, active, values, export_options=export_options):
@@ -3162,6 +3162,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 execution_options=execution_options,
                 frontend_form_values=values,
             )
+        if not self._session_operation_rejected(operation):
+            self._redirect("/sessions/current")
+
+    def _session_operation_rejected(self, operation):
         if operation.status in {"rejected", "unavailable", "conflict", "stale"}:
             status = (
                 HTTPStatus.CONFLICT
@@ -3179,8 +3183,84 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 status=status,
             )
             self._session_page(status=status)
-            return
-        self._redirect("/sessions/current")
+            return True
+        return False
+
+    def _session_input(self, path, body, content_type):
+        """Order the native submission and its feedback, then release *all* locks."""
+        app = self.server.app_context
+        with app.managed_stateful.session_lifecycle_lock:
+            with app.lock:
+                active = self._submitted_active = app.managed_stateful.active_session
+            if active is None:
+                raise StaleFrontendWorkflowRevisionError()
+            with active.lock:
+                try:
+                    before = active.generation
+                    was_ready = active.state.validation.position_export.status == "available"
+                    active.require_attached()
+                    values = self._flat_form(body, content_type, repeated_cards=True)
+                    if path in CARD_ENTRY_ROUTES:
+                        location = dispatch_card_entry(app, path, values)
+                    elif path == "/sessions/command" and (
+                            "declaration_form" in values or "declaration_selection" in values):
+                        location = dispatch_compact_declaration(app, path, values)
+                    elif path == "/sessions/command" and (
+                            "time_form" in values or "time_selection" in values):
+                        location = dispatch_local_metadata(app, path, values)
+                    else:
+                        if any(type(value) is not str for value in values.values()):
+                            raise ValueError("Form fields must contain text.")
+                        location = self._apply_session_input(active, path, values)
+                        if location is None:
+                            return
+                    attempt = None
+                    if path in LIVE_ROUTES:
+                        attempt = reserve_live_attempt(active)
+                    elif values.get("kind") != "set_game_metadata" or not was_ready:
+                        attempt = after_live_edit(active, before)
+                    if attempt is not None:
+                        location = "/sessions/current#session-recording"
+                    self._clear_redirect_feedback()
+                except (ValueError, StaleFrontendWorkflowRevisionError) as error:
+                    stale = isinstance(error, StaleFrontendWorkflowRevisionError)
+                    if stale and (path in LIVE_ROUTES or active.live.effort is not None
+                                  and getattr(error, "reason", "stale") == "stale"):
+                        # A superseded form owns its response, not this source's feedback.
+                        self._send_common_error(HTTPStatus.CONFLICT)
+                    elif not self._reject_registered_form(error, status=(
+                            HTTPStatus.CONFLICT if stale else HTTPStatus.BAD_REQUEST)):
+                        raise
+                    return
+        self._finish_session_input(active, attempt, location)
+
+    def _apply_session_input(self, active, path, values):
+        self._bound_active("sessions", values)
+        revision = self._form_integer(values, "expected_revision", minimum=0)
+        del values["expected_revision"]
+        if active.state.revision != revision:
+            raise StaleFrontendWorkflowRevisionError()
+        if path in LIVE_ROUTES:
+            configure_live(active, path, values)
+            return "/sessions/current#session-recording"
+        binding = values.pop("input_binding", None)
+        if binding is not None and (not binding.isascii()
+                or not hmac.compare_digest(binding, control_binding(active, path))):
+            raise StaleFrontendWorkflowRevisionError()
+        if path == "/sessions/undo":
+            self._exact_fields(values, {"target_revision"})
+            operation = rewind_guided_session_v1(active, target_revision=(
+                self._form_integer(values, "target_revision", minimum=0)))
+        else:
+            edit = build_session_edit_from_form_v1(values, current_revision=revision)
+            operation = apply_guided_session_edit_v1(active, edit)
+        return None if self._session_operation_rejected(operation) else "/sessions/current"
+
+    def _finish_session_input(self, active, attempt, location):
+        if attempt is not None:
+            run_live_attempt(self.server.app_context, active, attempt)
+        # A slow completion must not clear feedback from a newer input or owner.
+        self._redirect(location, clear_feedback=False)
 
     def _create_match(self, values: dict[str, str | list[str]]) -> None:
         if any(type(value) is not str for value in values.values()):
@@ -3684,28 +3764,16 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if path in DELETION_POST_ROUTES:
             dispatch_recording_deletion(self, path, self._text_form(body, content_type))
             return
+        if path in (*LIVE_ROUTES, "/sessions/cards", "/sessions/play",
+                    "/sessions/command", "/sessions/undo"):
+            self._session_input(path, body, content_type)
+            return
         if path in CARD_ENTRY_ROUTES:
-            if path in {"/sessions/cards", "/sessions/play"}:
-                # Keep attempt ordering through feedback publication, including competing rejects.
-                with self.server.app_context.managed_stateful.session_lifecycle_lock:
-                    with self.server.app_context.lock:
-                        self._submitted_active = (
-                            self.server.app_context.managed_stateful.active_session)
-                    try:
-                        location = dispatch_card_entry(self.server.app_context, path,
-                            self._flat_form(body, content_type, repeated_cards=True))
-                    except (ValueError, StaleFrontendWorkflowRevisionError) as error:
-                        status = (HTTPStatus.CONFLICT if isinstance(
-                            error, StaleFrontendWorkflowRevisionError) else HTTPStatus.BAD_REQUEST)
-                        self._reject_registered_form(error, status=status)
-                        return
-                    self._redirect(location)
-                return
             self._redirect(dispatch_card_entry(
                 self.server.app_context, path,
                 self._flat_form(body, content_type, repeated_cards=True)))
             return
-        if path in {"/sessions/command", "/matches/api/v1/operation"}:
+        if path == "/matches/api/v1/operation":
             values = self._flat_form(body, content_type, repeated_cards=True)
             if "time_form" in values or "time_selection" in values:
                 self._redirect(dispatch_local_metadata(self.server.app_context, path, values))

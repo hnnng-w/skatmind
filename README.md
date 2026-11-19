@@ -23,7 +23,7 @@ official Skat rules arbitration.
 * Immediate trick simulation
 * Configured opponent response policies for immediate analysis and multi-step candidate completion
 * Expected point swing calculation
-* Card recommendations
+* Card recommendations, including optional [current-turn Live advice in a Session](docs/current_turn_live_advice.md)
 * Optional bounded compatible-world Minimax recommendations for eligible late live positions
 * Strict Search and Search-first `auto` routing with explicit Immediate fallback metadata
 * Flat post-game bounded Search with an independently executed Immediate baseline

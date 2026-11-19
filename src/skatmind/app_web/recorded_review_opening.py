@@ -102,6 +102,7 @@ def open_recording_for_review_v1(context, values: dict[str, str]) -> str:
             old_lock = previous.lock if family == "sessions" else previous.capture.lock
             with old_lock:
                 if family == "sessions":
+                    previous.live.configure(None)
                     previous.clear_execution()
                 else:
                     previous.capture.report_store.clear()

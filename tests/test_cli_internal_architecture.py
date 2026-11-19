@@ -653,6 +653,7 @@ def test_app_web_layering_and_startup_execution_boundaries() -> None:
         "session_declaration_correction.py",  # Private preview uses the immutable public wrapper.
         "session_form_translation.py",
         "session_frontend.py",
+        "session_live_advice.py",  # Exact current-position export for an explicit game owner.
         "session_recorded_review.py",
         "workflow_state.py",
     }

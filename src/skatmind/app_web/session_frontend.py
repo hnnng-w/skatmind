@@ -31,6 +31,7 @@ from .managed_item_storage import (
 from .operation_feedback import PendingOperationFeedback, feedback_source
 from .operation_feedback_mapping import session_command_message
 from .session_declaration_correction import SessionDeclarationCorrectionState
+from .session_live_advice import LiveAssistance, game_identity
 
 if TYPE_CHECKING:
     from .session_recorded_review import RecordedReviewSourceV1
@@ -122,6 +123,7 @@ class GuidedSessionContextV1:
     rollout_notice: object | None = field(default=None, repr=False)
     execution_attempt: object | None = field(default=None, repr=False)
     analysis_forms: dict = field(default_factory=dict, repr=False)
+    live: LiveAssistance = field(default_factory=LiveAssistance, repr=False)
     pending_evidence: object | None = field(default=None, repr=False)
     evidence_notice: object | None = field(default=None, repr=False)
     operation_feedback: PendingOperationFeedback = field(
@@ -150,6 +152,7 @@ class GuidedSessionContextV1:
     def begin_execution(self) -> object:
         """Caller owns the Session lock; a newer attempt supersedes older work."""
         self.require_attached()
+        self.live.invalidate()
         self.operation_feedback.begin()
         self.execution_attempt = object()
         self.pending_evidence = None
@@ -164,6 +167,7 @@ class GuidedSessionContextV1:
     def clear_execution(self) -> None:
         """Discard source-scoped execution and correction work on lifecycle invalidation."""
         self.execution = None
+        self.live.invalidate()
         self.analysis_forms.clear()
         self.recorded_review_source = None
         self.rollout_execution = None
@@ -318,6 +322,7 @@ def reload_guided_session_v1(context: GuidedSessionContextV1) -> GuidedSessionOp
         if loaded.state.session_id != context.state.session_id:
             raise ValueError("Managed Session identity changed on disk.")
         context.document = loaded
+        context.live.configure(None)
         context.generation += 1
         context.clear_execution()
         context.last_operation = GuidedSessionOperationResultV1(
@@ -369,6 +374,10 @@ def _persist_session_mutation(
             message="The Session changed on disk. Reload before retrying this edit.",
         )
     else:
+        if context.live.effort is not None:
+            old_game = game_identity(context.state)
+            if old_game is not None and old_game != game_identity(state):
+                context.live.configure(None)
         context.document = persistence
         context.generation += 1
         context.clear_execution()

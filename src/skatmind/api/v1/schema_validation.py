@@ -1,5 +1,7 @@
 import json
 from collections.abc import Iterable
+from contextlib import contextmanager
+from contextvars import ContextVar
 from functools import lru_cache
 from importlib import resources
 from importlib.resources.abc import Traversable
@@ -13,6 +15,17 @@ from skatmind.errors import (
 
 _INPUT_SCHEMA_NAME = "input.schema.json"
 _OUTPUT_SCHEMA_NAME = "output.schema.json"
+_SCOPED_RESOURCES = ContextVar("checked_schema_resources", default=None)
+
+
+@contextmanager
+def _share_checked_resources():
+    """One synchronous execution may reuse its fully checked package registry."""
+    token = _SCOPED_RESOURCES.set({})
+    try:
+        yield
+    finally:
+        _SCOPED_RESOURCES.reset(token)
 
 
 def _schema_resource_root() -> Traversable:
@@ -55,6 +68,22 @@ def _reject_schema_retrieval(uri: str):
 @lru_cache(maxsize=3)
 def _validator_for(schema_name: str):
     from jsonschema import Draft202012Validator, FormatChecker
+
+    scope = _SCOPED_RESOURCES.get()
+    if scope is not None and "checked" in scope:
+        registry, by_name = scope["checked"]
+    else:
+        registry, by_name = _checked_package_resources(schema_name)
+        if scope is not None:
+            scope["checked"] = registry, by_name
+    if schema_name not in by_name:
+        raise SkatMindResourceError(f"Schema resource not found: {schema_name!r}.")
+    return Draft202012Validator(by_name[schema_name], registry=registry,
+        format_checker=FormatChecker() if schema_name == _INPUT_SCHEMA_NAME else None)
+
+
+def _checked_package_resources(schema_name):
+    from jsonschema import Draft202012Validator
     from jsonschema.exceptions import SchemaError
     from referencing import Registry, Resource
     from referencing.exceptions import CannotDetermineSpecification
@@ -78,7 +107,6 @@ def _validator_for(schema_name: str):
 
     registry_resources = []
     schema_ids: set[str] = set()
-    root_schema: dict[str, Any] | None = None
     for resource, schema in schemas:
         try:
             Draft202012Validator.check_schema(schema)
@@ -100,20 +128,10 @@ def _validator_for(schema_name: str):
             raise SkatMindInvariantError(
                 f"Packaged schema {resource.name!r} has no supported specification."
             ) from error
-        if resource.name == schema_name:
-            root_schema = schema
-
-    if root_schema is None:
-        raise SkatMindResourceError(f"Schema resource not found: {schema_name!r}.")
     registry = Registry(retrieve=_reject_schema_retrieval).with_resources(
         registry_resources
     )
-    format_checker = FormatChecker() if schema_name == _INPUT_SCHEMA_NAME else None
-    return Draft202012Validator(
-        root_schema,
-        registry=registry,
-        format_checker=format_checker,
-    )
+    return registry, {resource.name: schema for resource, schema in schemas}
 
 
 def _sortable_path(path: Iterable[object]) -> tuple[tuple[int, int | str], ...]:

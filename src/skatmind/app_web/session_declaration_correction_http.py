@@ -16,6 +16,7 @@ from .session_declaration_correction import (
     require_selection,
     select_correction,
 )
+from .session_live_advice import after_live_edit
 from .workflow_state import StaleFrontendWorkflowRevisionError
 
 
@@ -51,12 +52,15 @@ def handle_session_correction(handler, path, body, content_type):
                     raise form_error("fields")
                 if values.pop("managed_handle", None) != active.handle:
                     raise SessionCorrectionConflict()
+                before = active.generation
                 location = dispatch_session_correction(app, active, path, values)
+                attempt = after_live_edit(active, before)
             except (ValueError, StaleFrontendWorkflowRevisionError) as error:
                 handler._reject_registered_form(error, status=(HTTPStatus.CONFLICT if isinstance(
                     error, StaleFrontendWorkflowRevisionError) else HTTPStatus.BAD_REQUEST))
                 return
-            handler._redirect(location)
+            handler._clear_redirect_feedback()
+    handler._finish_session_input(active, attempt, location)
 
 
 def dispatch_session_correction(app, active, path, values):

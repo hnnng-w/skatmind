@@ -31,6 +31,8 @@ from .session_declaration_correction_rendering import (
     render_session_correction,
 )
 from .session_frontend import GuidedSessionContextV1
+from .session_live_advice import control_binding
+from .session_live_rendering import live_controls, live_recommendation
 from .session_recorded_review import project_recorded_session_decisions_v1
 from .session_recorded_review_rendering import (
     render_recorded_review_source_v1,
@@ -254,6 +256,8 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
     if correction:
         fields += paragraph(locale, "task.session.correction_help") + input_field(
             locale, "target_revision", "task.field.target_revision", kind="number", required=True)
+    if not (normal and kind == "set_game_end"):
+        fields += hidden("input_binding", control_binding(context, "/sessions/command"))
     fields += session_command_fields(locale, view, kind, normal=normal)
     label = ("task.session.finish_recording" if normal and kind == "set_game_end"
              else f"task.command.{kind}")
@@ -440,7 +444,7 @@ def render_task_first_session_v1(
         controls = (_command(context, locale, view, primary, normal=True, progress=progress, app=app_context)
                     if primary else '<p><a href="#session-history">' + translated(
                         locale, "recorded_review.history") + '</a></p>')
-        task_content = '<h2>' + _task_heading(locale, view) + '</h2>' + controls
+        task_content = '<h2>' + _task_heading(locale, view) + '</h2>' + live_recommendation(context, locale) + controls
         if ended:
             task_content = _completion_content(locale, view, progress, recorded)
         elif not set_entry:
@@ -454,6 +458,7 @@ def render_task_first_session_v1(
         normal += ('<div id="session-recording"' + variant + ' tabindex="-1"><div id="session-card-feedback"></div>'
             + '<!-- operation-feedback -->'
             + '<section class="panel">' + task_content + '</section></div>')
+        normal += live_controls(context, locale, ended)
         if facts.declaration is not None:
             normal += accepted_declaration_summary(locale,
                 build_serializable_game_declaration(facts.declaration),
@@ -531,6 +536,7 @@ def render_task_first_session_v1(
             for kind in SESSION_COMMAND_KINDS if kind not in {"set_declarer", "set_declaration"})
         corrections += form(locale, "/sessions/undo", hidden("managed_handle", context.handle)
             + hidden("expected_revision", context.state.revision)
+            + hidden("input_binding", control_binding(context, "/sessions/undo"))
             + input_field(locale, "target_revision", "task.field.target_revision", kind="number", required=True),
             "task.session.undo")
         corrections += form(locale, "/sessions/reload", hidden("managed_handle", context.handle), "common.action.reload")
