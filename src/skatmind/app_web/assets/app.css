@@ -26,20 +26,87 @@
   display: none;
 }
 
-#session-app .live-play .form-grid { gap: .35rem; }
-.live-play :is(p, ul, ol) { margin-block: .15rem; }
-.live-play .recorded-current, .live-play .recorded-current ol,
-.live-play #live-recommendation ul {
+/* Current-turn Live advice: the comparison is the choice, within one native form. */
+.live-play > .panel { container: live-panel / inline-size; }
+.live-table {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+@container live-panel (min-width: 49em) {
+  .live-table { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+}
+.live-table .compact-cards { gap: .75rem; padding: .85rem; }
+.live-objective { font-weight: 650; }
+.live-featured, .live-other-choices {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+}
+.live-other-choices {
+  gap: .5rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+}
+.live-table label.live-tile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  align-content: start;
+  gap: .6rem;
+  padding: .85rem;
+  border: 1px solid #84948a;
+  border-radius: var(--radius);
+  cursor: pointer;
+  line-height: 1.25;
+}
+.live-tile[data-best] { background: #f1f7f3; }
+.live-badge { color: var(--muted); font-size: 1rem; }
+.live-tile[data-best] .live-badge { color: var(--green-dark); }
+.live-tile .live-identity, .live-frequency {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: .25rem .85rem;
+  align-items: center;
+  gap: .25rem .7rem;
+}
+.live-identity { font-size: 1.15rem; }
+.live-tile .card-face, .live-context .card-face {
+  display: inline-flex;
+  gap: .08em;
+  font-weight: 750;
+  line-height: 1.1;
+}
+.live-featured .card-face, .live-frequency b { font-size: 2.25rem; }
+.live-frequency, .live-secondary { font-weight: 500; font-variant-numeric: tabular-nums; }
+.live-secondary { grid-column: 1 / -1; }
+.live-other-choices .live-tile { padding: .6rem; }
+.live-other-choices .live-identity { grid-column: 2; font-size: 1rem; }
+.live-other-choices .card-face { font-size: 1.4rem; }
+.live-tile:has(input:checked) { box-shadow: inset 0 0 0 3px var(--green); }
+.live-tile:focus-within { outline: .2rem solid var(--focus); outline-offset: .1rem; }
+.live-context {
+  min-width: 0;
+  padding: 1rem;
+  border-radius: var(--radius);
+  background: var(--paper);
+  overflow-wrap: anywhere;
+}
+.live-context .recorded-current ol {
+  display: grid;
+  gap: .35rem;
   list-style: none;
+  margin: .5rem 0;
   padding: 0;
 }
-.live-play #live-recommendation li { white-space: normal; }
-.live-play .live-card-marker { color: var(--green-dark); }
-.live-play .compact-cards .compact-guidance { display: none; }
+.live-context .card-face { font-size: 1.45rem; }
+.live-context .live-score { padding-top: .75rem; border-top: 1px solid var(--line); }
+.live-context dl { display: grid; gap: .25rem; margin: 0; }
+.live-score dl > div { display: flex; justify-content: space-between; gap: .5rem; }
+.live-score dd { margin: 0; font-weight: 700; }
+@media (forced-colors: active) {
+  .live-tile:has(input:checked) { border-color: Highlight; }
+}
 
 form:has(select[name="settings_mode"] option[value="custom"]:checked) .analysis-custom-state {
   display: block;

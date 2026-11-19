@@ -6,7 +6,8 @@ from types import SimpleNamespace
 import pytest
 from whole_game_rollout_oracle import synthetic_view
 
-from skatmind.app_web.session_live_rendering import live_recommendation
+from skatmind.app_web.session_live_rendering import live_card_choices, live_score
+from skatmind.app_web.stateful_localization import text
 from skatmind.bounded_search_information import SearchPublicPlay
 from skatmind.game_declaration import GameDeclaration
 from skatmind.live_whole_game import _null_card, evaluate_live_game, live_rollout_view
@@ -83,6 +84,11 @@ def test_null_policy_uses_only_actor_legal_cards_and_the_public_partial_trick(
     assert _null_card(observation) == expected
 
 
+def choices(result, locale):
+    return live_card_choices(locale, SimpleNamespace(outcome=result, unavailable=False),
+        SimpleNamespace(selectable_cards=result.ranked_cards, scope="exact_legal_cards"))
+
+
 def test_true_null_tie_has_no_point_tiebreaker_and_every_tied_card_is_visible():
     view, _, _ = synthetic_view(remaining=10, declarer="me",
                                 declaration=GameDeclaration("null", bid_value=18))
@@ -91,12 +97,22 @@ def test_true_null_tie_has_no_point_tiebreaker_and_every_tied_card_is_visible():
     assert len(result.tied_best_cards) > 1
     assert result.tied_best_cards == tuple(c.card for c in result.candidates if c.successes == best)
     for locale in ("en", "de"):
-        from skatmind.app_web.stateful_localization import text
-        body = live_recommendation(SimpleNamespace(live=SimpleNamespace(
-            outcome=result, unavailable=False)), locale)
+        body = choices(result, locale)
         assert body.count(text(locale, "rollout.marker.tied")) == len(result.tied_best_cards)
         assert "<details" not in body and "analysis_report" not in body
         assert body.count("%</b>") == min(len(result.candidates), len(result.tied_best_cards) + 2)
+        assert body.count('type="radio"') == len(result.candidates)
+        assert text(locale, "analysis.live.final_margin") not in body
+
+
+def test_live_null_context_reports_completed_tricks_instead_of_card_points():
+    prefix = SimpleNamespace(declarer=SimpleNamespace(tricks=0, points=0),
+                             defenders=SimpleNamespace(tricks=2, points=38))
+    for locale in ("de", "en"):
+        body = live_score(SimpleNamespace(latest=prefix, game_type="null"), locale)
+        assert text(locale, "trick_progress.tricks") in body
+        assert text(locale, "trick_progress.points") not in body
+        assert "<dd>0</dd>" in body and "<dd>2</dd>" in body and "38" not in body
 
 
 def test_contradictory_or_retrospective_facts_do_not_downgrade_to_goal():
@@ -126,7 +142,6 @@ def test_live_null_cancellation_discards_unfinished_common_world(monkeypatch):
 
 
 def test_visible_secondary_metric_and_fractional_precision():
-    from skatmind.app_web.stateful_localization import text
     from skatmind.live_whole_game import LiveCardOutcome
 
     view, _, _ = synthetic_view(remaining=2)
@@ -136,10 +151,9 @@ def test_visible_secondary_metric_and_fractional_precision():
     result = replace(base, settings=replace(base.settings, objective="complete_settlement",
         requested_worlds=400, wall_clock_timeout_ms=60000), completed_common_worlds=400,
         candidates=rows, ranked_cards=("DA", "S9"), tied_best_cards=("DA",))
-    for locale, fraction in (("de", "399 von 400 · 99,75 %"), ("en", "399 of 400 · 99.75%")):
-        page = live_recommendation(SimpleNamespace(live=SimpleNamespace(
-            outcome=result, unavailable=False)), locale)
-        assert page.count(fraction) == 2
+    for locale, percent in (("de", "99,75 %"), ("en", "99.75%")):
+        page = choices(result, locale)
+        assert page.count(percent) == page.count("399/400") == 2
         assert page.count(text(locale, "result.mean_score")) == 2
         assert text(locale, "analysis.live.tie_complete_settlement") in page
         assert "<details" not in page

@@ -13,12 +13,15 @@ An opponent still to play, an incomplete setup, or the end of play needs no
 card analysis. A correction or Undo discards the previous advice. Previewing
 a correction, a rejected input, or a partial suffix rejection does not run it.
 
-* **One legal card:** a short rule-based fact beside the card. No simulation.
+* **One legal card:** one selectable tile with the card and a short rule label. No simulation.
 * **Several legal cards:** how often does **your party win the game** after
   each choice? All candidates play out the same sampled deals. The form
-  shows all equally recommended cards and at most two alternatives, each with
-  its success count, common sample count, and percentage. A star marks the
-  recommended choices; nothing is preselected or automatically played.
+  shows all equally recommended cards and up to two evaluated alternatives.
+  Each tile is the native radio label: it contains the card face and name,
+  recommendation or alternative marker, percentage, successes/common samples,
+  and any tie-breaking mean needed to distinguish the leaders. Other playable
+  cards remain selectable below. Selecting a tile does not record the play;
+  use **Record selected Card**. Nothing is preselected.
 * **Effort:** Quick, Standard and More time request **25 / 100 / 400 common
   worlds**, with **5 / 30 / 60 seconds** of evaluator time respectively.
   Seed 0, the 100,000 preparation-unit limit and the 300,000 card-transition
@@ -219,23 +222,36 @@ modules, explicit Quick (Ruff, packaged-schema parity and input examples),
 and tracked/new-file whitespace checks. Full-suite, hosted, and installed
 results are separate evidence.
 
-## Later installed acceptance (maintainer)
+## Maintainer installed observations at `33b3dae`
 
-After source review and successful automatic exact-commit main gates, import the
-prepared synthetic seven-play Session (`327-live-seven-plays.json`, revision 20)
-once. No full-game re-entry is needed.
+The maintainer accepted the whole-game behavior and response times: approximately
+4.5 s for first advice, 1.5 s for subsequent advice and 0.5 s for a forced card.
+The seven-play fixture confirmed the two equal success counts after **H8**, fresh
+advice after **SA**, opponent suppression, forced **S10** after **DA**, Undo to
+revision **26** and Stop. The remaining finding was visual: the numbers and cards
+were separate, small, and left most of the desktop panel empty.
 
-1. Start assistance at Quick. The opponent is next. Enter **H8** and time the
-   input through visible first whole-game advice. Check both 10/25 results and
-   the secondary-margin explanation beside the selectable cards.
-2. Enter **SA**; the perspective player leads the next trick and gets fresh
-   advice. Enter **CK, SJ, H7, S9** in order; advice disappears while opponents
-   are next.
-3. Enter **DA**: the only legal card is **S10**, shown without statistical advice.
-4. Undo the DA entry (return to revision **26**). Confirm the forced hint is
-   gone and the recording can continue. Stop assistance.
+## Selectable tile layout: source visual verification
 
-Record actual first/subsequent response times and whether they are usable during
-play. #327 awaits new hosted and installed whole-game Live acceptance; #208
-remains open. #326's accepted retrospective
-latency deferral is unchanged.
+Headless Edge 157.0.4341.60, page scripts disabled, disposable German and English
+Session, development source. At 1230 × 860 the panel used 745 CSS px for the form
+and 372 px for context, separated by 16 px. The first two tiles each measured
+352 × 184 px; card faces and percentages were 36 px. The screenshot showed both
+**10/25 (40%)** counts, the objective without overbid evaluation, and the visible
+tie explanation. The Ace leads on mean final margin (−24.16 vs −25.36). Beside
+them, Boris played ♠Q and Clara ♥8; completed-trick points were 0 to 38.
+
+At 390 × 844 the two 280 px tiles stacked at full available width. The German
+objective and margin labels wrapped, with context below the record button and no
+horizontal overflow. The seven-card desktop view had three evaluated choices
+and four other native radios. The forced view had one rule-labelled tile with
+no statistics; the opponent view had observation candidates without evaluations.
+In both languages the initial choices were unchecked. Native click and arrow-key
+selection sent no POST and did not change the revision before explicit recording.
+
+After published-source review and successful automatic exact-commit main gates,
+only a brief installed visual check remains for #327. Import the synthetic
+seven-play Session (`327-live-seven-plays.json`, revision 20), start Quick and
+enter **H8** to inspect the selectable comparison and context at the maintainer's
+usual width. Earlier functional and latency acceptance stands. #327 and #208
+remain open; #326's accepted retrospective latency deferral is unchanged.

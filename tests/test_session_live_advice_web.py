@@ -7,6 +7,7 @@ import pytest
 from test_compact_card_entry_web import create_live
 from test_frontend_language_switching import localized_server
 from test_match_recording_recovery_web import follow
+from test_recording_task_focus import Hierarchy
 from test_session_recorded_review_web import (
     Browser,
     Forms,
@@ -18,7 +19,7 @@ import skatmind.api.v1.session.files as files
 from skatmind.app_web import session_live_advice as live
 from skatmind.app_web.server import SkatMindAppWebRequestHandlerV1 as Handler
 from skatmind.app_web.session_recorded_review import project_recorded_session_decisions_v1
-from skatmind.app_web.stateful_localization import text
+from skatmind.app_web.stateful_localization import card_name, text
 from skatmind.deck import get_full_deck
 
 __all__ = ["localized_server"]
@@ -27,6 +28,20 @@ START, EFFORT, STOP = live.LIVE_ROUTES
 
 def post(browser, route, page=None, **kwargs):
     return browser.submit(Forms(page or browser.page()).find(route), **kwargs)
+
+
+def tile_labels(page, group):
+    markup = Hierarchy(page)
+    tiles = {}
+    for radio in markup.within(group, "input"):
+        attrs = radio["attrs"]
+        assert attrs["type"] == "radio" and attrs["name"] == "cards"
+        assert "checked" not in attrs and "required" in attrs
+        assert markup.visible(radio) and attrs["value"] not in tiles
+        label = radio["parents"][-1]
+        assert label["tag"] == "label"
+        tiles[attrs["value"]] = label["text"]
+    return tiles
 
 
 def watch(monkeypatch):
@@ -114,6 +129,7 @@ def test_activation_before_setup_then_discard_and_generic_play(localized_server,
         "player_id": active.state.local_player_id, "card": "C10"})
     page = follow(browser, response)
     assert 'id="live-recommendation"' not in page and len(calls) == count
+    assert 'class="live-frequency"' not in page
     assert active.live.effort == "more_time" and not active.analysis_forms
     assert project_recorded_session_decisions_v1(active).local_play_count == 1
     old_stop = Forms(page).find(STOP)
@@ -138,7 +154,10 @@ def test_post_save_failure_is_not_a_recording_failure(localized_server, monkeypa
         def fail_save(*args, **kwargs):
             raise OSError("Injected save failure")
         patch.setattr(files, "save_session_file", fail_save)
-        assert browser.submit(form, cards=plays[3]["card"])[0] == 409
+        code, _, rejected = browser.submit(form, cards=plays[3]["card"])
+        assert code == 409
+        retry = Forms(rejected.decode()).find("/sessions/play")
+        assert retry["values"]["cards"] == plays[3]["card"]
         assert active.document is before and not calls
     persisted = []
     def fail(request, **kwargs):
@@ -159,6 +178,7 @@ def test_post_save_failure_is_not_a_recording_failure(localized_server, monkeypa
     assert active.decision_checkpoints[-1].source_revision == active.state.revision
     assert text("en", "analysis.live.unavailable") in page
     assert 'id="live-recommendation"' not in page
+    assert 'class="live-frequency"' not in page and Forms(page).find("/sessions/play")
     if fault == "timeout":
         assert active.live.outcome.status == "timeout" and not active.live.outcome.ranked_cards
     assert Forms(page).find("/sessions/review-decision")
@@ -172,14 +192,48 @@ def test_visible_outcomes_for_defending_side(localized_server):
     browser = Browser(localized_server)
     record_score_review_game(browser, play_count=11)
     page = follow(browser, post(browser, START))
-    advice = page.split('id="live-recommendation"', 1)[1].split("</section>", 1)[0]
+    advice = page.split('id="live-recommendation"', 1)[1].split("</fieldset>", 1)[0]
     active = localized_server.app_context.managed_stateful.active_session
     outcome = active.live.outcome
     assert outcome.local_side == "defenders" and outcome.status == "complete"
     assert text("en", "trick_progress.defenders") in advice
+    tiles = tile_labels(page, "live-recommendation")
+    assert set(tiles) == set(outcome.ranked_cards)
     for row in outcome.candidates:
-        assert f'{row.successes} of 25 · {4*row.successes}%' in advice
+        assert card_name("en", row.card) in tiles[row.card]
+        if row.card in outcome.ranked_cards[:len(outcome.tied_best_cards) + 2]:
+            assert f'{row.successes}/25' in tiles[row.card]
+            assert f'{4*row.successes}%' in tiles[row.card]
+        else:
+            assert "%" not in tiles[row.card]
     assert "<details" not in advice and "expected point swing" not in advice.lower()
+
+
+def test_equal_frequency_tiles_retry_then_record_and_keep_other_choices(localized_server):
+    browser = Browser(localized_server)
+    record_live_game(browser, play_count=7)
+    active = localized_server.app_context.managed_stateful.active_session
+    page = follow(browser, post(browser, START))
+    page = follow(browser, post(browser, "/sessions/play", page, cards="H8"))
+    tiles = tile_labels(page, "live-recommendation")
+    assert tuple(tiles) == ("SA", "S10")
+    for card, margin in (("SA", "-24.16"), ("S10", "-25.36")):
+        assert all(value in tiles[card] for value in ("10/25", "40%", margin))
+        assert (text("en", "rollout.marker.recommended") in tiles[card]) == (card == "SA")
+    assert text("en", "analysis.live.tie_played_game_goal") in page
+    revision = active.state.revision
+    status, _, body = post(browser, "/sessions/play", page, cards="SQ")
+    assert status == 400 and active.state.revision == revision
+    retry = Forms(body.decode()).find("/sessions/play")
+    assert "cards" not in retry["values"]
+    assert text("en", "compact.rejected", cards="SQ") in body.decode()
+    page = follow(browser, browser.submit(retry, cards="SA"))
+    assert active.state.revision == revision + 1
+    tiles = tile_labels(page, "live-recommendation")
+    result = active.live.outcome
+    assert len(tiles) == 7 and set(tiles) == set(result.ranked_cards)
+    assert [card for card in tiles if "%" in tiles[card]] == list(
+        result.ranked_cards[:len(result.tied_best_cards) + 2])
 
 
 def test_forced_final_turn_completion_and_undo(localized_server, monkeypatch):
@@ -193,6 +247,9 @@ def test_forced_final_turn_completion_and_undo(localized_server, monkeypatch):
     page = follow(browser, post(browser, START))
     forced = 'id="forced-card-guidance"'
     assert forced in page and active.live.outcome.card == "S10"
+    tiles = tile_labels(page, "forced-card-guidance")
+    assert tuple(tiles) == ("S10",) and text("en", "analysis.live.forced") in tiles["S10"]
+    assert "%" not in tiles["S10"]
     assert active.path.read_bytes() == before and not active.decision_checkpoints
     state = ten_decision_document(bid_value=18).state
     for record in state.command_log[active.state.revision:]:
@@ -256,7 +313,10 @@ def test_native_sacrifice_wins_more_games_without_future_or_archive(localized_se
     result = active.live.outcome
     assert result.ranked_cards == ("S9", "DA")
     assert [(c.card, c.successes) for c in result.candidates] == [("S9", 13), ("DA", 8)]
-    assert "13 of 25 · 52%" in page and "8 of 25 · 32%" in page
+    tiles = tile_labels(page, "live-recommendation")
+    assert tuple(tiles) == ("S9", "DA")
+    assert "13/25" in tiles["S9"] and "52%" in tiles["S9"]
+    assert "8/25" in tiles["DA"] and "32%" in tiles["DA"]
     assert result.settings.objective == "played_game_goal" and "no overbid evaluation" in page
     assert ' checked' not in page.split('data-card-mode="play"', 1)[1].split("</fieldset>")[0]
     document = calls[0].to_dict()["document"]

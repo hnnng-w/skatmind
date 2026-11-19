@@ -32,7 +32,7 @@ from .session_declaration_correction_rendering import (
 )
 from .session_frontend import GuidedSessionContextV1
 from .session_live_advice import control_binding
-from .session_live_rendering import live_controls, live_recommendation, live_score
+from .session_live_rendering import live_card_choices, live_controls, live_score
 from .session_recorded_review import project_recorded_session_decisions_v1
 from .session_recorded_review_rendering import (
     render_recorded_review_source_v1,
@@ -196,6 +196,13 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
         fields = hidden("managed_handle", context.handle) + hidden(
             "card_selection", session_card_binding(context, task))
         player = dict(_players(locale, facts)).get(task.player_id, text(locale, "task.skat"))
+        if play and context.live.effort is not None:
+            choice_form = form(locale, "/sessions/play",
+                fields + live_card_choices(locale, context.live, task), "compact.record", primary=True)
+            return ('<div class="live-table">' + choice_form + '<aside class="live-context"><h3>'
+                    + translated(locale, "recovery.trick", number=len(facts.completed_tricks) + 1)
+                    + '</h3>' + render_current_trick(progress, locale)
+                    + live_score(progress, locale) + '</aside></div>')
         if set_entry:
             if (set_entry == "initial_hand" and facts.local_player_id is not None
                     and facts.local_player_id != task.player_id):
@@ -217,15 +224,11 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
         if play:
             fields += paragraph(locale, "recovery.trick", number=len(facts.completed_tricks) + 1)
             fields += render_current_trick(progress, locale)
-            if context.live.effort is not None:
-                fields += live_score(progress, locale) + live_recommendation(context, locale)
-            if context.live.effort is None or task.scope != "exact_legal_cards":
-                fields += paragraph(locale, "task.match.scope." + task.scope)
+            fields += paragraph(locale, "task.match.scope." + task.scope)
         elif not set_entry:
             fields += paragraph(locale, "compact.append") + paragraph(locale, "compact.accepted")
             fields += '<p>' + card_set_summary(locale, task.accepted_cards) + '</p>'
         fields += compact_card_selector(locale, mode="play" if play else "set",
-            recommended=getattr(context.live.outcome, "tied_best_cards", ()) if play else (),
             cards=task.selectable_cards, capacity=task.capacity,
             guidance_key=(f"session.{set_entry}.more" if task.accepted_cards else
                           f"session.{set_entry}.start") if set_entry else None,
