@@ -32,7 +32,7 @@ from .session_declaration_correction_rendering import (
 )
 from .session_frontend import GuidedSessionContextV1
 from .session_live_advice import control_binding
-from .session_live_rendering import live_controls, live_recommendation
+from .session_live_rendering import live_controls, live_recommendation, live_score
 from .session_recorded_review import project_recorded_session_decisions_v1
 from .session_recorded_review_rendering import (
     render_recorded_review_source_v1,
@@ -217,11 +217,15 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
         if play:
             fields += paragraph(locale, "recovery.trick", number=len(facts.completed_tricks) + 1)
             fields += render_current_trick(progress, locale)
-            fields += paragraph(locale, "task.match.scope." + task.scope)
+            if context.live.effort is not None:
+                fields += live_score(progress, locale) + live_recommendation(context, locale)
+            if context.live.effort is None or task.scope != "exact_legal_cards":
+                fields += paragraph(locale, "task.match.scope." + task.scope)
         elif not set_entry:
             fields += paragraph(locale, "compact.append") + paragraph(locale, "compact.accepted")
             fields += '<p>' + card_set_summary(locale, task.accepted_cards) + '</p>'
         fields += compact_card_selector(locale, mode="play" if play else "set",
+            recommended=getattr(context.live.outcome, "tied_best_cards", ()) if play else (),
             cards=task.selectable_cards, capacity=task.capacity,
             guidance_key=(f"session.{set_entry}.more" if task.accepted_cards else
                           f"session.{set_entry}.start") if set_entry else None,
@@ -444,15 +448,16 @@ def render_task_first_session_v1(
         controls = (_command(context, locale, view, primary, normal=True, progress=progress, app=app_context)
                     if primary else '<p><a href="#session-history">' + translated(
                         locale, "recorded_review.history") + '</a></p>')
-        task_content = '<h2>' + _task_heading(locale, view) + '</h2>' + live_recommendation(context, locale) + controls
+        live_play = primary == "record_play" and context.live.effort is not None
+        task_content = '<h2>' + _task_heading(locale, view) + '</h2>' + controls
         if ended:
             task_content = _completion_content(locale, view, progress, recorded)
-        elif not set_entry:
+        elif not set_entry and not live_play:
             task_content = ('<div class="recording-progress-layout"><div>' + task_content
                             + '</div>' + render_recorded_summary(progress, locale) + '</div>')
         variant = ' class="session-set-entry"' if set_entry else ''
         if primary == "record_play":
-            variant = ' class="session-play-entry"'
+            variant = ' class="session-play-entry live-play"' if live_play else ' class="session-play-entry"'
         elif ended:
             variant = ' class="session-completion"'
         normal += ('<div id="session-recording"' + variant + ' tabindex="-1"><div id="session-card-feedback"></div>'

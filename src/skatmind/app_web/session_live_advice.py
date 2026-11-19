@@ -6,13 +6,12 @@ import hmac
 from dataclasses import dataclass
 
 import skatmind.api.v1.session as api
-from skatmind.api.v1 import ExecutionOptionsV1
-from skatmind.api.v1.schema_validation import _share_checked_resources
+from skatmind.api.v1.schema_validation import validate_input_document
+from skatmind.live_whole_game import LiveGameOutcome, evaluate_live_game, live_rollout_view
 from skatmind.match_source_coordination import SavedSourceEpoch, match_source_coordinator
 from skatmind.session_persistence import _build_session_persistence_file_bytes_v1
 
-from .analysis_controls import EFFORTS
-from .execution import GuidedFrontendExecutionV1, execute_guided_frontend_analysis_v1
+from .analysis_controls import COUNTS, EFFORTS, TIMEOUTS
 from .forced_card_guidance import ForcedCardGuidance, forced_card_guidance
 from .managed_item_storage import validate_managed_direct_child_path_v1
 from .session_form_translation import build_session_position_options_from_form_v1
@@ -36,7 +35,7 @@ class LiveAssistance:
     effort: str | None = None
     control_revision: int = 0
     attempt: LiveAttempt | None = None
-    outcome: GuidedFrontendExecutionV1 | ForcedCardGuidance | None = None
+    outcome: LiveGameOutcome | ForcedCardGuidance | None = None
     unavailable: bool = False
 
     def invalidate(self):
@@ -130,6 +129,14 @@ def _fresh_source(active, document):
     _fresh(active, session=True)
 
 
+def evaluate_live_position(request, *, effort, cancelled):
+    data = request.to_dict()["document"]
+    validate_input_document(data)
+    index = EFFORTS.index(effort)
+    return evaluate_live_game(live_rollout_view(data), worlds=COUNTS[index],
+                              timeout_ms=TIMEOUTS[index], cancelled=cancelled)
+
+
 def run_live_attempt(app, active, attempt):
     """Post-save only. Advice failure cannot undo or misreport an accepted save."""
     from .session_card_entry import project_session_card_task
@@ -161,9 +168,10 @@ def run_live_attempt(app, active, attempt):
         if len(task.selectable_cards) == 1:
             outcome = forced_card_guidance(exported.request)
         elif len(task.selectable_cards) > 1:
-            with _share_checked_resources():
-                outcome = execute_guided_frontend_analysis_v1(exported.request,
-                                                              options=ExecutionOptionsV1())
+            # Lock-free identity reads only signal cancellation; they never authorize
+            # publication. No filesystem, replay or archive work inside the rollout loop.
+            outcome = evaluate_live_position(exported.request, effort=attempt.effort,
+                                             cancelled=lambda: not current())
         else:
             outcome = None
     except Exception:
@@ -180,13 +188,15 @@ def run_live_attempt(app, active, attempt):
         with app.lock, attempt.source.lock:
             if current():
                 active.live.outcome = outcome
-                active.live.unavailable = outcome is None
+                active.live.unavailable = outcome is None or (
+                    isinstance(outcome, LiveGameOutcome) and outcome.status != "complete")
 
 
 def live_delivery_guard(app, active, prior):
     """Capture alongside the rendered card area under its lock; check again at send."""
     attempt = active.live.attempt
     outcome, unavailable = active.live.outcome, active.live.unavailable
+    feedback = active.operation_feedback.attempt
     if attempt is None or (outcome is None and not unavailable):
         return prior
 
@@ -196,7 +206,8 @@ def live_delivery_guard(app, active, prior):
         with active.lock:
             with app.lock:
                 if (not _owned(app, active, attempt) or active.live.outcome is not outcome
-                        or active.live.unavailable != unavailable):
+                        or active.live.unavailable != unavailable
+                        or active.operation_feedback.attempt is not feedback):
                     raise ValueError("Live advice changed before delivery.")
             try:
                 _fresh_source(active, attempt.document)

@@ -26,6 +26,21 @@
   display: none;
 }
 
+#session-app .live-play .form-grid { gap: .35rem; }
+.live-play :is(p, ul, ol) { margin-block: .15rem; }
+.live-play .recorded-current, .live-play .recorded-current ol,
+.live-play #live-recommendation ul {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .25rem .85rem;
+  list-style: none;
+  padding: 0;
+}
+.live-play #live-recommendation li { white-space: normal; }
+.live-play .live-card-marker { color: var(--green-dark); }
+.live-play .compact-cards .compact-guidance { display: none; }
+
 form:has(select[name="settings_mode"] option[value="custom"]:checked) .analysis-custom-state {
   display: block;
   font-weight: 600;

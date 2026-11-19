@@ -1,14 +1,16 @@
-"""Native game-local controls and a compact view of the actual current Trick."""
-
-from html import escape
+"""Native card entry with party outcomes from the admitted whole-game simulation."""
 
 from .analysis_controls import EFFORTS
-from .forced_card_guidance import ForcedCardGuidance, render_guidance
+from .compact_card_rendering import compact_recorded_card
+from .forced_card_guidance import ForcedCardGuidance
 from .ordinary_result_numbers import ordinary_scalar
-from .result_immediate import retained_immediate_best_cards
+from .render_locale import localized_render
+from .rollout_result_numbers import simulation_success
 from .session_live_advice import LIVE_ROUTES, control_binding
-from .stateful_localization import card_name, text, translated
+from .stateful_localization import text, translated
 from .task_first_rendering import form, hidden, paragraph, select_field
+
+_local_success = localized_render(simulation_success)
 
 
 def live_controls(active, locale, ended):
@@ -37,29 +39,51 @@ def live_recommendation(active, locale):
     if outcome is None:
         return ""
     if isinstance(outcome, ForcedCardGuidance):
-        return render_guidance(outcome, locale)
-    document = outcome.result.result.document
-    best = retained_immediate_best_cards(document)
-    if not best:
+        return ('<p id="forced-card-guidance" role="status"><strong>'
+                + translated(locale, "analysis.live.forced") + ':</strong> '
+                + compact_recorded_card(locale, outcome.card, show_code=False) + '</p>')
+    if outcome.status != "complete":
         return paragraph(locale, "analysis.live.unavailable")
-    cards = ", ".join(card_name(locale, card) for card in best)
-    result = '<div id="live-recommendation" role="status"><strong>' + translated(
-        locale, "analysis.live.best", cards=cards) + '</strong>'
-    position = document["position"]
-    null = position["game_type"] == "null"
-    result += paragraph(locale, "analysis.objective.null_" + position["player_role"]
-                        if null else "analysis.objective.points")
-    rows = document["analysis_report"]
-    def swing(row):
-        return text(locale, "result.point_swing") + ": " + ordinary_scalar(
-            row["expected_point_swing"], ".2f", locale=locale)
+    best = outcome.tied_best_cards
+    candidates = {c.card: c for c in outcome.candidates}
+    shown = outcome.ranked_cards[:len(best) + 2]
+    leader = candidates[best[0]]
+    same_count = [candidates[card] for card in shown if card not in best
+                  and candidates[card].successes == leader.successes]
+    show_score = any(c.total_game_score != leader.total_game_score for c in same_count)
+    show_margin = any(c.total_game_score == leader.total_game_score for c in same_count)
+    result = ('<section id="live-recommendation" role="status"><strong>'
+              + translated(locale, "analysis.live." + outcome.settings.objective,
+                           party=text(locale, "trick_progress." + outcome.local_side))
+              + '</strong><ul>')
+    for card in shown:
+        row = candidates[card]
+        successes = row.successes
+        count = outcome.completed_common_worlds
+        frequency = _local_success(successes, count, locale=locale)
+        marker = "analysis.live.alternative"
+        if card in best:
+            marker = "rollout.marker.tied" if len(best) > 1 else "rollout.marker.recommended"
+        result += ('<li>' + compact_recorded_card(locale, card, show_code=False)
+                   + f' <b>{frequency}</b> · ' + translated(locale, marker))
+        if successes == leader.successes:
+            for show, key, total in ((show_score, "mean_score", row.total_game_score),
+                                     (show_margin, "mean_margin", row.total_point_margin)):
+                if show and total is not None:
+                    result += (' · ' + translated(locale, "result." + key) + ': '
+                               + ordinary_scalar(total / count, locale=locale))
+        result += '</li>'
+    result += '</ul>'
+    if same_count:
+        result += paragraph(locale, "analysis.live.tie_" + outcome.settings.objective)
+    return result + '</section>'
 
-    if not null:
-        result += "<p>" + escape(swing(rows[0])) + "</p>"
-    lower = rows[len(best):len(best) + 2]
-    if lower:
-        alternatives = [card_name(locale, row["card"]) + ("" if null else " — " + swing(row))
-                        for row in lower]
-        result += "<p>" + translated(locale, "result.alternatives") + ": " + escape(
-            "; ".join(alternatives)) + "</p>"
-    return result + '</div>'
+
+def live_score(progress, locale):
+    prefix = progress.latest
+    if prefix is None or prefix.declarer is None:
+        return ""
+    metric = "tricks" if progress.game_type == "null" else "points"
+    return paragraph(locale, "analysis.live.score", metric=text(locale, "trick_progress." + metric),
+                     declarer=getattr(prefix.declarer, metric),
+                     defenders=getattr(prefix.defenders, metric))

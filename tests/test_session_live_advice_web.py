@@ -15,11 +15,10 @@ from test_session_recorded_review_web import (
 )
 
 import skatmind.api.v1.session.files as files
-import skatmind.app_web.execution as execution
 from skatmind.app_web import session_live_advice as live
 from skatmind.app_web.server import SkatMindAppWebRequestHandlerV1 as Handler
 from skatmind.app_web.session_recorded_review import project_recorded_session_decisions_v1
-from skatmind.app_web.stateful_localization import card_name, text
+from skatmind.app_web.stateful_localization import text
 from skatmind.deck import get_full_deck
 
 __all__ = ["localized_server"]
@@ -31,13 +30,13 @@ def post(browser, route, page=None, **kwargs):
 
 
 def watch(monkeypatch):
-    real, calls = execution.execute, []
+    real, calls = live.evaluate_live_position, []
 
     def counted(request, **kwargs):
         calls.append(request)
         return real(request, **kwargs)
 
-    monkeypatch.setattr(execution, "execute", counted)
+    monkeypatch.setattr(live, "evaluate_live_position", counted)
     return calls
 
 
@@ -85,7 +84,8 @@ def test_activation_before_setup_then_discard_and_generic_play(localized_server,
     assert 'id="live-recommendation"' in page
     assert len(calls) == len(active.decision_checkpoints) == 1
     original = active.live.outcome
-    assert calls[0].document["sample_count"] == 25 and calls[0].document["random_seed"] == 0
+    assert (original.settings.requested_worlds, original.settings.wall_clock_timeout_ms,
+            original.settings.random_seed) == (25, 5000, 0)
     assert calls[0].document["analysis_mode"] == "live_decision"
     assert active.execution is None and active.pending_evidence is None
     assert not active.analysis_forms and active.recorded_review_source is None
@@ -95,13 +95,17 @@ def test_activation_before_setup_then_discard_and_generic_play(localized_server,
         assert 'id="live-recommendation"' in page
     assert len(calls) == 1 and active.live.outcome is original
     page = follow(browser, post(browser, EFFORT, page, analysis_effort="standard"))
-    assert calls[-1].document["sample_count"] == 100
-    # The specialist form has its own authority. Compare the full equivalent Quick result.
+    assert (active.live.outcome.settings.requested_worlds,
+            active.live.outcome.settings.wall_clock_timeout_ms) == (100, 30000)
+    # The specialist form still executes its independent Immediate analysis.
     page = follow(browser, post(browser, "/sessions/analyze", page, analysis_effort="quick"))
-    assert active.execution.result_json_bytes == original.result_json_bytes
+    assert active.execution.result.result.document["analysis_report"]
     before = active.execution
     page = follow(browser, post(browser, EFFORT, page, analysis_effort="more_time"))
-    assert active.execution is before and calls[-1].document["sample_count"] == 400
+    assert active.execution is before
+    assert (active.live.outcome.settings.requested_worlds,
+            active.live.outcome.settings.wall_clock_timeout_ms) == (400, 60000)
+    assert active.live.outcome.settings.objective == original.settings.objective
     assert browser.request("GET", "/sessions/downloads/result.json")[2] == before.result_json_bytes
     count = len(calls)
     # A generic accepted own Play leaves another player next.
@@ -120,7 +124,8 @@ def test_activation_before_setup_then_discard_and_generic_play(localized_server,
     assert browser.submit(old_stop)[0] == 409 and active.live.effort == "quick"
 
 
-def test_post_save_failure_is_not_a_recording_failure(localized_server, monkeypatch):
+@pytest.mark.parametrize("fault", ["timeout", "exception"])
+def test_post_save_failure_is_not_a_recording_failure(localized_server, monkeypatch, fault):
     browser = Browser(localized_server)
     calls = watch(monkeypatch)
     _, plays = record_live_game(browser, play_count=3)
@@ -138,8 +143,12 @@ def test_post_save_failure_is_not_a_recording_failure(localized_server, monkeypa
     persisted = []
     def fail(request, **kwargs):
         persisted.append(files.load_session_file(active.path).value.document)
+        if fault == "timeout":
+            from itertools import count
+            return live.evaluate_live_game(live.live_rollout_view(request.to_dict()["document"]),
+                worlds=25, timeout_ms=5000, clock=count(0, 6).__next__)
         raise RuntimeError("Injected analysis failure")
-    monkeypatch.setattr(execution, "execute", fail)
+    monkeypatch.setattr(live, "evaluate_live_position", fail)
     # The generic command route can bring the perspective player to act.
     page = follow(browser, browser.request("POST", "/sessions/command", {
         "kind": "record_play", "managed_handle": active.handle,
@@ -150,6 +159,8 @@ def test_post_save_failure_is_not_a_recording_failure(localized_server, monkeypa
     assert active.decision_checkpoints[-1].source_revision == active.state.revision
     assert text("en", "analysis.live.unavailable") in page
     assert 'id="live-recommendation"' not in page
+    if fault == "timeout":
+        assert active.live.outcome.status == "timeout" and not active.live.outcome.ranked_cards
     assert Forms(page).find("/sessions/review-decision")
     follow(browser, post(browser, "/sessions/open", browser.page("/sessions")))
     reopened = localized_server.app_context.managed_stateful.active_session
@@ -157,15 +168,18 @@ def test_post_save_failure_is_not_a_recording_failure(localized_server, monkeypa
     assert reopened.live.effort is None and len(persisted) == 1
 
 
-def test_equal_best_cards_use_current_trick_objective(localized_server):
+def test_visible_outcomes_for_defending_side(localized_server):
     browser = Browser(localized_server)
     record_score_review_game(browser, play_count=11)
     page = follow(browser, post(browser, START))
-    advice = page.split('id="live-recommendation"', 1)[1].split("</div>", 1)[0]
-    cards = ", ".join(card_name("en", card) for card in ("CJ", "SJ"))
-    assert text("en", "analysis.live.best", cards=cards) in advice
-    assert text("en", "result.point_swing") + ": 6.00" in advice
-    assert "%" not in advice and text("en", "result.alternatives") not in advice
+    advice = page.split('id="live-recommendation"', 1)[1].split("</section>", 1)[0]
+    active = localized_server.app_context.managed_stateful.active_session
+    outcome = active.live.outcome
+    assert outcome.local_side == "defenders" and outcome.status == "complete"
+    assert text("en", "trick_progress.defenders") in advice
+    for row in outcome.candidates:
+        assert f'{row.successes} of 25 · {4*row.successes}%' in advice
+    assert "<details" not in advice and "expected point swing" not in advice.lower()
 
 
 def test_forced_final_turn_completion_and_undo(localized_server, monkeypatch):
@@ -192,6 +206,67 @@ def test_forced_final_turn_completion_and_undo(localized_server, monkeypatch):
     assert forced in page and not calls and active.execution is None
 
 
+def test_native_sacrifice_wins_more_games_without_future_or_archive(localized_server, monkeypatch):
+    from test_automatic_session_web import install_session
+    from test_historical_game import build_historical_input
+    from test_session_transitions import _play_commands_from_data, _retrospective_before_play
+    from whole_game_rollout_oracle import small_view
+
+    import skatmind.api.v1.session as api
+    from skatmind.app_web.saved_match_analyses import archive_store
+    from skatmind.app_web.session_frontend import import_guided_session_v1
+
+    app = localized_server.app_context
+    browser = Browser(localized_server)
+    install_session(app)
+    follow(browser, post(browser, "/sessions/review-decision"))
+    store = archive_store(app)
+    assert store.snapshot().available_evidence_ids
+
+    # Same eight-trick discriminator as the exact oracle, but only the declarer's
+    # own hand and two discards are visible. No opponent hand is made public.
+    view, hands, discards = small_view(public=False)
+    ids = {"left": "player-a", "right": "player-b", "me": "player-c"}
+    played = {actor: [] for actor in ids}
+    tricks = []
+    for trick in view.completed_tricks:
+        plays = []
+        for p in trick.plays:
+            played[p.player].append(p.card)
+            plays.append({"player_id": ids[p.player], "card": p.card})
+        tricks.append({"plays": plays})
+    deck = [card for actor in ("left", "right") for card in (*played[actor], *hands[actor])]
+    data = build_historical_input(deck=deck + list(discards) + played["me"] + list(hands["me"]),
+                                  declarer_player_id=ids["me"], bid_value=None)
+    state = _retrospective_before_play(data, local_player_id=ids["me"])
+    # The last opponent input will bring the declarer on lead.
+    state = _play_commands_from_data(state, {"tricks": [*tricks[:-1], {
+        "plays": tricks[-1]["plays"][:-1]}]})
+    active = import_guided_session_v1(app.managed_stateful.root("sessions"), handle="c"*64,
+        document=api.build_session_persistence_document(state).value.to_dict())
+    app.managed_stateful.activate_session(active)
+    def forbidden(*args, **kwargs):
+        pytest.fail("Live advice accessed the unrelated archive")
+    for method in ("snapshot", "read_evidence", "publish_object"):
+        monkeypatch.setattr(type(store), method, forbidden)
+    calls = watch(monkeypatch)
+    page = follow(browser, post(browser, START))
+    assert not calls
+    page = follow(browser, post(browser, "/sessions/play", page, cards="SQ"))
+    result = active.live.outcome
+    assert result.ranked_cards == ("S9", "DA")
+    assert [(c.card, c.successes) for c in result.candidates] == [("S9", 13), ("DA", 8)]
+    assert "13 of 25 · 52%" in page and "8 of 25 · 32%" in page
+    assert result.settings.objective == "played_game_goal" and "no overbid evaluation" in page
+    assert ' checked' not in page.split('data-card-mode="play"', 1)[1].split("</fieldset>")[0]
+    document = calls[0].to_dict()["document"]
+    assert document["analysis_mode"] == "live_decision" and "actual_card_played" not in document
+    assert document["hand"] and document["skat"] and "public_declarer_cards" not in document
+    assert not active.execution and not active.evidence_notice
+    follow(browser, post(browser, "/sessions/analyze", page, analysis_effort="quick"))
+    assert active.execution.result.result.document["recommendation"]["card"] == "DA"
+
+
 @pytest.mark.parametrize("change", ["stop", "reopen", "undo", "correction", "effort", "reject",
                                      "external_restore"])
 def test_slow_attempt_cannot_overwrite_newer_advice_or_feedback(
@@ -203,17 +278,21 @@ def test_slow_attempt_cannot_overwrite_newer_advice_or_feedback(
     before = active.document
     page = follow(browser, post(browser, START))
     entered, release = Event(), Event()
-    real, calls = live.execute_guided_frontend_analysis_v1, []
+    real, calls = live.evaluate_live_position, []
+    stopped = []
 
     def paused(request, **kwargs):
         calls.append(request)
         if len(calls) == 1:
             entered.set()
             assert release.wait(30)
-            raise ValueError("Older attempt failed")
+            assert kwargs["cancelled"]()
+            result = real(request, **kwargs)
+            stopped.append(result.status)
+            return result
         return real(request, **kwargs)
 
-    monkeypatch.setattr(live, "execute_guided_frontend_analysis_v1", paused)
+    monkeypatch.setattr(live, "evaluate_live_position", paused)
     with ThreadPoolExecutor(max_workers=1) as pool:
         first = pool.submit(post, browser, "/sessions/play", page, cards=plays[3]["card"])
         try:
@@ -253,6 +332,7 @@ def test_slow_attempt_cannot_overwrite_newer_advice_or_feedback(
             release.set()
         assert first.result(timeout=15)[0] == 303
     assert active.live.outcome is newer and not active.live.unavailable
+    assert stopped == ["cancelled"]
     assert (newer is not None) == (change in {"effort", "correction"})
     assert (feedback is not None) == (change == "reject")
     assert app.form_feedback.current("sessions", active_identity=active) is feedback

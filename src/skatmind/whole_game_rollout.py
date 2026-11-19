@@ -172,8 +172,16 @@ def _unavailable_reason(
     settings: WholeGameRolloutSettingsV1,
     remaining: int,
     cards: tuple[str, ...],
+    *,
+    live_null: bool,
 ) -> str | None:
-    if view.game_type not in (*SUIT_GAME_TYPES, "grand"):
+    if view.game_type == "null" and live_null:
+        if view.declarer_trick_count:
+            return "game_already_complete"
+        if (view.declaration.bid_value is not None
+                and not has_supported_terminal_utility_inputs(view.declaration)):
+            return "unsupported_null_overbid"
+    elif view.game_type not in (*SUIT_GAME_TYPES, "grand"):
         return "unsupported_game_type"
     if view.perspective_player != "me":
         return "unsupported_perspective"
@@ -204,6 +212,11 @@ def prepare_whole_game_rollout_v1(
     cancelled: Callable[[], bool] | None = None,
 ) -> WholeGameRolloutPreparationV1:
     """Validate one safe root and freeze bounded IID draws before candidate execution."""
+    return _prepare_common_worlds(information_view, settings, clock=clock, cancelled=cancelled,
+                                  live_null=False)
+
+
+def _prepare_common_worlds(information_view, settings, *, clock, cancelled, live_null):
     if not isinstance(information_view, SearchInformationView):
         raise ValueError("information_view must be a SearchInformationView.")
     if not isinstance(settings, WholeGameRolloutSettingsV1):
@@ -219,7 +232,7 @@ def prepare_whole_game_rollout_v1(
     cards = canonicalize_cards(tuple(get_legal_cards(
         list(view.local_remaining_hand), [play.card for play in view.current_trick], view.game_type
     )))
-    reason = _unavailable_reason(view, settings, remaining, cards)
+    reason = _unavailable_reason(view, settings, remaining, cards, live_null=live_null)
     status = "unavailable" if reason else "ready"
     count = None
     worlds = []
@@ -324,6 +337,25 @@ def _sum_candidates(
     )
 
 
+def _completed_batches(p, order, work, policy, terminal):
+    """Only yield a common draw after every candidate reaches terminal under its policy."""
+    for root in p._worlds:
+        batch = {}
+        for card in order:
+            work.transition()
+            child = apply_information_set_search_card_v1(root, card)
+            while not child.exact_state.is_terminal:
+                work.transition()
+                action = policy(build_information_set_search_observation_v1(child))
+                child = apply_information_set_search_card_v1(child, action)
+            work.check()
+            batch[card] = terminal(child.exact_state, card, p.settings.objective,
+                                   p.information_view.local_side)
+            work.terminal_evaluations += 1
+        work.check()
+        yield batch
+
+
 def execute_whole_game_rollout_v1(
     preparation: WholeGameRolloutPreparationV1,
     *,
@@ -339,6 +371,8 @@ def execute_whole_game_rollout_v1(
     if not isinstance(preparation, WholeGameRolloutPreparationV1):
         raise ValueError("preparation must be WholeGameRolloutPreparationV1.")
     p = preparation
+    if p.status == "ready" and p.information_view.game_type == "null":
+        raise ValueError("A Live Null preparation requires the Null continuation policy.")
     order = p.legal_root_cards if candidate_order is None else candidate_order
     if not isinstance(order, tuple) or (
         len(order) != len(p.legal_root_cards) or set(order) != set(p.legal_root_cards)
@@ -354,23 +388,8 @@ def execute_whole_game_rollout_v1(
     status, reason = p.status, p.stop_reason
     if status == "ready":
         try:
-            for root in p._worlds:
-                batch = {}
-                for card in order:
-                    work.transition()
-                    child = apply_information_set_search_card_v1(root, card)
-                    while not child.exact_state.is_terminal:
-                        work.transition()
-                        observation = build_information_set_search_observation_v1(child)
-                        action = select_whole_game_rollout_card_v1(observation)
-                        child = apply_information_set_search_card_v1(child, action)
-                    work.check()
-                    batch[card] = _terminal_candidate(
-                        child.exact_state, card, p.settings.objective, p.information_view.local_side
-                    )
-                    work.terminal_evaluations += 1
-                # Commit the entire common draw atomically, including duplicate draws.
-                work.check()
+            for batch in _completed_batches(p, order, work, select_whole_game_rollout_card_v1,
+                                            _terminal_candidate):
                 totals = {card: _sum_candidates(totals[card], batch[card]) for card in totals}
                 completed += 1
             status, reason = "complete", "completed"

@@ -46,7 +46,8 @@ def card_set_display_order(cards):
     return tuple(card for _, group in card_display_groups(cards) for card in group)
 
 
-def compact_card_groups(groups, *, mode, name, selected, card_label):
+def compact_card_groups(groups, *, mode, name, selected, card_label, recommended=(),
+                        recommendation_label=""):
     """Render caller-ordered, localized suit groups without set sorting or form behavior."""
     if mode not in {"set", "play"}:
         raise ValueError("Card selector mode must be set or play.")
@@ -56,14 +57,18 @@ def compact_card_groups(groups, *, mode, name, selected, card_label):
             continue
         choices = []
         for card in group:
-            label = escape(card_label(card), quote=True)
+            best = card in recommended
+            label = escape(card_label(card) + (" — " + recommendation_label if best else ""),
+                           quote=True)
             choices.append(
                 '<label class="compact-card"><input type="'
                 + ("checkbox" if mode == "set" else "radio")
                 + f'" name="{escape(name, quote=True)}" value="{card}" aria-label="{label}"'
                 + (' checked' if card in selected else '')
                 + (' required' if mode == "play" else '')
-                + '>' + _card_face(card) + '</label>')
+                + '>' + _card_face(card)
+                + ('<b class="live-card-marker" aria-hidden="true">★</b>' if best else '')
+                + '</label>')
         rendered.append('<div class="compact-card-group"><h4>' + escape(heading, quote=True)
                         + '</h4><div class="compact-card-choices">'
                         + ''.join(choices) + '</div></div>')
@@ -72,12 +77,14 @@ def compact_card_groups(groups, *, mode, name, selected, card_label):
 
 def compact_card_selector(locale, *, mode, cards=None, selected=(), game_type=None, capacity=1,
                           name="cards", legend_key=None, guidance_key=None, guidance_values=None,
-                          balanced_grid=False):
+                          balanced_grid=False, recommended=()):
     cards = tuple(get_full_deck() if cards is None else cards)
     selected = tuple(selected or ())
     groups = compact_card_groups(
         ((text(locale, key), group) for key, group in card_display_groups(cards, game_type)),
-        mode=mode, name=name, selected=selected, card_label=lambda card: card_name(locale, card))
+        mode=mode, name=name, selected=selected, card_label=lambda card: card_name(locale, card),
+        recommended=recommended, recommendation_label=text(locale, "rollout.marker.recommended")
+        if recommended else "")
     summary = ''
     if mode == "set":
         codes = escape(', '.join(card for card in card_set_display_order(cards)
