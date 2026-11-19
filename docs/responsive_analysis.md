@@ -601,3 +601,401 @@ git ls-files --others --exclude-standard
 This local selection does not establish a successful full check. Keep #326
 and #208 open; the corrected commit needs published-source review and fresh
 exact-commit main gates.
+
+## Reading already retained executions
+
+This investigation starts on `task/326-responsive-analysis`, clean at
+`82abd015eb064de3486451aa9a52da4958ea03e4`. The maintainer's installed
+follow-up functionally passed: the labels distinguish input from analysis,
+guided reopening and execution work, the recorded Match executes, and the
+only-legal-Club-King response explains the rule without a percentage or
+statistical execution. Approximate installed click-to-response observations
+were **35 s** for the initial saved list, **15 s** to open input for editing,
+**40 s** for the full Dora guided Quick Review, and **47 s** for Bea's
+game-2/trick-9 first Card, full-accounting Match Quick rollout. No time was
+reported for the forced response or the post-execution list. The screenshot's
+100-world and 30000-ms custom values were inactive. These are not paired
+benchmarks or measurements of individual internal phases.
+
+The source probe reuses the genuine `issue326-fixtures/{2,33}` archives from
+the earlier 27.04-second fixture construction. It also copies the previously
+captured `issue326-fu-after/2` synthetic home, containing the full thirty-Play
+Quick execution and Match Reports. This tests a cold saved list and reopening
+of an **already stored** full analysis. No archive is generated for that case.
+The passive sequence compares archive file hashes and reopened Request/Result
+bytes against the captured originals. Copying, store setup, fixture selection,
+and profiling are outside HTTP timings. Cold denotes a fresh service owner,
+not a flushed filesystem cache.
+
+### Where the duplicate occurs
+
+The following describes the first decoder candidate. Its extra cross-copy
+rejection was subsequently removed; see [Compatibility correction and packed
+read gate](#compatibility-correction-and-packed-read-gate).
+
+In the captured envelope `0ad8ad0d340ee883c822fce041a5ef8302d175e78ef603cff799ebb9f5330d6a`,
+the expanded `internal_execution` is 54,923,026 bytes. Its `provenance` and
+`information_provenance_enforcement.provenance` each occupy 26,723,253 bytes
+of ordered compact JSON, with the same 93 attachments. Before changing the
+decoder, the single strict decode took 26.657 s under cProfile. Typed
+reconstruction/roundtrip accounted for 15.188 s; retained-stage linkage for
+5.848 s. Of 188 attachment constructions, 186 were the two bundle copies.
+These are inclusive profiler times, not response times.
+
+The private decoder now reconstructs the execution's bundle first. Only the
+immediate serialization checkpoint receives that candidate. A recursive
+comparison checks the complete wire trees: exact scalar and container types,
+ordered keys and list elements, and signed floating zero. This uses neither
+an identity supplied on the wire nor Python mapping equality. On a match the
+checkpoint takes the already constructed, frozen bundle. On a mismatch its
+copy takes the normal constructor path; unequal canonical wires are rejected.
+A change solely in codec-record key order therefore retains prior canonical
+compatibility but does **not** share the instance. Changing native document
+order changes the sequence of encoded mapping pairs and is rejected.
+
+All field and coverage constructors still run for the first bundle. The
+checkpoint and result constructors run; the decoder re-encodes and compares
+the **entire** canonical result against the input, emitting the checked
+bundle at both positions. Only the temporary in-memory encoding of the same
+immutable instance is built once. Neither comparison state nor a wire mapping
+escapes the call. An unrelated execution, including one with the same bytes,
+starts over. Historical unpack still authenticates and bounds the complete
+expanded input, including both copies. `validate_execution` still validates
+the serialization checkpoint, source bindings and retained-stage linkage
+against the original invocation. Inventory, receipts and final-delivery
+authority are outside this change.
+
+### Paired measurements on the existing format
+
+**The change removed duplicate contract work. It did not demonstrate a
+consistent material improvement on the primary receipt-eligible list/Reopen
+paths.** In the single profiled full Historical decode, attachment constructions
+fell from 188 to 95, coverage audits from 282 to 189, and overall decode time
+from 26.657 to 21.986 s. The after profile spent 11.524 s in typed
+decode/roundtrip, including 1.512 s comparing the two wires. Complete canonical
+JSON still took 6.526 s across the operation; retained-stage linkage took
+5.908 s, including 36,899 source-reference checks. These times overlap.
+
+The table gives actual client wall seconds, baseline → candidate. Both runs
+used the same probe, interpreter, controls, and independent copies of the same
+old fixtures. Each saved list, source page, POST and redirect was requested
+through the real loopback handler. The retained home has **8 objects,
+8,810,216 stored bytes, 5 admitted executions**, eligible for a receipt;
+copying took 0.014 / 0.025 s. The explicit runs start from a separate 4-object
+copy. The 66-object fallback has 33 genuine available executions and exceeds
+the production 64-object bound.
+
+| HTTP operation | Before (s) | After (s) |
+| --- | ---: | ---: |
+| Captured full archive: cold saved-list GET | 16.699 | 42.918 |
+| Same owner: warm list GET | 0.767 | 1.645 |
+| Source GET | 1.011 | 1.098 |
+| Reopen full guided input: POST / redirect GET | 16.536 / 0.477 | 17.197 / 0.648 |
+| Complete guided Quick: POST / redirect GET | 13.017 / 7.469 | 37.847 / 26.175 |
+| Cold list after that Quick execution | 10.677 | 23.469 |
+| Non-forced Match Quick, full settlement: POST / redirect GET | 21.877 / 42.862 | 25.403 / 18.687 |
+| Above limit: cold list GET | 41.547 | 28.844 |
+| Above limit: warm list GET | 28.152 | 20.829 |
+| Above limit: source GET | 27.053 | 19.896 |
+| Above limit: Reopen POST / redirect GET | 64.399 / 50.638 | 41.537 / 16.229 |
+
+For the two primary paths, a separate **before / after / after / before**
+sequence used four fresh Python processes, servers, owners and copies of the
+same 8-object home. Each process loaded only the selected revision's private
+codec before importing the common probe. In execution order:
+
+| Codec | Cold list GET | Source GET | Reopen POST | Redirect GET |
+| --- | ---: | ---: | ---: | ---: |
+| Before 1 | 12.493 | 1.095 | 36.668 | 1.323 |
+| After 1 | 31.311 | 1.790 | 32.343 | 1.580 |
+| After 2 | 15.141 | 0.778 | 17.200 | 0.627 |
+| Before 2 | 17.344 | 1.019 | 17.664 | 0.424 |
+
+The cold-list change even switches direction across pairs. Reopen POST
+improved slightly in both counterbalanced pairs but was slower in the first
+full sequence. Passive receipt hits do little or no typed decoding. These
+observations do not isolate a cause for the wall-time variability and do not
+establish an installed latency benefit. No additional full run was used for timing.
+
+**Phases in the first pair** (inclusive seconds before → after; do not add):
+
+| Path | Engine work | Typed decode/roundtrip | Strict admission | Retention or delivery |
+| --- | --- | ---: | ---: | --- |
+| Captured cold list | none | 7.389 → 12.333 | 13.309 → 32.700 | Archive delivery 16.042 → 40.503 |
+| Reopen POST | none | 6.709 → 6.423 | 13.404 → 13.518 | Manual delivery capture 15.510 → 16.045 |
+| Guided Quick POST | 30 recommendations, 0.171 → 0.169 | 4.241 → 12.843 | 0.371 → 1.743 | Retention 9.551 → 33.862 |
+| Guided redirect GET | none | 4.181 → 13.095 | 7.250 → 25.850 | Manual delivery capture 7.420 → 26.106 |
+| Match Quick POST | Rollout 0.017 → 0.089 | 11.822 → 7.175 | 17.353 → 15.441 | Retention 21.561 → 24.788 |
+| Match redirect GET | none | 19.883 → 5.019 | 41.628 → 15.223 | Archive delivery 42.790 → 18.567 |
+| Above-limit cold list | none | 13.580 → 7.712 | 32.224 → 21.787 | Final authorization 13.290 → 9.463 |
+
+Both captured cold lists performed one admission, five Result decodes and
+49 object reads (46,274,733 bytes). The 66-object cold lists each performed
+three complete admissions and 99 Result decodes; each fallback Reopen POST
+performed five and 165 respectively. Passive operations published nothing.
+Both explicit Quick POSTs made one reservation, two object publications and
+one manifest publication apiece. Each Match result GET performed one full
+admission, four Result decodes and 28 reads including the fresh delivery checks.
+
+The full guided Request (5,577 bytes) and Result (575,934 bytes) match the
+captured originals and hashes above. The Match fixture selected Bea at decision
+25, `HQ` or `DQ`, with bid 18, matadors 1, objective `complete_settlement`,
+seed 0, 25 worlds and a 5,000-ms budget. Both executions completed with
+300 transitions and 50 terminal evaluations. The 7,885-byte Request matches
+(`5865b3e51567b95c3fe961008888f1818ec85b3c9f3071d983b783b0f15908c3`).
+The only different Result field between the two new executions was
+`/whole_game_rollout_result/work/elapsed_ms` (24.659 / 110.108). In each
+run the actual Request and Result download bytes matched its own stored
+envelope exactly. All prior object bytes survived; both passive archives
+also kept their exact manifests.
+
+**Next design if cold latency must fall further:** the unchanged reader still
+parses, walks and canonically serializes both large JSON subtrees. A larger
+old-format reader could record the byte ranges for the two provenance fields
+during bounded parsing, validate one typed subtree and stream its canonical
+re-encoding into both positions of a complete roundtrip. It would still need
+to authenticate and charge *all* expanded bytes, detect duplicate keys and
+invalid numbers throughout, and use the existing strict path whenever literal
+ranges differ (including legitimately equivalent record-key ordering). New
+format references alone would not help the existing archive. Such a reader
+would need compatibility tests against old compressed and uncompressed objects,
+exact exports, rehashed corruption, and fallback delivery before it could replace
+this decoder. It would not eliminate retained-stage source validation or disk
+reads. No such parser, format or migration is included here.
+
+### Validation and reproduction
+
+Windows development CPython 3.13.7; external outputs and 7,200,000-ms timeouts.
+From the repository root:
+
+```powershell
+$B = "$env:TEMP/opencode"
+$D = "$B/issue326-retained-82abd01"
+# Same probe before the Product edit at 82abd015 and afterwards:
+py -3.13 scripts/measure_responsive_analysis.py --fixtures "$B/issue326-fixtures" --retained-fixture "$B/issue326-fu-after/2" --output "$D/before"
+py -3.13 scripts/measure_responsive_analysis.py --fixtures "$B/issue326-fixtures" --retained-fixture "$B/issue326-fu-after/2" --output "$D/after"
+py -3.13 "$D/crossover.py" > "$D/crossover.log"
+```
+
+`before/report.json`, `after/report.json`, the four `passive-*.json` files,
+the original downloads and the single-call `before.prof` / `after.prof` are in
+that directory. The profiles used the earlier `cProfile` recipe against
+separate copies of `issue326-fu-after/2/managed/automatic-learning`; only
+`decode_historical_execution` was bracketed.
+
+```powershell
+$P = @('-n','2','--dist=loadfile','--max-worker-restart=0','-o',"cache_dir=$D/cache",'-q','--tb=short')
+$K = 'shares_only or only_checkpoint_bundle or equal_malformed or equal_copies or matching_bundle or different_codec_record or charges_both'
+py -3.13 -m pytest tests/test_automatic_historical_admission.py -k $K @P "--basetemp=$D/focused-complete" "--junitxml=$D/focused-complete.xml"
+$M = @('automatic_historical_admission','automatic_historical_evidence','automatic_match_historical_evidence','automatic_match_evidence','automatic_match_rollout_evidence','automatic_session_evidence','automatic_learning_bulk_read','automatic_learning_delivery_receipt','automatic_historical_web','saved_match_analyses_web','saved_match_rollouts_web') | ForEach-Object {"tests/test_$_.py"}
+py -3.13 -m pytest @M @P "--basetemp=$D/affected" "--junitxml=$D/affected.xml"
+py -3.13 -m pytest tests/test_skatmind_rename.py tests/test_cli_internal_architecture.py @P "--basetemp=$D/guards" "--junitxml=$D/guards.xml"
+$env:Path = "$(py -3.13 -c 'import sys; from pathlib import Path; print(Path(sys.executable).parent)');$env:Path"
+.\scripts\check.ps1 -Mode Quick -LogDirectory "$D/quick"
+git diff --check
+git diff --cached --check
+git ls-files --others --exclude-standard
+```
+
+The 12 focused cases passed in 6.36 s. They distinguish bool/int/float and
+native pair order, reject a contradiction in just one copy, require real
+coverage and whole-wire roundtrip for matching malformed copies, reject a
+foreign source even when both copies agree, verify independent calls and
+immutable documents, and charge the original packed size even under a forged
+smaller declaration. The complete module selection follows each shared decoder
+consumer through stored Historical, Match and Session executions, then bulk and
+receipt paths, original downloads, corruption and final delivery. All 11
+complete modules passed: **294 tests in 1,475.17 s**. None of the
+changed boundaries is owned by an exclusive module. The installed functional
+observations stand. #326 and #208 remain open.
+
+## Compatibility correction and packed read gate
+
+This follow-up started on `task/326-responsive-analysis` at
+`82abd015eb064de3486451aa9a52da4958ea03e4`, with the four previous candidate
+files unstaged. It uses only the source checkout and genuine disposable old
+archives. The earlier timings labelled "cold" are **first saved-list GETs
+after preparatory admission**: that probe had already resumed the first store
+and called `_snapshot_for_delivery()` before the timer. The service owner's
+admission was inside the GET, but first application archive access was not.
+
+### Which checkpoint wires are accepted
+
+On development CPython 3.13.7, the same genuine invocation of
+`examples/historical_grand_declarer_concession.json` was encoded and just the
+two document mapping pairs of the checkpoint's `historical_game_result`
+attachment were reversed. HEAD decoded and validated this execution. Candidate
+`25e93df83ea4837068cd5bfc545aae43b902bcabe32bc7adef2f9918495d2dc3`
+rejected it with `Retained execution and checkpoint provenance disagree.`
+A rehashed packed execution in the actual source-bound envelope was likewise
+unavailable after store resume in the new regression before the fix.
+
+Wire equality now decides **only whether to share the immutable bundle**.
+A miss reconstructs the checkpoint's own representation. Each representation
+must roundtrip, including the original order of its own native mapping pairs;
+there is no new requirement that the two independent wires be byte-equal.
+The existing serialization checkpoint, source and retained-stage checks decide
+whether the execution is valid. After the correction the reordered envelope
+is admitted, with distinct bundle instances, the exact reordered wire,
+unchanged archive bytes and original Request/Result downloads. A changed
+checkpoint input value still fails final serialization validation. Missing or
+extra record fields still fail reconstruction. The tests distinguish these
+errors from nonidentical but historically accepted wire scalar representations.
+
+### Packed JSON experiment (A)
+
+`unpack_native` retains its original size cap, decompression EOF/tail, byte
+length and hash checks. The private bytes entry parses those bytes, retains
+the canonical bytes **computed by that parse**, reconstructs the typed value,
+releases the input tree and checks the complete canonical output. No caller
+can supply a trusted canonical value. `decode_json` and the general value
+decoder retain their contracts. The same ordered pair, duplicate-key, finite
+number/overflow, UTF-8/BOM and recursion checks apply; raw inner JSON need
+not have canonical spelling. Neither on-disk representation nor receipt
+accounting changes.
+
+Before running the HTTP comparison or broad tests, eight fresh processes
+unpacked the same 54,923,026-byte original `internal_execution` (expanded
+SHA-256 `652f9145073457eb44119007b041159031b8f5e3b36ef7b47fe4e20f0c81633f`).
+`C` means the compatibility-corrected previous candidate, not HEAD; `A`
+adds only the packed path. `gate.py` loaded exact source snapshots for the
+three codec modules and recorded their hashes. Timers cover one unprofiled
+unpack; verification is afterwards. Windows `GetProcessMemoryInfo` supplied
+process high-water marks immediately before and after, without allocation
+tracing (pre-unpack peak working sets: 39.15–39.57 MiB).
+
+| Order | Reader | Wall s | Process CPU s | Peak working set MiB | Peak commit MiB |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | C | 4.801 | 4.719 | 490.15 | 490.78 |
+| 2 | A | 3.748 | 3.594 | 406.98 | 408.05 |
+| 3 | A | 4.844 | 4.203 | 406.98 | 408.05 |
+| 4 | C | 5.037 | 4.844 | 489.82 | 490.29 |
+| 5 | A | 3.813 | 3.547 | 407.20 | 407.91 |
+| 6 | C | 5.283 | 5.016 | 489.96 | 490.46 |
+| 7 | C | 12.591 | 6.875 | 490.68 | 491.34 |
+| 8 | A | 4.719 | 4.188 | 407.86 | 408.46 |
+
+The advance criterion was lower CPU in at least three of four pairs and
+at least 5% lower median CPU, without a worse median wall time or a material
+peak-memory increase. All four pairs used less CPU. Medians: CPU **4.930 →
+3.891 s**, wall **5.160 → 4.266 s**, peak working set **490.05 → 407.09 MiB**.
+Holding the canonical input longer did not raise the measured process peak.
+One full native-input canonicalization is removed (three calls → two on a
+separate counted noncanonical input, outside timing). Every measured value
+independently re-encoded to the exact original expanded bytes; the complete
+Historical decode returned the original download hashes quoted above. Both
+readers preserved signed zero and significant mapping order and rejected the
+same seven malformed inputs. **A passed this small gate.** It measures one
+execution, not the cost of the surrounding archive or installed application.
+
+For reproduction, `$B = "$env:TEMP/opencode"` and
+`$D = "$B/issue326-packed-gate"`. The original rejection, the three corrected
+pre-A codec sources, the two external drivers and per-process raw JSON are
+retained there. Both drivers run sequential child processes with the same
+development interpreter; no validation workers run during the timing series:
+
+```powershell
+py -3.13 -B "$D/gate.py"
+py -3.13 -B "$D/http_pair.py" > "$D/http-pair.log"
+```
+
+The second driver selects HEAD or working codec sources **before** probe
+imports. Its two scenarios invoke `scripts/measure_responsive_analysis.py
+--fixtures "$B/issue326-fixtures" --retained-fixture "$B/issue326-fu-after/2"
+--first-access retained|guided --output <fresh-external-directory>`.
+Only the fixture copy and its offline integrity comparison precede application
+setup. The observer uses the expected root path without constructing a store.
+It instruments setup and HTTP cookie bootstrap separately, then first saved-list
+GET, warm list, source GET, Reopen POST and redirect GET. The guided scenario
+uses a separate four-object copy, reopens the same head, then submits and
+delivers a complete ordinary Quick Review with the original 25 samples and
+seed 11. These are first application archive accesses, not flushed OS caches.
+
+### First archive access and guided Quick: HEAD vs combined candidate
+
+Each row below is a fresh process in execution order; cells are **wall /
+process CPU seconds**. Server setup and HTTP bootstrap completed in 0.001–0.022 s
+per phase and recorded zero store constructions, bounded archive reads,
+admissions, Result loads and publications in every process. The first list GET
+in each process constructed **two** stores and paid for both admissions.
+
+| Retained 8-object home | First list GET | Warm list GET | Source GET | Reopen POST | Redirect GET |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| HEAD 1 | 31.299 / 30.344 | 0.956 / 0.844 | 0.771 / 0.734 | 17.893 / 16.828 | 0.508 / 0.438 |
+| Combined 1 | 26.333 / 25.578 | 0.761 / 0.750 | 0.891 / 0.859 | 12.485 / 12.172 | 0.558 / 0.562 |
+| Combined 2 | 26.684 / 25.344 | 0.771 / 0.766 | 0.894 / 0.875 | 13.221 / 12.828 | 0.587 / 0.578 |
+| HEAD 2 | 33.554 / 31.234 | 0.904 / 0.875 | 0.749 / 0.734 | 16.358 / 16.031 | 0.397 / 0.375 |
+
+On the separate initial 4-object home the same discovery/Reopen sequence
+preceded each guided execution. Its full raw rows, including setup, warm
+requests and nested phases, are in `http-guided-*/report.json`.
+
+| Guided run | First list GET | Quick POST | Redirect GET |
+| --- | ---: | ---: | ---: |
+| HEAD 1 | 4.172 / 4.062 | 17.483 / 17.016 | 10.389 / 10.016 |
+| Combined 1 | 3.895 / 3.844 | 15.858 / 14.547 | 8.648 / 7.438 |
+| Combined 2 | 3.392 / 3.250 | 13.206 / 12.453 | 8.816 / 8.297 |
+| HEAD 2 | 7.971 / 6.703 | 18.286 / 17.438 | 11.963 / 11.203 |
+
+Within each scenario the measured work counters match across all four runs.
+On the retained home, first list / warm list / source / Reopen POST / redirect
+respectively had **2/0/0/1/0 admissions**, **10/0/0/5/0 Result decodes**,
+and **57/23/22/56/16 indexed object reads** (55,084,949 / 19,819,979 /
+19,807,926 / 61,671,512 / 17,620,432 bytes). For the same five requests on
+the small home those counts were 2/0/0/1/0, 4/0/0/2/0 and 32/14/13/28/8.
+Passive requests did not publish. Guided POST and GET each had one admission
+and three Result loads; the POST had 11 reads, one reservation, two object
+publication calls and one manifest publication; the redirect had 20 reads.
+All reopened full and newly executed guided Request/Result bytes matched the
+prior originals. Offline comparisons confirmed that the passive sequence
+preserved every archive JSON file including the manifest.
+
+First full-list admission time (inclusive) was 27.126 / 22.084 / 22.479 /
+29.281 s in execution order, of which substantial work was packed native
+decoding (16.489 / 11.275 / 11.685 / 18.174 s during the request). Reopen
+POST still needed a distinct authority check; five Result decodes took place
+on every run. Guided retention took 13.653 / 11.857 / 10.407 / 14.255 s;
+measured recommendation work took 0.163 / 0.167 / 0.119 / 0.171 s. These
+intervals are not an additive breakdown. Strict source/checkpoint/linkage,
+whole-archive admission and fresh byte checks remain substantial costs.
+
+**Decision: retain both changes and recommend maintainer publication for
+source review after local validation.** In both orders, first access saved
+about 5–7 s on the retained archive. Source GET and Reopen redirect GET were
+individually slower (by 0.05–0.19 s); they executed no retained Result
+decodes. The complete source → Reopen → redirect path nevertheless took
+19.171 → 13.934 s and 17.504 → 14.702 s. Guided POST and redirect improved in
+both orders, without the earlier substantial slowdown. These eight runs on
+disposable fixtures do not establish a universal or installed latency result.
+No new installed run is requested. #326 and #208 remain open.
+
+### Final dependency-based checks
+
+All pytest commands use development CPython 3.13.7, external output, two
+file-grouped workers, disabled worker restarts and 7,200,000-ms invocation
+timeouts:
+
+```powershell
+$D = "$env:TEMP/opencode/issue326-packed-gate"
+$P = @('-n','2','--dist=loadfile','--max-worker-restart=0','-o',"cache_dir=$D/cache",'-q','--tb=short')
+$T = 'tests/test_automatic_historical_admission.py'
+py -3.13 -m pytest $T -k reordered_checkpoint_result @P "--basetemp=$D/red" "--junitxml=$D/red.xml"
+py -3.13 -m pytest $T -k 'reordered_checkpoint_result or only_checkpoint_bundle or matching_bundle or shares_only' @P "--basetemp=$D/compat" "--junitxml=$D/compat.xml"
+py -3.13 -m pytest $T -k 'reordered_checkpoint_result or only_checkpoint_bundle or native_roundtrip_compares or bounded_packed_input or charges_both' @P "--basetemp=$D/final-focused" "--junitxml=$D/final-focused.xml"
+$M = @('automatic_learning_contracts','automatic_historical_admission','automatic_historical_evidence','automatic_match_historical_evidence','automatic_match_evidence','automatic_match_rollout_evidence','automatic_session_evidence','automatic_learning_bulk_read') | ForEach-Object {"tests/test_$_.py"}
+py -3.13 -m pytest @M @P "--basetemp=$D/affected" "--junitxml=$D/affected.xml"
+py -3.13 -m pytest tests/test_skatmind_rename.py tests/test_cli_internal_architecture.py @P "--basetemp=$D/guards" "--junitxml=$D/guards.xml"
+$env:Path = "$(py -3.13 -c 'import sys; from pathlib import Path; print(Path(sys.executable).parent)');$env:Path"
+.\scripts\check.ps1 -Mode Quick -LogDirectory "$D/quick"
+git diff --check
+git diff --cached --check
+git ls-files --others --exclude-standard
+```
+
+The stored-concession regression failed before the fix (1 failed), the corrected
+checkpoint selection passed (8 passed in 7.30 s) and the final focused selection
+passed (15 passed in 9.54 s). The eight complete modules cover JSON acceptance,
+both packed consumers, general value-based Match/Session consumers and bulk
+reads including genuine above-limit fallback and final delivery. None is
+assigned to the exclusive phase. All eight modules passed: **252 tests in
+845.81 s**.

@@ -33,6 +33,10 @@ def canonical_json(value: object) -> bytes:
 
 
 def decode_json(raw: bytes) -> dict:
+    return _decode_json_and_canonical_bytes(raw)[0]
+
+
+def _decode_json_and_canonical_bytes(raw: bytes) -> tuple[dict, bytes]:
     def pairs(items):
         result = {}
         for key, value in items:
@@ -48,12 +52,12 @@ def decode_json(raw: bytes) -> dict:
         raise ValueError("Expected UTF-8 bytes without a BOM.")
     try:
         value = json.loads(raw.decode("utf-8"), object_pairs_hook=pairs, parse_constant=nonfinite)
-        canonical_json(value)  # Also rejects float overflow such as 1e999.
+        canonical = canonical_json(value)  # Also rejects float overflow such as 1e999.
     except (UnicodeError, RecursionError) as error:
         raise ValueError("Invalid Automatic Learning JSON.") from error
     if type(value) is not dict:
         raise ValueError("Expected a JSON object.")
-    return value
+    return value, canonical
 
 
 def fingerprint(domain: str, value: object) -> str:

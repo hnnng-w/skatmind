@@ -11,7 +11,8 @@ import sys
 from collections import Counter
 from contextlib import contextmanager
 from pathlib import Path
-from time import perf_counter
+from time import perf_counter, process_time
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -24,7 +25,7 @@ from test_automatic_historical_web import source_link  # noqa: E402
 from test_frontend_language_switching import localized_server  # noqa: E402
 from test_guided_historical_review_form import _completed_example_draft  # noqa: E402
 from test_match_recording_recovery_web import follow, operation_form  # noqa: E402
-from test_match_rollout_web import open_alex  # noqa: E402
+from test_match_rollout_web import downloads, open_alex  # noqa: E402
 from test_session_recorded_review_web import Browser, Forms  # noqa: E402
 from whole_game_review_fixtures import ten_decision_document  # noqa: E402
 
@@ -49,6 +50,9 @@ def observed(store, name, results):
             "serialize_result": "serialization",
             "validate_output_document": "output_validation",
             "retain_manual_review": "retention",
+            "retain_published_rollout": "rollout_retention",
+            "decode_execution_value": "typed_decode_roundtrip",
+            "unpack_native": "packed_native",
             "capture_match_inventory": "inventory",
             "capture_mixed_inventory": "inventory",
             "capture_manual_delivery": "manual_delivery_capture",
@@ -76,11 +80,14 @@ def observed(store, name, results):
             wrapped = wrapper(original, label)
             for module, attr in aliases:
                 patch.setattr(module, attr, wrapped)
+        from skatmind import automatic_learning_io
         from skatmind.app_web.automatic_match_learning import AutomaticMatchLearningServiceV1
         from skatmind.app_web.historical_review_retention import ManualReviewDelivery
         from skatmind.app_web.server import SkatMindAppWebRequestHandlerV1
         from skatmind.automatic_learning_store import AutomaticLearningStoreV1
         for owner, attr, label in (
+            (automatic_learning_io, "read_bounded", "archive_read"),
+            (AutomaticLearningStoreV1, "__init__", "store_init"),
             (AutomaticLearningStoreV1, "_admission", "admission"),
             (AutomaticLearningStoreV1, "_snapshot_for_delivery", "archive_delivery"),
             (AutomaticMatchLearningServiceV1, "validate_final_delivery", "final_automatic"),
@@ -88,9 +95,10 @@ def observed(store, name, results):
             (SkatMindAppWebRequestHandlerV1, "_send_bytes", "final_http"),
         ):
             patch.setattr(owner, attr, wrapper(getattr(owner, attr), label))
-        start = perf_counter()
+        start, cpu = perf_counter(), process_time()
         yield
-        row = {"name": name, "seconds": perf_counter() - start, "work": dict(counts),
+        row = {"name": name, "seconds": perf_counter() - start, "cpu": process_time() - cpu,
+               "work": dict(counts),
                "inclusive_seconds": dict(times), "calls": dict(calls)}
         results.append(row)
         print(json.dumps(row), flush=True)
@@ -109,13 +117,79 @@ def saved_sequence(browser, store, results, suffix):
         follow(browser, response)
 
 
+def archive_files(root):
+    return {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in sorted(root.rglob("*.json"))}
+
+
+def first_access_sequence(args):
+    """One fresh process per scenario, with no preparatory store open or admission."""
+    root = args.output / "home"
+    guided = args.first_access == "guided"
+    source = args.fixtures / "2" if guided else args.retained_fixture
+    shutil.copytree(source, root)
+    # measure_work needs only the expected root, never a store instance.
+    scope = SimpleNamespace(root=(root / "managed/automatic-learning").absolute())
+    original = archive_files(scope.root)
+    assert original == archive_files(source / "managed/automatic-learning")
+    rows = []
+    fixture = localized_server.__wrapped__(root)
+    try:
+        with observed(scope, "server_setup", rows):
+            server = next(fixture)
+        with observed(scope, "http_bootstrap", rows):
+            browser = Browser(server)
+        for row in rows:
+            assert not row["work"] and not any(
+                row["calls"].get(key) for key in ("store_init", "archive_read", "archive_delivery"))
+        for name in ("first_archive_access", "warm_list"):
+            with observed(scope, name, rows):
+                page = browser.page("/review/saved")
+        with observed(scope, "source", rows):
+            page = browser.page(source_link(page))
+        reopen = Forms(page).find("/review/reopen")
+        with observed(scope, "reopen_post", rows):
+            response = browser.submit(reopen)
+            assert response[0] == 303
+        with observed(scope, "reopen_get", rows):
+            follow(browser, response)
+        app = server.app_context
+        assert archive_files(scope.root) == original
+        if guided:
+            app.review_state = app.review_state.mutate(
+                expected_revision=app.review_state.revision,
+                draft=update_historical_options_v1(_completed_example_draft(),
+                    immediate_review=True, immediate_sample_count=25,
+                    immediate_base_random_seed=11))
+            with observed(scope, "guided_form_get", rows):
+                form = Forms(browser.page("/review")).find("/actions/review/run-guided")
+            with observed(scope, "guided_post", rows):
+                response = browser.submit(form)
+                assert response[0] == 303 and app.historical_reviews.notice[1] == "saved"
+            with observed(scope, "guided_get", rows):
+                follow(browser, response)
+        for kind in ("request", "result"):
+            assert getattr(app.review_state, kind + "_json_bytes") == (
+                args.retained_fixture.parent / f"guided-{kind}.json").read_bytes()
+    finally:
+        fixture.close()
+        (args.output / "report.json").write_text(json.dumps(rows, indent=2), encoding="utf-8")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--fixtures", type=Path, required=True)
     parser.add_argument("--create-fixtures", action="store_true")
+    parser.add_argument("--retained-fixture", type=Path,
+        help="Also measure passive delivery from this captured synthetic home, "
+             "and stop the small execution sequence after full-accounting Quick rollout.")
     parser.add_argument("--counts", nargs="+", type=int, default=(2, 33))
+    parser.add_argument("--first-access", choices=("retained", "guided"),
+                        help="Measure one unprepared archive path using existing fixture copies.")
     args = parser.parse_args()
+    if args.first_access and (args.create_fixtures or args.retained_fixture is None):
+        parser.error("--first-access requires existing fixtures and --retained-fixture")
     assert args.output.parent.is_dir() and not args.output.exists()
     args.output.mkdir()
     results = []
@@ -142,6 +216,32 @@ def main():
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **{**kwargs, "timeout": 7200})
     http.client.HTTPConnection = ProbeConnection
+    if args.first_access:
+        first_access_sequence(args)
+        return
+    if args.retained_fixture:
+        folder = args.output / "retained"
+        start = perf_counter()
+        shutil.copytree(args.retained_fixture, folder)
+        copied = perf_counter() - start
+        root = folder / "managed/automatic-learning"
+        original = archive_files(root)
+        assert original == archive_files(args.retained_fixture / "managed/automatic-learning")
+        fixture = localized_server.__wrapped__(folder)
+        server = next(fixture)
+        try:
+            store = archive_store(server.app_context)
+            snapshot, receipt = store._snapshot_for_delivery()
+            results.append({"name": "archive_retained", "files": original, "copy_seconds": copied,
+                "objects": len(snapshot.manifest.objects), "stored_bytes": snapshot.retained_bytes,
+                "available": len(snapshot.available_evidence_ids), "receipt": receipt is not None})
+            saved_sequence(Browser(server), store, results, "retained")
+            for kind in ("request", "result"):
+                raw = getattr(server.app_context.review_state, kind + "_json_bytes")
+                assert raw == (args.retained_fixture.parent / f"guided-{kind}.json").read_bytes()
+            assert archive_files(root) == original
+        finally:
+            fixture.close()
     for count in args.counts:
         folder = args.output / str(count)
         shutil.copytree(args.fixtures / str(count), folder)
@@ -182,10 +282,20 @@ def main():
                                                      decision_index="25"))
                 with observed(store, "match_quick_rollout_post", results):
                     response = browser.submit(Forms(page).find("/matches/review-whole-game"),
-                        analysis_effort="quick", objective="played_game_goal")
+                        analysis_effort="quick", **({"objective": "complete_settlement",
+                        "analysis_matadors": "1"} if args.retained_fixture else
+                        {"objective": "played_game_goal"}))
                     assert response[0] == 303
                 with observed(store, "match_quick_rollout_redirect_get", results):
                     page = follow(browser, response)
+                if args.retained_fixture:
+                    assert app.managed_stateful.active_match.evidence_notice[1] == "saved"
+                    exported = downloads(browser, page)
+                    assert len(exported) == 2
+                    for route, raw in exported.items():
+                        kind = "request" if "request" in route else "result"
+                        (args.output / f"rollout-{kind}.json").write_bytes(raw)
+                    continue
                 with observed(store, "match_quick_immediate_post", results):
                     response = browser.submit(operation_form(page, "analyze_decision"),
                                               analysis_effort="quick")

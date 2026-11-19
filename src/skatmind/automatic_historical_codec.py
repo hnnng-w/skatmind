@@ -4,8 +4,8 @@ import base64
 import hashlib
 import zlib
 
-from .automatic_learning_codec import canonical_json, decode_json
-from .automatic_match_execution_codec import decode_execution_value, encode_execution_value
+from .automatic_learning_codec import canonical_json
+from .automatic_match_execution_codec import _decode_execution_bytes, encode_execution_value
 
 MAX_EXPANDED_NATIVE_BYTES = 128 * 1024 * 1024
 
@@ -34,4 +34,4 @@ def unpack_native(value):
             raise ValueError("Historical native tuple bytes disagree.")
     except (zlib.error, TypeError) as error:
         raise ValueError("Invalid Historical native compression.") from error
-    return decode_execution_value(decode_json(raw))
+    return _decode_execution_bytes(raw)

@@ -3,6 +3,7 @@
 import base64
 import hashlib
 import json
+import zlib
 from dataclasses import replace
 from pathlib import Path
 
@@ -180,6 +181,196 @@ def test_bounded_native_codec_rejects_forged_compression(genuine_historical, fie
                      "bytes": "not-base64", "encoding": "future"}[field]
     with pytest.raises(ValueError):
         unpack_native(packed)
+
+
+def test_execution_shares_only_its_own_checked_immutable_bundle(genuine_historical, monkeypatch):
+    from skatmind.application.provenance import ApplicationProvenanceAttachment
+
+    original = genuine_historical[2][1]
+    wire = encode_execution_value(original)
+    raw = canonical_json(wire)
+    checked = []
+    validate = ApplicationProvenanceAttachment.__post_init__
+
+    def checking(attachment):
+        validate(attachment)
+        checked.append(attachment.name)
+
+    monkeypatch.setattr(ApplicationProvenanceAttachment, "__post_init__", checking)
+    expected = [attachment.name for attachment in original.provenance.attachments]
+    first = decode_execution_value(wire)
+    second = decode_execution_value(decode_json(raw))
+    assert [name for name in checked if name in expected] == 2 * expected
+    assert first.provenance is not second.provenance
+    for result in (first, second):
+        assert result.provenance is result.information_provenance_enforcement.provenance
+        assert canonical_json(encode_execution_value(result)) == raw
+        with pytest.raises(TypeError):
+            result.provenance.attachments[0].document["input_file"] = "changed"
+    fields = wire["value"]["provenance"]["value"]["attachments"]["value"][0]["value"]
+    fields["document"]["value"].clear()
+    assert canonical_json(encode_execution_value(first)) == raw
+
+
+def _packed_wire(raw):
+    return {"encoding": "zlib-json-v1", "size": len(raw),
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "bytes": base64.b64encode(zlib.compress(raw)).decode("ascii")}
+
+
+def test_native_roundtrip_compares_parsed_json_not_its_spelling():
+    raw = (b' \n{ "value" : [["b",-0e0],["n",1],["ok",true],["a","\\u0061"]],'
+           b' "type" : "mapping" }\t')
+    result = unpack_native(_packed_wire(raw))
+    assert list(result) == ["b", "n", "ok", "a"]
+    assert canonical_json(encode_execution_value(result)) == (
+        b'{"type":"mapping","value":[["b",-0.0],["n",1],["ok",true],["a","a"]]}')
+
+
+@pytest.mark.parametrize("raw", (
+    b'{"type":"mapping","value":[],"value":[]}', b'{"type":"sequence","value":[NaN]}',
+    b'{"type":"sequence","value":[1e999]}', b'\xef\xbb\xbf{"type":"sequence","value":[]}',
+    b'{"type":"sequence","value":["\xff"]}', b'{"type":"sequence","value":[],"supplied":[]}',
+    b'{"type":"sequence","value":' + b'[' * 2000 + b']' * 2000 + b'}',
+))
+def test_bounded_packed_input_still_rejects_invalid_original(raw):
+    with pytest.raises(ValueError):
+        unpack_native(_packed_wire(raw))
+
+
+def test_reordered_checkpoint_result_document_survives_admission(tmp_path, monkeypatch):
+    root = json.loads((ROOT / "examples/historical_grand_declarer_concession.json").read_bytes())
+    request = parse_request(root)
+    with capture_native_execution() as native:
+        execution = execute_guided_frontend_review_v1(request, options=ExecutionOptionsV1())
+    candidate = build_historical_capture_candidate("original-concession", 0, execution, native[0])
+    forbid_execution(monkeypatch)
+    source, obj = candidate.objects
+    data = decode_json(obj.payload)
+    wire = decode_json(zlib.decompress(base64.b64decode(data["internal_execution"]["bytes"])))
+    checkpoint = wire["value"]["information_provenance_enforcement"]["value"]
+    bundles = checkpoint["provenance"]["value"]["attachments"]["value"]
+    attachment = next(row["value"] for row in bundles if row["value"]["name"]
+                      == "historical_game_result")
+    pairs = attachment["document"]["value"]
+    assert len(pairs) == 2
+    pairs.reverse()
+    data["internal_execution"] = _packed_wire(canonical_json(wire))
+    obj = replace(obj, payload=canonical_json(data))
+    entry = replace(candidate.evidence, envelope=obj.reference)
+    candidate = replace(candidate, evidence=entry, objects=(source, obj))
+    store = initialize_automatic_learning_store_v1(tmp_path / "archive")
+    assert commit_candidate(store, candidate).status == "saved"
+    before = archive_bytes(store)
+    retained = resume_automatic_learning_store_v1(store.root).read_evidence(entry.identity)
+    decoded = retained.internal_execution
+    assert decoded.provenance is not decoded.information_provenance_enforcement.provenance
+    assert canonical_json(encode_execution_value(decoded)) == canonical_json(wire)
+    assert retained.download("request")[1] == execution.request_json_bytes
+    assert retained.download("result")[1] == execution.result_json_bytes
+    assert archive_bytes(store) == before
+
+
+@pytest.mark.parametrize("defect", ("value", "float", "bool", "missing", "extra"))
+def test_only_checkpoint_bundle_changed(genuine_historical, defect):
+    from skatmind.errors import SkatMindInvariantError
+
+    invocation, execution, _ = genuine_historical[2]
+    wire = encode_execution_value(execution)
+    checkpoint = wire["value"]["information_provenance_enforcement"]["value"]
+    attachment = checkpoint["provenance"]["value"]["attachments"]["value"][0]["value"]
+    if defect == "value":
+        attachment["document"]["value"][0][1] = "another input"
+    elif defect in ("float", "bool"):
+        fields = attachment["document"]["value"]
+        summary = dict(fields)["historical_game_summary"]["value"]
+        pair = next(p for p in summary if p[0] == "schema_version")
+        assert pair[1] == 1
+        pair[1] = 1.0 if defect == "float" else True
+    elif defect == "missing":
+        del attachment["ledger"]
+    else:
+        attachment["extra"] = None
+    if defect in ("missing", "extra"):
+        with pytest.raises(ValueError, match="Unsupported retained Application fields"):
+            decode_execution_value(wire)
+        return
+    decoded = decode_execution_value(wire)
+    assert decoded.provenance is not decoded.information_provenance_enforcement.provenance
+    assert canonical_json(encode_execution_value(decoded)) == canonical_json(wire)
+    if defect == "value":
+        with pytest.raises(SkatMindInvariantError, match="changed after final serialization"):
+            validate_execution(invocation, decoded, workflow=invocation.request.workflow)
+    else:
+        # Equality of the typed checkpoints is the existing validator's contract.
+        # The distinct wire scalar survives; it cannot borrow the other copy's type.
+        validate_execution(invocation, decoded, workflow=invocation.request.workflow)
+
+
+def test_equal_malformed_copies_do_not_certify_coverage(genuine_historical):
+    wire = encode_execution_value(genuine_historical[2][1])
+    for fields in (wire["value"], wire["value"]["information_provenance_enforcement"]["value"]):
+        attachment = fields["provenance"]["value"]["attachments"]["value"][0]["value"]
+        summary = attachment["coverage_summary"]["value"]
+        summary["leaf_path_count"] += 1
+        summary["provenanced_path_count"] += 1
+    with pytest.raises(ValueError, match="does not match the attached document and ledger"):
+        decode_execution_value(wire)
+
+
+def test_equal_copies_must_still_roundtrip_all_original_fields(genuine_historical):
+    wire = encode_execution_value(genuine_historical[2][1])
+    for fields in (wire["value"], wire["value"]["information_provenance_enforcement"]["value"]):
+        # A recognized wire member, but only option contracts can emit it.
+        fields["provenance"]["supplied"] = []
+    with pytest.raises(ValueError, match="changed during typed reconstruction"):
+        decode_execution_value(wire)
+
+
+def test_matching_bundle_copies_do_not_authorize_another_source(genuine_historical):
+    from skatmind.errors import SkatMindInvariantError
+
+    invocation, execution, _public = genuine_historical[2]
+    wire = encode_execution_value(execution)
+    original = decode_execution_value(wire)
+    validate_execution(invocation, original, workflow=WorkflowV1.HISTORICAL_GAME)
+    for fields in (wire["value"], wire["value"]["information_provenance_enforcement"]["value"]):
+        attachment = fields["provenance"]["value"]["attachments"]["value"][0]["value"]
+        entries = attachment["ledger"]["value"]["entries"]["value"]
+        reference = next(ref["value"] for entry in entries
+                         for ref in entry["value"]["source_references"]["value"]
+                         if ref["value"]["reference_type"] == "historical_game")
+        reference["reference_id"] = "different-recorded-game"
+    changed = decode_execution_value(wire)
+    assert changed.provenance is not original.provenance
+    with pytest.raises(SkatMindInvariantError, match="source reference is not authorized"):
+        validate_execution(invocation, changed, workflow=WorkflowV1.HISTORICAL_GAME)
+
+
+def test_different_codec_record_field_order_is_not_a_reuse_hit(genuine_historical):
+    wire = encode_execution_value(genuine_historical[2][1])
+    checkpoint = wire["value"]["information_provenance_enforcement"]["value"]
+    checkpoint["provenance"] = dict(reversed(checkpoint["provenance"].items()))
+    result = decode_execution_value(wire)
+    # Record member order alone was never significant to canonical_json.
+    assert result.provenance == result.information_provenance_enforcement.provenance
+    assert result.provenance is not result.information_provenance_enforcement.provenance
+    assert canonical_json(encode_execution_value(result)) == canonical_json(wire)
+
+
+def test_packed_size_charges_both_copies_even_when_shared(genuine_historical, monkeypatch):
+    import skatmind.automatic_historical_codec as codec
+
+    original = genuine_historical[2][1]
+    wire = encode_execution_value(original)
+    packed = pack_native(original)
+    assert packed["size"] == len(canonical_json(wire))
+    single_copy_size = packed["size"] - len(canonical_json(wire["value"]["provenance"]))
+    monkeypatch.setattr(codec, "MAX_EXPANDED_NATIVE_BYTES", single_copy_size)
+    with pytest.raises(ValueError):
+        unpack_native(packed)
+    with pytest.raises(ValueError):
+        unpack_native({**packed, "size": single_copy_size})
 
 
 @pytest.mark.parametrize("field", ("options", "supplied_options", "downloads", "original_source"))
