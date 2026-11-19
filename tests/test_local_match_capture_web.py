@@ -1,5 +1,6 @@
 import http.client
 import json
+import socket
 import threading
 from dataclasses import fields
 from pathlib import Path
@@ -38,7 +39,10 @@ from skatmind.capture_web.security import (
     MATCH_CAPTURE_WEB_COOKIE_NAME,
     MATCH_CAPTURE_WEB_PERMISSIONS_POLICY,
 )
-from skatmind.capture_web.server import start_match_capture_web_server_v1
+from skatmind.capture_web.server import (
+    MatchCaptureWebRequestHandlerV1,
+    start_match_capture_web_server_v1,
+)
 from skatmind.capture_web.state import build_match_capture_web_state_v1
 from skatmind.capture_web.timecodes import (
     build_presentation_timecode_v1,
@@ -851,6 +855,63 @@ def test_host_cookie_origin_request_limit_and_security_headers(running_server) -
         body=b"",
     )
     assert status == 413
+
+
+def test_invalid_origin_delivers_complete_403_before_discarding_late_body(
+    running_server, monkeypatch,
+):
+    server, context = running_server
+    _, headers = _bootstrap(server)
+    body = urlencode(_creation_values()).encode()
+    parsed, discarded = [], bytearray()
+    body_sent, finished = threading.Event(), threading.Event()
+    setup = MatchCaptureWebRequestHandlerV1.setup
+    finish = MatchCaptureWebRequestHandlerV1.finish
+
+    def observe_setup(handler):
+        setup(handler)
+        read1 = handler.rfile.read1
+        def observe_read(size):
+            # Synchronize the split upload without relying on a TCP reset or on
+            # the client being scheduled within the production cleanup deadline.
+            assert body_sent.wait(5)
+            data = read1(size)
+            discarded.extend(data)
+            return data
+        handler.rfile.read1 = observe_read
+
+    def observe_finish(handler):
+        try:
+            finish(handler)
+        finally:
+            if handler.command == "POST":
+                finished.set()
+
+    def forbidden_parse(handler):
+        parsed.append(True)
+        raise AssertionError("Unauthorized form reached the body parser")
+
+    monkeypatch.setattr(MatchCaptureWebRequestHandlerV1, "setup", observe_setup)
+    monkeypatch.setattr(MatchCaptureWebRequestHandlerV1, "finish", observe_finish)
+    monkeypatch.setattr(MatchCaptureWebRequestHandlerV1, "_parse_body", forbidden_parse)
+    wire_headers = {**headers, "Origin": "null", "Content-Length": str(len(body)),
+                    "Content-Type": "application/x-www-form-urlencoded"}
+    with socket.create_connection(("127.0.0.1", server.port), timeout=5) as client:
+        client.sendall(("POST /api/v1/create HTTP/1.1\r\n"
+            + "".join(f"{name}: {value}\r\n" for name, value in wire_headers.items())
+            + "\r\n").encode())
+        try:
+            with http.client.HTTPResponse(client) as response:
+                response.begin()
+                assert response.status == 403 and response.read() == b"Forbidden"
+                assert response.getheader("Connection") == "close"
+            client.sendall(body)
+            client.shutdown(socket.SHUT_WR)
+        finally:
+            body_sent.set()
+        assert finished.wait(5)
+    assert discarded == body and not parsed
+    assert context.workspace is None and not context.workspace_path.exists()
 
 
 def test_duplicate_capture_authorization_headers_and_cookie_are_rejected(

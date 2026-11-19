@@ -471,3 +471,133 @@ git ls-files --others --exclude-standard
 These are targeted source checks; no full-suite timing, installed UAT or
 publication is authorized. Keep #326 and #208 open. The remaining tens of
 seconds in cold admission and synchronous retention are still user-visible.
+
+## Failed main Check: Learning test setup and standalone Capture rejection
+
+### Source and hosted evidence
+
+[Check 44410006539, attempt 1](https://github.com/hnnng-w/skatmind/actions/runs/44410006539/attempts/1)
+was a `push` to `main` at `f69afdf0ff524fe1393bb6c341b7e8be678b25ca`.
+It ran for 61m23s (22:16:43 to last job completion at 23:18:06 UTC on
+November 18, 2026). Of 23 jobs, 20 succeeded, including all twelve installation
+cells and `v1-supported-platform-matrix`. The two regression jobs and the
+dependent final `check` failed.
+
+Before editing, `git status --short --branch` showed a clean worktree and
+index on `task/326-responsive-analysis`. `git rev-parse HEAD` matched the run.
+`scripts.validation_identity.source_identity()` on those untouched files returned
+`86bb0eb0030dd7302d7c72daa113d2b6838b2308d5589124d1f4677744c2b0c3`.
+Both regression `summary.json` files match **both** the commit and source digest.
+The authenticated GitHub API records for the attempt, its jobs and its artifacts
+were saved under `%TEMP%/opencode/issue326-main-44410006539`. The artifact
+records identify `hnnng-w/skatmind` (repository `1221973482`), this run, branch
+and SHA. Each producing job's upload log identifies its artifact ID and ZIP
+digest. Hashing the downloaded ZIP bytes before extraction matched those
+values and the API digests:
+
+| Regression job | Artifact | ID | ZIP SHA-256 |
+| --- | --- | --- | --- |
+| Ubuntu `135175492903` | `regression-ubuntu` | `14481356359` | `ead2c9639b4577db5899638f148e7a6a8e5a497113d3173d571d3688030b67f4` |
+| Windows `135175492906` | `regression-windows` | `14481335529` | `4388564a1258951f9fa252e8741f571885070ba88cb5fa754d0c6367ea780065` |
+
+The ZIPs, extracted collection and parallel JSON/log pairs, summaries and
+three complete failed-job logs are retained in that external directory.
+The collection lists were checked node-by-node, not just by count.
+
+| Hosted CPython 3.13.15 | Full collection (exit 0) | Parallel selection and worker agreement | Setup / call / teardown reports | Parallel outcome (exit 1) |
+| --- | ---: | --- | --- | --- |
+| Ubuntu | 12,843 | 12,748; all four lists identical in order | 12,745 pass + 3 skip / 12,741 pass + 2 fail + 2 skip / 12,748 pass | 12,741 passed, 2 failed, 5 skipped |
+| Windows | 12,843 | 12,748; all four lists identical in order | 12,748 pass / 12,745 pass + 3 fail / 12,748 pass | 12,745 passed, 3 failed, 0 skipped |
+
+Every parallel node has an outcome. Ubuntu has 38,241 phase reports: only
+the three setup-skipped Windows junction cases lack a call report (store root,
+store sources and recording-deletion root). Two further junction cases skipped
+in call (Match inventory and direct-entry file boundaries). Windows has all
+38,244 reports. On **each** platform the failed parallel stage stopped the
+runner before the exclusive phase: no exclusive JSON, log or executions.
+The 95 unexecuted nodes on each are `test_early_rejection_observer.py` (6),
+`test_local_learning_corpus_web.py` (27), `test_match_analysis_action_placement.py`
+(25) and `test_unified_rejection_transport.py` (37). These are not pytest skips.
+Final job `135208409829` had `REUSE: false`, `regression.result: failure` and
+successful other prerequisites. It exited 1 with `mode=full
+reason=gate_prerequisites_invalid lookup=gate_prerequisites`; it did not run
+another failing test.
+
+### Tracebacks, reproduction and correction
+
+* **Obsolete test setup, both platforms (`gw0`, call).** In
+  `tests/test_learning_overview_navigation.py`, both
+  `test_ordinary_match_navigation_and_comparison_preserve_two_sources` and
+  `test_compact_rows_exact_player_comparison_return_language_and_downloads`
+  called `analyze_retained(browser, 17)` (lines 67 and 131 at the failed commit).
+  Its form submission reached `test_match_recording_recovery_web.py:29`, which
+  asserted HTTP 303 and received 200. Both failures reproduced on the clean
+  checkout. A source-only probe recorded ordinary mode, HTTP 200 with
+  `forced-card-guidance`, and zero Reports. Explicit custom mode on that same
+  decision returned 303 and an executed eight-world Request; `S8` was both the
+  actual card and the only legal card. Recording bytes did not change.
+  The helper now explicitly requests custom execution and checks the decision
+  index, executed status and eight-world budget. The tests still require two
+  genuine Reports, explicit inclusion, passive navigation and original
+  downloads. Ordinary forced-card guidance remains the correct Product result.
+* **Product defect in rejection/close sequencing, Windows only (`gw1`, call).**
+  `tests/test_local_match_capture_web.py::test_host_cookie_origin_request_limit_and_security_headers`
+  failed at line 812 in the invalid-Origin loop for `POST /api/v1/create`.
+  `HTTPConnection.getresponse()` → `HTTPResponse._read_status()` →
+  `socket.recv_into()` raised `ConnectionAbortedError: [WinError 10053]` before
+  the expected 403 status could be read. The traceback does not identify the
+  particular Origin iteration. The exact node passed locally. In a synchronized
+  pre-fix split upload, all 618 submitted form bytes were still queued at socket
+  shutdown; the local client did receive `403 Forbidden`. That establishes the
+  unread-input close hazard, **not** a local reproduction of error 10053.
+  A regression with the body withheld until the complete 403 arrives also
+  failed against the previous handler (missing `Connection: close`).
+  Standalone Capture now flushes its rejection, half-closes the sending side
+  and discards opaque pending input, capped at 64 KiB with a 0.25-second
+  cleanup deadline, as in the existing standalone Corpus transport. No body
+  parsing or dispatch is authorized. The new test observes the late body and
+  completion with no Workspace creation; the original security test is intact.
+
+The only Product change is in `src/skatmind/capture_web/server.py`. Neither
+failure implicated archive delivery, conflict recovery, provenance or Learning
+isolation. The source probes are recorded in `before-selection.json` and
+`before-split.json` in the external evidence directory.
+
+### Local validation
+
+Development CPython 3.13.7 on Windows; 7,200,000-ms invocation timeouts.
+Equivalent PowerShell commands below use distinct external outputs:
+
+```powershell
+$D = "$env:TEMP/opencode/issue326-main-44410006539"
+$P = @('-n','2','--dist=loadfile','--max-worker-restart=0','-o',"cache_dir=$D/cache",'-q','--tb=short')
+$L = 'tests/test_learning_overview_navigation.py'
+$C = 'tests/test_local_match_capture_web.py'
+$N = @("${L}::test_ordinary_match_navigation_and_comparison_preserve_two_sources", "${L}::test_compact_rows_exact_player_comparison_return_language_and_downloads", "${C}::test_host_cookie_origin_request_limit_and_security_headers")
+$S = "${C}::test_invalid_origin_delivers_complete_403_before_discarding_late_body"
+py -3.13 -m pytest @N @P "--basetemp=$D/repro" "--junitxml=$D/repro.xml"
+py -3.13 -m pytest $S @P "--basetemp=$D/split-before" "--junitxml=$D/split-before.xml"
+py -3.13 -m pytest @N $S @P "--basetemp=$D/focused" "--junitxml=$D/focused.xml"
+py -3.13 -m pytest $L $C tests/test_local_match_capture_web_analysis.py @P "--basetemp=$D/affected" "--junitxml=$D/affected.xml"
+```
+
+The untouched three-node run had **2 failed, 1 passed**. The split-upload
+regression failed before the Product change; the corrected four-node run had
+**4 passed in 19.80 s**. The two complete affected modules and the standalone
+Capture analysis HTTP consumer had **104 passed in 75.94 s**. None of these
+modules is assigned to the exclusive phase.
+
+Final documentation/architecture guards, Quick and whitespace commands:
+
+```powershell
+py -3.13 -m pytest tests/test_skatmind_rename.py tests/test_cli_internal_architecture.py @P "--basetemp=$D/guards" "--junitxml=$D/guards.xml"
+$env:Path = "$(py -3.13 -c 'import sys; from pathlib import Path; print(Path(sys.executable).parent)');$env:Path"
+.\scripts\check.ps1 -Mode Quick -LogDirectory "$D/quick"
+git diff --check
+git diff --cached --check
+git ls-files --others --exclude-standard
+```
+
+This local selection does not establish a successful full check. Keep #326
+and #208 open; the corrected commit needs published-source review and fresh
+exact-commit main gates.

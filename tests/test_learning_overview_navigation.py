@@ -23,12 +23,16 @@ def localized_server(tmp_path):
 def analyze_retained(browser, decision):
     page = follow(browser, browser.request("GET", f"/matches/review/2?decision_index={decision}"))
     action = form(page)
-    values = {"requested_worlds": "8"}
+    # These comparisons require executed Reports, including for a forced Card.
+    values = {"settings_mode": "custom", "requested_worlds": "8"}
     if "analysis_matadors" in action["values"]:
         values["analysis_matadors"] = "1"
     page = follow(browser, browser.submit(action, **values))
     reports = browser.server.app_context.managed_stateful.active_match.capture.report_store.list()
-    return page, reports[-1]
+    report = reports[-1]
+    assert report.decision_index == decision and report.value.status == "executed"
+    assert report.value.request.document["whole_game_rollout_settings"]["requested_worlds"] == 8
+    return page, report
 
 
 def setup_collection(server, name="Synthetic overview"):

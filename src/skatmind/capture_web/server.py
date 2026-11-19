@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 import math
 import re
+import socket
 import threading
 from collections.abc import Mapping
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
+from time import monotonic
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
@@ -53,6 +55,9 @@ from .security import (
     validate_match_capture_web_origin_v1,
 )
 from .state import build_match_capture_web_state_v1
+
+_REJECT_DRAIN_MAX_BYTES = 64 * 1024
+_REJECT_DRAIN_TIMEOUT_SECONDS = 0.25
 
 _ASSETS = {
     "/assets/capture.css": ("assets/capture.css", "text/css; charset=utf-8"),
@@ -371,7 +376,7 @@ class MatchCaptureWebRequestHandlerV1(BaseHTTPRequestHandler):
 
     def _authorize_mutation(self) -> bool:
         if not self._host_is_valid() or not self._cookie_is_valid():
-            self._send_text(HTTPStatus.FORBIDDEN, "Forbidden")
+            self._reject_mutation()
             return False
         if len(self.headers.get_all("Origin", [])) != 1 or not (
             validate_match_capture_web_origin_v1(
@@ -380,9 +385,33 @@ class MatchCaptureWebRequestHandlerV1(BaseHTTPRequestHandler):
                 self.headers.get("Host"),
             )
         ):
-            self._send_text(HTTPStatus.FORBIDDEN, "Forbidden")
+            self._reject_mutation()
             return False
         return True
+
+    def _reject_mutation(self) -> None:
+        """Deliver the 403 before closing a socket with unread form bytes (RFC 9112 §9.6)."""
+        self.close_connection = True
+        try:
+            self.connection.settimeout(_REJECT_DRAIN_TIMEOUT_SECONDS)
+            self._send_text(HTTPStatus.FORBIDDEN, "Forbidden",
+                            extra_headers=(("Connection", "close"),))
+            self.wfile.flush()
+            self.connection.shutdown(socket.SHUT_WR)
+            deadline = monotonic() + _REJECT_DRAIN_TIMEOUT_SECONDS
+            remaining = _REJECT_DRAIN_MAX_BYTES
+            while remaining:
+                timeout = deadline - monotonic()
+                if timeout <= 0:
+                    break
+                self.connection.settimeout(timeout)
+                # Opaque discard only; neither trust framing nor dispatch a subsequent request.
+                data = self.rfile.read1(min(8192, remaining))
+                if not data:
+                    break
+                remaining -= len(data)
+        except OSError:
+            pass  # Peer departure or cleanup timeout; never attempt a second response.
 
     def _state(
         self,
