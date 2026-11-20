@@ -66,7 +66,7 @@
 .live-tile[data-best] { background: #f1f7f3; }
 .live-badge { color: var(--muted); font-size: 1rem; }
 .live-tile[data-best] .live-badge { color: var(--green-dark); }
-.live-tile .live-identity, .live-frequency {
+.live-tile .live-identity {
   grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
@@ -74,6 +74,22 @@
   gap: .25rem .7rem;
 }
 .live-identity { font-size: 1.15rem; }
+/* Neighbouring evaluated choices share content-sized rows, including any
+   secondary metrics. A wrapped name or value only grows its own track. */
+.live-featured:has(.live-secondary) { --live-choice-rows: 5; }
+.live-featured:has(.live-secondary + .live-secondary) { --live-choice-rows: 6; }
+.live-featured label.live-tile:has(.live-frequency) {
+  grid-row: span var(--live-choice-rows, 4);
+  grid-template-rows: subgrid;
+  align-items: start;
+}
+.live-frequency {
+  grid-column: 1 / -1;
+  grid-row: span 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: subgrid;
+}
 .live-tile .card-face, .live-context .card-face {
   display: inline-flex;
   gap: .08em;

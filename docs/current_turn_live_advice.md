@@ -124,8 +124,7 @@ the simulated card transitions.
 
 ### Synthetic Cent check (#328)
 
-For one short installed check after hosted acceptance, use the disposable
-pre-declaration Session, or recreate its complete input below:
+The maintainer's installed functional check used this disposable opening:
 
 1. Create a three-player perspective Session (Alice in forehand, Bob, Carol).
    Start a three-game round on **EuroSkat, ½ cent per point**. Alice's hand is
@@ -172,6 +171,48 @@ Use development CPython 3.13 with `-n 2 --dist=loadfile --max-worker-restart=0`.
 Run `test_unified_rejection_transport.py` separately after the workers exit,
 then explicit Quick and whitespace checks. This scope does not certify the
 full hosted gates or installed acceptance.
+
+### Installed acceptance and evaluated-tile alignment (#328)
+
+At `a46632aff954d9a65dba561bce92c4d286831954` the maintainer accepted the
+recommendation, all three visible monetary amounts and success frequencies,
+unchecked choices, and the approximately two-second response after saving the
+declaration. That functional and latency acceptance stands.
+
+The remaining finding concerned the placement of the numbers. In the reported
+three-card arrangement the counts beside 8% and 4% fit on the percentage line;
+the count for 12% wrapped and pushed its amount lower. Evaluated Live tiles now
+share content-sized rows for the radio and marker, card identity, percentage,
+simulation count, and any secondary values. The card name can still wrap. This
+applies equally to Cent amounts and ordinary comparison metrics.
+
+**Source visual check:** Edge 157.0.4341.60, page JavaScript disabled. The
+same genuine Cent result supplied all viewport and language views. At a
+1440 × 900 CSS-pixel viewport (1216 px application, 737.47 px choice grid),
+the original stylesheet reproduced the reported German layout. These are
+measured section starts in CSS pixels relative to each tile's top:
+
+| Layout | Percentage (HQ / DA / HJ) | Simulation count | Net amount |
+| --- | --- | --- | --- |
+| Original | 94.97 / 94.97 / 94.97 | 107.47 / 107.47 / 143.97 | 149.56 / 149.56 / 173.56 |
+| Corrected | 94.97 / 94.97 / 94.97 | 149.56 / 149.56 / 149.56 | 179.16 / 179.16 / 179.16 |
+
+German and English both kept those offsets at 3440 × 1440 (three columns),
+1024 × 860 (two), and 390 × 844 (one). Faces and percentages remained 36 px.
+At 200% **root text size**, not browser zoom, the German tiles reflowed into
+two columns at 1230 × 1024; percentages, counts and amounts started at
+188.94, 298.12 and 357.31 px. A separate presentation-only stress case with a
+wrapped name, `100%`, fractional percentages, `400/400` and two secondary
+values also kept corresponding section starts aligned.
+
+The genuine non-Cent SA/S10 comparison kept both 40% and 10/25 above its
+aligned mean margins (−24.16 and −25.36). All 17 of Clara's unscored tiles
+and the forced S10 tile matched the prior stylesheet's geometry and contained
+no statistics. On the live page, ArrowRight from the focused HQ radio selected
+and focused DA with zero POSTs; the saved revision stayed at 13.
+
+After published-source review and automatic exact-commit main gates, only
+the installed **visual alignment** check remains for #328. #208 remains open.
 
 ## Ownership and execution
 
