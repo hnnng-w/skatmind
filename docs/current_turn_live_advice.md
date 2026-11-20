@@ -1,4 +1,13 @@
-# Live card advice in a Session
+# Live card advice in a Session or 36-game Match
+
+In **Record a 36-game Match**, select a game that has been started and choose
+**Start live card advice**. Quick, Standard and More time use the same whole-game
+comparison as a standalone Session. Keep entering the usual observed cards.
+When the perspective player is next and their playable hand is known, the
+recommendations appear on the selectable cards. See the [Match example and
+source verification](match_current_turn_live_advice.md).
+
+## Session recording
 
 Choose **Start live card advice** on the active game's recording page. You can
 start before entering the hand. Recording from one player's perspective, opening
@@ -211,8 +220,8 @@ and the forced S10 tile matched the prior stylesheet's geometry and contained
 no statistics. On the live page, ArrowRight from the focused HQ radio selected
 and focused DA with zero POSTs; the saved revision stayed at 13.
 
-After published-source review and automatic exact-commit main gates, only
-the installed **visual alignment** check remains for #328. #208 remains open.
+The maintainer subsequently accepted the installed visual alignment check,
+completing #328. #208 remains open.
 
 ## Ownership and execution
 

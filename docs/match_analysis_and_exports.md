@@ -1,5 +1,10 @@
 # Match analysis and exports
 
+For help **before recording the next card** in the unified 36-game recorder,
+see [current-turn Live advice](match_current_turn_live_advice.md). That
+game-local comparison is transient. The manual review and retention paths
+below concern already recorded decisions.
+
 ## Separate selected whole-game retention (Issue #311, S3)
 
 Managed rollout executions now join Saved analyses as a separate retained family,

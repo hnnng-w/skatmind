@@ -217,9 +217,7 @@ def dispatch_recording_input(handler, parsed):
             if action == "set_declaration":
                 declaration = {name: value for name, value in values.items()
                                if name not in {*EVIDENCE_FIELDS, "recording_action"}}
-                handler._redirect(dispatch_compact_declaration(
-                    app, "/matches/api/v1/operation", declaration))
-                return
+                return dispatch_compact_declaration(app, "/matches/api/v1/operation", declaration)
             operation, mode = MATCH_EVIDENCE_FORMS[action]
             field_name = "evidence_" + operation.removeprefix("set_")
             before = active.workspace.to_dict()
@@ -267,8 +265,8 @@ def dispatch_recording_input(handler, parsed):
                 handler._reject_registered_form(error, status=status, issues=issues)
             else:
                 active.declaration_draft_return = returned
-                handler._redirect(f"/matches/position/{active.selected_position}"
-                    f"?_declaration_return={returned.token}#match-recording")
+                return (f"/matches/position/{active.selected_position}"
+                        f"?_declaration_return={returned.token}#match-recording")
 
 
 def take_recording_draft(handler, active):

@@ -51,6 +51,7 @@ from .managed_item_storage import (
     build_managed_item_storage_path_v1,
     validate_managed_direct_child_path_v1,
 )
+from .match_live_advice import MatchLiveAssistance
 from .match_recovery import MatchRecoveryState, retain_recording_error
 from .operation_feedback import PendingOperationFeedback, feedback_source
 from .operation_feedback_mapping import match_operation_message
@@ -76,6 +77,7 @@ class UnifiedMatchContextV1:
     selected_position: int = 1
     retired: bool = field(default=False, repr=False)
     position_generation: int = field(default=0, repr=False)
+    live: MatchLiveAssistance = field(default_factory=MatchLiveAssistance, repr=False)
     last_result: MatchCaptureWebResultV1 | None = field(default=None, repr=False)
     operation_feedback: PendingOperationFeedback = field(
         default_factory=PendingOperationFeedback, repr=False)
@@ -240,6 +242,7 @@ def reload_unified_match_v1(
             context.capture,
             selected_position=context.selected_position,
         )
+        context.live.configure(None)
         context.recovery.clear()
         context.card_entry_key = secrets.token_bytes(32)
         context.transfer_notice = None
@@ -276,6 +279,9 @@ def apply_unified_match_operation_v1(
                 len(game.plays) + 1 if values.get("operation") == "append_plays" else None)
             raise
         if result.status == "applied":
+            context.live.invalidate()
+            if context.workspace.slots[position - 1].observed_game is None:
+                context.live.configure(None)
             context.recovery.clear()
             context.transfer_notice = None
         evidence_noop = result.status == "unchanged" and values.get("operation") in {
@@ -382,6 +388,7 @@ def select_unified_match_position_v1(
     if type(position) is not int or not 1 <= position <= 36:
         raise ValueError("position must be an integer from 1 through 36.")
     if context.selected_position != position:
+        context.live.configure(None)
         context.recovery.clear()
         context.operation_feedback.begin()
         context.position_generation += 1

@@ -34,6 +34,7 @@ from .learning_direct_entry import LEARNING_ADD_ROUTE, LEARNING_ENTRY_BODY_LIMIT
 from .local_time_forms import LOCAL_TIME_VISIBLE_FIELDS
 from .managed_item_contracts import MANAGED_ITEM_MAX_IMPORT_BYTES
 from .match_declaration_drafts import DRAFT_FIELDS, EVIDENCE_FIELDS, MATCH_RECORDING_INPUT_ROUTE
+from .match_live_advice import MATCH_LIVE_ROUTES
 from .match_recovery import RECOVERY_ROUTES
 from .position_form import (
     POSITION_ANALYSIS_METHODS_V1,
@@ -994,6 +995,11 @@ _FORMS: list[FrontendFormDefinitionV1] = [
                   value_free=not route.endswith("-effort"),
                   success="/sessions/current#session-recording")
       for route in LIVE_ROUTES),
+    *(_definition("match." + route.rsplit("/", 1)[1].replace("-", "_"), route,
+                  ("analysis_effort",) if route.endswith("-effort") else (),
+                  page="/matches/current", active="matches", body_limit=8192,
+                  value_free=not route.endswith("-effort"), success="contextual")
+      for route in MATCH_LIVE_ROUTES),
     _definition(
         "session.analyze",
         "/sessions/analyze",
@@ -1588,6 +1594,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             *FRONTEND_PROFILE_ACTION_ROUTES,
             *CARD_ENTRY_ROUTES,
             *LIVE_ROUTES,
+            *MATCH_LIVE_ROUTES,
             MATCH_RECORDING_INPUT_ROUTE,
             *CORRECTION_ROUTES,
             OPEN_RECORDING_ROUTE,

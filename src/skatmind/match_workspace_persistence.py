@@ -289,7 +289,7 @@ def save_match_workspace_file_v1(
                 )
 
             os.replace(temporary_path, path)
-            coordinator.generation += 1
+            coordinator.accepted_write(path.name)
             temporary_path = None
         _best_effort_fsync_directory(parent)
         return _write_result(

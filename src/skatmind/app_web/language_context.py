@@ -262,6 +262,9 @@ def capture_language_source_v1(context: AppWebContextV1, route: str, *,
                                match.last_result))
             references.extend(match.capture.report_store.list())
             references.append(match.rollout_notice)
+            if route == "/matches/current" or route.startswith("/matches/position/"):
+                references.extend((match.live.attempt, match.live.outcome))
+                values.extend((match.live.control_revision, match.live.unavailable))
             values.extend((match.selected_position, match.position_generation,
                            match.selected_review_decision,
                            match.review_decision_generation, match.review_selection_pending,

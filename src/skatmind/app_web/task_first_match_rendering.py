@@ -30,12 +30,14 @@ from .match_evidence_presentation import (
     initial_source_editor,
     saved_hand,
 )
+from .match_live_advice import MATCH_LIVE_ROUTES
 from .match_report_rendering import render_match_reports_v1
 from .recorded_trick_rendering import (
     render_current_trick,
     render_recorded_history,
     render_recorded_summary,
 )
+from .session_live_rendering import render_live_choices, render_live_controls
 from .stateful_localization import text, translated
 from .task_first_rendering import (
     card_palette,
@@ -212,9 +214,11 @@ def _card_form(state, handle, locale, operation, binding, *, cards=(), play=Fals
     fields = hidden("managed_handle", handle) + hidden("operation", operation)
     fields += hidden("card_selection", binding)
     game = state["game"]
-    fields += compact_card_selector(locale, mode="play", cards=cards, balanced_grid=True,
+    fields += (render_live_choices(locale, state["live"], cards, state["position_view"]["card_selection_scope"])
+        if state.get("live") and state["live"].effort is not None else
+        compact_card_selector(locale, mode="play", cards=cards, balanced_grid=True,
         game_type=None if not game or game["declaration"] is None else game["declaration"]["game_type"],
-        capacity=1)
+        capacity=1))
     return form(locale, "/matches/cards", fields, "compact.record", primary=True)
 
 
@@ -413,6 +417,10 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     task += '<div id="match-recovery-feedback"></div>' + ("" if recovery is None else recovery[0])
     recorded = state.get("recorded_progress")
     if game is not None:
+        if "live" in state:
+            task += render_live_controls(locale, state["live"].effort, terminal, MATCH_LIVE_ROUTES,
+                lambda route: hidden("managed_handle", handle) + hidden("expected_revision", state["workspace_revision"])
+                + hidden("live_binding", state["live_bindings"][route]))
         if game["declaration"] is None:
             task += '<div id="match-declaration"><h3>' + translated(locale, "declaration.title") + '</h3>'
             task += operation_form(state, handle, locale, "set_declaration", primary=True) + '</div>'
@@ -420,7 +428,9 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
             task += accepted_declaration_summary(locale, game["declaration"],
                 _named_seat(state, locale, game["declarer_player_id"]))
         task += _evidence(state, handle, locale, card_bindings)
-    task += '<div class="recording-progress-layout"><div>'
+    live_play = (state.get("live") and state["live"].effort is not None
+                 and view.workflow.primary_action == "append_plays")
+    task += ('<div class="live-table"><div>' if live_play else '<div class="recording-progress-layout"><div>')
     if recorded is not None and recorded.rule_end is not None:
         task += '<h3>' + translated(locale, "recording.null_end.title") + '</h3>'
         task += paragraph(locale, "recording.null_end.detail", player=_name(

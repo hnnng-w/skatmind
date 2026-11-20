@@ -101,8 +101,8 @@ def open_recording_for_review_v1(context, values: dict[str, str]) -> str:
         if not same and previous is not None:
             old_lock = previous.lock if family == "sessions" else previous.capture.lock
             with old_lock:
+                previous.live.configure(None)
                 if family == "sessions":
-                    previous.live.configure(None)
                     previous.clear_execution()
                 else:
                     previous.capture.report_store.clear()

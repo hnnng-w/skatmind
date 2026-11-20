@@ -12,22 +12,27 @@ from .task_first_rendering import form, hidden, paragraph, select_field
 
 
 def live_controls(active, locale, ended):
-    effort = active.live.effort
+    def fields(route):
+        return (hidden("managed_handle", active.handle)
+                + hidden("expected_revision", active.state.revision)
+                + hidden("live_binding", control_binding(active, route)))
+    return render_live_controls(locale, active.live.effort, ended, LIVE_ROUTES, fields)
+
+
+def render_live_controls(locale, effort, ended, routes, binding_fields):
     status = paragraph(locale, "analysis.live.inactive" if effort is None
                        else "analysis.live.active")
 
     def control(route, label, fields=""):
-        return form(locale, route, hidden("managed_handle", active.handle)
-                    + hidden("expected_revision", active.state.revision)
-                    + hidden("live_binding", control_binding(active, route)) + fields, label)
+        return form(locale, route, binding_fields(route) + fields, label)
 
     if effort is None:
-        return status if ended else status + control(LIVE_ROUTES[0], "analysis.live.start")
+        return status if ended else status + control(routes[0], "analysis.live.start")
     choices = select_field(locale, "analysis_effort", "analysis.effort",
                            tuple((v, text(locale, "analysis.effort." + v)) for v in EFFORTS),
                            effort)
-    return (status + ("" if ended else control(LIVE_ROUTES[1], "analysis.live.apply", choices))
-            + control(LIVE_ROUTES[2], "analysis.live.stop"))
+    return (status + ("" if ended else control(routes[1], "analysis.live.apply", choices))
+            + control(routes[2], "analysis.live.stop"))
 
 
 def _tile(locale, card, *, marker=None, best=False, metrics=""):
@@ -98,12 +103,15 @@ def _compared_choices(locale, outcome):
 
 def live_card_choices(locale, live, task):
     """The recording task owns selectable cards. Advice decorates them, never selects one."""
-    cards = task.selectable_cards
+    return render_live_choices(locale, live, task.selectable_cards, task.scope)
+
+
+def render_live_choices(locale, live, cards, scope):
     outcome = live.outcome
     identity = body = ""
     shown = ()
-    if task.scope != "exact_legal_cards":
-        body = paragraph(locale, "task.match.scope." + task.scope)
+    if scope != "exact_legal_cards":
+        body = paragraph(locale, "task.match.scope." + scope)
     elif live.unavailable:
         body = paragraph(locale, "analysis.live.unavailable")
     elif isinstance(outcome, ForcedCardGuidance):

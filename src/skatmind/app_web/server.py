@@ -203,13 +203,11 @@ from .match_declaration_drafts import (
     assemble_recording_input,
     bridge_independent_evidence_feedback,
     continue_native_match_draft,
-    dispatch_recording_input,
     distribute_recording_input,
     has_recording_evidence_error,
     take_recording_draft,
 )
 from .match_frontend import (
-    apply_unified_match_operation_v1,
     build_unified_match_export_download_v1,
     build_unified_match_report_download_v1,
     build_unified_match_state_v1,
@@ -222,6 +220,13 @@ from .match_frontend import (
     reload_unified_match_v1,
     select_unified_match_position_v1,
 )
+from .match_live_advice import (
+    MATCH_LIVE_ROUTES,
+    expire_changed_match_live,
+    match_live_binding,
+    match_live_delivery_guard,
+)
+from .match_live_http import handle_match_input
 from .match_recovery import RECOVERY_ROUTES, MatchRecoveryConflict, recording_selections
 from .match_recovery_http import dispatch_match_recovery
 from .match_recovery_rendering import render_match_recovery
@@ -474,6 +479,7 @@ _STATEFUL_POST_ROUTES = {
     "/sessions/command",
     *CARD_ENTRY_ROUTES,
     *LIVE_ROUTES,
+    *MATCH_LIVE_ROUTES,
     "/sessions/undo",
     "/sessions/analyze",
     "/sessions/review",
@@ -2115,6 +2121,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 invalidate_deletion_activation(self.server.app_context, previous, active)
             if previous is not None:
                 with previous.capture.lock:
+                    previous.live.configure(None)
                     previous.capture.report_store.clear()
                     previous.recovery.clear()
 
@@ -2372,6 +2379,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 with self.server.app_context.lock:
                     self.server.app_context.form_feedback.clear("matches")
             select_unified_match_position_v1(active, position)
+            expire_changed_match_live(active)
             if debrief_evidence is not None:
                 apply_match_decision_selection(active, debrief_evidence.report.decision_index)
             if active.capture.report_store.list():
@@ -2400,6 +2408,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             select_unified_match_position_v1(active, position)
             view = project_task_first_match_v1(active.workspace, selected_position=position)
             state = build_task_first_match_page_state_v1(active, view, report_id=report_id)
+            if not review and state["game"] is not None:
+                state["live"] = replace(active.live)
+                state["live_bindings"] = {route: match_live_binding(active, route)
+                                          for route in MATCH_LIVE_ROUTES}
+                self._retained_delivery_guard = match_live_delivery_guard(
+                    self.server.app_context, active)
             state["rollout_form"] = project_match_rollout_form(
                 active, state["decision_preparation"])
             state["decision_source_scope"] = match_decision_source_scope(active)
@@ -3448,7 +3462,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 self._redirect(f"/matches/reports/{report.report_id}")
             return
         else:
-            result = apply_unified_match_operation_v1(active, values)
+            raise RuntimeError("Unexpected Match operation route.")
         selected = result.state.get("selected_position", active.selected_position)
         position = selected if type(selected) is int and 1 <= selected <= 36 else 1
         if result.http_status == HTTPStatus.OK:
@@ -3460,6 +3474,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             else:
                 self._redirect(f"/matches/position/{position}#match-recording")
             return
+        self._reject_match_result(active, position, result)
+
+    def _reject_match_result(self, active, position, result):
         definition = self._current_form_definition
         self._retain_form_feedback(
             definition,
@@ -3754,8 +3771,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             from .automatic_learning_http import handle_post
             handle_post(self, path, self._text_form(body, content_type))
             return
-        if path == MATCH_RECORDING_INPUT_ROUTE:
-            dispatch_recording_input(self, self._urlencoded_form(body, content_type))
+        if path in (*MATCH_LIVE_ROUTES, MATCH_RECORDING_INPUT_ROUTE, "/matches/cards",
+                    "/matches/api/v1/operation", "/matches/recovery/apply"):
+            handle_match_input(self, path, body, content_type)
             return
         if path == LEARNING_ADD_ROUTE:
             dispatch_learning_direct_entry(self, self._text_form(body, content_type))
@@ -3770,19 +3788,6 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     "/sessions/command", "/sessions/undo"):
             self._session_input(path, body, content_type)
             return
-        if path in CARD_ENTRY_ROUTES:
-            self._redirect(dispatch_card_entry(
-                self.server.app_context, path,
-                self._flat_form(body, content_type, repeated_cards=True)))
-            return
-        if path == "/matches/api/v1/operation":
-            values = self._flat_form(body, content_type, repeated_cards=True)
-            if "time_form" in values or "time_selection" in values:
-                self._redirect(dispatch_local_metadata(self.server.app_context, path, values))
-                return
-            if "declaration_form" in values or "declaration_selection" in values:
-                self._redirect(dispatch_compact_declaration(self.server.app_context, path, values))
-                return
         if path == "/sessions/import":
             self._import_session(body, content_type)
             return
@@ -3794,7 +3799,6 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             return
         if path in {
             "/matches/api/v1/reload",
-            "/matches/api/v1/operation",
             "/matches/api/v1/analysis",
             "/matches/review-whole-game",
             MATCH_DECISION_SELECTION_ROUTE,
@@ -3992,7 +3996,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     self._profile_operation(parsed.path, body, content_type)
                 return
             if parsed.path in _STATEFUL_POST_ROUTES:
-                if parsed.path in ACCOUNTING_ROUTES:
+                if parsed.path in (*ACCOUNTING_ROUTES, *MATCH_LIVE_ROUTES):
                     max_bytes = resolve_frontend_form_v1(parsed.path).body_limit
                 elif parsed.path in EVENT_ROUTES:
                     max_bytes = 32768
