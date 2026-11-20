@@ -45,8 +45,11 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
 }
 .live-other-choices {
+  container: live-other / inline-size;
   gap: .5rem;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  /* Room for the radio, a two-digit face and the full localized name. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14.5rem), 1fr));
+  grid-auto-rows: 1fr;
 }
 .live-table label.live-tile {
   display: grid;
@@ -80,8 +83,23 @@
 .live-featured .card-face, .live-frequency b { font-size: 2.25rem; }
 .live-frequency, .live-secondary { font-weight: 500; font-variant-numeric: tabular-nums; }
 .live-secondary { grid-column: 1 / -1; }
-.live-other-choices .live-tile { padding: .6rem; }
-.live-other-choices .live-identity { grid-column: 2; font-size: 1rem; }
+.live-other-choices label.live-tile {
+  align-content: center;
+  gap: .5rem;
+  padding: .6rem .5rem;
+}
+.live-other-choices .live-identity {
+  display: grid;
+  grid-column: 2;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  column-gap: .375rem;
+  font-size: 1rem;
+}
+@container live-other (width < 14.5rem) {
+  .live-other-choices label.live-tile { align-content: start; }
+  .live-other-choices .live-identity { display: contents; }
+  .live-other-choices .live-identity > :last-child { grid-column: 1 / -1; }
+}
 .live-other-choices .card-face { font-size: 1.4rem; }
 .live-tile:has(input:checked) { box-shadow: inset 0 0 0 3px var(--green); }
 .live-tile:focus-within { outline: .2rem solid var(--focus); outline-offset: .1rem; }

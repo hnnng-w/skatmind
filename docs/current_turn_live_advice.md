@@ -249,9 +249,47 @@ no statistics; the opponent view had observation candidates without evaluations.
 In both languages the initial choices were unchecked. Native click and arrow-key
 selection sent no POST and did not change the revision before explicit recording.
 
-After published-source review and successful automatic exact-commit main gates,
-only a brief installed visual check remains for #327. Import the synthetic
-seven-play Session (`327-live-seven-plays.json`, revision 20), start Quick and
-enter **H8** to inspect the selectable comparison and context at the maintainer's
-usual width. Earlier functional and latency acceptance stands. #327 and #208
-remain open; #326's accepted retrospective latency deferral is unchanged.
+## Unscored card alignment on Clara's turn
+
+The maintainer accepted the installed large recommendation tiles at `2b458df`.
+The remaining finding was visible **before H8**, with Live enabled and Clara
+next to play. At a measured German browser `innerWidth` of 3440 CSS px, only
+8 of 17 unscored cards kept face and name on one line; rows were 54 or 78 px
+high. The 76rem application width cap still applied on that viewport.
+
+The small palette now reduces its column count before names need to wrap.
+Each tile reserves aligned positions for its radio, face (including tens)
+and full name. Grid rows share the height needed by their content, including
+the partial last row. If the entire palette is narrower than one normal tile,
+every name moves below its face. The same rules apply to additional cards
+below the evaluated choices.
+
+Source Edge 157.0.4341.60, seven-play synthetic Session at revision 20, page
+scripts disabled. These are measured CSS pixels, not monitor dimensions:
+
+| Language | Browser inner width × height | Application width | Small palette width | Columns | Each tile (width × height) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| German | 1230 × 860 | 1183 | 715.47 | 3 | 233.16 × 45.83 |
+| German | 3440 × 1440 | 1216 | 737.47 | 3 | 240.48 × 45.83 |
+| German | 390 × 844 | 343 | 279.81 | 1 | 279.81 × 45.83 |
+| English | 1230 × 860 | 1183 | 715.47 | 3 | 233.16 × 45.83 |
+
+All four views showed the same 17 native choices in the same order, with full
+single-line names and no clipping. Radios, faces and names started 9, 37 and
+91 px from the tile's left edge. At 1230 px the 16 px names had 133.16 px of
+space; the widest English name, *Diamonds Queen*, measured 129.23 px. At 390 px
+with the root text size doubled, every tile grew to 185.64 px high and placed
+its full name below the face without clipping inside the palette.
+
+A native click and arrow-key selection focused H8 without a POST or revision
+change. Explicit recording advanced to revision 21. The resulting German
+Alice screenshot at 1230 × 860 was byte-identical before and after the CSS
+change. After SA the four unscored choices also had equal dimensions, including
+the last tile alone in its row.
+
+For #327, only the small-palette installed visual check remains after
+published-source review and successful automatic exact-commit main gates:
+open the synthetic seven-play Session, start Quick and inspect Clara's cards
+**before entering H8**. Earlier functionality, latency and large-tile
+acceptance stands. #327 and #208 remain open; #326's accepted retrospective
+latency deferral is unchanged.
