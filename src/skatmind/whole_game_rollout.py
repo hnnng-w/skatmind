@@ -174,6 +174,7 @@ def _unavailable_reason(
     cards: tuple[str, ...],
     *,
     live_null: bool,
+    world_matadors: bool,
 ) -> str | None:
     if view.game_type == "null" and live_null:
         if view.declarer_trick_count:
@@ -200,7 +201,9 @@ def _unavailable_reason(
     if settings.objective == "complete_settlement" and not has_supported_terminal_utility_inputs(
         view.declaration
     ):
-        return "missing_terminal_utility_inputs"
+        if not (world_matadors and view.game_type != "null"
+                and view.declaration.bid_value is not None):
+            return "missing_terminal_utility_inputs"
     return None
 
 
@@ -216,7 +219,13 @@ def prepare_whole_game_rollout_v1(
                                   live_null=False)
 
 
-def _prepare_common_worlds(information_view, settings, *, clock, cancelled, live_null):
+def _ordinary_draws(space, n, rng, hook):
+    return space.compatible_world_count, iter_compatible_hidden_worlds(
+        space._assignment_problem, n, rng, work_hook=hook)
+
+
+def _prepare_common_worlds(information_view, settings, *, clock, cancelled, live_null,
+                           select_draws=_ordinary_draws, world_matadors=False):
     if not isinstance(information_view, SearchInformationView):
         raise ValueError("information_view must be a SearchInformationView.")
     if not isinstance(settings, WholeGameRolloutSettingsV1):
@@ -232,7 +241,8 @@ def _prepare_common_worlds(information_view, settings, *, clock, cancelled, live
     cards = canonicalize_cards(tuple(get_legal_cards(
         list(view.local_remaining_hand), [play.card for play in view.current_trick], view.game_type
     )))
-    reason = _unavailable_reason(view, settings, remaining, cards, live_null=live_null)
+    reason = _unavailable_reason(view, settings, remaining, cards, live_null=live_null,
+                                 world_matadors=world_matadors)
     status = "unavailable" if reason else "ready"
     count = None
     worlds = []
@@ -242,17 +252,14 @@ def _prepare_common_worlds(information_view, settings, *, clock, cancelled, live
         if reason is None:
             work.prepare_unit()  # At most 32 cards of assignment-problem construction.
             space = build_compatible_search_world_space(view, work_hook=work.prepare_unit)
-            count = space.compatible_world_count
+            rng = random.Random(derive_simulation_child_seed(
+                settings.random_seed, "whole_game_rollout_worlds_v1"
+            ))
+            count, draws = select_draws(space, settings.requested_worlds, rng, work.prepare_unit)
             if count == 0:
                 status, reason = "unavailable", "incompatible_world_space"
             else:
-                rng = random.Random(derive_simulation_child_seed(
-                    settings.random_seed, "whole_game_rollout_worlds_v1"
-                ))
-                for world in iter_compatible_hidden_worlds(
-                    space._assignment_problem, settings.requested_worlds, rng,
-                    work_hook=work.prepare_unit,
-                ):
+                for world in draws:
                     work.sampled_worlds += 1
                     sampled.add(world)
                     work.prepare_unit()  # One bounded exact/public root reconciliation.
@@ -337,9 +344,10 @@ def _sum_candidates(
     )
 
 
-def _completed_batches(p, order, work, policy, terminal):
+def _completed_batches(p, order, work, policy, terminal, *, terminal_for_world=None):
     """Only yield a common draw after every candidate reaches terminal under its policy."""
     for root in p._worlds:
+        score = terminal if terminal_for_world is None else terminal_for_world(root)
         batch = {}
         for card in order:
             work.transition()
@@ -349,8 +357,8 @@ def _completed_batches(p, order, work, policy, terminal):
                 action = policy(build_information_set_search_observation_v1(child))
                 child = apply_information_set_search_card_v1(child, action)
             work.check()
-            batch[card] = terminal(child.exact_state, card, p.settings.objective,
-                                   p.information_view.local_side)
+            batch[card] = score(child.exact_state, card, p.settings.objective,
+                                p.information_view.local_side)
             work.terminal_evaluations += 1
         work.check()
         yield batch

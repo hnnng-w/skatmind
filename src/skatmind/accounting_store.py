@@ -11,6 +11,7 @@ from pathlib import Path
 from .accounting_state import CentRoundV1, TournamentAccountingV1, revise_accounting
 from .automatic_learning_codec import Record, canonical_json, decode_json
 from .automatic_learning_io import checked_root, read_bounded, sync_directory
+from .match_source_coordination import match_source_coordinator
 from .mode_accounting import accounting_identity
 
 ACCOUNTING_FILENAME = "mode-accounting.json"
@@ -133,13 +134,22 @@ def resume_accounting(raw):
     return result
 
 
-def load_accounting(root):
+def read_accounting_bytes(root):
     checked_root(root)
     try:
-        raw = read_bounded(root / ACCOUNTING_FILENAME, MAX_BYTES)
+        return read_bounded(root / ACCOUNTING_FILENAME, MAX_BYTES)
     except FileNotFoundError:
-        return AccountingJournalV1()
-    return resume_accounting(raw)
+        return None
+
+
+def load_accounting(root):
+    raw = read_accounting_bytes(root)
+    return AccountingJournalV1() if raw is None else resume_accounting(raw)
+
+
+def watch_cent_source(root, session_id):
+    """In-memory write epoch for one Session's Cent authority; never creates a file."""
+    return match_source_coordinator(root).watch_source(session_id)
 
 
 def save_accounting(root, journal, *, expected_fingerprint, source_guard):
@@ -177,7 +187,19 @@ def _save_accounting_locked(root, journal, *, expected_fingerprint, source_guard
         checked_root(root)
         if load_accounting(root) != previous or not source_guard():
             raise AccountingConflict("Accounting changed during save.")
-        os.replace(temporary, root / ACCOUNTING_FILENAME)
+        # Publish the change and signal only affected Live owners. Readers still
+        # verify the strict current content to detect non-cooperating file changes.
+        affected = set()
+        for row in journal.rounds[len(previous.rounds):]:
+            old = previous.head(row.identity)
+            for head in (old, row):
+                if head is not None:
+                    affected.update(b.source.product_id for b in head.context.bindings)
+        coordinator = match_source_coordinator(root)
+        with coordinator.lock:
+            os.replace(temporary, root / ACCOUNTING_FILENAME)
+            for source in affected:
+                coordinator.accepted_write(source)
         sync_directory(root)
     finally:
         temporary.unlink(missing_ok=True)

@@ -17,6 +17,8 @@ a correction, a rejected input, or a partial suffix rejection does not run it.
 * **Several legal cards:** how often does **your party win the game** after
   each choice? All candidates play out the same sampled deals. The form
   shows all equally recommended cards and up to two evaluated alternatives.
+  In a bound three-game Cent round, your **estimated personal return** ranks
+  the cards; the win frequency remains visible.
   Each tile is the native radio label: it contains the card face and name,
   recommendation or alternative marker, percentage, successes/common samples,
   and any tie-breaking mean needed to distinguish the leaders. Other playable
@@ -41,6 +43,7 @@ decision-time public plays, relative player map, visible Skat and Ouvert or
 continuation hands. The export already derives matadors when the visible
 cards establish them. There is no observed-card annotation, post-game input,
 later deal reconstruction, manual supplement, or archive lookup.
+Outside a bound Cent round the following success-based ranking applies:
 
 * **Complete settlement:** with a supported bid and the required matadors
   (Suit/Grand), success uses the existing exact terminal settlement including
@@ -73,11 +76,102 @@ opponent-profile adaptation, future claim, concession, or optimal-play search.
 
 Only **complete common coverage** yields advice. Timeout, cancellation, budget
 exhaustion, contradictory or unsupported facts never fall back to Immediate.
-For a success-count tie decided by a secondary metric, the form shows equal
+For a success-ranked tie decided by a secondary metric, the form shows equal
 percentages and the relevant numeric means. The separately labelled **points
 from completed tricks** (tricks won for Null) are the recording's current
 score, not a forecast or final settlement. None of these numbers needs a
 disclosure, hover or separate Results page.
+
+### Personal return in a three-game Cent round
+
+Only an existing accounting round's current Session binding selects this
+objective. The binding maps the Session's perspective and seat order to the
+round participants and selects the terms for that game position. A Session
+title, platform preference, standalone event context or `tournament_cent`
+does not select it. No new input is required.
+
+Every legal card plays the **same complete sample**. A supplied matador count
+conditions the compatible deals (including the buried cards): “with” and
+“without” branches are sampled in proportion to their exact numbers of deals.
+Otherwise each simulated Suit/Grand deal supplies its own matador count, using
+the declarer's already played and remaining cards plus the two out-of-play
+cards. Only terminal scoring uses those hypothetical facts. The Session, its
+export and continuation players' observations do not acquire them.
+
+The terminal settlement includes declaration requirements and overbidding.
+The signed declarer score, **already doubled on a loss**, goes through the
+round's normal pairwise transfer calculation. Each simulated game's applicable
+individual fee is rounded **before** averaging. Tiles say **net** only if the
+perspective player's net is established for every card in every common deal.
+Otherwise all tiles use gross **before fees**: local fees, winning-defender
+fee allocation or fractional provider posting can be unresolved. Equal means
+remain co-best regardless of win counts. Amounts show fractional cents when
+needed. The comparison is for this game, not a prediction of an account posting.
+
+A missing bid retains the played-game comparison with a visible qualification;
+a known overbid Null, incompatible declaration, timeout or incomplete common
+sample does not produce a monetary recommendation. Forced cards and opponent
+turns require no monetary evaluation. Evaluating, viewing and switching
+language do not book a transfer or create retained evidence.
+
+Admission freezes the strict accounting binding as well as the saved Session.
+A per-source accounting write epoch signals cooperating changes during work.
+Publication and delivery also read the bounded file content. Bytes different
+from those verified at admission require strict decode and comparison of the
+current round identity, revision, terms and participant binding. An unrelated
+round need not invalidate the advice. No journal or source reads run inside
+the simulated card transitions.
+
+### Synthetic Cent check (#328)
+
+For one short installed check after hosted acceptance, use the disposable
+pre-declaration Session, or recreate its complete input below:
+
+1. Create a three-player perspective Session (Alice in forehand, Bob, Carol).
+   Start a three-game round on **EuroSkat, ½ cent per point**. Alice's hand is
+   `CQ C9 SK H10 HQ HJ H7 DA D9 D8`; set Alice as declarer. If importing the
+   prepared Session, the hand and declarer are already saved; start the round
+   for that Session.
+2. Enable **Quick** Live advice. Declare **Grand Hand, bid 18**, leaving
+   matadors unspecified. No plays, Skat cards or other hands are needed.
+3. Check the three featured tiles below. All ten legal choices start
+   unselected and recording still requires the explicit button. This opening
+   alone is sufficient for the installed check.
+
+| Card | Party wins | Expected personal net | Tile |
+| --- | ---: | ---: | --- |
+| Hearts Queen (HQ) | 2/25 (8%) | −€1.7212 | Recommended |
+| Diamonds Ace (DA) | 1/25 (4%) | −€1.7584 | Alternative |
+| Hearts Jack (HJ) | 3/25 (12%) | −€1.79 | Alternative |
+
+HJ wins most often, but HQ has the smallest expected loss. Without the Cent
+binding the same opening recommends HJ. With the in-person half-cent tariff
+the HQ gross estimate is −€1.7184 **before fees**.
+
+**Source observation:** development CPython 3.13.7, headless Edge
+157.0.4341.60, page JavaScript disabled, disposable loopback home. The native
+declaration submit through visible English advice took **3.041 s cold**,
+including save, real round lookup, 25 common deals, 250 terminal evaluations,
+7,500 transitions, redirect and page rendering. Switching to German preserved
+the amounts and counts and left the choices unchecked. Recording HQ, followed
+by H9 and H8, gave another own lead. The H8 submit through visible German
+advice took **1.115 s** (25 deals, 225 terminal evaluations, 6,075 transitions).
+DA then led at −€1.8624 net, 0/25. Accounting bytes were unchanged. These are
+two individual source measurements, not installed acceptance or latency limits.
+
+For reproducing the local checks, the affected parallel pytest modules are
+listed below (module names under `tests/`, with the `test_` prefix):
+
+| Area | Modules |
+| --- | --- |
+| Objective, shared engine and accounting | `cent_live_objective`, `live_whole_game`, `exact_terminal_utility`, `whole_game_rollout`, `whole_game_rollout_workflow`, `accounting_state_store`, `mode_accounting` |
+| Native flow and ownership | `cent_live_web`, `session_live_advice_web`, `accounting_web`, `session_declaration_correction_web`, `forced_card_guidance`, `compact_card_entry_web`, `language_switch_context` |
+| Catalogs and architecture guards | `complete_frontend_localization`, `frontend_localization_foundation`, `skatmind_rename`, `cli_internal_architecture` |
+
+Use development CPython 3.13 with `-n 2 --dist=loadfile --max-worker-restart=0`.
+Run `test_unified_rejection_transport.py` separately after the workers exit,
+then explicit Quick and whitespace checks. This scope does not certify the
+full hosted gates or installed acceptance.
 
 ## Ownership and execution
 
@@ -287,9 +381,7 @@ Alice screenshot at 1230 × 860 was byte-identical before and after the CSS
 change. After SA the four unscored choices also had equal dimensions, including
 the last tile alone in its row.
 
-For #327, only the small-palette installed visual check remains after
-published-source review and successful automatic exact-commit main gates:
-open the synthetic seven-play Session, start Quick and inspect Clara's cards
-**before entering H8**. Earlier functionality, latency and large-tile
-acceptance stands. #327 and #208 remain open; #326's accepted retrospective
+The maintainer subsequently accepted the small palette, completing #327
+acceptance at the #328 baseline. Its seven-play sequence does not need to be
+repeated for the Cent change. #208 remains open; #326's accepted retrospective
 latency deferral is unchanged.

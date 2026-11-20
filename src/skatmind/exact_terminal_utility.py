@@ -86,7 +86,13 @@ def _build_exact_terminal_utility(
     local_side: str,
     apply_null_result: bool,
 ) -> TerminalUtility:
-    facts = get_exact_search_terminal_facts(state)
+    return _settled_terminal_utility(
+        get_exact_search_terminal_facts(state), state.declaration, local_side, apply_null_result
+    )
+
+
+def _settled_terminal_utility(facts, declaration, local_side, apply_null_result):
+    """Score terminal facts without making a hypothetical declaration actor-visible."""
     completed_tricks = [
         *({"winner_role": "declarer"} for _ in range(facts.declarer_trick_count)),
         *({"winner_role": "defenders"} for _ in range(facts.defender_trick_count)),
@@ -100,10 +106,10 @@ def _build_exact_terminal_utility(
             game_result,
             completed_tricks,
         )
-    game_value = build_game_value_summary(state.declaration)
+    game_value = build_game_value_summary(declaration)
     overbid = build_overbid_summary(
         game_value_summary=game_value,
-        bid_value=state.declaration.bid_value,
+        bid_value=declaration.bid_value,
         game_end_reason="normal_completion",
     )
     settlement = build_final_settlement_summary(
@@ -125,7 +131,7 @@ def _build_exact_terminal_utility(
         raise ValueError("Exact terminal utility requires an integer settlement score.")
 
     return build_terminal_utility(
-        game_type=state.declaration.game_type,
+        game_type=declaration.game_type,
         local_side=local_side,
         winner="defenders" if is_loss else "declarer",
         declarer_settlement_score=settlement_score,

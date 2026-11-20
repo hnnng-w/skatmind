@@ -327,6 +327,7 @@ from .session_live_advice import (
     after_live_edit,
     configure_live,
     control_binding,
+    expire_changed_cent_advice,
     live_delivery_guard,
     reserve_live_attempt,
     run_live_attempt,
@@ -2277,6 +2278,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         self._session_page_return = True
         active = self._active_session()
         with active.lock:
+            expire_changed_cent_advice(self.server.app_context, active)
             if active.declaration_correction.selected is not None:
                 from .card_entry_http import CardEntryConflict, _fresh
                 try:
@@ -3216,9 +3218,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                             return
                     attempt = None
                     if path in LIVE_ROUTES:
-                        attempt = reserve_live_attempt(active)
+                        attempt = reserve_live_attempt(app, active)
                     elif values.get("kind") != "set_game_metadata" or not was_ready:
-                        attempt = after_live_edit(active, before)
+                        attempt = after_live_edit(app, active, before)
                     if attempt is not None:
                         location = "/sessions/current#session-recording"
                     self._clear_redirect_feedback()

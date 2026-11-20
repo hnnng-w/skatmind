@@ -54,7 +54,7 @@ def handle_session_correction(handler, path, body, content_type):
                     raise SessionCorrectionConflict()
                 before = active.generation
                 location = dispatch_session_correction(app, active, path, values)
-                attempt = after_live_edit(active, before)
+                attempt = after_live_edit(app, active, before)
             except (ValueError, StaleFrontendWorkflowRevisionError) as error:
                 handler._reject_registered_form(error, status=(HTTPStatus.CONFLICT if isinstance(
                     error, StaleFrontendWorkflowRevisionError) else HTTPStatus.BAD_REQUEST))

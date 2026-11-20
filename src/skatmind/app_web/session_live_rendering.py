@@ -52,6 +52,11 @@ def _compared_choices(locale, outcome):
     show_margin = any(c.total_game_score == leader.total_game_score for c in same_count)
     objective = translated(locale, "analysis.live." + outcome.settings.objective,
                            party=text(locale, "trick_progress." + outcome.local_side))
+    money = outcome.money_basis in ("net", "gross")
+    if money:
+        objective = translated(locale, "analysis.live.money_objective") + " " + objective
+    elif outcome.money_basis == "unavailable":
+        objective += " " + translated(locale, "analysis.live.money_missing_bid")
     result = f'<p class="live-objective">{objective}</p><div class="live-featured">'
     count = outcome.completed_common_worlds
     for card in shown:
@@ -67,7 +72,16 @@ def _compared_choices(locale, outcome):
         marker = "analysis.live.alternative"
         if card in best:
             marker = "rollout.marker.tied" if len(best) > 1 else "rollout.marker.recommended"
-        if successes == leader.successes:
+        if money:
+            # Half a cent / 400 = 0.0000125 EUR. Seven places cover every native
+            # effort exactly; Fraction formatting never passes through a float.
+            units, decimals = format(row.expected_personal_eur, ".7f").split(".")
+            amount = units + text(locale, "rollout.number.decimal_separator") + (
+                decimals.rstrip("0").ljust(2, "0"))
+            metrics += ('<span class="live-secondary"><b>' + translated(
+                locale, "analysis.live.money_" + outcome.money_basis, amount=amount)
+                + '</b></span>')
+        elif successes == leader.successes:
             for show, key, total in ((show_score, "result.mean_score", row.total_game_score),
                                      (show_margin, "analysis.live.final_margin",
                                       row.total_point_margin)):
@@ -77,7 +91,7 @@ def _compared_choices(locale, outcome):
                                 + '</b></span>')
         result += _tile(locale, card, marker=marker, best=card in best, metrics=metrics)
     result += '</div>'
-    if same_count:
+    if same_count and not money:
         result += paragraph(locale, "analysis.live.tie_" + outcome.settings.objective)
     return result, shown
 
