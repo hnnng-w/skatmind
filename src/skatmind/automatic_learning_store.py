@@ -12,7 +12,7 @@ import threading
 import uuid
 import weakref
 from collections import Counter
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
@@ -662,18 +662,19 @@ class AutomaticLearningStoreV1:
     def update_manifest(
         self, requested: ManifestV1, *, expected_manifest: str,
         candidate: CandidateV1 | None = None,
-        commit_guard=None,
+        commit_guard=None, publication_context=nullcontext,
     ) -> WriteResultV1:
         """Dependencies first, flushed same-directory CAS last; never rolls back a commit."""
         try:
             return self._update_manifest(
                 requested, expected_manifest=expected_manifest, candidate=candidate,
-                commit_guard=commit_guard,
+                commit_guard=commit_guard, publication_context=publication_context,
             )
         except StoreBusyError:
             return WriteResultV1("conflict", self._manifest().fingerprint)
 
-    def _update_manifest(self, requested, *, expected_manifest, candidate, commit_guard=None):
+    def _update_manifest(self, requested, *, expected_manifest, candidate, commit_guard=None,
+                         publication_context=nullcontext):
         digest(expected_manifest)
         if type(requested) is not ManifestV1:
             raise ValueError("Expected an exact manifest.")
@@ -719,11 +720,14 @@ class AutomaticLearningStoreV1:
             temporary = io.write_temporary(self.root, raw)
             self._coordinator.epoch += 1
             try:
-                latest = self._manifest()  # Immediately before atomic replacement.
-                if (latest.fingerprint != expected_manifest
-                        or commit_guard is not None and not commit_guard()):
-                    return WriteResultV1("conflict", latest.fingerprint)
-                os.replace(temporary, self.root / "manifest.json")
+                # Optional owner fencing is confined to this final CAS. Callers
+                # entering Product locks here must not wait on another store client.
+                with publication_context():
+                    latest = self._manifest()  # Immediately before atomic replacement.
+                    if (latest.fingerprint != expected_manifest
+                            or commit_guard is not None and not commit_guard()):
+                        return WriteResultV1("conflict", latest.fingerprint)
+                    os.replace(temporary, self.root / "manifest.json")
                 # COMMIT BOUNDARY: no cleanup of manifest or rollback after this line.
                 io.sync_directory(self.root)
                 if candidate is not None:

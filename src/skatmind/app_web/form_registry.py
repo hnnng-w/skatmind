@@ -54,6 +54,7 @@ from .recorded_review_opening import OPEN_RECORDING_ROUTE, RECORDED_REVIEW_ROUTE
 from .recording_deletion import DELETION_BODY_LIMIT, DELETION_PAGE, DELETION_POST_ROUTES
 from .session_declaration_correction import CORRECTION_BODY_LIMIT, CORRECTION_ROUTES
 from .session_live_advice import LIVE_ROUTES
+from .whole_match_routes import ACTIONS as WHOLE_MATCH_ACTIONS
 
 _DEFAULT_BODY_LIMIT = FRONTEND_JSON_MAX_FILE_BYTES + 4_096
 _MANAGED_IMPORT_BODY_LIMIT = MANAGED_ITEM_MAX_IMPORT_BYTES + 4_096
@@ -1544,6 +1545,16 @@ _FORMS.append(_definition(
 _FORMS.append(_definition(
     "match.retry_saving", "/matches/retry-saving", page="/matches/current", active="matches",
     body_limit=8192, value_free=True, success="contextual"))
+for _route in WHOLE_MATCH_ACTIONS:
+    _action = _route.rsplit("/", 1)[1]
+    _FORMS.append(_definition("match.whole_review." + _action,
+        _route, page="/matches/whole-review", active="matches",
+        body_limit=8192, value_free=_action != "start", success="contextual",
+        fields=("analysis_effort", "objective", "random_seed", *(
+            f"{name}_{p}" for p in range(1, 37) for name in ("bid_value", "matadors")
+        )) if _action == "start" else (), label_overrides={
+            f"{name}_{p}": "validation.field.declaration_" + name for p in range(1, 37)
+            for name in ("bid_value", "matadors")}))
 _FORMS.append(_definition(
     "session.retry_saving", "/sessions/retry-saving", page="/sessions/current", active="sessions",
     body_limit=8192, value_free=True, success="contextual"))
@@ -1625,6 +1636,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             "/matches/review-whole-game",
             "/matches/select-decision",
             "/matches/retry-saving",
+            *WHOLE_MATCH_ACTIONS,
             "/matches/transfer-report",
             *RECOVERY_ROUTES,
             "/learning/create",

@@ -375,6 +375,7 @@ from .validation_rendering import (
     apply_validation_feedback_to_html_v1,
     instrument_registered_forms_v1,
 )
+from .whole_match_routes import ACTIONS as WHOLE_MATCH_ACTIONS
 from .workflow_operations import (
     FrontendWorkflowValidationError,
     back_review_v1,
@@ -463,6 +464,7 @@ _SESSION_DOWNLOAD_ROUTES = {
     "/sessions/downloads/rollout-result.json",
 }
 _STATEFUL_POST_ROUTES = {
+    *WHOLE_MATCH_ACTIONS,
     *ACCOUNTING_ROUTES,
     *EVENT_ROUTES,
     *HISTORICAL_POST_ROUTES,
@@ -539,6 +541,7 @@ _COMMON_ERROR_MESSAGE_KEYS = {
 def _is_stateful_get_route(path: str) -> bool:
     return (
         automatic_html_route(path) or AUTOMATIC_VIEW.fullmatch(path) is not None or
+        path in ("/matches/whole-review", "/matches/whole-review/overview") or
         path == SAVED_MATCH_ROUTE or SAVED_MATCH_PATTERN.fullmatch(path) is not None or
         path
         in {
@@ -2525,6 +2528,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         ))
         body += render_event_context(self.server.app_context, active, "matches", locale)
         body += render_accounting(self.server.app_context, active, "matches", locale)
+        body = ('<p><a class="button-link secondary" href="/matches/whole-review">'
+                + escape(translate_frontend_message_v1(locale, "whole_review.title"))
+                + '</a></p>' + body)
         body += saved_analyses_link(locale)
         receipt_id = report_id
         binding = active.rollout_evidence_binding
@@ -2784,6 +2790,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         return False
 
     def _stateful_get(self, path: str) -> bool:
+        if path in ("/matches/whole-review", "/matches/whole-review/overview"):
+            from .whole_match_web import dispatch
+            dispatch(self, path)
+            return True
         from .saved_historical_reviews import handle_get as historical_get
         if historical_get(self, path):
             return True
@@ -3811,6 +3821,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         values = self._text_form(body, content_type)
         if path == RETRY_MATCH_ROUTE:
             handle_retry_saving(self, values)
+        elif path in WHOLE_MATCH_ACTIONS:
+            from .whole_match_web import dispatch
+            dispatch(self, path, values)
         elif path == "/sessions/retry-saving":
             from .session_evidence_retention import save_pending_session
             active = self._bound_active("sessions", values)

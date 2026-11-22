@@ -1,5 +1,8 @@
 # Selected Match decision whole-game review
 
+For the explicit resumable review of all recorded perspective decisions, see
+[Whole-Match decision review](whole_match_decision_review.md).
+
 Separate S3 follow-up: [Issue #311 retention](match_rollout_analysis_retention.md)
 retains managed executions and their exact original source across restart, with
 family-owned Saved analyses downloads and separate incomplete attempts. The

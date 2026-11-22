@@ -124,6 +124,13 @@ def capture_language_source_v1(context: AppWebContextV1, route: str, *,
     """
     if not is_safe_frontend_return_path_v1(route):
         raise ValueError("Language origin must be a safe HTML route.")
+    if route in ("/matches/whole-review", "/matches/whole-review/overview"):
+        with context.lock:
+            match = context.managed_stateful.active_match
+        if match is None:
+            raise LanguageContextConflict
+        return LanguageSourceV1(route, (match, match.workspace, context.saved_match_analyses),
+                                (context.whole_match.generation,))
     if automatic_html_route(route) or historical_html_route(route):
         controller = context.automatic_learning_ui
         service = controller.service
@@ -424,7 +431,8 @@ def _require_files(context: AppWebContextV1, route: str, *, automatic_view=None)
                 if loaded.content_fingerprint != session.document.content_fingerprint:
                     raise LanguageContextConflict
         if (route.startswith(("/matches/position/", "/matches/review/", "/matches/reports/"))
-                or route == "/matches/current"):
+                or route in ("/matches/current", "/matches/whole-review",
+                             "/matches/whole-review/overview")):
             if match is None:
                 raise LanguageContextConflict
             with match.capture.lock:

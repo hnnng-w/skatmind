@@ -1183,8 +1183,11 @@ assert FRONTEND_TRANSLATION_CATALOG_VERSION == 1
 assert LOCAL_FRONTEND_PROFILE_VERSION == 1
 assert FRONTEND_INFORMATION_ARCHITECTURE_VERSION == 1
 assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-assert len(UNIFIED_FRONTEND_POST_ROUTES) == 110
-assert len(FRONTEND_FORM_REGISTRY) == 162
+assert len(UNIFIED_FRONTEND_POST_ROUTES) == 113
+assert len(FRONTEND_FORM_REGISTRY) == 165
+assert {form.action_route for form in FRONTEND_FORM_REGISTRY
+        if form.form_key.startswith("match.whole_review.")} == {
+    "/matches/whole-review/start", "/matches/whole-review/resume", "/matches/whole-review/cancel"}
 assert {form.action_route for form in FRONTEND_FORM_REGISTRY
         if form.form_key.startswith("session.live_")} == {
     "/sessions/live-start", "/sessions/live-effort", "/sessions/live-stop"}

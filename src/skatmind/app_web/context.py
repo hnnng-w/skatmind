@@ -42,6 +42,11 @@ def _new_historical_reviews():
     return HistoricalReviewOwner()
 
 
+def _new_whole_review():
+    from .whole_match_job import Controller
+    return Controller()
+
+
 @dataclass(slots=True)
 class AppWebContextV1:
     """Process-local private context for one managed application home."""
@@ -78,6 +83,7 @@ class AppWebContextV1:
     automatic_match_learning: object | None = field(default=None, repr=False)
     automatic_learning_ui: object = field(default_factory=_new_automatic_learning_ui, repr=False)
     historical_reviews: object = field(default_factory=_new_historical_reviews, repr=False)
+    whole_match: object = field(default_factory=_new_whole_review, repr=False)
 
     def __post_init__(self) -> None:
         from .stateful_context import ManagedStatefulContextV1

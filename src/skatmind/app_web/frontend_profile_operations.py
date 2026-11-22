@@ -56,6 +56,8 @@ _SAFE_STATIC_HTML_ROUTES = {
     "/matches/new",
     "/matches/current",
     "/matches/saved-analyses",
+    "/matches/whole-review",
+    "/matches/whole-review/overview",
     "/learning",
     "/learning/collections",
     "/learning/current",
