@@ -342,6 +342,48 @@ def test_no_entitlement_is_zero_but_unknown_fees_or_charges_are_not_zero():
     assert not result.ranking
 
 
+@pytest.mark.parametrize(("participation", "entitlement", "expected"), [
+    ("no", "unknown", 0), ("yes", "no", 0),
+    ("unknown", "yes", None), ("yes", "unknown", None), ("yes", "yes", None),
+])
+def test_supplied_pool_without_payout_evidence(participation, entitlement, expected):
+    prefix = prefix_at()
+    member = PoolFactV1(pool_id="base", participation=participation, entitlement=entitlement)
+    basis = model(prefix, pools=(replace(BASE, membership=member, awards_cents=None),),
+                  payout_source=None)
+    result = single(prefix, basis, ListGame("c", 48), leaf(standings=()))
+    c, = result.candidates
+    row, = c.outcomes
+    assert (row.awards_cents, c.expected.prize_cents, c.expected.net_cents, result.ranking) == (
+        (("base", expected),), expected, expected, () if expected is None else (("one",),))
+    assert row.unavailable == (("base:incomplete_schedule",) if expected is None else ())
+
+
+@pytest.mark.parametrize(("participation", "entitlement", "expected"), [
+    ("no", "unknown", 0), ("yes", "no", 0),
+    ("unknown", "yes", None), ("yes", "unknown", None), ("yes", "yes", None),
+])
+def test_omitted_pool_uses_cutoff_membership(participation, entitlement, expected):
+    context, facts = event()
+    plus = PoolFactV1(pool_id="plus-1", participation=participation, entitlement=entitlement)
+    terms, = context.terms
+    context = replace(context, terms=(replace(terms, financial=replace(terms.financial,
+        pools=(plus,), provenance="Pool membership at entry")),))
+    prefix = TournamentPrefix(prepare(context, facts), context)
+    basis = model(prefix)
+    result = single(prefix, basis, ListGame("c", 48), leaf())
+    c, = result.candidates
+    row, = c.outcomes
+    assert (dict(row.awards_cents), c.expected.prize_cents, c.expected.net_cents,
+            result.ranking) == ({"base": 0, "plus-1": expected}, expected, expected,
+                                () if expected is None else (("one",),))
+    assert row.unavailable == (("plus-1:missing_pool_basis",) if expected is None else ())
+    if expected == 0:
+        included = replace(BASE, membership=replace(BASE.membership, pool_id="plus-1"))
+        with pytest.raises(ValueError, match="membership conflicts"):
+            single(prefix, replace(basis, pools=(BASE, included)), ListGame("c", 48), leaf())
+
+
 def test_current_and_later_facts_do_not_enter_the_model_or_replace_missing_prize_data():
     context, facts = event(game=35)
     terms, = context.terms

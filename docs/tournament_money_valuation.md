@@ -38,13 +38,19 @@ that model. The existing Session, Cent and Match recommendations do not call it.
   within a distribution, a different source/model/payout basis, or impossible
   list length invalidates comparison. There is no inferred weighting.
 
-Each base or selected Plus competition needs its own complete schedule of final
+Explicit nonparticipation or no personal entitlement establishes a **zero award**
+for that pool. The result retains the zero even when the frozen cutoff excludes
+the pool and the model omits it. No payout source, schedule or standing is needed
+to establish that zero. Supplied membership must still agree with the cutoff.
+
+Each applicable base or Plus competition needs its own complete schedule of final
 personal awards in cents, including zero for every unpaid rank, field size,
 payout edition, and participation/entitlement. A rank must be resolved with
 model evidence, or derived from **all other pool members'** modeled scores. For
 equal scores the latter requires the number of tied opponents ahead and explicit
 resolution evidence. Neither table standing nor another format's tiebreak is
-a Standard tournament rank. Coverage includes pools recorded at the cutoff.
+a Standard tournament rank. Omitting a cutoff pool whose applicability is
+unknown or confirmed leaves its award unresolved.
 Free-text prize descriptions and actual personal receipts do not supply a schedule.
 
 For each path the evaluator first scores the current game once, then the later

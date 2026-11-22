@@ -297,12 +297,16 @@ class Comparison:
     ranking: tuple[tuple[str, ...], ...]  # Descending net, one group per exact value.
 
 
+def _pool_excluded(member):
+    return member.participation == "no" or member.entitlement == "no"
+
+
 def _award(pool, standing, points, source):
+    member = pool.membership
+    if _pool_excluded(member):
+        return 0, None
     if source is None or pool.awards_cents is None or len(pool.awards_cents) != pool.field_size:
         return None, "incomplete_schedule"
-    member = pool.membership
-    if member.participation == "no" or member.entitlement == "no":
-        return 0, None
     if member.participation != "yes" or member.entitlement != "yes":
         return None, "entitlement_unknown"
     if standing is None:
@@ -319,19 +323,19 @@ def _pool_basis(prefix, model):
             and model.payout_source != financial.payout_source):
         raise ValueError("Payout edition conflicts with the cutoff.")
     pools = {p.pool_id: p for p in model.pools}
-    missing = {"base"} - pools.keys()
+    omitted_awards = {} if "base" in pools else {"base": None}
     for fact in financial.pools:
         if fact.pool_id not in pools:
-            missing.add(fact.pool_id)
+            omitted_awards[fact.pool_id] = 0 if _pool_excluded(fact) else None
             continue
         supplied = pools[fact.pool_id].membership
         for key in ("participation", "entitlement"):
             if getattr(fact, key) not in ("unknown", getattr(supplied, key)):
                 raise ValueError("Pool membership conflicts with the cutoff.")
-    return pools, tuple(sorted(missing))
+    return pools, dict(sorted(omitted_awards.items()))
 
 
-def _value_leaf(prefix, model, pools, missing, world, weight, current, leaf):
+def _value_leaf(prefix, model, pools, omitted_awards, world, weight, current, leaf):
     p = prefix.prepared
     if len(leaf.future_games) != p.remaining_including_current - 1:
         raise ValueError("Future games must cover exactly the remaining positions after this game.")
@@ -343,10 +347,10 @@ def _value_leaf(prefix, model, pools, missing, world, weight, current, leaf):
         losses += row.own_games_lost
 
     standings = {s.pool_id: s for s in leaf.standings}
-    if standings.keys() - pools.keys() - set(missing):
+    if standings.keys() - pools.keys() - omitted_awards.keys():
         raise ValueError("Unselected pool in scenario.")
-    gaps = [f"{key}:missing_pool_basis" for key in missing]
-    awards = [(key, None) for key in missing]
+    awards = list(omitted_awards.items())
+    gaps = [f"{key}:missing_pool_basis" for key, award in awards if award is None]
     for key, pool in pools.items():
         award, reason = _award(pool, standings.get(key), points, model.payout_source)
         awards.append((key, award))
@@ -397,7 +401,7 @@ def evaluate_tournament_money(prefix: TournamentPrefix, model: TournamentModel,
     unique(tuple(c.name for c in candidates))
     if not candidates or model.prefix_id != prefix.fingerprint:
         raise ValueError("Expected candidates bound to this exact tournament prefix.")
-    pools, missing = _pool_basis(prefix, model)
+    pools, omitted_awards = _pool_basis(prefix, model)
     weights = dict(model.worlds)
     values = []
     declarers = set()
@@ -411,7 +415,7 @@ def evaluate_tournament_money(prefix: TournamentPrefix, model: TournamentModel,
             if len(declarers) > 1 or (current.passed_deal_count and prefix.prepared.actor_id):
                 raise ValueError("Card alternatives cannot change the current declarer or pass.")
             for leaf in world.continuations:
-                outcomes.append(_value_leaf(prefix, model, pools, missing, world,
+                outcomes.append(_value_leaf(prefix, model, pools, omitted_awards, world,
                                             weights[world.world_id], current, leaf))
         expected = Money(*(_expectation(outcomes, f.name) for f in fields(Money)))
         total = None if model.sunk_net_cents is None or expected.net_cents is None else (
