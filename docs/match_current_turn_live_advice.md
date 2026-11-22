@@ -31,6 +31,8 @@ The existing [whole-game policies, objectives and effort budgets](current_turn_l
 apply: 25/100/400 common worlds and 5/30/60 seconds of evaluator time.
 Percentages describe party success under those policies. They do not estimate
 tournament payouts or optimize monetary tournament returns.
+The separate [private monetary evaluator](tournament_money_valuation.md) values
+fully specified scenarios for post-list analysis and training.
 
 ## Prepared installed Match check (pending)
 
