@@ -1,5 +1,6 @@
 """Native recorded-Match review controls and original-evidence comparisons."""
 
+import hmac
 import re
 from contextlib import nullcontext
 from html import escape
@@ -8,14 +9,21 @@ from skatmind.errors import SkatMindError
 from skatmind.game_declaration import validate_bid_value, validate_matadors
 from skatmind.whole_game_rollout_contracts import WholeGameRolloutSettingsV1
 
-from .analysis_controls import EFFORTS, resolve_analysis_controls
+from .analysis_controls import EFFORTS, AnalysisControlError, resolve_analysis_controls
+from .language_context import capture_language_source_v1
 from .recorded_review_opening import RecordingOpenConflict, require_recording_fresh_v1
+from .render_locale import localized_render
+from .rollout_result_numbers import simulation_success
 from .saved_match_analyses import SAVED_MATCH_ROUTE, saved_analyses_link
+from .session_recorded_review_form import RecordedRolloutFormError, recorded_rollout_feedback_v1
 from .stateful_localization import card_name, player_name, text, translated
 from .task_first_rendering import disclosure, form, hidden, input_field, paragraph, select_field
+from .validation_contracts import FrontendValidationIssueV1
 from .whole_match_job import control, evidence_view, progress_file, proof, row_options
 from .whole_match_progress import file_identity
 from .whole_match_routes import OVERVIEW, PAGE
+
+_localized_success = localized_render(simulation_success)
 
 
 def link(locale, path, key):
@@ -28,41 +36,54 @@ def missing_fields(rows):
 
 def configuration(values, workspace, rows):
     fields = missing_fields(rows)
-    if (not {"objective", "analysis_effort", "random_seed"} <= values.keys()
-            or values.keys() - {"objective", "analysis_effort", "random_seed",
-                                *(f"{name}_{p}" for p, name in fields)}):
-        raise ValueError("Unexpected whole-Match settings.")
-    if not re.fullmatch(r"[0-9]{1,20}", values["random_seed"]):
-        raise ValueError("Invalid seed.")
+    if values.keys() - {"objective", "analysis_effort", "random_seed",
+                        *(f"{name}_{p}" for p, name in fields)}:
+        raise RecordedRolloutFormError("invalid_fields")
+    if values.get("objective") not in ("played_game_goal", "complete_settlement"):
+        raise RecordedRolloutFormError("invalid_objective", "objective")
+    seed = values.get("random_seed") or "0"
+    if not re.fullmatch(r"[0-9]{1,20}", seed) or int(seed) >= 2**64:
+        raise RecordedRolloutFormError("invalid_random_seed", "random_seed")
     effective, timeout = resolve_analysis_controls({"settings_mode": "ordinary",
-        "analysis_effort": values["analysis_effort"]}, path="rollout")
+        "analysis_effort": values.get("analysis_effort")}, path="rollout")
     settings = WholeGameRolloutSettingsV1(objective=values["objective"],
-        requested_worlds=int(effective["requested_worlds"]), random_seed=int(values["random_seed"]),
+        requested_worlds=int(effective["requested_worlds"]), random_seed=int(seed),
         wall_clock_timeout_ms=timeout)
     supplements = {}
     for p, name in fields:
-        raw = values.get(f"{name}_{p}")
+        field = f"{name}_{p}"
+        raw = values.get(field)
         if raw and settings.objective == "complete_settlement":
-            if not re.fullmatch(r"[0-9]{1,20}", raw):
-                raise ValueError("Invalid game supplement.")
-            value = int(raw)
-            if name == "bid_value":
-                validate_bid_value(value)
-            else:
-                validate_matadors(value, workspace.slots[p-1].observed_game.declaration.game_type)
+            game_type = workspace.slots[p-1].observed_game.declaration.game_type
+            try:
+                if not re.fullmatch(r"[0-9]{1,20}", raw):
+                    raise ValueError("Invalid game supplement.")
+                value = int(raw)
+                if name == "bid_value":
+                    validate_bid_value(value)
+                else:
+                    validate_matadors(value, game_type)
+            except ValueError as error:
+                reason = ("invalid_bid" if name == "bid_value" else
+                          "invalid_matadors_grand" if game_type == "grand" else
+                          "invalid_matadors_suit")
+                raise RecordedRolloutFormError(reason, field) from error
             supplements.setdefault(str(p), {})[name] = value
     return settings, supplements
 
 
-def start_form(locale, rows, binding):
+def start_form(locale, rows, binding, feedback):
     inputs = hidden("binding", binding)
+    if feedback is not None:
+        inputs += hidden("retry_generation", feedback.feedback_generation)
     inputs += select_field(locale, "analysis_effort", "analysis.effort",
         [(e, text(locale, "analysis.effort." + e)) for e in EFFORTS], "standard")
     inputs += select_field(locale, "objective", "rollout.objective",
         [(o, text(locale, "rollout.objective." + o))
          for o in ("complete_settlement", "played_game_goal")], "complete_settlement")
     inputs += paragraph(locale, "whole_review.budgets")
-    inputs += input_field(locale, "random_seed", "rollout.seed", "0", required=True)
+    inputs += disclosure(locale, "analysis.technical",
+                         input_field(locale, "random_seed", "rollout.seed", "0"), technical=True)
     assumptions = ""
     for p, name in missing_fields(rows):
         assumptions += ('<fieldset><legend>' + translated(locale, "accounting.game_number",
@@ -88,7 +109,8 @@ def comparison(locale, row, retained, detail):
     actual, recommended = candidates[row.actual], candidates[best[0]]
     metric = doc["whole_game_rollout_comparison"]["responsible_metric"]
     def metrics(v):
-        out = f'{v["local_success_count"]}/{v["completed_samples"]}'
+        out = escape(_localized_success(v["local_success_count"], v["completed_samples"],
+                                        locale=locale))
         if metric in ("total_local_game_score", "total_local_card_point_margin"):
             # Exact totals with common denominators also distinguish close means.
             out += '<br>' + translated(locale, "rollout.metric." + metric)
@@ -160,7 +182,15 @@ def overview(app, workspace, state, rows, options, values, space, locale):
             + disclosure(locale, "whole_review.overview", jumps) + ''.join(body))
 
 
-def handle_get(handler, path):
+def _start_feedback(app, active, binding):
+    state = app.form_feedback.current("matches", active_identity=active)
+    if (state is not None and state.form_key == "match.whole_review.start"
+            and state.safe_visible_values.singular("binding") == binding):
+        return state
+    return None
+
+
+def handle_get(handler, path, *, rejection=None):
     app = handler.server.app_context
     active = handler._active_match()
     locale = handler._frontend_state().locale
@@ -170,17 +200,26 @@ def handle_get(handler, path):
         workspace, source = active.workspace, active.capture.content_fingerprint
         state = progress.read()
         binding = proof(active, state)
+        current = (state is not None and state["source"] == source
+                   and state["file"] == file_identity(active.path))
+        reading = current and path == OVERVIEW
+        with app.lock:
+            if app.managed_stateful.active_match is not active:
+                raise RecordingOpenConflict()
+            feedback = None if reading else _start_feedback(app, active, binding)
+            if rejection is not None and feedback is not rejection:
+                raise RecordingOpenConflict()
+            if not reading:
+                handler._rendered_language_source = capture_language_source_v1(
+                    app, path, whole_match_binding=binding)
     definition = workspace.match_definition
     body = paragraph(locale, "whole_review.intro", player=player_name(
         locale, definition.participants, definition.perspective_player_id),
         match=definition.title or definition.match_id, revision=workspace.revision)
-    current = state is not None and state["source"] == source and state["file"] == file_identity(
-        active.path)
     worker = app.whole_match.worker
     running = current and worker and worker.owns_source() and worker.state["run"] == state["run"]
     rows = app.whole_match.plays(workspace)
     options = row_options(rows, state) if current else {}
-    reading = current and path == OVERVIEW
     with (evidence_view(app, workspace, source, options) if reading else
             nullcontext(({}, None, None))) as (values, space, archive_guard):
         if current:
@@ -206,8 +245,10 @@ def handle_get(handler, path):
         elif state:
             body += paragraph(locale, "whole_review.changed")
         if not running and not reading:
-            fields = start_form(locale, rows, binding)
+            fields = start_form(locale, rows, binding, feedback)
             body += disclosure(locale, "whole_review.new", fields) if current else fields
+            if feedback and not current:
+                body += '<p>' + link(locale, PAGE, "whole_review.refresh") + '</p>'
         body += saved_analyses_link(locale)
         def final():
             if archive_guard:
@@ -216,12 +257,51 @@ def handle_get(handler, path):
                 now = progress.read()
                 if (app.managed_stateful.active_match is not active
                         or active.workspace is not workspace
-                        or proof(active, now) != binding or reading and now != state):
+                        or proof(active, now) != binding or reading and now != state
+                        or not reading and _start_feedback(app, active, binding) is not feedback):
                     raise RecordingOpenConflict()
                 require_recording_fresh_v1(active, "matches")
         handler._retained_delivery_guard = final
         handler._content_page("/matches", title=text(locale, "whole_review.title"), return_to=path,
-            content=body, untranslated_workflow_body=False, task_first=True)
+            content=body, untranslated_workflow_body=False, task_first=True,
+            status=400 if rejection is not None else 200, feedback_identity=active,
+            feedback_family="matches" if feedback else None)
+
+
+def _start(handler, active, binding, values):
+    app = handler.server.app_context
+    workspace = active.workspace
+    retry = values.pop("retry_generation", None)
+    try:
+        config = configuration(values, workspace, app.whole_match.plays(workspace))
+        issue = None
+    except RecordedRolloutFormError as error:
+        issue = recorded_rollout_feedback_v1(error, status=400)
+    except AnalysisControlError as error:
+        issue = FrontendValidationIssueV1(field_key=error.field_key,
+                                          message_key="validation.message.choice")
+
+    with active.capture.lock, app.lock:
+        if app.managed_stateful.active_match is not active or active.workspace is not workspace:
+            raise RecordingOpenConflict()
+        feedback = _start_feedback(app, active, binding)
+        if retry != (str(feedback.feedback_generation) if feedback else None):
+            raise RecordingOpenConflict()
+        if issue is None:
+            control(app, active, "start", binding, configuration=config)
+            handler._clear_redirect_feedback()
+        else:
+            require_recording_fresh_v1(active, "matches")
+            if (active.retired or app.whole_match.worker is not None or not hmac.compare_digest(
+                    proof(active, progress_file(app, active).read()), binding)):
+                raise RecordingOpenConflict()
+            handler._retain_form_feedback(handler._current_form_definition, issues=(issue,),
+                                          status=400)
+            rejected = app.form_feedback.current("matches", active_identity=active)
+    if issue is None:
+        handler._redirect(PAGE, clear_feedback=False)
+    else:
+        handle_get(handler, PAGE, rejection=rejected)
 
 
 def dispatch(handler, path, values=None):
@@ -235,18 +315,17 @@ def dispatch(handler, path, values=None):
             if not re.fullmatch("[0-9a-f]{64}", binding):
                 raise RecordingOpenConflict()
             action = path.rsplit("/", 1)[1]
-            config = None
             if action == "start":
-                workspace = active.workspace
-                config = configuration(values, workspace,
-                                       handler.server.app_context.whole_match.plays(workspace))
-            elif values:
+                _start(handler, active, binding, values)
+                return
+            if values:
                 raise ValueError("Unexpected control fields.")
-            control(handler.server.app_context, active, action, binding, configuration=config)
+            control(handler.server.app_context, active, action, binding)
             handler._redirect(PAGE)
     except (KeyError, ValueError, OSError, RecordingOpenConflict, SkatMindError) as error:
         locale = handler._frontend_state().locale
         handler._retained_delivery_guard = None
+        handler._rendered_language_source = None
         handler._content_page("/matches", title=text(locale, "whole_review.title"),
             content=paragraph(locale, "whole_review.error") + link(locale, PAGE,
                 "whole_review.refresh") + saved_analyses_link(locale), return_to="/matches",

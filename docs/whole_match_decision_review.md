@@ -8,8 +8,9 @@ calculation** asks the worker to stop at its next evaluator checkpoint. Native
 forms, links, original downloads and language switching work without page scripts.
 
 **Open per-game comparisons** lists all 36 slots in recording order. The table
-puts the played card beside its simulated success count and the entire equally
-best set beside theirs. Where success counts tie but ranking differs, the
+shows simulated successes, common-world count and percentage for both the
+played card and the entire equally best set. Percentages use the same localized
+rounding and endpoint rules as the retained detail. Where counts tie but ranking differs, the
 deciding secondary measure appears for both (exact total / common worlds).
 The party is either the declarer or both defenders. These are comparisons under
 a fixed policy, not proof of a mistake, winning strategy, or calibrated odds.
@@ -28,7 +29,9 @@ evaluator. An unknown acting hand, missing required exposed hand, and recorded
 play after the rule-determined end have their own skip reasons.
 
 Fresh Standard uses 100 common worlds and 30 seconds per decision. Quick uses
-25 / 5 seconds, More time 400 / 60 seconds. Seed defaults to 0. The effective
+25 / 5 seconds, More time 400 / 60 seconds. The optional seed override is under
+**Technical settings**, initially closed. Leaving the seed blank or omitted uses
+the same deterministic default of 0. Resume uses the frozen settings. The effective
 settings retain policy `side_aware_baseline` version 1, 100,000 preparation units
 and 300,000 transitions. Only completed common coverage produces a ranked
 comparison. A genuine timeout, partial or cancelled execution has its own original
@@ -41,6 +44,15 @@ view actually lacks it. Blank required values leave an explicit gap. Selecting
 played-game goal explicitly omits settlement and ignores those assumptions.
 Neither choice changes the recording. Future scores, commentary, later opponents'
 plays or later games are not supplied as sampling inputs.
+
+An invalid setting or game assumption returns the Start form with the affected
+control marked, its disclosure open and an inline explanation in the current
+language. Correct the value and explicitly submit Start. Refresh and language
+changes retain the rejected form's safe values for the same recording, file and
+job. This is process-local feedback, not a saved configuration. Another rejected
+Start replaces that retry; an old tab must refresh. A changed source or job is
+not permission to restore earlier values or start work. Rejection and passive
+views do not change progress, recordings or analysis evidence.
 
 ## Source, persistence and recovery
 
@@ -286,14 +298,112 @@ it does not certify the distribution matrix or complete regression suite.
 After hosted acceptance, use the generated import in a disposable installed
 home. No manual deal entry or personal Match data is needed:
 
-1. Import the Workspace, open its whole-Match review and choose Quick and
-   played-game goal. Start, inspect progress, then Cancel after initial work.
+1. Import the Workspace, open its whole-Match review and choose Quick. With
+   complete settlement selected, enter 0 in one offered matador field. Check
+   the field error, retained Quick choice and language change. Correct the
+   value, select played-game goal and Start without opening Technical settings.
+   Inspect progress, then Cancel after initial work.
 2. Restart and reopen that Match. Confirm that viewing leaves progress stopped.
    Explicitly Resume, then inspect per-game comparisons and rule-only/gap rows.
-3. Open an original result, inspect both downloads and return to the overview.
+3. Compare successes, samples and percentages for played and best cards.
+   Open an original result, inspect both downloads and return to the overview.
    Check the same source and decision in German and English.
 
 #332 stays open for automatic partial branch feedback, published-source review,
 maintainer integration, automatic exact-commit main `check` and
 `v1-supported-platform-matrix`, then this narrow installed check. #208 stays open.
 No manual Actions dispatch or release authorization follows from local evidence.
+
+## Published-source correction verification
+
+Starting branch `feat/332-whole-match-review`, clean at
+`69ba63330f969fb677d22accae755f874347f65c`. Three native HTTP regression checks
+failed as expected before the correction (15.24 s): the rejection returned to
+the Match landing instead of the Start form, the required seed had no containing
+disclosure, and the completed German comparison omitted the percentage. The
+initial corrected web module passed four tests in 30.35 s. Expanded job/web
+verification passed 24 tests in 109.76 s before the final coverage additions.
+
+Native HTTP tests also correct only the invalid field and verify the resulting
+checkpoint: Quick, complete settlement, explicit seed 19, both analysis inputs
+for game 2, and a separately retained bid for game 5. Only the eligible decision
+executes. Separate cases cover an omitted seed, invalid effort and seed, file
+replacement with identical bytes, same-revision source correction and a
+superseded retry. The existing job tests exercise restart, frozen settings,
+save-only retry and compatible retained-result reuse. A genuine tied-best
+group, a forced play, Null and a retained timeout exercise the distinct display
+paths. The validation messages and simulation-success formatter use existing
+catalog entries.
+
+The 16 complete affected modules passed **495 tests in 295.36 s**, with no
+skips or worker restarts. The separate `origin` invocation rechecks the
+native form also served at the direct overview URL before a job exists.
+
+The small source-browser probe used development CPython 3.13.7 and headless
+Edge 158.0.4370.33 at 1280 × 900, with page JavaScript disabled. Submitting
+Quick, complete settlement, bid 24 and matadors 0 reopened the assumptions at
+the invalid field. A native refresh and both language switches preserved the
+values and displayed the localized Suit range (1–11). There were zero Application
+or evaluator calls, no checkpoint or archive, and unchanged recording bytes.
+An explicit language change saves the language preference separately.
+
+The subsequent corrected Start used the explicitly selected played-game goal
+with seed 0. Cancel retained one original. Reopening in a new server process
+made zero calls before explicit Resume; Resume made four calls for the remaining
+eligible decisions. The inspected overview screenshots show Clubs Seven at
+21 of 25 (84%) and Clubs King at 22 of 25 (88%) in separate aligned cells.
+Play 15 shows both 100% values and the deciding margins 1284/25 and 1386/25;
+the rule-only play has no percentage. Both locales fit without horizontal page
+overflow. The original-detail round trip added no calls. This is disposable
+source-browser evidence, not installed acceptance or a new archive timing run.
+
+### Correction commands
+
+All invocations use a 7,200,000-ms timeout. `$E` is an external evidence
+directory; the suffix names below identify the actual pytest temp, JUnit and
+log outputs. Tests use no repository-local pytest cache.
+
+The `origin` recheck passed 47 tests in 160.67 s. After parallel workers
+exited, the exclusive action-placement module passed 25 in 80.11 s. The final
+complete rename and CLI architecture guards passed 67 in 7.09 s. Across the
+complete selections this is **587 distinct passing tests**, excluding repeated
+checks. Explicit Quick passed (exit 0, 5.180 s): Ruff 0.237 s, packaged schema
+parity 0.235 s, input examples 3.814 s. No local Full or installed check was
+run. Only this documentation receipt was added after Quick.
+
+```powershell
+$E = "$env:TEMP/opencode/332-review-fix"
+$py = "$env:LOCALAPPDATA/Programs/Python/Python313/python.exe"
+$env:PYTHONDONTWRITEBYTECODE = '1'
+$flags = @('-q','-n','2','--dist=loadfile','--max-worker-restart=0','-p','no:cacheprovider')
+function outputs($name) {
+    @("--basetemp=$E/$name","--junitxml=$E/$name.xml","--log-file=$E/$name.log",'--tb=short')
+}
+$o = outputs red
+& $py -m pytest tests/test_whole_match_web.py -k 'invalid_start or seed_is_optional or native_controls' @flags @o
+$o = outputs green
+& $py -m pytest tests/test_whole_match_web.py @flags @o
+$o = outputs fencing
+& $py -m pytest tests/test_whole_match_web.py tests/test_whole_match_job.py @flags @o
+& $py scripts/verify_whole_match_browser.py --output "$E/browser" --browser "${env:ProgramFiles(x86)}/Microsoft/Edge/Application/msedge.exe"
+$M = @('whole_match_web','whole_match_job','frontend_validation_preservation',
+  'frontend_language_switching','language_switch_context','task_first_language_preservation',
+  'language_view_continuity','operation_feedback_language','frontend_localization_foundation',
+  'complete_frontend_localization','rollout_result_presentation','match_rollout_web',
+  'unified_local_app_web','completed_trick_input_grouping','learning_report_attachment',
+  'packaging_and_distribution') | ForEach-Object {"tests/test_$_.py"}
+$o = outputs affected
+& $py -m pytest @M @flags @o
+$o = outputs origin
+& $py -m pytest tests/test_whole_match_web.py tests/test_language_switch_context.py @flags @o
+# After the parallel workers exit:
+$o = outputs exclusive
+& $py -m pytest tests/test_match_analysis_action_placement.py -q -p no:cacheprovider @o
+$o = outputs guards
+& $py -m pytest tests/test_skatmind_rename.py tests/test_cli_internal_architecture.py @flags @o
+$env:RUFF_CACHE_DIR = "$E/ruff"
+function python { & "$env:LOCALAPPDATA/Programs/Python/Python313/python.exe" @args }
+.\scripts\check.ps1 -Mode Quick -LogDirectory "$E/quick"
+git diff --check
+git ls-files --others --exclude-standard | ForEach-Object { git diff --no-index --check -- NUL $_ }
+```

@@ -304,7 +304,7 @@ def _field(
             if name == "account_platform" or name in {
                 "forehand_name", "middlehand_name", "rearhand_name"}
             else 64
-            if name in {"decision_selection", "selection_context", "recovery_selection",
+            if name in {"binding", "decision_selection", "selection_context", "recovery_selection",
                         "report_id",
                         "card_selection", "declaration_selection", "time_selection",
                         "correction_selection"}
@@ -1550,9 +1550,11 @@ for _route in WHOLE_MATCH_ACTIONS:
     _FORMS.append(_definition("match.whole_review." + _action,
         _route, page="/matches/whole-review", active="matches",
         body_limit=8192, value_free=_action != "start", success="contextual",
-        fields=("analysis_effort", "objective", "random_seed", *(
+        fields=("binding", "analysis_effort", "objective", "random_seed", *(
             f"{name}_{p}" for p in range(1, 37) for name in ("bid_value", "matadors")
-        )) if _action == "start" else (), label_overrides={
+        )) if _action == "start" else (), control_overrides={"objective": "select"},
+        choice_overrides={"objective": ("complete_settlement", "played_game_goal")},
+        label_overrides={
             f"{name}_{p}": "validation.field.declaration_" + name for p in range(1, 37)
             for name in ("bid_value", "matadors")}))
 _FORMS.append(_definition(

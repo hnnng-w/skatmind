@@ -1437,6 +1437,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if definition.originating_page not in {
             "/sessions/current",
             "/matches/current",
+            "/matches/whole-review",
             "/learning/current",
         }:
             return None
@@ -1761,11 +1762,15 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         definition = getattr(self, "_current_form_definition", None)
         if type(definition) is not FrontendFormDefinitionV1:
             return False
+        if definition.form_key.startswith("match.whole_review."):
+            # Only dispatch can admit Start's exact source before retaining field errors.
+            self._send_common_error(status)
+            return True
         if isinstance(error, LanguageContextConflict):
             route = getattr(self, "_profile_action_return_to", "")
-            if route == "/learning" or automatic_html_route(route):
-                # A rejected automatic language context must not refresh/rebind the
-                # entry or disturb another tab's correctly captured source binding.
+            if (route in {"/learning", "/matches/whole-review", "/matches/whole-review/overview"}
+                    or automatic_html_route(route)):
+                # A stale language form must not refresh or rebind these source-bound tasks.
                 self._language_conflict_page(route)
                 return True
         if definition.form_key.startswith("deletion."):

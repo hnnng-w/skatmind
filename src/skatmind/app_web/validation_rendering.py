@@ -538,6 +538,7 @@ def apply_validation_feedback_to_html_v1(
         if issue.field_key is not None:
             field_messages.setdefault(issue.field_key, []).append((message_id, message))
     identity_fields = (
+        ("binding",) if definition.form_key == "match.whole_review.start" else
         ("time_selection",)
         if definition.discriminator_field == "time_form"
         else
@@ -572,7 +573,9 @@ def apply_validation_feedback_to_html_v1(
     # A missing/malformed source token cannot qualify an attempted selection for
     # today's actor merely because its old form happened to have the same ordinal.
     correction_entry = definition.form_key.startswith("session.correction.")
-    source_bound = card_entry or declaration_entry or time_entry or correction_entry
+    whole_match_start = definition.form_key == "match.whole_review.start"
+    source_bound = (card_entry or declaration_entry or time_entry or correction_entry
+                    or whole_match_start)
     changed_evidence_source = (definition.action_route in {
         "/matches/cards", "/matches/recording-input"} and any(
         issue.message_key == "validation.card_entry.file_changed"
@@ -584,6 +587,8 @@ def apply_validation_feedback_to_html_v1(
               _find_form_bounds(html, definition, form_instance, form_identity))
     learning_report = definition.form_key == "learning.operation.import_strategy_teacher_report"
     if bounds is None:
+        if whole_match_start:
+            return html  # Do not move the error onto a newer job or another Match page.
         if learning_report and '<!-- report-attachment-feedback -->' in html:
             marker = '<!-- report-attachment-feedback -->'
             start = html.index(marker)

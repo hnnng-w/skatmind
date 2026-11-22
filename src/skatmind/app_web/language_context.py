@@ -32,6 +32,7 @@ class LanguageSourceV1:
     values: tuple[object, ...]
     automatic_view: object | None = None
     historical_delivery: object | None = None
+    whole_match_binding: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,7 +116,8 @@ class LanguageContextV1:
 
 
 def capture_language_source_v1(context: AppWebContextV1, route: str, *,
-                               automatic_view=None, historical_delivery=None) -> LanguageSourceV1:
+                               automatic_view=None, historical_delivery=None,
+                               whole_match_binding=None) -> LanguageSourceV1:
     """Snapshot immutable source references under existing locks, with no I/O.
 
     Never acquire a Product lock while holding the app or profile lock. Retained
@@ -127,10 +129,14 @@ def capture_language_source_v1(context: AppWebContextV1, route: str, *,
     if route in ("/matches/whole-review", "/matches/whole-review/overview"):
         with context.lock:
             match = context.managed_stateful.active_match
-        if match is None:
-            raise LanguageContextConflict
-        return LanguageSourceV1(route, (match, match.workspace, context.saved_match_analyses),
-                                (context.whole_match.generation,))
+            if match is None:
+                raise LanguageContextConflict
+            feedback = context.form_feedback._feedback.get("matches")
+            rejected = (feedback[1] if feedback is not None and feedback[0] is match
+                        and feedback[1].form_key == "match.whole_review.start" else None)
+            return LanguageSourceV1(route, (match, match.workspace, context.saved_match_analyses,
+                                    rejected), (context.whole_match.generation,),
+                                    whole_match_binding=whole_match_binding)
     if automatic_html_route(route) or historical_html_route(route):
         controller = context.automatic_learning_ui
         service = controller.service
@@ -348,6 +354,16 @@ def validate_language_source_v1(
     if (check_files or automatic_html_route(source.route) or historical_html_route(source.route)
             or source.route == "/learning"):
         _require_files(context, source.route, automatic_view=source.automatic_view)
+        if source.whole_match_binding is not None:
+            from .whole_match_job import progress_file, proof
+            match = source.references[0]
+            with match.capture.lock:
+                try:
+                    binding = proof(match, progress_file(context, match).read())
+                except (ValueError, OSError) as error:
+                    raise LanguageContextConflict from error
+                if not hmac.compare_digest(binding, source.whole_match_binding):
+                    raise LanguageContextConflict
         # Filesystem validation holds no app lock. Recheck the active binding afterward.
         _require_language_identity(context, source)
 

@@ -14,6 +14,7 @@ from verify_recording_deletion import click, keyboard
 from verify_saved_match_analyses import TOKEN, ProbeServer, wait
 
 from skatmind.app_web.managed_data import prepare_managed_home_v1
+from skatmind.app_web.stateful_localization import text
 from skatmind.app_web.whole_match_routes import OVERVIEW, PAGE
 from skatmind.match_workspace_persistence import save_match_workspace_file_v1
 from skatmind.match_workspace_persistence_codec import build_match_workspace_persistence_document_v1
@@ -72,7 +73,8 @@ def probe(output, executable):
     home = prepare_managed_home_v1(output / "managed")
     recording = home.category("matches").path / "synthetic-browser.json"
     assert save_match_workspace_file_v1(recording, build_match_workspace_persistence_document_v1(
-        alex_workspace(count=18)), expected_content_fingerprint=None).status == "saved"
+        alex_workspace(count=18, bid=None)), expected_content_fingerprint=None).status == "saved"
+    original = recording.read_bytes()
     server = Server(home.root)
     browser = LocalBrowser(executable, output / "browser-profile")
     cdp = browser.cdp
@@ -94,13 +96,47 @@ def probe(output, executable):
         cdp.call("Emulation.setDeviceMetricsOverride", width=1280, height=900,
                  deviceScaleFactor=1, mobile=False)
         enter()
-        for name, key, code in (("analysis_effort", "Home", 36), ("objective", "End", 35)):
-            selector = f'select[name="{name}"]'
-            click(cdp, selector)
+        start = f'form[action="{PAGE}/start"]'
+        def select(name, key, code):
+            click(cdp, start + f' select[name="{name}"]')
             keyboard(cdp, key, key, code)
             keyboard(cdp, "Enter", "Enter", 13, "\r")
-        assert cdp.evaluate('document.querySelector("[name=analysis_effort]").value') == "quick"
-        assert not server.control()["counts"]
+
+        assert cdp.evaluate("""(()=>{const s=document.querySelector('[name=random_seed]');
+            return !s.required && s.value==='0' && !!s.closest('details:not([open])')})()""")
+        select("analysis_effort", "Home", 36)
+        cdp.activate(start + ' details:has([name=matadors_2]) > summary')
+        for name, value in (("bid_value_2", "24"), ("matadors_2", "0")):
+            click(cdp, f'input[name="{name}"]')
+            cdp.call("Input.insertText", text=value)
+        cdp.activate(button("start"))
+        invalid = 'input[name=matadors_2][aria-invalid=true]'
+        wait(cdp, f"!!document.querySelector('{invalid}')")
+        cdp.activate(f'a[href="{PAGE}"]')
+        for locale in ("en", "de"):
+            cdp.activate(f'form[action="/actions/profile/language"] button[value="{locale}"]')
+            wait(cdp, f'document.documentElement.lang==="{locale}" && '
+                      f"!!document.querySelector('{invalid}')")
+            error = cdp.evaluate("""(()=>{const m=document.querySelector('[name=matadors_2]');
+                const message=document.getElementById(m.getAttribute('aria-describedby')).innerText;
+                return {message,
+                open:m.closest('details').open, matadors:m.value, bid:m.form.bid_value_2.value,
+                effort:m.form.analysis_effort.value, objective:m.form.objective.value}})()""")
+            assert error == {"message": text(locale, "validation.rollout.invalid_matadors_suit"),
+                "open": True, "matadors": "0", "bid": "24", "effort": "quick",
+                "objective": "complete_settlement"}
+            evidence["validation_" + locale] = error
+        evidence["rejected_and_passive"] = server.control()
+        assert evidence["rejected_and_passive"] == {"counts": {}, "phase": None, "refs": {}}
+        assert original == recording.read_bytes()
+        assert not (home.root / "automatic-learning").exists()
+        click(cdp, invalid)
+        cdp.call("Input.dispatchKeyEvent", type="keyDown", key="a", code="KeyA",
+                 windowsVirtualKeyCode=65, modifiers=2)
+        cdp.call("Input.dispatchKeyEvent", type="keyUp", key="a", code="KeyA",
+                 windowsVirtualKeyCode=65, modifiers=2)
+        cdp.call("Input.insertText", text="1")
+        select("objective", "End", 35)
         cdp.activate(button("start"))
         wait(cdp, f'!!document.querySelector(\'{button("cancel")}\')')
         evidence["progress"] = cdp.evaluate("document.querySelector('main').innerText")
@@ -129,7 +165,10 @@ def probe(output, executable):
                 return {rows:table.innerText,columns:[...table.tHead.rows[0].cells].map(
                 c=>c.getBoundingClientRect().x),overflow:document.documentElement.scrollWidth-
                 innerWidth}})()""")
-            assert "/25" in evidence[locale]["rows"] and evidence[locale]["overflow"] <= 0
+            for successes, percentage in ((21, "84"), (22, "88")):
+                assert text(locale, "rollout.number.success", successes=successes, samples=25,
+                            percentage=percentage) in evidence[locale]["rows"]
+            assert evidence[locale]["overflow"] <= 0
             cdp.screenshot(output / f"overview-{locale}.png")
         detail = cdp.evaluate("document.querySelector('tbody a').pathname")
         cdp.activate("tbody a")
