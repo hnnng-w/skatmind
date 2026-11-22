@@ -107,7 +107,9 @@ nor this illustrative ranking is a performance or strategy guarantee.
 
 ## What an ordinary automatic forecast still needs
 
-A future estimator must obtain decision-time evidence for remaining games,
+The [private empirical scenario producer (#331)](empirical_tournament_scenarios.md)
+now constructs one such model from prior original Match documents for a single
+36-game series. Ordinary integration still requires decision-time evidence for remaining games,
 personal and field score/loss distributions and their dependencies; eligible
 fields for each selected pool; actual membership, personal shares, complete
 paid-place schedules and rounding/tie policy; and the applicable edition of

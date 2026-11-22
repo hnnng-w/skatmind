@@ -16,7 +16,10 @@ from .event_context_projection import (
     RecordingFactsV1,
 )
 from .historical_game import build_historical_game_record, build_historical_game_summary
-from .match_historical_materialization import materialize_match_observed_game_historical_v1
+from .match_historical_materialization import (
+    _materialize_match_observed_game_historical_from_reconstruction_v1,
+)
+from .match_observed_reconstruction import build_match_observed_game_reconstruction_v1
 from .match_workspace_persistence_codec import resume_match_workspace_document_v1
 from .match_workspace_persistence_contracts import MatchWorkspacePersistenceDocumentV1
 from .performance_rating import get_game_outcome_for_rating
@@ -154,7 +157,7 @@ def _signature(number, players, declarer, declaration, plays):
 
 
 def build_recording_facts_v1(document, *, through_position=36, decision_position=None,
-                             selected_player_id=None):
+                             selected_player_id=None, work_hook=None):
     """Strict source validation, then only requested earlier outcomes and target actors."""
     position(through_position, zero=True)
     if type(document) is MatchWorkspacePersistenceDocumentV1:
@@ -162,6 +165,8 @@ def build_recording_facts_v1(document, *, through_position=36, decision_position
         workspace = document.workspace
         outcomes, decisions, signatures = [], [], []
         for slot in workspace.slots[:through_position]:
+            if work_hook is not None:
+                work_hook()
             number = slot.match_position
             if slot.observed_game is not None:
                 game = slot.observed_game
@@ -173,8 +178,11 @@ def build_recording_facts_v1(document, *, through_position=36, decision_position
             elif len(slot.observed_game.plays) < 30:
                 outcomes.append(OutcomeFactV1(position=number, status="unfinished"))
             else:
-                materialized = materialize_match_observed_game_historical_v1(
-                    workspace, match_position=number)
+                # Strict resume already validated the whole workspace and its rotation.
+                # Reconstruct this game, without revalidating 35 unrelated slots.
+                materialized = _materialize_match_observed_game_historical_from_reconstruction_v1(
+                    workspace, reconstruction=build_match_observed_game_reconstruction_v1(
+                        slot.observed_game))
                 outcomes.append(_settled_fact(materialized.historical_game, number)
                     if materialized.status == "available" else
                     OutcomeFactV1(position=number, status="unsettled"))

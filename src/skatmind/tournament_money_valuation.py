@@ -2,6 +2,7 @@
 
 from dataclasses import InitVar, dataclass, field, fields
 from fractions import Fraction
+from functools import lru_cache
 
 from .automatic_learning_codec import digest, unique
 from .event_context_contracts import EventContextV1, PoolFactV1, RuleSourceV1, bounded_text
@@ -335,14 +336,14 @@ def _pool_basis(prefix, model):
     return pools, dict(sorted(omitted_awards.items()))
 
 
-def _value_leaf(prefix, model, pools, omitted_awards, world, weight, current, leaf):
+def _value_leaf(prefix, model, pools, omitted_awards, world, weight, current, leaf, contribution):
     p = prefix.prepared
     if len(leaf.future_games) != p.remaining_including_current - 1:
         raise ValueError("Future games must cover exactly the remaining positions after this game.")
     points = p.personal_points + current.total_performance_points
     losses = p.own_losses + current.own_games_lost
     for game in leaf.future_games:
-        row = game.contribution(prefix)
+        row = contribution(game)
         points += row.total_performance_points
         losses += row.own_games_lost
 
@@ -395,7 +396,7 @@ def _expectation(outcomes, component):
 
 
 def evaluate_tournament_money(prefix: TournamentPrefix, model: TournamentModel,
-                              candidates: tuple[Candidate, ...]) -> Comparison:
+                              candidates: tuple[Candidate, ...], *, work_hook=None) -> Comparison:
     """Value exactly the supplied joint model. Never impute or reweight missing outcomes."""
     _bounded_tuple(candidates, 10, Candidate)
     unique(tuple(c.name for c in candidates))
@@ -405,18 +406,25 @@ def evaluate_tournament_money(prefix: TournamentPrefix, model: TournamentModel,
     weights = dict(model.worlds)
     values = []
     declarers = set()
+
+    @lru_cache(maxsize=256)
+    def contribution(game):
+        return game.contribution(prefix)
+
     for candidate in candidates:
         if candidate.basis != model or {w.world_id for w in candidate.worlds} != weights.keys():
             raise ValueError("Candidates must cover the same complete world and monetary basis.")
         outcomes = []
         for world in candidate.worlds:
-            current = world.current_game.contribution(prefix)
+            current = contribution(world.current_game)
             declarers.add(world.current_game.declarer_id)
             if len(declarers) > 1 or (current.passed_deal_count and prefix.prepared.actor_id):
                 raise ValueError("Card alternatives cannot change the current declarer or pass.")
             for leaf in world.continuations:
+                if work_hook is not None:
+                    work_hook()
                 outcomes.append(_value_leaf(prefix, model, pools, omitted_awards, world,
-                                            weights[world.world_id], current, leaf))
+                                            weights[world.world_id], current, leaf, contribution))
         expected = Money(*(_expectation(outcomes, f.name) for f in fields(Money)))
         total = None if model.sunk_net_cents is None or expected.net_cents is None else (
             model.sunk_net_cents + expected.net_cents)
