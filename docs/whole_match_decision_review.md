@@ -1,7 +1,9 @@
 # Resumable recorded-perspective Match review (#332)
 
-Open an existing managed Match. Follow **Review my decisions across this Match**
-from the recording or decision-review page. Choose the objective and effort, then
+Open an existing managed Match and choose **Review**. For a single recorded
+decision, choose the game, apply the decision and explicitly analyze it. This
+works before any whole-Match review exists. For the series, follow **Review my
+decisions across this Match** instead. Choose the objective and effort, then
 **Start whole-Match review**. The progress page (`/matches/whole-review`) returns
 without waiting for the batch. **Refresh progress** is a read; **Cancel further
 calculation** asks the worker to stop at its next evaluator checkpoint. Native
@@ -15,7 +17,20 @@ deciding secondary measure appears for both (exact total / common worlds).
 The party is either the declarer or both defenders. These are comparisons under
 a fixed policy, not proof of a mistake, winning strategy, or calibrated odds.
 **Original analysis** opens that exact retained execution; use its Request and
-Result links for the original downloads. Browser Back returns to the overview.
+Result links for the original downloads. **Back to comparisons: Game N** returns
+to its game section; **Record & Live help** opens that game's recording. The
+game section also links to its recording. Refresh and language changes on this
+round trip do not repeat the analysis.
+
+The archive link identifies the retained execution independently of any open
+recording. Only an admitted row of the originating overview supplies the extra
+return context: it binds the opened source, exact file, review run, game, play
+and evidence identity. Both return destinations recheck that binding. If the
+source was replaced or the run superseded, use the original's independent
+archive view and downloads. A historical original alone never selects a Match.
+
+For the small disposable import and the later installed orientation check, see
+[Opened Match navigation](match_game_navigation.md#opened-match-navigation-issue-333).
 
 ## What gets evaluated
 

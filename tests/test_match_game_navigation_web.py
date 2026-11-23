@@ -224,7 +224,7 @@ def test_final_card_report_preview_language_noop_cancel_and_real_rewind(
     assert active.recovery.preview is None and active.recovery.selected is None
     assert active.capture.report_store.list() == (report,)
     page = browser.page(report_path)
-    assert '<h2>' + text("de", "recordings.match.game", position=1) + '</h2>' in page
+    assert text("de", "task.match.game_heading", number=1) in page
     assert 'href="/matches/position/1#match-recording"' in page
     assert active.selected_position == 1 and browser.request("GET", download)[2] == report_bytes
     page = link(browser, page, "/matches/position/1#match-recording")

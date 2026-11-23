@@ -135,19 +135,15 @@ def test_real_match_links_keep_game_report_identity_and_bytes(localized_server, 
         for number in (1, 2, 3, 4):
             page = browser.page(f"/matches/review/{number}")
             back = f"/matches/position/{number}#match-recording"
-            assert_link(page, back, f"Zur Erfassung: Spiel {number}" if locale == "de"
-                        else f"Recording: Game {number}")
+            assert_link(page, back, text(locale, "match_nav.record"))
             assert_link(page.split('<main', 1)[1], "/review/recorded",
                         "Andere Aufzeichnung auswählen" if locale == "de" else
                         "Choose another recording")
             recording = browser.page(back.split("#")[0])
             assert 'id="match-recording"' in recording
+            assert_link(recording, f"/matches/review/{number}", text(locale, "match_nav.review"))
             if number in (2, 3):
-                assert f'href="/matches/review/{number}"' not in recording
                 continue
-            assert_link(recording, f"/matches/review/{number}",
-                f"Zur Entscheidungsauswahl: Spiel {number}" if locale == "de" else
-                f"Decision selection: Game {number}")
             owner = report if number == 1 else other
             assert_link(page, f"/matches/reports/{owner.report_id}",
                 f"Vorhandene Auswertung öffnen: Spiel {number} — Stich 1, Karte 2"
@@ -161,15 +157,13 @@ def test_real_match_links_keep_game_report_identity_and_bytes(localized_server, 
             view = project_task_first_match_v1(active.workspace, selected_position=2)
             state = build_task_first_match_page_state_v1(active, view, report_id=report.report_id)
         page = render_match_review_v1(state, view, managed_handle=active.handle, locale=locale)
-        assert_link(page, "/matches/position/2#match-recording", "Zur Erfassung: Spiel 2"
-                    if locale == "de" else "Recording: Game 2")
+        assert_link(page, "/matches/position/2#match-recording", text(locale, "match_nav.record"))
         assert state["decision_context"].game_number == 1
         assert state["decision_context"].play_index == 2
         # A native Report route normally selects that Report's Game; it does not execute.
         page = browser.page(f"/matches/reports/{report.report_id}")
         assert active.selected_position == 1
-        assert_link(page, "/matches/position/1#match-recording", "Zur Erfassung: Spiel 1"
-                    if locale == "de" else "Recording: Game 1")
+        assert_link(page, "/matches/position/1#match-recording", text(locale, "match_nav.record"))
         for key, route in routes.items():
             assert browser.request("GET", route)[2] == downloads[key]
     assert not calls and active.path.read_bytes() == source

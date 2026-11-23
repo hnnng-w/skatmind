@@ -11,17 +11,18 @@ from skatmind.whole_game_rollout_contracts import WholeGameRolloutSettingsV1
 
 from .analysis_controls import EFFORTS, AnalysisControlError, resolve_analysis_controls
 from .language_context import capture_language_source_v1
+from .match_navigation import match_navigation
 from .recorded_review_opening import RecordingOpenConflict, require_recording_fresh_v1
 from .render_locale import localized_render
 from .rollout_result_numbers import simulation_success
 from .saved_match_analyses import SAVED_MATCH_ROUTE, saved_analyses_link
 from .session_recorded_review_form import RecordedRolloutFormError, recorded_rollout_feedback_v1
-from .stateful_localization import card_name, player_name, text, translated
+from .stateful_localization import card_name, managed_name, player_name, text, translated
 from .task_first_rendering import disclosure, form, hidden, input_field, paragraph, select_field
 from .validation_contracts import FrontendValidationIssueV1
 from .whole_match_job import control, evidence_view, progress_file, proof, row_options
 from .whole_match_progress import file_identity
-from .whole_match_routes import OVERVIEW, PAGE
+from .whole_match_routes import OVERVIEW, PAGE, original_path
 
 _localized_success = localized_render(simulation_success)
 
@@ -122,20 +123,27 @@ def comparison(locale, row, retained, detail):
         + '</td><td>' + metrics(recommended) + '</td><td>' + detail + '</td></tr>')
 
 
-def overview(app, workspace, state, rows, options, values, space, locale):
+def overview(app, workspace, state, rows, options, values, space, locale, binding, title, *,
+             origin=None):
     refs = state["refs"]
     body = []
     counts = {"complete": 0, "forced": 0, "incomplete": 0}
     for slot in workspace.slots:
         p = slot.match_position
         heading = translated(locale, "accounting.game_number", number=p)
-        section = f'<section class="panel" id="game-{p}"><h2>{heading}</h2>'
+        section = (f'<section class="panel" id="game-{p}" tabindex="-1">'
+                   + '<p class="comparison-location">' + escape(title) + ' · '
+                   + translated(locale, "match_nav.review") + f'</p><h2>{heading}</h2>')
         game = slot.observed_game
         if game is None:
             body.append(section + paragraph(locale, "task.match.status." + slot.slot_kind)
                         + '</section>')
             continue
         section += paragraph(locale, "whole_review.plays", count=len(game.plays))
+        recording = (origin[0].removesuffix("/overview") + "/recording"
+                     if origin and int(origin["game"]) == p else f"/matches/position/{p}")
+        section += f'<p><a href="{recording}#match-recording">' + translated(
+            locale, "recordings.continue", number=p) + '</a></p>'
         if game.declaration:
             section += paragraph(locale, "task.value." + game.declaration.game_type)
             if game.declaration.game_type == "null":
@@ -156,7 +164,8 @@ def overview(app, workspace, state, rows, options, values, space, locale):
                     and value.report.decision_index == row.decision):
                 token = app.saved_match_analyses.token(space, value.entry)
                 table.append(comparison(locale, row, value,
-                    link(locale, SAVED_MATCH_ROUTE + "/" + token, "saved_analysis.open")))
+                    link(locale, original_path(app.saved_match_analyses, binding, token, p,
+                         row.decision, value.entry.identity), "saved_analysis.open")))
                 counts["complete" if value.comparison is not None else "incomplete"] += 1
                 continue
             reason = ("recordings.skip." + row.reason if row.reason in (
@@ -190,9 +199,9 @@ def _start_feedback(app, active, binding):
     return None
 
 
-def handle_get(handler, path, *, rejection=None):
+def handle_get(handler, path, *, rejection=None, origin=None):
     app = handler.server.app_context
-    active = handler._active_match()
+    active = handler._active_match() if origin is None else require_origin(app, origin)
     locale = handler._frontend_state().locale
     progress = progress_file(app, active)
     with active.capture.lock:
@@ -200,6 +209,7 @@ def handle_get(handler, path, *, rejection=None):
         workspace, source = active.workspace, active.capture.content_fingerprint
         state = progress.read()
         binding = proof(active, state)
+        position = active.selected_position if origin is None else int(origin["game"])
         current = (state is not None and state["source"] == source
                    and state["file"] == file_identity(active.path))
         reading = current and path == OVERVIEW
@@ -209,13 +219,19 @@ def handle_get(handler, path, *, rejection=None):
             feedback = None if reading else _start_feedback(app, active, binding)
             if rejection is not None and feedback is not rejection:
                 raise RecordingOpenConflict()
-            if not reading:
-                handler._rendered_language_source = capture_language_source_v1(
-                    app, path, whole_match_binding=binding)
+            profile = app.frontend_profile.document
+            return_to = path if origin is None else origin[0]
+            handler._rendered_language_source = capture_language_source_v1(
+                app, return_to, whole_match_binding=binding)
     definition = workspace.match_definition
-    body = paragraph(locale, "whole_review.intro", player=player_name(
+    title = managed_name(locale, profile, "matches", definition.match_id, definition.title)
+    body = match_navigation(locale, title, position,
+                            recording=f"/matches/position/{position}#match-recording")
+    body += '<p><a href="/matches/review/' + str(position) + '">' + translated(
+        locale, "recordings.match.open", number=position) + '</a></p>'
+    body += paragraph(locale, "whole_review.intro", player=player_name(
         locale, definition.participants, definition.perspective_player_id),
-        match=definition.title or definition.match_id, revision=workspace.revision)
+        match=title, revision=workspace.revision)
     worker = app.whole_match.worker
     running = current and worker and worker.owns_source() and worker.state["run"] == state["run"]
     rows = app.whole_match.plays(workspace)
@@ -238,7 +254,8 @@ def handle_get(handler, path, *, rejection=None):
                          "whole_review." + action)
             body += '<p>' + link(locale, PAGE, "whole_review.refresh") + '</p>'
             if reading:
-                body += overview(app, workspace, state, rows, options, values, space, locale)
+                body += overview(app, workspace, state, rows, options, values, space, locale,
+                                 binding, title, origin=origin)
                 values.clear()
             else:
                 body += link(locale, OVERVIEW, "whole_review.overview")
@@ -253,6 +270,8 @@ def handle_get(handler, path, *, rejection=None):
         def final():
             if archive_guard:
                 archive_guard()
+            if origin is not None:
+                require_origin(app, origin)
             with active.capture.lock, app.lock:
                 now = progress.read()
                 if (app.managed_stateful.active_match is not active
@@ -262,10 +281,57 @@ def handle_get(handler, path, *, rejection=None):
                     raise RecordingOpenConflict()
                 require_recording_fresh_v1(active, "matches")
         handler._retained_delivery_guard = final
-        handler._content_page("/matches", title=text(locale, "whole_review.title"), return_to=path,
-            content=body, untranslated_workflow_body=False, task_first=True,
+        handler._content_page("/matches", title=text(locale, "whole_review.title"),
+            return_to=return_to, content=body, untranslated_workflow_body=False, task_first=True,
             status=400 if rejection is not None else 200, feedback_identity=active,
             feedback_family="matches" if feedback else None)
+
+
+def require_origin(app, origin):
+    """Re-admit a link minted for an exact admitted overview row, never by caption."""
+    with app.lock:
+        active = app.managed_stateful.active_match
+    if active is None:
+        raise RecordingOpenConflict()
+    with active.capture.lock:
+        require_recording_fresh_v1(active, "matches")
+        state = progress_file(app, active).read()
+        ref = state and state["refs"].get(f'{origin["game"]}:{origin["play"]}')
+        if (not ref or active.retired or state["source"] != active.capture.content_fingerprint
+                or state["file"] != file_identity(active.path)):
+            raise RecordingOpenConflict()
+        expected = original_path(app.saved_match_analyses, proof(active, state), origin["token"],
+                                 origin["game"], origin["play"], ref[1])
+        detail = origin[0] if origin["destination"] is None else origin[0].rsplit("/", 1)[0]
+        with app.lock:
+            if app.managed_stateful.active_match is not active or not hmac.compare_digest(
+                    detail, expected):
+                raise RecordingOpenConflict()
+        return active
+
+
+def origin_fallback(handler, origin):
+    route = SAVED_MATCH_ROUTE + "/" + origin["token"]
+    locale = handler._frontend_state().locale
+    handler._rendered_language_source = None
+    handler._retained_delivery_guard = None
+    handler._content_page("/matches", return_to=route, status=409,
+        title=text(locale, "saved_analysis.title"), content=paragraph(locale, "match_nav.stale")
+        + link(locale, route, "saved_analysis.open") + saved_analyses_link(locale),
+        untranslated_workflow_body=False)
+
+
+def return_from_original(handler, origin):
+    app = handler.server.app_context
+    handler._retained_delivery_recovery = lambda: origin_fallback(handler, origin)
+    try:
+        if origin["destination"] == "overview":
+            handle_get(handler, OVERVIEW, origin=origin)
+        else:
+            active = require_origin(app, origin)
+            handler._match_page(active, position=int(origin["game"]), recording_origin=origin)
+    except (KeyError, OSError, ValueError, RecordingOpenConflict, SkatMindError):
+        origin_fallback(handler, origin)
 
 
 def _start(handler, active, binding, values):

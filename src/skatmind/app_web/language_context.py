@@ -12,6 +12,7 @@ from .automatic_learning_routes import automatic_html_route
 from .frontend_profile_codec import build_local_frontend_profile_v1
 from .frontend_profile_operations import is_safe_frontend_return_path_v1
 from .historical_review_routes import historical_html_route
+from .whole_match_routes import ORIGIN
 from .workflow_state import StaleFrontendWorkflowRevisionError
 
 if TYPE_CHECKING:
@@ -126,7 +127,8 @@ def capture_language_source_v1(context: AppWebContextV1, route: str, *,
     """
     if not is_safe_frontend_return_path_v1(route):
         raise ValueError("Language origin must be a safe HTML route.")
-    if route in ("/matches/whole-review", "/matches/whole-review/overview"):
+    if (route in ("/matches/whole-review", "/matches/whole-review/overview")
+            or ORIGIN.fullmatch(route)):
         with context.lock:
             match = context.managed_stateful.active_match
             if match is None:
@@ -134,8 +136,11 @@ def capture_language_source_v1(context: AppWebContextV1, route: str, *,
             feedback = context.form_feedback._feedback.get("matches")
             rejected = (feedback[1] if feedback is not None and feedback[0] is match
                         and feedback[1].form_key == "match.whole_review.start" else None)
+            profile = context.frontend_profile.document
             return LanguageSourceV1(route, (match, match.workspace, context.saved_match_analyses,
-                                    rejected), (context.whole_match.generation,),
+                                    rejected), (context.whole_match.generation,
+                                    match.position_generation, match.selected_position,
+                                    () if profile is None else profile.managed_item_display_labels),
                                     whole_match_binding=whole_match_binding)
     if automatic_html_route(route) or historical_html_route(route):
         controller = context.automatic_learning_ui
@@ -378,6 +383,19 @@ def validate_language_page_v1(
 
 
 def _require_files(context: AppWebContextV1, route: str, *, automatic_view=None) -> None:
+    if origin := ORIGIN.fullmatch(route):
+        from skatmind.errors import SkatMindError
+
+        from .saved_match_analyses import resolve_saved_analysis
+        from .whole_match_web import require_origin
+
+        try:
+            if origin["destination"] is None:
+                resolve_saved_analysis(context, origin["token"])
+            require_origin(context, origin)
+        except (OSError, ValueError, RuntimeError, SkatMindError) as error:
+            raise LanguageContextConflict from error
+        return
     if route == "/learning" or automatic_html_route(route) or historical_html_route(route):
         from .automatic_learning_routes import AUTOMATIC_CONFIRMATION, AUTOMATIC_VIEW
         controller = context.automatic_learning_ui

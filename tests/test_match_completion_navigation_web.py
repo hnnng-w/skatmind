@@ -67,7 +67,7 @@ def recording_links(page):
     return Hierarchy(page).within("match-recording", "a")
 
 
-def assert_upper_navigation(page, target, locale, *, review=None):
+def assert_upper_navigation(page, target, locale):
     tree = Hierarchy(page)
     links = tree.within("match-recording", "a")
     continuation = [a for a in links if a["attrs"].get("href", "").startswith(
@@ -89,10 +89,9 @@ def assert_upper_navigation(page, target, locale, *, review=None):
     overview, = [a for a in links if a["attrs"].get("href") == "#match-games"]
     upper = [overview, *continuation]
     reviews = [a for a in links if a["attrs"].get("href", "").startswith("/matches/review/")]
-    assert len(reviews) == int(review is not None)
-    if review is not None:
-        assert reviews[0]["text"] == review
-        upper += reviews
+    review, = reviews
+    assert review["text"] == text(locale, "match_nav.review")
+    assert tree.nodes.index(review) < tree.nodes.index(status)
     for anchor in upper:
         assert tree.nodes.index(status) < tree.nodes.index(anchor) < tree.nodes.index(seats)
     return continuation[0]["attrs"]["href"] if continuation else None
@@ -131,8 +130,7 @@ def test_named_final_card_stays_selected_then_native_continuation_only_navigates
     assert len(active.workspace.slots[0].observed_game.plays) == 30
     assert all(page.count(f'id="match-play-{n}"') == 1 for n in range(1, 31))
     assert 'action="/matches/cards"' not in page
-    target = assert_upper_navigation(page, 2, locale,
-                                    review=text(locale, "recordings.match.open", number=1))
+    target = assert_upper_navigation(page, 2, locale)
     assert page.index(target) < page.index('id="match-evidence"') < page.index('id="match-play-1"')
     # The enabled hidden declaration default remains first among associated submitters.
     native = NativePage(page)
@@ -153,8 +151,7 @@ def test_named_final_card_stays_selected_then_native_continuation_only_navigates
     assert [n["text"] for n in tree.nodes if n["tag"] == "dd"
             and any(p is seats for p in n["parents"])] == ["Bea", "Clara", "Anna"]
     assert tree.by_id("match-recording-perspective")["text"].endswith(": Anna")
-    assert not any(a["attrs"].get("href", "").startswith("/matches/review/")
-                   for a in recording_links(page))
+    assert 'href="/matches/review/2"' in page
     assert not any(a["attrs"].get("href", "").startswith("/matches/position/")
                    for a in recording_links(page))
     assert Forms(page).find("/matches/api/v1/operation")["values"]["operation"] == "start_game"
@@ -174,9 +171,7 @@ def test_terminal_states_use_actual_first_unfinished_or_truthful_all_terminal(
         localized_server.app_context.managed_stateful.active_match.workspace,
         selected_position=selected)
     assert view.next_position == target
-    review = (text(locale, "recordings.match.open", number=selected)
-              if view.selected.play_count else None)
-    assert_upper_navigation(page, target, locale, review=review)
+    assert_upper_navigation(page, target, locale)
     assert text(locale, "task.match.status." + view.selected.game_state) in page
     assert (text(locale, "task.match.all_complete") in page) == (target is None)
     assert '/matches/position/37' not in page and 'action="/matches/cards"' not in page
@@ -190,7 +185,7 @@ def test_rule_ended_null_keeps_short_history_and_truthful_inspection(localized_s
     browser = Browser(localized_server)
     page = record_null_match_prefix(browser)
     page = follow(browser, browser.submit(Forms(page).find("/matches/cards"), cards="HK"))
-    assert_upper_navigation(page, 2, "en", review=text("en", "recordings.match.inspect"))
+    assert_upper_navigation(page, 2, "en")
     assert "Chris won trick 3. The game has ended." in page
     assert 'id="match-play-9"' in page and 'id="match-play-10"' not in page
     assert 'action="/matches/cards"' not in page
@@ -209,7 +204,7 @@ def test_all_terminal_includes_short_null_without_claiming_full_traces(localized
         build_match_workspace_persistence_document_v1(workspace),
         expected_content_fingerprint=active.capture.content_fingerprint).status == "saved"
     page = follow(browser, browser.submit(Forms(browser.page("/matches")).find("/matches/open")))
-    assert_upper_navigation(page, None, "en", review=text("en", "recordings.match.inspect"))
+    assert_upper_navigation(page, None, "en")
     assert "Chris won trick 3. The game has ended." in page
     assert text("en", "task.match.progress_value", observed=1, complete=0, passed=35) in page
     assert text("en", "recording.null_end.match_count", count=1) in page
@@ -234,7 +229,7 @@ def test_earlier_gap_does_not_displace_selected_unfinished_task(localized_server
 def test_genuine_rewind_removes_terminal_actions_and_restores_card_task(localized_server):
     browser, page = open_workspace(localized_server, completion_workspace())
     page = follow(browser, browser.submit(Forms(page).find("/matches/cards"), cards="D9"))
-    assert_upper_navigation(page, 2, "en", review=text("en", "recordings.match.open", number=1))
+    assert_upper_navigation(page, 2, "en")
     page = follow(browser, browser.submit(entry_action(page, 30, rewind=True)))
     page = follow(browser, browser.submit(Forms(page).find("/matches/recovery/apply"),
                                          confirm_apply="on"))

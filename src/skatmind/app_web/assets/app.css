@@ -1651,6 +1651,14 @@ form:has(> input[name="declaration_form"]) > p { margin-block: 0.25em; }
 /* Match Play needs eight readable tracks before sharing space with context. */
 #match-recording { container: match-recording / inline-size; }
 
+.match-navigation { margin-block-end: 1rem; overflow-wrap: anywhere; }
+.match-navigation p { margin-block: 0 .35rem; }
+.match-navigation div { display: flex; flex-wrap: wrap; border-bottom: 1px solid #a4b1aa; }
+.match-navigation :is(a, strong) { padding: .65rem .8rem; }
+.match-navigation strong { border-bottom: .25rem solid currentColor; }
+.panel:not(:target) > .comparison-location { display: none; }
+.comparison-location { margin-block: 0 .35rem; overflow-wrap: anywhere; }
+
 @container match-recording (min-width: 49em) {
   .live-table { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 }

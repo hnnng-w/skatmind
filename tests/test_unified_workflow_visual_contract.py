@@ -318,7 +318,7 @@ def test_match_peer_disclosures_keep_wrapper_order_fields_and_disabled_actions(l
         "div", {"id": "match-metadata", "tabindex": "-1"})
     assert '<div id="match-metadata" tabindex="-1"><details class="advanced-settings">' in page
     keys = ("task.match.annotations", "task.match.metadata",
-            "task.match.statistics", "task.match.analysis", "task.match.corrections")
+            "task.match.statistics", "task.match.corrections")
     positions = [page.index(f'<summary>{text("en", key)}</summary>') for key in keys]
     assert positions == sorted(positions)
     assert f'<summary>{text("en", "task.match.evidence")}</summary>' not in page

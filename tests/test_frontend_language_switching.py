@@ -127,6 +127,7 @@ def _match_creation_values(server: SkatMindAppWebServerV1) -> dict[str, str]:
 
 def test_return_path_allowlist_accepts_only_rendered_html_routes() -> None:
     report = "a" * 64
+    original = f"/matches/saved-analyses/{report}/from-review/36/30/{report}"
     for allowed in (
         "/",
         "/analyze",
@@ -139,6 +140,8 @@ def test_return_path_allowlist_accepts_only_rendered_html_routes() -> None:
         "/matches/position/1",
         "/matches/position/36",
         f"/matches/reports/{report}",
+        original,
+        original + "/overview",
         "/learning",
         "/learning/current",
         f"/learning/prepared/{report}",
@@ -159,6 +162,10 @@ def test_return_path_allowlist_accepts_only_rendered_html_routes() -> None:
         "/missing",
         "/matches/position/0",
         f"/matches/reports/{'A' * 64}",
+        original.replace("/36/30/", "/37/30/"),
+        original.replace("/36/30/", "/36/31/"),
+        original + "/recording",
+        original + "/overview?return_to=/matches",
         f"/learning/prepared/{report}/inputs",
         f"/learning/prepared/{report}#learning-results",
     ):

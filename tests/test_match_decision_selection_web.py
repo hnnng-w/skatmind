@@ -329,7 +329,7 @@ def test_stale_legacy_settings_do_not_restore_into_another_decision(localized_se
     assert current["decision_index"] == "3" and current["immediate_random_seed"] == "0"
 
 
-@pytest.mark.parametrize("view", ("report", "recording"))
+@pytest.mark.parametrize("view", ("report", "review"))
 def test_failed_enhanced_selection_retains_the_page_manifest_and_report_owner(
     localized_server, monkeypatch, view,
 ):
@@ -338,8 +338,8 @@ def test_failed_enhanced_selection_retains_the_page_manifest_and_report_owner(
     page = follow(browser, browser.submit(form(page), settings_mode="custom", requested_worlds="1",
                                          analysis_matadors="1"))
     prior = downloads(browser, page)
-    if view == "recording":
-        page = browser.page("/matches/position/2")
+    if view == "review":
+        page = browser.page("/matches/review/2")
     language = Forms(page).find("/actions/profile/language")
     def fail(*args, **kwargs):
         raise ValueError("Synthetic preparation failure")

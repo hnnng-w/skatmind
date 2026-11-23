@@ -387,7 +387,7 @@ def test_real_match_report_noop_retention_and_success_invalidation(localized_ser
     page = follow(browser, browser.submit(operation_form(page, "set_perspective_hand"),
                                           cards=hand))
     page = follow(browser, browser.submit(operation_form(page, "append_plays"), cards="CA"))
-    analysis = operation_form(page, "analyze_decision")
+    analysis = operation_form(browser.page("/matches/review/1"), "analyze_decision")
     response = browser.submit(analysis, immediate_sample_count="1")
     assert response[0] == 303, (analysis, re.findall(
         r'<section class="error-summary".*?</section>', response[2].decode(), re.S))

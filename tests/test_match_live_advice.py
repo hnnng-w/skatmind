@@ -112,6 +112,18 @@ def test_next_unrecorded_rotated_view_matches_session_and_native_tiles(
     page = follow(browser, response)
     assert tuple(tile_labels(page, "forced-card-guidance")) == ("S10",)
     assert "live-frequency" not in page
+    assert 'href="/matches/review/2"' in page
+    review = browser.page("/matches/review/2")
+    selector = Forms(review).find("/matches/review/2")
+    assert selector["values"]["position"] == "2"
+    response = browser.request("GET", selector["action"] + "?position=1")
+    review = follow(browser, response)
+    assert 'href="/matches/position/1#match-recording"' in review
+    recording = browser.page("/matches/position/1")
+    assert 'href="/matches/position/2#match-recording"' in recording
+    recording = browser.page("/matches/position/2")
+    assert active.live.effort is None and active.live.outcome is None
+    assert Forms(recording).find(START) and 'id="forced-card-guidance"' not in recording
 
 
 @pytest.mark.parametrize("declaration_last", (True, False))

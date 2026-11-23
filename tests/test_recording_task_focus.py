@@ -89,7 +89,7 @@ def test_initial_session_has_one_task_and_quiet_review_destination(localized_ser
 
 
 @pytest.mark.parametrize("locale", ("en", "de"))
-def test_empty_started_and_passed_match_have_no_normal_review_invitation(localized_server, locale):
+def test_empty_started_and_passed_offer_review_area_without_execution(localized_server, locale):
     browser = Browser(localized_server)
     page = create_empty(browser, locale)
     for operation in (None, "start_game", "mark_passed_deal"):
@@ -99,7 +99,7 @@ def test_empty_started_and_passed_match_have_no_normal_review_invitation(localiz
         active = localized_server.app_context.managed_stateful.active_match
         game = active.workspace.slots[0].observed_game
         assert game is None or not game.plays
-        assert 'href="/matches/review/1"' not in page.split('<section id="match-games"')[0]
+        assert 'href="/matches/review/1"' in page.split('<section id="match-games"')[0]
         direct = browser.page("/matches/review/1")
         assert 'href="/matches/position/1#match-recording"' in direct
         assert not any(form["values"].get("operation") == "analyze_decision"
@@ -286,12 +286,12 @@ def test_match_observations_preparation_report_and_pass_are_independent(
     page = follow(browser, browser.submit(primary(page, "start_game")))
     # Genuine missing-declaration blocker: started is not play-complete.
     assert active.workspace.slots[0].observed_game.declaration is None
-    assert 'href="/matches/review/1"' not in page.split('<section id="match-games"')[0]
+    assert 'action="/matches/select-decision"' not in page
     page = declare(browser, page)
     for card in ("CK", "C7", "C10"):
         page = follow(browser, browser.submit(primary(page, "append_plays"), cards=card))
     assert calls == {"save": 5, "execute": 0}
-    assert text("en", "recordings.match.inspect") in page
+    assert 'href="/matches/review/1"' in page
     review = browser.page("/matches/review/1")
     assert text("en", "recordings.match.prepared", prepared=0, total=3) in review
     assert text("en", "task.match.decision_blocked") in review
@@ -300,7 +300,7 @@ def test_match_observations_preparation_report_and_pass_are_independent(
     page = follow(browser, browser.submit(operation_form(page, "set_perspective_hand"),
         cards=MATCH_HAND))
     assert calls == {"save": 6, "execute": 0}
-    assert text("en", "recordings.match.open", number=1) in page
+    assert 'href="/matches/review/1"' in page
     review = browser.page("/matches/review/1")
     assert text("en", "recordings.match.prepared", prepared=1, total=3) in review
     form = operation_form(review, "analyze_decision")
@@ -313,7 +313,7 @@ def test_match_observations_preparation_report_and_pass_are_independent(
     download_route = f"/matches/api/v1/reports/{report.report_id}.json"
     saved, downloaded = active.path.read_bytes(), browser.request("GET", download_route)[2]
     empty = browser.page("/matches/position/2")
-    assert 'href="/matches/review/2"' not in empty.split('<section id="match-games"')[0]
+    assert 'action="/matches/select-decision"' not in empty
     assert active.capture.report_store.list() == (report,)
     page = browser.page(route)
     assert 'href="/matches/position/1#match-recording"' in page
@@ -329,4 +329,4 @@ def test_match_observations_preparation_report_and_pass_are_independent(
     page = follow(browser, browser.submit(primary(page, "mark_passed_deal")))
     assert active.selected_position == 2 and active.workspace.slots[1].slot_kind == "passed_deal"
     assert calls == {"save": 7, "execute": 1}
-    assert 'href="/matches/review/2"' not in page.split('<section id="match-games"')[0]
+    assert 'action="/matches/select-decision"' not in page

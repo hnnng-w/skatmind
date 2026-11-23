@@ -376,6 +376,7 @@ from .validation_rendering import (
     instrument_registered_forms_v1,
 )
 from .whole_match_routes import ACTIONS as WHOLE_MATCH_ACTIONS
+from .whole_match_routes import ORIGIN as WHOLE_MATCH_ORIGIN
 from .workflow_operations import (
     FrontendWorkflowValidationError,
     back_review_v1,
@@ -543,6 +544,7 @@ def _is_stateful_get_route(path: str) -> bool:
         automatic_html_route(path) or AUTOMATIC_VIEW.fullmatch(path) is not None or
         path in ("/matches/whole-review", "/matches/whole-review/overview") or
         path == SAVED_MATCH_ROUTE or SAVED_MATCH_PATTERN.fullmatch(path) is not None or
+        WHOLE_MATCH_ORIGIN.fullmatch(path) is not None or
         path
         in {
             DELETION_PAGE,
@@ -1546,8 +1548,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 flattened,
                 media_type=registered_media_type,
             )
-            if (path == "/matches/api/v1/analysis" and "review_binding" in parsed
-                    or path in {"/matches/review-whole-game", MATCH_DECISION_SELECTION_ROUTE}):
+            if path in {"/matches/api/v1/analysis", "/matches/review-whole-game",
+                        MATCH_DECISION_SELECTION_ROUTE}:
                 self._match_review_return = True
             safe_values = capture_safe_submitted_values_v1(definition, parsed)
             if definition.form_key == "match.transfer_report":
@@ -1769,6 +1771,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if isinstance(error, LanguageContextConflict):
             route = getattr(self, "_profile_action_return_to", "")
             if (route in {"/learning", "/matches/whole-review", "/matches/whole-review/overview"}
+                    or WHOLE_MATCH_ORIGIN.fullmatch(route)
                     or automatic_html_route(route)):
                 # A stale language form must not refresh or rebind these source-bound tasks.
                 self._language_conflict_page(route)
@@ -2030,6 +2033,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             location = language_return_location_v1(self.server.app_context, return_to)
             if return_token is not None:
                 location += "?_language_return=" + return_token
+            origin = WHOLE_MATCH_ORIGIN.fullmatch(return_to)
+            if origin and origin["destination"] == "overview":
+                location += "#game-" + origin["game"]
             self._redirect(location)
         else:
             self._redirect(return_to)
@@ -2374,11 +2380,15 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         operation_notice_kind: str = "info",
         review: bool = False,
         debrief_evidence=None,
+        recording_origin=None,
     ) -> None:
         review = review or report_id is not None
         self._match_review_return = review
         self._match_page_return = position if report_id is None else None
         with active.capture.lock:
+            if recording_origin is not None:
+                from .whole_match_web import require_origin
+                require_origin(self.server.app_context, recording_origin)
             if debrief_evidence is not None:
                 from .debrief_frontend import require_evidence_recording
 
@@ -2422,12 +2432,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                                           for route in MATCH_LIVE_ROUTES}
                 self._retained_delivery_guard = match_live_delivery_guard(
                     self.server.app_context, active)
-            state["rollout_form"] = project_match_rollout_form(
-                active, state["decision_preparation"])
-            state["decision_source_scope"] = match_decision_source_scope(active)
-            state["decision_selection_context"] = match_decision_selection_binding(
-                active, return_to)
-            state["decision_selection_return"] = return_to
+            if review:
+                state["rollout_form"] = project_match_rollout_form(
+                    active, state["decision_preparation"])
+                state["decision_source_scope"] = match_decision_source_scope(active)
+                state["decision_selection_context"] = match_decision_selection_binding(
+                    active, return_to)
+                state["decision_selection_return"] = return_to
             notice = active.rollout_notice
             if notice is not None and (notice[1] != active.capture.report_store.generation
                     or notice[0].workspace_revision != active.workspace.revision
@@ -2490,6 +2501,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         locale = self._frontend_state().locale
         title = managed_name(locale, profile, "matches", state["match"]["match_id"],
                              state["match"]["title"])
+        state["display_name"] = title
         learning_state = None if learning is None else build_unified_learning_state_v1(learning)
         if state.get("rollout_report") is not None and state["rollout_report"].result.document[
                 "whole_game_rollout_result"]["status"] == "complete":
@@ -2533,10 +2545,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         ))
         body += render_event_context(self.server.app_context, active, "matches", locale)
         body += render_accounting(self.server.app_context, active, "matches", locale)
-        body = ('<p><a class="button-link secondary" href="/matches/whole-review">'
-                + escape(translate_frontend_message_v1(locale, "whole_review.title"))
-                + '</a></p>' + body)
-        body += saved_analyses_link(locale)
+        if review:
+            body += saved_analyses_link(locale)
         receipt_id = report_id
         binding = active.rollout_evidence_binding
         if (binding is not None and state.get("rollout_notice") is binding.report.value
@@ -2567,6 +2577,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                                 message + '<!-- operation-feedback -->', 1)
             if '<!-- operation-feedback -->' not in body:
                 body = message + body
+        if recording_origin is not None:
+            previous = self._retained_delivery_guard
+
+            def guard():
+                if previous:
+                    previous()
+                require_origin(self.server.app_context, recording_origin)
+            self._retained_delivery_guard = guard
         self._content_page(
             "/matches",
             return_to=return_to,
@@ -2795,6 +2813,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         return False
 
     def _stateful_get(self, path: str) -> bool:
+        origin = WHOLE_MATCH_ORIGIN.fullmatch(path)
+        if origin is not None:
+            if origin["destination"]:
+                from .whole_match_web import return_from_original
+                return_from_original(self, origin)
+            else:
+                handle_saved_analysis_get(self, path, origin=origin)
+            return True
         if path in ("/matches/whole-review", "/matches/whole-review/overview"):
             from .whole_match_web import dispatch
             dispatch(self, path)

@@ -92,7 +92,7 @@ def test_selected_identity_controls_seats_and_single_overview(mixed, selected, a
                         else "task.match.first_unfinished")
     assert (text(locale, continuation_key, number=3) in recording) == (selected != 3)
     assert 'href="#match-games"' in recording
-    assert (f'href="/matches/review/{selected}"' in recording) == bool(view.selected.play_count)
+    assert recording.count(f'href="/matches/review/{selected}"') == 1
     for step in view.workflow.completed_steps:
         assert (text(locale, f"task.match.action.{step}") + ' — '
                 + text(locale, "task.recorded")) not in recording
@@ -101,7 +101,7 @@ def test_selected_identity_controls_seats_and_single_overview(mixed, selected, a
     assert re.findall(r'class="match-tile(?: selected)?" href="([^"]+)"', overview) == [
         f"/matches/position/{n}#match-recording" for n in range(1, 37)]
     assert overview.count('class="round-slots"') == 12
-    assert html.count('aria-current="page"') == 1
+    assert overview.count('aria-current="page"') == 1
     assert len(re.findall(r'\bid="([^"]+)"', html)) == len(set(re.findall(r'\bid="([^"]+)"', html)))
     hand_editor = re.search(
         r'<details class="advanced-settings match-source-editor" '
@@ -140,7 +140,7 @@ def test_selected_identity_controls_seats_and_single_overview(mixed, selected, a
     review = render_match_review_v1(state, view, managed_handle="a" * 64, locale=locale)
     from test_review_return_labels import assert_link
     assert_link(review, f"/matches/position/{selected}#match-recording",
-        f"Zur Erfassung: Spiel {selected}" if locale == "de" else f"Recording: Game {selected}")
+        text(locale, "match_nav.record"))
     assert text(locale, "task.match.position", number=selected) in review
     assert "Position " not in review
 

@@ -309,7 +309,7 @@ def test_non_current_report_has_visible_removal_and_explicit_rebuild(localized_s
     browser = Browser(localized_server)
     path, _ = saved_partial_match(localized_server)
     follow(browser, browser.submit(chooser_form(browser.page("/review/recorded"), "matches")))
-    page = browser.page("/matches/position/3")
+    page = browser.page("/matches/review/3")
     follow(browser, browser.submit(operation_form(page, "analyze_decision"),
                                    immediate_sample_count="2"))
     active = localized_server.app_context.managed_stateful.active_match

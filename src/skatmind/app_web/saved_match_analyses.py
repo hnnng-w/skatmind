@@ -18,10 +18,11 @@ from .automatic_learning import (
     initialize_managed_automatic_learning_v1,
     resume_managed_automatic_learning_v1,
 )
+from .match_navigation import match_navigation
 from .match_report_rendering import render_match_reports_v1
 from .recorded_decision_context_sources import match_analysis_explanation, match_decision_context
 from .recorded_review_opening import RecordingOpenConflict
-from .stateful_localization import text
+from .stateful_localization import managed_name, text, translated
 from .task_first_rendering import paragraph
 
 SAVED_MATCH_ROUTE = "/matches/saved-analyses"
@@ -247,7 +248,10 @@ def render_saved_analysis(value, route, locale):
     return body + '</section>' + saved_analyses_link(locale)
 
 
-def handle_saved_analysis_get(handler, path):
+def handle_saved_analysis_get(handler, path, *, origin=None):
+    return_to = path
+    if origin is not None:
+        path = SAVED_MATCH_ROUTE + "/" + origin["token"]
     session = path == SAVED_SESSION_ROUTE or path.startswith(SAVED_SESSION_ROUTE + "/")
     route = SAVED_SESSION_ROUTE if session else SAVED_MATCH_ROUTE
     family = "session" if session else "match"
@@ -272,10 +276,37 @@ def handle_saved_analysis_get(handler, path):
                 else:
                     from .language_context import capture_language_source_v1
 
-                    handler._rendered_language_source = capture_language_source_v1(context, path)
-                    handler._content_page(area, return_to=path,
+                    navigation = ""
+                    if origin is not None:
+                        from .whole_match_web import origin_fallback, require_origin
+
+                        try:
+                            active = require_origin(context, origin)
+                        except (OSError, ValueError, RecordingOpenConflict, SkatMindError):
+                            navigation = paragraph(locale, "match_nav.stale")
+                            return_to = path
+                        else:
+                            game = int(origin["game"])
+                            definition = active.workspace.match_definition
+                            title = managed_name(locale, context.frontend_profile.document,
+                                "matches", definition.match_id, definition.title)
+                            navigation = match_navigation(locale, title, game,
+                                recording=return_to + "/recording#match-recording",
+                                decision=int(origin["play"]))
+                            navigation += (f'<p><a href="{return_to}/overview#game-{game}">'
+                                + translated(locale, "match_nav.back", number=game) + '</a></p>')
+
+                            def guard():
+                                validate_saved_delivery(context, scope, store, manifest, value)
+                                require_origin(context, origin)
+                            handler._retained_delivery_guard = guard
+                            handler._retained_delivery_recovery = lambda: origin_fallback(
+                                handler, origin)
+                    handler._rendered_language_source = capture_language_source_v1(
+                        context, return_to)
+                    handler._content_page(area, return_to=return_to,
                         title=text(locale, "saved_analysis.title"),
-                        content=render_saved_analysis(value, path, locale),
+                        content=navigation + render_saved_analysis(value, path, locale),
                         feedback_identity=scope,
                         untranslated_workflow_body=False)
             return True

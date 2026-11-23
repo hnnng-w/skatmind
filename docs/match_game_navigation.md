@@ -1,5 +1,149 @@
 # Match Game navigation and recording focus
 
+## Opened Match navigation (Issue #333)
+
+The local work-area navigation names the opened Match and the game. Its
+underlined, bold area is current; the other area is a native link. On an
+individual result or original, the play number identifies the decision.
+
+* **Record & Live help** contains card entry, explicit Live controls, corrections,
+  Undo and the 36-game selector. After a completed game the next unfinished
+  game is still offered near the top. Switching games uses the normal selection
+  and Live retirement path.
+* **Review** offers the whole-Match review and the selected game's independent
+  decision selector. Choose a game, apply a recorded decision, then explicitly
+  analyze it. Empty and passed games still offer the series workflow. Historical
+  analysis, materialization and reports are available here. Recording no longer
+  embeds a second analysis/report panel, a readiness-dependent decision link,
+  or another whole-Match or archive button.
+* From a whole-Match comparison, open **Original analysis**. Its comparison
+  return lands on the originating game; its recording link opens the same
+  game. Changing language on the returned comparison keeps that section.
+  An expired return explains the conflict and offers independent archive access.
+  Original downloads continue to address the retained execution. From an
+  individual decision or its result, **Record & Live help** also returns to
+  that game's recording.
+
+### Small import and later installed orientation check
+
+The source-only verifier creates `synthetic-hearts.json` in its fresh output
+directory, separately from its disposable managed copy. Game 1 is passed.
+Game 2 has 18 recorded plays, six by Alex: five statistical decisions and one
+forced card. Generate the fixture and exercise the native source workflow with
+development Python, the checkout and a local Chromium browser:
+
+```powershell
+& $py scripts/verify_opened_match_navigation.py --output "$E/browser" --browser $edge
+```
+
+After published-source review, maintainer integration and successful automatic
+exact-commit main `check` and `v1-supported-platform-matrix`, use that small
+import in a disposable installed home:
+
+1. Open **Synthetic Hearts review** from the normal Match list. Find game 2,
+   recording, Live help and corrections. Can you tell which area is active?
+2. Without running a series job, find and analyze Alex's first decision
+   (play 3, Clubs Seven). Use Quick and played-game goal. Return to recording.
+3. Find the series review. Explicitly start it with the same settings. Open
+   game 2's comparisons and a real original. Return to the comparison section
+   and to game 2's recording using the on-page links. Switch language and refresh.
+4. Judge whether the Match, game, current task and next action are clear in both
+   areas. Check visible comparison values and keyboard navigation at desktop
+   and narrow widths. No personal recording or volume benchmark is needed.
+
+Issue #332 already passed installed acceptance. Earlier placements and
+verification records below describe their respective baselines.
+
+### Source verification (#333)
+
+The native browser probe opens the Match from its normal list, follows the
+emitted game and area links and applies play 3. The explicit individual action
+makes one real Application/evaluator call, with no series checkpoint. The
+explicit Quick series reuses that original and evaluates four more decisions.
+Play 17 is forced. Played Clubs Seven has 21/25 (84%) versus Clubs King at
+22/25 (88%); play 15 ties on 25/25 with deciding totals of 1284/25 and 1386/25.
+Refresh, language changes, original downloads and the contextual returns
+leave the counts at five, the recording bytes/mtime and archive manifest
+unchanged, and both downloaded originals byte-identical.
+
+Development evidence used CPython 3.13.7 and Edge 158.0.4370.33 with page
+JavaScript disabled. At 1280 × 900 the six comparison columns fit. At
+390 × 900 the original navigation wraps normally and the comparison uses its
+existing keyboard-focusable horizontal scroll region. The recording-to-review
+link has a visible 3px keyboard focus outline. These are CSS viewport sizes,
+not enlarged browser zoom. The disposable Workspace SHA-256 is
+`281e74f92cbd29b95e39379ab6d4d407bcd0a87e603714f1f73ff798fae8aa56`.
+
+#### Local command and module receipt
+
+PowerShell from the source checkout; invocation timeout 7,200,000 ms. The
+following gives the actual selections and arguments, with repeated flags factored
+out. Use fresh output names to reproduce. Logs, pytest temporary roots, browser
+profiles, import and JUnit reports are outside the repository.
+
+```powershell
+$E = "$env:TEMP/opencode/333-nav"
+$py = "$env:LOCALAPPDATA/Programs/Python/Python313/python.exe"
+$edge = "${env:ProgramFiles(x86)}/Microsoft/Edge/Application/msedge.exe"
+$env:PYTHONDONTWRITEBYTECODE = '1'
+$env:RUFF_CACHE_DIR = "$E/ruff"
+$flags = @('-q','-p','no:cacheprovider','-n','2','--dist=loadfile','--max-worker-restart=0')
+function outputs($name) { @("--basetemp=$E/$name", "--junitxml=$E/$name.xml", '--tb=short') }
+function modules($names) { $names.Split(' ',[StringSplitOptions]::RemoveEmptyEntries) |
+    ForEach-Object { "tests/test_$_.py" } }
+$o = outputs origin
+& $py -m pytest tests/test_whole_match_web.py -k native_controls @flags @o
+$a = modules ('match_game_navigation match_game_navigation_web match_completion_navigation_web ' +
+    'task_first_match_and_learning_workflow task_first_stateful_rendering recorded_review_navigation ' +
+    'whole_match_web match_rollout_web saved_match_rollouts_web saved_match_analyses_web ' +
+    'match_live_advice match_decision_selection_web review_return_labels recording_task_focus ' +
+    'unified_workflow_visual_contract compact_card_entry_web learning_direct_entry ' +
+    'learning_direct_entry_web recording_deletion_lifecycle match_evidence_navigation ' +
+    'match_evidence_workflow direct_match_evidence match_learning_report_discoverability ' +
+    'frontend_language_switching language_switch_context language_view_continuity ' +
+    'operation_feedback_language task_first_language_preservation frontend_validation_preservation ' +
+    'frontend_localization_foundation complete_frontend_localization frontend_profile_persistence ' +
+    'recorded_decision_context_web packaging_and_distribution')
+$o = outputs affected
+& $py -m pytest @a @flags @o *> "$E/affected.log"
+$b = modules ('whole_match_web frontend_language_switching frontend_localization_foundation ' +
+    'match_live_advice recording_deletion_lifecycle learning_report_attachment_web ' +
+    'learning_report_rejection match_learning_report_discoverability saved_match_analyses_web ' +
+    'saved_match_rollouts_web match_game_navigation_web match_completion_navigation_web ' +
+    'task_first_match_and_learning_workflow review_return_labels match_decision_selection_web ' +
+    'language_switch_context learning_prepared_navigation guided_frontend_packaging ' +
+    'unified_local_app_web analysis_controls_web forced_card_guidance')
+$o = outputs final
+& $py -m pytest @b @flags @o *> "$E/final.log"
+# After parallel workers exited:
+$o = outputs exclusive
+& $py -m pytest tests/test_match_analysis_action_placement.py -q -p no:cacheprovider @o
+$o = outputs guards
+& $py -m pytest tests/test_cli_internal_architecture.py tests/test_skatmind_rename.py @flags @o
+# All three browser runs used fresh disposable data, overlapping focused pytest.
+foreach ($name in 'browser','browser-final','browser-section') {
+    & $py scripts/verify_opened_match_navigation.py --output "$E/$name" --browser $edge
+}
+function python { & "$env:LOCALAPPDATA/Programs/Python/Python313/python.exe" @args }
+.\scripts\check.ps1 -Mode Quick -LogDirectory "$E/quick"
+git diff --check
+git diff --cached --check
+git ls-files --others --exclude-standard | ForEach-Object { git diff --no-index --check -- NUL $_ }
+```
+
+The initial HTTP check passed (1 test). The first 34-module selection had
+683 passes, one Windows symlink skip and eight failures. Seven cases shared
+one fixture that still submitted the removed recording form. It now obtains
+the form from Review. The deletion race also needed to exercise its original
+direct submission: the focused Review form holds the lifecycle gate, whereas
+the legacy direct submission can overlap deletion. The test uses the same
+decision proofs and explicitly omits only the optional Review binding. No
+lock or worker behavior was changed. The 21-module correction/consumer run
+passed 417 tests, including both delayed Cancel/Resume redirect cases. The
+exclusive action-placement module passed all 25 tests. Repeated selections
+and repeated synthetic browser computations are not additional distinct cases.
+The last screenshot covers the targeted comparison's Match and area caption.
+
 Issue #238 puts the selected Game and its actual recording action before the
 36-entry overview. It supersedes #220's progress → suggestion → full grid → task
 ordering and normal **Position** numbering. Technical `match_position`, canonical

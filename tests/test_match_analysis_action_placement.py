@@ -114,19 +114,23 @@ def test_emitted_callers_group_selection_action_and_settings(localized_server, l
     page = record_context_match(browser)
     page = follow(browser, browser.submit(Forms(page).find("/actions/profile/language"),
                                           language=locale))
+    if caller == "recording":
+        assert 'action="/matches/api/v1/analysis"' not in page
+        assert 'action="/matches/select-decision"' not in page
+        assert 'action="/matches/review-whole-game"' not in page
+        assert page.count('href="/matches/review/1"') == 1
+        return
+    page = browser.page("/matches/review/1")
     if caller == "report":
         page = follow(browser, browser.submit(operation_form(page, "analyze_decision")))
-    else:
-        page = browser.page("/matches/current" if caller == "recording" else "/matches/review/1")
-    owner, advanced = assert_decision_form(page, locale, indexes=("2",),
-                                         focused=caller != "recording")
+    owner, advanced = assert_decision_form(page, locale, indexes=("2",), focused=True)
     values = operation_form(page, "analyze_decision")["values"]
     assert {key: values[key] for key in ADVANCED} == DEFAULTS
     assert values["decision_index"] == "2"
     assert values["operation"] == "analyze_decision" and values["match_position"] == "1"
     assert "open" not in advanced["attrs"]
     outer = [p for p in owner["parents"] if p["tag"] == "details"]
-    assert len(outer) == (2 if caller == "recording" else 1)
+    assert len(outer) == 1
     assert all("open" not in p["attrs"] for p in outer)
 
 
@@ -303,8 +307,8 @@ def test_actual_analysis_route_bounds_and_strict_fields(localized_server, monkey
 
     from skatmind.capture_web.contracts import MATCH_CAPTURE_WEB_MAX_REQUEST_BYTES
     browser = Browser(localized_server)
-    page = record_context_match(browser)
-    offered = operation_form(page, "analyze_decision")
+    record_context_match(browser)
+    offered = operation_form(browser.page("/matches/review/1"), "analyze_decision")
     definition = get_frontend_form_by_key_v1("match.analysis.analyze_decision")
     assert definition.body_limit == MATCH_CAPTURE_WEB_MAX_REQUEST_BYTES == 1_048_576
     for changes in ({"unexpected": "value"}, {"decision_index": ["2", "2"]},
@@ -321,7 +325,8 @@ def test_actual_analysis_route_bounds_and_strict_fields(localized_server, monkey
 
 def test_analysis_header_first_rejection_without_upload(localized_server, monkeypatch):
     browser = Browser(localized_server)
-    offered = operation_form(record_context_match(browser), "analyze_decision")
+    record_context_match(browser)
+    offered = operation_form(browser.page("/matches/review/1"), "analyze_decision")
     assert_early_analysis_rejection(browser, offered, monkeypatch, full_upload=False)
 
 
@@ -348,7 +353,7 @@ def assert_early_analysis_rejection(browser, offered, monkeypatch, *, full_uploa
 
         monkeypatch.setattr(owner, name, counted)
     # Count real page preparation separately, before the rejected request interval.
-    offered = operation_form(browser.page("/matches/current"), "analyze_decision")
+    offered = operation_form(browser.page("/matches/review/1"), "analyze_decision")
     page_calls = dict(calls)
     assert calls["page_preparation"] > 0
     calls.clear()

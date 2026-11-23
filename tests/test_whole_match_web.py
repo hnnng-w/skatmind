@@ -256,7 +256,7 @@ def test_stale_retry_neither_restores_values_nor_starts_review(localized_server,
     assert not (app.managed_home.root / "automatic-learning").exists()
 
 
-def test_native_controls_progress_comparison_and_original(localized_server):
+def test_native_controls_progress_comparison_and_original(localized_server, monkeypatch):
     from skatmind.app_web.whole_match_job import progress_file
 
     browser, _, recording = open_alex(localized_server, count=18)
@@ -299,9 +299,71 @@ def test_native_controls_progress_comparison_and_original(localized_server):
         secondary = next(r for r in re.findall("<tr>(.*?)</tr>", page, re.S)
                          if '<th scope="row">15</th>' in r)
         assert "1284/25" in secondary and "1386/25" in secondary and secondary.count("%") == 2
-        detail = re.search(r'href="(/matches/saved-analyses/[0-9a-f]{64})"', page)[1]
+        detail = re.search(r'href="(/matches/saved-analyses/[^"]+/from-review/2/3/[^"]+)"',
+                           page)[1]
+        archive_route = detail.split("/from-review/")[0]
         original = browser.page(detail)
-        assert detail + "/request.json" in original and detail + "/result.json" in original
+        assert archive_route + "/request.json" in original
+        assert archive_route + "/result.json" in original
+        assert detail + "/overview#game-2" in original
+        assert detail + "/recording#match-recording" in original
+        browser.page("/matches/position/1")
+        assert 'id="game-2"' in browser.page(detail + "/overview")
+        assert active.selected_position == 1
+        assert 'id="match-recording"' in browser.page(detail + "/recording")
+        assert active.selected_position == 2
+
+    # Neither a valid archive token nor a different game number authorizes a return.
+    bad = detail.replace("/2/3/", "/3/3/")
+    assert text("en", "match_nav.stale") in browser.page(bad)
+    assert browser.request("GET", bad + "/recording")[0] == 409
+    assert active.selected_position == 2
+    language = Forms(browser.page(detail)).find("/actions/profile/language")
+    replacement = active.path.with_suffix(".copy")
+    replacement.write_bytes(active.path.read_bytes())
+    handler = localized_server.RequestHandlerClass
+    send = handler._send_bytes
+
+    def replace_before_delivery(self, status, content, **kwargs):
+        if self.path == detail and status == 200:
+            replacement.replace(active.path)
+        return send(self, status, content, **kwargs)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(handler, "_send_bytes", replace_before_delivery)
+        status, _, raw = browser.request("GET", detail)
+        assert status == 409 and text("en", "match_nav.stale") in raw.decode()
+        assert detail + "/recording" not in raw.decode()
+    assert browser.submit(language, language="de")[0] == 409
+    for route in (detail + "/overview", detail + "/recording"):
+        status, _, raw = browser.request("GET", route)
+        assert status == 409 and archive_route in raw.decode()
+    from test_match_workspace_contracts import _definition
+
+    from skatmind.match_workspace_contracts import create_match_workspace_v1
+    from skatmind.match_workspace_persistence import save_match_workspace_file_v1
+    from skatmind.match_workspace_persistence_codec import (
+        build_match_workspace_persistence_document_v1,
+    )
+
+    # A different recording with the same displayed title cannot acquire the old links.
+    other = create_match_workspace_v1(_definition(match_id="second-recording",
+        title=active.workspace.match_definition.title))
+    save_match_workspace_file_v1(active.path.with_name("second.json"),
+        build_match_workspace_persistence_document_v1(other), expected_content_fingerprint=None)
+    forms = Forms(browser.page("/matches")).forms
+    follow(browser, browser.submit(next(f for f in forms if f["action"] == "/matches/open"
+        and f["values"]["handle"] != active.handle)))
+    foreign = app.managed_stateful.active_match
+    assert foreign.workspace.match_definition.match_id == "second-recording"
+    assert browser.request("GET", detail + "/recording")[0] == 409
+    assert foreign.selected_position == 1
+    assert text("en", "match_nav.stale") in browser.page(detail)
+    app.managed_stateful.active_match = None
+    for route in (detail, archive_route):
+        standalone = browser.page(route)
+        assert archive_route + "/request.json" in standalone
+        assert "/from-review/" not in standalone
 
 
 def test_retained_timeout_has_coverage_but_no_success_percentage(localized_server, monkeypatch):
@@ -332,7 +394,7 @@ def test_genuine_tied_best_group_includes_actual_card_in_overview(tmp_path):
     from test_whole_match_job import finish, submit
 
     from scripts.verify_whole_match_review import synthetic_game
-    from skatmind.app_web.whole_match_job import evidence_view, row_options
+    from skatmind.app_web.whole_match_job import evidence_view, proof, row_options
     from skatmind.app_web.whole_match_web import overview
     from skatmind.match_workspace_contracts import create_match_workspace_v1
 
@@ -352,7 +414,8 @@ def test_genuine_tied_best_group_includes_actual_card_in_overview(tmp_path):
         result = values[state["refs"]["7:5"][1]].report.value.result.document
         assert set(result["whole_game_rollout_result"]["tied_best_cards"]) == {"C8", "C7"}
         for locale in ("en", "de"):
-            html = overview(app, workspace, state, rows, options, values, space, locale)
+            html = overview(app, workspace, state, rows, options, values, space, locale,
+                            proof(active, state), definition.title)
             tie = re.search(r'<th scope="row">5</th>(.*?)</tr>', html)[1]
             assert ", ".join(card_name(locale, c) for c in ("C8", "C7")) in tie
             assert tie.count("%") == 2

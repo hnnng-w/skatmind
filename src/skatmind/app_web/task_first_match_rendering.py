@@ -31,7 +31,7 @@ from .match_evidence_presentation import (
     saved_hand,
 )
 from .match_live_advice import MATCH_LIVE_ROUTES
-from .match_report_rendering import render_match_reports_v1
+from .match_navigation import match_navigation
 from .recorded_trick_rendering import (
     render_current_trick,
     render_recorded_history,
@@ -316,12 +316,6 @@ def _statistics(state, handle, locale):
     return content
 
 
-def _reports(state, handle, locale, *, secondary=True, results=True):
-    return render_match_reports_v1(state, locale, results=results, materialization_form=(
-        operation_form(state, handle, locale, "prepare_materialization", analysis=True)
-        if secondary else ""))
-
-
 def _recording_status(position, locale):
     """Format captured accepted counts only; completion remains the position's status."""
     if position.game_state != "play_in_progress":
@@ -369,7 +363,7 @@ def _game_overview(state, view, locale):
         + positions + '</section>')
 
 
-def _recording_navigation(state, view, locale, *, terminal):
+def _recording_navigation(view, locale, *, terminal):
     content = ""
     if view.next_position is None:
         content += paragraph(locale, "task.match.all_complete")
@@ -379,13 +373,7 @@ def _recording_navigation(state, view, locale, *, terminal):
             + f' href="/matches/position/{view.next_position}#match-recording">'
             + translated(locale, "task.match.open_game" if terminal else "task.match.first_unfinished",
                          number=view.next_position) + '</a></p>')
-    content += '<p><a href="#match-games">' + translated(locale, "task.match.overview") + '</a>'
-    if view.selected.play_count:
-        ready = state["decision_preparation"]["prepared_decision_count"] > 0
-        content += ' · <a href="/matches/review/' + str(view.selected_position) + '">' + (
-            translated(locale, "recordings.match.open", number=view.selected_position) if ready
-            else translated(locale, "recordings.match.inspect")) + '</a>'
-    content += '</p>'
+    content += '<p><a href="#match-games">' + translated(locale, "task.match.overview") + '</a></p>'
     return '<div class="content-stack">' + content + '</div>' if terminal else content
 
 
@@ -401,12 +389,15 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     if short_ended:
         body += paragraph(locale, "recording.null_end.match_count", count=short_ended)
     game = state["game"]
-    task = '<!-- operation-feedback --><h2 id="match-recording-heading">' + translated(
+    task = match_navigation(locale, state.get("display_name") or state["match"]["title"] or
+                            text(locale, "task.identity.matches"), view.selected_position,
+                            review=f"/matches/review/{view.selected_position}")
+    task += '<!-- operation-feedback --><h2 id="match-recording-heading">' + translated(
         locale, "task.match.game_heading", number=view.selected_position) + '</h2>'
     task += '<p class="match-recording-status">' + _recording_status(view.selected, locale) + '</p>'
     terminal = view.selected.game_state in {"play_complete", "passed_deal", "rule_ended"}
     if terminal:
-        task += _recording_navigation(state, view, locale, terminal=True)
+        task += _recording_navigation(view, locale, terminal=True)
     task += '<dl class="match-game-seats">' + ''.join('<div><dt>' + translated(
         locale, f"creation.seat.{seat}") + '</dt><dd>' + escape(_name(
             state, locale, getattr(view.selected, f"{seat}_player_id"))) + '</dd></div>'
@@ -461,7 +452,7 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
         task += (recovery[1] if recovery is not None else "" if recorded is None
                  else render_recorded_history(recorded, locale))
     if not terminal:
-        task += _recording_navigation(state, view, locale, terminal=False)
+        task += _recording_navigation(view, locale, terminal=False)
     body += '<section id="match-recording" class="panel" tabindex="-1" aria-labelledby="match-recording-heading">' + task + '</section>'
     body += _game_overview(state, view, locale)
     body += transfer
@@ -475,9 +466,6 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
     body += '<div id="match-metadata" tabindex="-1"><!-- metadata-operation-feedback -->' + disclosure(locale, "task.match.metadata", render_fixed_match_format_v1(locale) + paragraph(locale, "task.match.metadata_help")
         + operation_form(state, handle, locale, "update_match_metadata", values=metadata)) + '</div>'
     body += disclosure(locale, "task.match.statistics", _statistics(state, handle, locale))
-    from .match_review_rendering import render_match_analysis_v1
-    analysis = render_match_analysis_v1(state, view, handle, locale)
-    body += disclosure(locale, "task.match.analysis", analysis + _reports(state, handle, locale))
     corrections = paragraph(locale, "task.match.correction_help")
     if view.selected.slot_kind == "empty":
         corrections += operation_form(state, handle, locale, "start_game")

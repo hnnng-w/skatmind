@@ -16,6 +16,7 @@ from skatmind.app_web.match_frontend import (
     create_unified_match_v1,
     execute_unified_match_analysis_v1,
 )
+from skatmind.app_web.match_review_rendering import render_match_review_v1
 from skatmind.app_web.task_first_learning_rendering import render_task_first_learning_v1
 from skatmind.app_web.task_first_match_rendering import render_task_first_match_v1
 from skatmind.app_web.task_first_match_state import build_task_first_match_page_state_v1
@@ -163,6 +164,6 @@ def test_unavailable_decision_report_has_plain_guidance_without_a_card(tmp_path,
     state = build_task_first_match_page_state_v1(
         context, view, report_id=result.state["selected_report_id"])
     assert state["selected_report"]["details"]["status"] == "unavailable"
-    html = render_task_first_match_v1(state, view, managed_handle=context.handle, locale=locale)
+    html = render_match_review_v1(state, view, managed_handle=context.handle, locale=locale)
     assert t(locale, "result.no_recommendation") in html
     assert t(locale, "task.match.decision_blocked") in html

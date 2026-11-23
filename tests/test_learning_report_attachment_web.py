@@ -65,7 +65,7 @@ def submit_upload(browser, form, source, *, fields=None,
 def executed_source(browser, server):
     path, workspace = saved_partial_match(server)
     follow(browser, browser.submit(chooser_form(browser.page("/review/recorded"), "matches")))
-    page = follow(browser, browser.submit(operation_form(browser.page("/matches/position/3"),
+    page = follow(browser, browser.submit(operation_form(browser.page("/matches/review/3"),
         "analyze_decision"), immediate_sample_count="2"))
     report = server.app_context.managed_stateful.active_match.capture.report_store.list()[0]
     assert report.value.status == "executed"

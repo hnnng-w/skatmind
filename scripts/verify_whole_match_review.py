@@ -183,9 +183,9 @@ def measure(output, document, earlier=None):
         start = time.perf_counter()
         html = get(OVERVIEW)
         phase("reopen_overview", start)
-        detail = re.search(r'href="(/matches/saved-analyses/[0-9a-f]{64})"', html)[1]
+        detail = re.search(r'href="(/matches/saved-analyses/[^"]+/from-review/[^"]+)"', html)[1]
         start = time.perf_counter()
-        assert detail + "/request.json" in get(detail)
+        assert detail.split("/from-review/")[0] + "/request.json" in get(detail)
         phase("open_original_detail", start)
 
 

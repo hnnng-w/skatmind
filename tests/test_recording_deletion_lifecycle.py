@@ -102,6 +102,7 @@ def test_real_match_report_recovery_and_imported_corpus_survive_source_removal(
     assert len(workspace.slots[2].observed_game.plays) == 30
     assert [slot.slot_kind for slot in workspace.slots[:3]] == [
         "passed_deal", "passed_deal", "observed_game"]
+    page = browser.page("/matches/review/3")
     follow(browser, browser.submit(operation_form(page, "analyze_decision"),
                                    immediate_sample_count="4"))
     app = localized_server.app_context
@@ -143,7 +144,7 @@ def test_real_match_report_recovery_and_imported_corpus_survive_source_removal(
                 if form["action"] == "/matches/open" and form["values"]["handle"] == active.handle)
     follow(browser, browser.submit(form))
     active = app.managed_stateful.active_match
-    page = browser.page("/matches/position/3")
+    page = browser.page("/matches/review/3")
     follow(browser, browser.submit(operation_form(page, "analyze_decision"),
                                    immediate_sample_count="4"))
     report = active.capture.report_store.list()[0]
@@ -191,8 +192,13 @@ def test_delayed_genuine_execution_cannot_publish_after_active_deletion(
         module, name = session_execution, "execute"
         active = localized_server.app_context.managed_stateful.active_session
     else:
-        _, _, page = open_partial_match(browser)
+        open_partial_match(browser)
+        page = browser.page("/matches/review/3")
         form = operation_form(page, "analyze_decision")
+        # The legacy direct action (formerly embedded in recording) can race
+        # deletion; the review-bound variant holds the lifecycle gate throughout.
+        # Preserve the original race and its actual decision/source proofs.
+        form["values"].pop("review_binding")
         form["values"]["immediate_sample_count"] = "4"
         module, name = match_execution, "execute_match_decision_analysis_v1"
         active = localized_server.app_context.managed_stateful.active_match

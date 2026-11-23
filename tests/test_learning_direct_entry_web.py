@@ -90,7 +90,7 @@ def test_returned_partial_add_build_versions_downloads_and_independent_recording
     session_download = browser.request("GET", "/sessions/downloads/result.json")[2]
     path, workspace = saved_partial_match(localized_server)
     follow(browser, browser.submit(chooser_form(browser.page("/review/recorded"), "matches")))
-    page = browser.page("/matches/position/3")
+    page = browser.page("/matches/review/3")
     follow(browser, browser.submit(operation_form(page, "analyze_decision"),
                                    immediate_sample_count="2"))
     active = app.managed_stateful.active_match

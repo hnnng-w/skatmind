@@ -2,17 +2,19 @@
 from __future__ import annotations
 
 from .compact_declaration_rendering import accepted_declaration_summary
+from .match_navigation import match_navigation
+from .match_report_rendering import render_match_reports_v1
 from .recorded_trick_rendering import render_recorded_history, render_recorded_summary
 from .stateful_localization import text, translated
 from .task_first_match_rendering import (
     _hand_editor_owner,
     _name,
     _named_seat,
-    _reports,
     operation_form,
 )
 from .task_first_rendering import disclosure, hidden, paragraph, section, select_field
 from .unplayed_card_rendering import render_unplayed_cards
+from .whole_match_routes import PAGE
 
 
 def render_match_analysis_v1(state, view, handle, locale):
@@ -76,16 +78,22 @@ def render_match_analysis_v1(state, view, handle, locale):
 def render_match_review_v1(state, view, *, managed_handle, locale, transfer=""):
     position = view.selected_position
     body = '<div id="match-review" tabindex="-1">'
+    report = state["selected_report"]
+    decision = (state.get("rollout_form") or {}).get("decision")
+    if report is not None:
+        decision = report["decision_index"] if report["match_position"] == position else None
+    body += match_navigation(locale, state.get("display_name") or state["match"]["title"] or
+        text(locale, "task.identity.matches"), position, recording=f"/matches/position/{position}#match-recording",
+        decision=decision)
+    body += '<p><a href="' + PAGE + '">' + translated(locale, "whole_review.title") + '</a></p>'
+    body += '<h2>' + translated(locale, "match_nav.single") + '</h2>'
     body += '<form method="get" class="match-review-selector" action="/matches/review/' + str(position) + '">'
     body += select_field(locale, "position", "recordings.match.select", tuple(
         (item.match_position, text(locale, "task.match.position", number=item.match_position)
          + ' — ' + text(locale, f"task.match.status.{item.game_state}")) for item in view.positions), position)
     body += '<button type="submit">' + translated(locale, "recordings.match.show") + '</button></form>'
-    body += '<h2>' + translated(locale, "recordings.match.game", position=position) + '</h2>'
-    body += '<p><a href="/matches/position/' + str(position) + '#match-recording">' + translated(
-        locale, "recordings.continue", number=position) + '</a></p>'
     if state["selected_report"] is not None:
-        body += section(locale, "recordings.match.result", _reports(state, managed_handle, locale, secondary=False))
+        body += section(locale, "recordings.match.result", render_match_reports_v1(state, locale))
     game = state["game"]
     if game is not None:
         declaration = game["declaration"]
@@ -112,10 +120,11 @@ def render_match_review_v1(state, view, *, managed_handle, locale, transfer=""):
             locale, "recovery.correct") + '</a></p>'
         for trick in recorded.tricks for play in trick.plays})
     if state["selected_report"] is None:
-        body += section(locale, "recordings.match.result", _reports(state, managed_handle, locale, secondary=False))
+        body += section(locale, "recordings.match.result", render_match_reports_v1(state, locale))
     body += disclosure(locale, "task.match.action.prepare_materialization",
         paragraph(locale, "recordings.match.materialization")
-        + _reports(state, managed_handle, locale, secondary=True, results=False))
+        + render_match_reports_v1(state, locale, results=False, materialization_form=operation_form(
+            state, managed_handle, locale, "prepare_materialization", analysis=True)))
     body += transfer
     body += disclosure(locale, "recordings.reload.matches", paragraph(locale, "recordings.reload_help")
         + '<form method="post" action="/matches/api/v1/reload">'

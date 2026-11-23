@@ -84,6 +84,8 @@ def probe(output, executable):
         wait(cdp, "location.pathname==='/'")
         cdp.navigate(server.origin + "/matches")
         cdp.activate('form[action="/matches/open"] button')
+        wait(cdp, '!!document.querySelector(".match-navigation a")')
+        cdp.activate(".match-navigation a")
         wait(cdp, f'!!document.querySelector(\'a[href="{PAGE}"]\')')
         cdp.activate(f'a[href="{PAGE}"]')
         wait(cdp, f'location.pathname==="{PAGE}"')
@@ -174,7 +176,7 @@ def probe(output, executable):
         cdp.activate("tbody a")
         wait(cdp, "!!document.querySelector('a[href$=\"/request.json\"]')")
         assert cdp.evaluate("location.pathname") == detail
-        cdp.call("Page.navigate", url=server.origin + OVERVIEW)
+        cdp.activate('a[href$="/overview#game-2"]')
         wait(cdp, "!!document.querySelector('tbody a')")
         evidence["passive"] = server.control()
         assert evidence["passive"]["counts"] == evidence["resumed"]["counts"]
