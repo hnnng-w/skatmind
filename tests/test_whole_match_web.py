@@ -1,5 +1,7 @@
 import re
+from concurrent.futures import ThreadPoolExecutor
 from html import unescape
+from threading import Event
 
 import pytest
 from test_frontend_language_switching import localized_server as _localized_server
@@ -81,6 +83,97 @@ def test_invalid_start_recovers_in_both_languages_without_work(localized_server,
     assert saved["phase"] == "finished" and len(calls) == 1
     assert saved["settings"]["requested_worlds"] == 25 and saved["settings"]["random_seed"] == 19
     assert saved["supplements"] == {"2": {"bid_value": 24, "matadors": 1}, "5": {"bid_value": 36}}
+
+
+@pytest.mark.parametrize("action", ["resume", "cancel"])
+def test_delayed_control_redirect_preserves_newer_rejected_start(localized_server, monkeypatch,
+                                                                action):
+    from skatmind.app_web.whole_match_job import Worker, progress_file
+
+    browser, _, _ = open_alex(localized_server)
+    app = localized_server.app_context
+    active = app.managed_stateful.active_match
+    checkpoint = progress_file(app, active)
+
+    def wait_for_worker():
+        worker = app.whole_match.worker
+        if worker:
+            worker.thread.join(30)
+        assert app.whole_match.worker is None
+
+    def retained():
+        with app.lock:
+            return app.form_feedback.current("matches", active_identity=active)
+
+    with monkeypatch.context() as patch, ThreadPoolExecutor(max_workers=1) as client:
+        if action == "cancel":
+            process = Worker.process
+
+            def wait_for_cancel(worker):
+                assert worker.stop.wait(30)
+                return process(worker)
+
+            patch.setattr(Worker, "process", wait_for_cancel)
+        initial = Forms(browser.page(PAGE)).find(PAGE + "/start")
+        assert browser.submit(initial)[0] == 303  # Missing matadors: no evaluation.
+        if action == "resume":
+            wait_for_worker()
+            assert checkpoint.read()["phase"] == "finished"
+        control = Forms(browser.page(PAGE)).find(PAGE + "/" + action)
+        at_redirect, release = Event(), Event()
+        handler_class = localized_server.RequestHandlerClass
+        redirect = handler_class._redirect
+
+        def delayed(handler, location, **kwargs):
+            if handler.path == control["action"]:
+                at_redirect.set()
+                assert release.wait(30)
+            return redirect(handler, location, **kwargs)
+
+        patch.setattr(handler_class, "_redirect", delayed)
+        older = client.submit(browser.submit, control)
+        try:
+            assert at_redirect.wait(30)
+            wait_for_worker()
+            stopped = checkpoint.read()
+            assert stopped["phase"] == ("finished" if action == "resume" else "paused")
+            assert not stopped["refs"]
+            fresh = Forms(browser.page(PAGE)).find(PAGE + "/start")
+            status, _, raw = browser.submit(fresh, analysis_effort="quick", matadors_2="0")
+            assert status == 400
+            rejected = retained()
+            generation = Forms(raw.decode()).find(PAGE + "/start")["values"]["retry_generation"]
+            assert generation == str(rejected.feedback_generation)
+        finally:
+            release.set()
+        status, headers, _ = older.result(30)
+        assert status == 303 and headers["location"] == PAGE
+
+    assert retained() is rejected
+    assert browser.submit(fresh, matadors_2="1")[0] == 409  # Missing the newer retry generation.
+    page = browser.page(headers["location"])
+    for locale in (None, "de", "en"):
+        if locale is not None:
+            page = follow(browser, browser.submit(Forms(page).find("/actions/profile/language"),
+                                                  language=locale))
+        locale = locale or "en"
+        for view in (page, browser.page(PAGE)):
+            retry = Forms(view).find(PAGE + "/start")
+            values = retry["values"]
+            assert (values["binding"], values["retry_generation"], values["analysis_effort"],
+                    values["matadors_2"]) == (fresh["values"]["binding"], generation, "quick", "0")
+            assert text(locale, "validation.rollout.invalid_matadors_suit") in unescape(view)
+            assert re.search(r'<input\b(?=[^>]*name="matadors_2")(?=[^>]*aria-invalid="true")',
+                             view)
+        assert retained() is rejected and checkpoint.read() == stopped
+    assert browser.submit(retry, matadors_2="1")[0] == 303
+    wait_for_worker()
+    corrected = checkpoint.read()
+    assert corrected["phase"] == "finished" and corrected["settings"]["requested_worlds"] == 25
+    assert corrected["supplements"] == {"2": {"matadors": 1}}
+    assert corrected["refs"]["2:3"][0] == "computed" and retained() is None
+    assert browser.submit(retry, matadors_2="1")[0] == 409
+    assert browser.submit(control)[0] == 409
 
 
 def test_seed_is_optional_and_technical(localized_server):

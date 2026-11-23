@@ -53,6 +53,10 @@ job. This is process-local feedback, not a saved configuration. Another rejected
 Start replaces that retry; an old tab must refresh. A changed source or job is
 not permission to restore earlier values or start work. Rejection and passive
 views do not change progress, recordings or analysis evidence.
+An accepted Cancel or Resume clears prior Match feedback under the same locks
+as the control action. Its HTTP redirect does not clear feedback again: a Start
+rejected after the action keeps its own retry generation even if the older
+response arrives last.
 
 ## Source, persistence and recovery
 
@@ -407,3 +411,23 @@ function python { & "$env:LOCALAPPDATA/Programs/Python/Python313/python.exe" @ar
 git diff --check
 git ls-files --others --exclude-standard | ForEach-Object { git diff --no-index --check -- NUL $_ }
 ```
+
+## Delayed Cancel and Resume redirects
+
+On reviewed commit `b9ec5feb26528d8a64b0710d4a2a329d97f9741f`, two
+authenticated native HTTP regressions failed in 8.08 s. Each holds an accepted
+control immediately before redirect, waits for its worker to finish or pause,
+then submits Quick with `matadors_2=0` on the current form. The new Start
+returned 400 with feedback generation 1. Releasing the older 303 removed that
+exact generation in both cases. The Resume fixture has a genuine decision
+missing matadors under complete settlement; the Cancel fixture keeps its worker
+alive until the actual stop event. Neither needs timing sleeps.
+
+With feedback cleanup inside control acceptance, the same two tests passed in
+19.02 s on development CPython 3.13.7. They check the retained generation,
+source binding, Quick selection, invalid value and localized field error on
+refresh and EN → DE → EN navigation. A stale submission returns 409. Correcting
+only the matador field starts the Quick review and produces a computed original;
+replaying the consumed retry or old control returns 409. The complete
+`test_whole_match_web`, `test_whole_match_job`, `test_frontend_validation_preservation`
+and `test_language_switch_context` modules passed 96 tests in 290.79 s.

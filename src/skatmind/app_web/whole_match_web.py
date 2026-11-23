@@ -320,8 +320,11 @@ def dispatch(handler, path, values=None):
                 return
             if values:
                 raise ValueError("Unexpected control fields.")
-            control(handler.server.app_context, active, action, binding)
-            handler._redirect(PAGE)
+            app = handler.server.app_context
+            with active.capture.lock, app.lock:
+                control(app, active, action, binding)
+                handler._clear_redirect_feedback()
+            handler._redirect(PAGE, clear_feedback=False)
     except (KeyError, ValueError, OSError, RecordingOpenConflict, SkatMindError) as error:
         locale = handler._frontend_state().locale
         handler._retained_delivery_guard = None
