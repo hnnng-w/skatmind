@@ -19,6 +19,9 @@ individual result or original, the play number identifies the decision.
 * From a whole-Match comparison, open **Original analysis**. Its comparison
   return lands on the originating game; its recording link opens the same
   game. Changing language on the returned comparison keeps that section.
+  On that overview, the **Record & Live help** link, the originating game's
+  recording link and its individual decision selector all check the original
+  source before opening the game.
   An expired return explains the conflict and offers independent archive access.
   Original downloads continue to address the retained execution. From an
   individual decision or its result, **Record & Live help** also returns to
@@ -53,6 +56,80 @@ import in a disposable installed home:
 
 Issue #332 already passed installed acceptance. Earlier placements and
 verification records below describe their respective baselines.
+
+### Returned overview: published-source correction (#333)
+
+At `aedc81051d0d3574b92e72c16ece8be3b1b1dfa6`, an original from Match A
+correctly returned to A's overview, but its two header links addressed the
+active Match. Authenticated HTTP tests read the links from the delivered HTML,
+opened Match B through the normal list, and followed each old link. The
+section-level recording link returned 409 and left B on game 1. The header
+recording link and the individual-review link each returned 200 **and selected
+game 2 of B**. The saved recordings were not rewritten.
+
+The header and section now emit the same signed recording destination. The
+individual selector uses the same signed row with one additional fixed suffix,
+`/review`. Both handoffs validate the recording, file, review run and row
+before the normal game-selection path can clear feedback or retire Live. They
+check the origin again before delivering the page. Refreshing the signed URL
+rechecks it. After a successful handoff the ordinary game page owns decision
+forms and DE/EN changes, with its existing source-bound language return. The
+handoff URL itself is not a language return target. An independently opened
+individual review still needs no series job.
+
+**Development verification.** The red run on the published product had three
+failures in 152.32 s: two `(200, game 2)` results instead of `(409, game 1)`,
+and different recording destinations in the header and section. No harness
+correction was needed to reproduce them. The expanded green run passed six
+tests in 269.94 s. The complete eight-module selection on the final product
+passed **231 tests in 727.06 s**, including both delayed control redirects.
+The six green cases are included in that total.
+
+Each new case starts with one genuine retained result from the short synthetic
+Hearts recording. With a valid origin, refresh and both language changes
+preserve the game and the native chooser can apply the recorded decision.
+After a foreign open, both old handoffs return 409 without changing the
+selected game, selection generation, Live control revision or retained form
+error. Resuming the job or replacing the recording with identical bytes also
+invalidates old links. Replacement during final review delivery suppresses the
+stale page. Historical Request and Result downloads remain byte-identical;
+navigation does not invoke the evaluator or save a recording.
+
+Commands below use development Windows CPython 3.13.7, a 7,200,000 ms
+invocation timeout, and external temporary data, logs, JUnit and Ruff cache.
+Run `red` before the product fix, `green` after it:
+
+```powershell
+$E = "$env:TEMP/opencode/333-origin-fix"
+New-Item -ItemType Directory -Force $E | Out-Null
+$py = "$env:LOCALAPPDATA/Programs/Python/Python313/python.exe"
+$env:PYTHONDONTWRITEBYTECODE = '1'
+$env:RUFF_CACHE_DIR = "$E/ruff"
+$flags = @('-q','-p','no:cacheprovider','-n','2','--dist=loadfile','--max-worker-restart=0')
+function outputs($name) {
+    @("--basetemp=$E/$name", "--junitxml=$E/$name.xml", "--log-file=$E/$name.log", '--tb=short')
+}
+$o = outputs red
+& $py -m pytest tests/test_whole_match_web.py -k returned_overview @flags @o
+$o = outputs green
+& $py -m pytest tests/test_whole_match_web.py -k returned_overview @flags @o
+$M = ('whole_match_web frontend_language_switching language_switch_context learning_prepared_navigation ' +
+      'recorded_review_navigation match_decision_selection_web match_game_navigation_web saved_match_rollouts_web'
+     ) -split ' ' | ForEach-Object { "tests/test_$_.py" }
+$o = outputs affected
+& $py -m pytest @M @flags @o
+$o = outputs guards
+& $py -m pytest tests/test_skatmind_rename.py tests/test_cli_internal_architecture.py @flags @o
+function python { & "$env:LOCALAPPDATA/Programs/Python/Python313/python.exe" @args }
+.\scripts\check.ps1 -Mode Quick -LogDirectory "$E/quick"
+git diff --check
+git diff --cached --check
+git ls-files --others --exclude-standard | ForEach-Object { git diff --no-index --check -- NUL $_ }
+```
+
+No layout, analysis-form placement or worker implementation changed. The
+existing screenshot evidence and the narrow installed orientation check above
+still apply; this correction is not installed acceptance.
 
 ### Source verification (#333)
 

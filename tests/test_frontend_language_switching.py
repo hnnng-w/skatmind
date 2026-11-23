@@ -165,6 +165,7 @@ def test_return_path_allowlist_accepts_only_rendered_html_routes() -> None:
         original.replace("/36/30/", "/37/30/"),
         original.replace("/36/30/", "/36/31/"),
         original + "/recording",
+        original + "/review",
         original + "/overview?return_to=/matches",
         f"/learning/prepared/{report}/inputs",
         f"/learning/prepared/{report}#learning-results",

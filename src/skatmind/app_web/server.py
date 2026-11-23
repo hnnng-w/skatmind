@@ -2380,15 +2380,15 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         operation_notice_kind: str = "info",
         review: bool = False,
         debrief_evidence=None,
-        recording_origin=None,
+        match_origin=None,
     ) -> None:
         review = review or report_id is not None
         self._match_review_return = review
         self._match_page_return = position if report_id is None else None
         with active.capture.lock:
-            if recording_origin is not None:
+            if match_origin is not None:
                 from .whole_match_web import require_origin
-                require_origin(self.server.app_context, recording_origin)
+                require_origin(self.server.app_context, match_origin)
             if debrief_evidence is not None:
                 from .debrief_frontend import require_evidence_recording
 
@@ -2419,6 +2419,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         with active.capture.lock:
             # A concurrent navigation may have moved selection since language capture.
             # Keep the page, recovery actions and Card bindings on the same Game.
+            if match_origin is not None and active.selected_position != position:
+                # The checked handoff already selected its game. Do not undo a later selection.
+                raise RecordingOpenConflict()
             if debrief_evidence is not None:
                 require_evidence_recording(active, debrief_evidence)
                 if active.selected_review_decision != debrief_evidence.report.decision_index:
@@ -2577,13 +2580,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                                 message + '<!-- operation-feedback -->', 1)
             if '<!-- operation-feedback -->' not in body:
                 body = message + body
-        if recording_origin is not None:
-            previous = self._retained_delivery_guard
+        if match_origin is not None:
+            previous = getattr(self, "_retained_delivery_guard", None)
 
             def guard():
                 if previous:
                     previous()
-                require_origin(self.server.app_context, recording_origin)
+                require_origin(self.server.app_context, match_origin)
             self._retained_delivery_guard = guard
         self._content_page(
             "/matches",

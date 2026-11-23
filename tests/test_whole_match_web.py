@@ -1,13 +1,15 @@
 import re
 from concurrent.futures import ThreadPoolExecutor
-from html import unescape
+from html import escape, unescape
 from threading import Event
+from urllib.parse import urlsplit
 
 import pytest
 from test_frontend_language_switching import localized_server as _localized_server
 from test_match_recording_recovery_web import follow
 from test_match_rollout_web import open_alex
 from test_recording_task_focus import Hierarchy
+from test_review_return_labels import Links
 from test_session_recorded_review_web import Forms
 
 from skatmind.app_web.stateful_localization import card_name, text
@@ -17,6 +19,163 @@ from skatmind.app_web.whole_match_routes import OVERVIEW, PAGE
 @pytest.fixture
 def localized_server(tmp_path):
     yield from _localized_server.__wrapped__(tmp_path)
+
+
+def labelled_path(page, label):
+    href, = (a["href"] for a in Links(page).links if a["text"] == label)
+    return urlsplit(href).path
+
+
+@pytest.fixture
+def returned_overview(localized_server, monkeypatch):
+    """Keep the actual links from a delivered overview of a single genuine result."""
+    import skatmind.application.execution as executor
+    import skatmind.capture_web.context as capture
+    import skatmind.recommendation_workflow as workflow
+
+    browser, path, _ = open_alex(localized_server)
+    original = path.read_bytes()
+    app = localized_server.app_context
+    start = Forms(browser.page(PAGE)).find(PAGE + "/start")
+    assert browser.submit(start, analysis_effort="quick", objective="played_game_goal")[0] == 303
+    if worker := app.whole_match.worker:
+        worker.thread.join(60)
+    assert app.whole_match.worker is None
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Navigation evaluated a card or saved the recording")
+    monkeypatch.setattr(executor, "execute_application_invocation", forbidden)
+    monkeypatch.setattr(workflow, "evaluate_whole_game_rollout_v1", forbidden)
+    monkeypatch.setattr(capture, "save_match_workspace_file_v1", forbidden)
+    detail = labelled_path(browser.page(OVERVIEW), text("en", "saved_analysis.open"))
+    saved = browser.page(detail)
+    downloads = {}
+    for a in Links(saved).links:
+        if a["href"].endswith(("/request.json", "/result.json")):
+            status, _, raw = browser.request("GET", a["href"])
+            assert status == 200
+            downloads[a["href"]] = raw
+    assert len(downloads) == 2
+    page = browser.page(labelled_path(saved, text("en", "match_nav.back", number=2)))
+    paths = {name: labelled_path(page, label) for name, label in (
+        ("record", text("en", "match_nav.record")),
+        ("review", text("en", "recordings.match.open", number=2)),
+        ("section", text("en", "recordings.continue", number=2)))}
+    for key in ("record", "section"):
+        assert f'href="{paths[key]}#match-recording"' in page
+    yield browser, paths
+    assert browser.page(detail.split("/from-review/")[0])
+    for route, expected in downloads.items():
+        status, _, raw = browser.request("GET", route)
+        assert status == 200 and raw == expected
+    assert path.read_bytes() == original
+
+
+@pytest.mark.parametrize("area", ["record", "review"])
+def test_returned_overview_handoff_rejects_foreign_match(localized_server, returned_overview, area):
+    from test_match_workspace_contracts import _definition
+
+    from skatmind.match_workspace_contracts import create_match_workspace_v1
+    from skatmind.match_workspace_persistence import save_match_workspace_file_v1
+    from skatmind.match_workspace_persistence_codec import (
+        build_match_workspace_persistence_document_v1,
+    )
+
+    browser, paths = returned_overview
+    app = localized_server.app_context
+    active = app.managed_stateful.active_match
+    language = Forms(browser.page(paths[area])).find("/actions/profile/language")
+    other = create_match_workspace_v1(_definition(match_id="other", title="Another Match"))
+    path = active.path.with_name("other.json")
+    assert save_match_workspace_file_v1(path, build_match_workspace_persistence_document_v1(other),
+        expected_content_fingerprint=None).status == "saved"
+    forms = Forms(browser.page("/matches")).forms
+    follow(browser, browser.submit(next(f for f in forms if f["action"] == "/matches/open"
+                                        and f["values"]["handle"] != active.handle)))
+    foreign = app.managed_stateful.active_match
+    assert foreign.workspace == other and foreign.selected_position == 1
+    invalid = Forms(browser.page(PAGE)).find(PAGE + "/start")
+    assert browser.submit(invalid, random_seed="invalid")[0] == 400
+    rejected = app.form_feedback.current("matches", active_identity=foreign)
+    assert rejected is not None
+    before = (foreign.position_generation, foreign.live.control_revision, path.read_bytes())
+    for route in (paths["section"], paths[area]):
+        status, _, raw = browser.request("GET", route)
+        assert (status, foreign.selected_position) == (409, 1)
+        assert text("en", "match_nav.stale") in raw.decode()
+        assert app.form_feedback.current("matches", active_identity=foreign) is rejected
+        assert before == (foreign.position_generation, foreign.live.control_revision,
+                          path.read_bytes())
+    assert browser.submit(language, language="de")[0] == 409
+    assert foreign.selected_position == 1
+    assert app.form_feedback.current("matches", active_identity=foreign) is rejected
+
+
+def test_returned_overview_handoffs_keep_game_language_and_review_controls(
+        localized_server, returned_overview):
+    browser, paths = returned_overview
+    active = localized_server.app_context.managed_stateful.active_match
+    for area, canonical in (("record", "/matches/position/2"), ("review", "/matches/review/2")):
+        browser.page("/matches/position/1")
+        page = browser.page(paths[area])
+        assert active.selected_position == 2
+        for locale in ("de", "en"):
+            language = Forms(page).find("/actions/profile/language")
+            assert language["values"]["return_to"] == canonical
+            page = follow(browser, browser.submit(language, language=locale))
+            assert active.selected_position == 2
+            label = text(locale, "match_nav." + area)
+            for rendered in (page, browser.page(paths[area])):
+                assert f'<strong aria-current="page">{escape(label)}</strong>' in rendered
+    select = Forms(page).find("/matches/select-decision")
+    applied = follow(browser, browser.submit(select, decision_index="3"))
+    assert Forms(applied).find("/matches/review-whole-game")["values"]["decision_index"] == "3"
+    assert paths["record"] == paths["section"]
+
+
+@pytest.mark.parametrize("change", ["resume", "replacement"])
+def test_returned_overview_handoffs_expire_without_reselecting(
+        localized_server, returned_overview, change):
+    browser, paths = returned_overview
+    app = localized_server.app_context
+    active = app.managed_stateful.active_match
+    browser.page("/matches/position/1")
+    generation = active.position_generation
+    if change == "resume":
+        resume = Forms(browser.page(PAGE)).find(PAGE + "/resume")
+        assert browser.submit(resume)[0] == 303
+        if worker := app.whole_match.worker:
+            worker.thread.join(60)
+        assert app.whole_match.worker is None
+    else:
+        copy = active.path.with_suffix(".copy")
+        copy.write_bytes(active.path.read_bytes())
+        copy.replace(active.path)
+    for route in paths.values():
+        status, _, raw = browser.request("GET", route)
+        assert status == 409 and text("en", "match_nav.stale") in raw.decode()
+        assert (active.selected_position, active.position_generation) == (1, generation)
+
+
+def test_returned_overview_review_rechecks_origin_at_delivery(
+        localized_server, returned_overview, monkeypatch):
+    browser, paths = returned_overview
+    path = localized_server.app_context.managed_stateful.active_match.path
+    copy = path.with_suffix(".copy")
+    copy.write_bytes(path.read_bytes())
+    handler = localized_server.RequestHandlerClass
+    send = handler._send_bytes
+
+    def replace_at_delivery(self, status, content, **kwargs):
+        if self.path == paths["review"] and status == 200:
+            copy.replace(path)
+        return send(self, status, content, **kwargs)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(handler, "_send_bytes", replace_at_delivery)
+        status, _, raw = browser.request("GET", paths["review"])
+    assert status == 409 and text("en", "match_nav.stale") in raw.decode()
+    assert b'id="match-review"' not in raw
 
 
 def test_invalid_start_recovers_in_both_languages_without_work(localized_server, monkeypatch):

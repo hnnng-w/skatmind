@@ -106,7 +106,8 @@ def is_safe_frontend_return_path_v1(value: object) -> bool:
         or _SAFE_MATCH_POSITION.fullmatch(value) is not None
         or _SAFE_MATCH_REPORT.fullmatch(value) is not None
         or _SAFE_SAVED_MATCH.fullmatch(value) is not None
-        or (origin := ORIGIN.fullmatch(value)) is not None and origin["destination"] != "recording"
+        or (origin := ORIGIN.fullmatch(value)) is not None and origin["destination"] in (
+            None, "overview")
         or _SAFE_DEBRIEF.fullmatch(value) is not None
         or _SAFE_LEARNING_PREPARED.fullmatch(value) is not None
         or automatic_html_route(value)

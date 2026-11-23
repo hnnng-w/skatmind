@@ -10,7 +10,7 @@ from skatmind.game_declaration import validate_bid_value, validate_matadors
 from skatmind.whole_game_rollout_contracts import WholeGameRolloutSettingsV1
 
 from .analysis_controls import EFFORTS, AnalysisControlError, resolve_analysis_controls
-from .language_context import capture_language_source_v1
+from .language_context import LanguageContextConflict, capture_language_source_v1
 from .match_navigation import match_navigation
 from .recorded_review_opening import RecordingOpenConflict, require_recording_fresh_v1
 from .render_locale import localized_render
@@ -123,6 +123,13 @@ def comparison(locale, row, retained, detail):
         + '</td><td>' + metrics(recommended) + '</td><td>' + detail + '</td></tr>')
 
 
+def _game_links(position, origin):
+    if origin is not None and position == int(origin["game"]):
+        detail = origin[0].removesuffix("/overview")
+        return detail + "/recording#match-recording", detail + "/review"
+    return f"/matches/position/{position}#match-recording", f"/matches/review/{position}"
+
+
 def overview(app, workspace, state, rows, options, values, space, locale, binding, title, *,
              origin=None):
     refs = state["refs"]
@@ -140,9 +147,8 @@ def overview(app, workspace, state, rows, options, values, space, locale, bindin
                         + '</section>')
             continue
         section += paragraph(locale, "whole_review.plays", count=len(game.plays))
-        recording = (origin[0].removesuffix("/overview") + "/recording"
-                     if origin and int(origin["game"]) == p else f"/matches/position/{p}")
-        section += f'<p><a href="{recording}#match-recording">' + translated(
+        recording, _ = _game_links(p, origin)
+        section += f'<p><a href="{recording}">' + translated(
             locale, "recordings.continue", number=p) + '</a></p>'
         if game.declaration:
             section += paragraph(locale, "task.value." + game.declaration.game_type)
@@ -225,9 +231,9 @@ def handle_get(handler, path, *, rejection=None, origin=None):
                 app, return_to, whole_match_binding=binding)
     definition = workspace.match_definition
     title = managed_name(locale, profile, "matches", definition.match_id, definition.title)
-    body = match_navigation(locale, title, position,
-                            recording=f"/matches/position/{position}#match-recording")
-    body += '<p><a href="/matches/review/' + str(position) + '">' + translated(
+    recording, review = _game_links(position, origin)
+    body = match_navigation(locale, title, position, recording=recording)
+    body += f'<p><a href="{review}">' + translated(
         locale, "recordings.match.open", number=position) + '</a></p>'
     body += paragraph(locale, "whole_review.intro", player=player_name(
         locale, definition.participants, definition.perspective_player_id),
@@ -329,8 +335,10 @@ def return_from_original(handler, origin):
             handle_get(handler, OVERVIEW, origin=origin)
         else:
             active = require_origin(app, origin)
-            handler._match_page(active, position=int(origin["game"]), recording_origin=origin)
-    except (KeyError, OSError, ValueError, RecordingOpenConflict, SkatMindError):
+            handler._match_page(active, position=int(origin["game"]), match_origin=origin,
+                                review=origin["destination"] == "review")
+    except (KeyError, OSError, ValueError, RecordingOpenConflict, LanguageContextConflict,
+            SkatMindError):
         origin_fallback(handler, origin)
 
 
