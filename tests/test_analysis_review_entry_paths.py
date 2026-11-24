@@ -270,7 +270,7 @@ def test_chooser_manual_action_precedes_both_lists_and_family_entries_match(
 @pytest.mark.parametrize("route,parent", (
     ("/review/recorded", "/review/recorded"), ("/analyze", "/review/recorded"),
     ("/review", "/review/recorded"), ("/learning", "/review/recorded"),
-    ("/sessions", "/sessions"), ("/matches", "/matches"),
+    ("/sessions", "/live-play"), ("/matches", "/live-play"),
 ))
 def test_analysis_parent_does_not_replace_workflow_identity(localized_server, route, parent):
     page = Browser(localized_server).page(route)

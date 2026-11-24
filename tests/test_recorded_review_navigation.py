@@ -66,6 +66,8 @@ def saved_partial_match(server):
 
 
 def select_game(browser, page, position):
+    if 'id="analysis-scopes"' in page:
+        page = browser.page(re.search(r'href="(/matches/review/\d+)"', page)[1])
     selector = next(form for form in Forms(page).forms if "position" in form["values"])
     values = {**selector["values"], "position": str(position)}
     return follow(browser, browser.request("GET", selector["action"] + "?" + urlencode(values)))
@@ -89,8 +91,10 @@ def test_home_session_real_review_round_trip_keeps_exact_context_and_bytes(
     form = chooser_form(page, "sessions")
     assert set(form["values"]) == {"family", "handle", "generation", "_frontend_form_instance"}
     response = browser.submit(form)
-    assert response[1]["location"] == "/sessions/decisions"
-    follow(browser, response)
+    assert response[1]["location"] == "/sessions/game-review/scopes"
+    scopes = follow(browser, response)
+    assert 'href="/sessions/decisions"' in scopes and 'href="/sessions/game-review"' in scopes
+    assert "/sessions/review-whole-game" not in scopes
     assert not calls
     _, review_form = review_first(browser)
     retained = active.execution
@@ -100,6 +104,7 @@ def test_home_session_real_review_round_trip_keeps_exact_context_and_bytes(
     assert len(calls) == 1
     assert browser.submit(review_form, actual_card_played="CA")[0] == 400
     page = follow(browser, browser.submit(chooser_form(home_chooser(browser), "sessions")))
+    page = browser.page(re.search(r'href="(/sessions/decisions)"', page)[1])
     assert 'class="recorded-review-source"' in page
     assert text("en", "validation.recorded_review.invalid_fields") in page
     assert localized_server.app_context.managed_stateful.active_session is active
@@ -124,6 +129,9 @@ def test_match_real_prepared_analysis_report_and_same_game_recording(localized_s
     monkeypatch.setattr(match_analysis, "execute_match_decision_analysis_v1", counted)
     page = follow(browser, browser.submit(chooser_form(home_chooser(browser), "matches")))
     active = localized_server.app_context.managed_stateful.active_match
+    assert 'href="/matches/whole-review/match"' in page
+    assert 'action="/matches/whole-review/scopes"' in page
+    assert "/matches/review-whole-game" not in page
     assert active.selected_position == 1 and not calls
     assert 'action="/matches/api/v1/operation"' not in page
     page = select_game(browser, page, 3)
@@ -442,6 +450,7 @@ def test_duplicate_names_are_distinct_and_source_switch_clears_only_prior_result
     assert len(forms) == 2
     other = next(form for form in forms if form["values"]["handle"] != original.handle)
     page = follow(browser, browser.submit(other))
+    page = browser.page(re.search(r'href="(/sessions/decisions)"', page)[1])
     assert text("en", "recorded_review.no_perspective") in page
     assert text("en", "recorded_review.no_snapshots") not in page
     assert original.execution is None and original.recorded_review_source is None

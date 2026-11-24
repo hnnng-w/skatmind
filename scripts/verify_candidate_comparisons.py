@@ -302,6 +302,8 @@ def main():
             assert result["score_summary"]["total_declarer_points"] == 14 and result["score_summary"]["total_defender_points"] == 29
             responsive("session", "/sessions/current")
             page = follow(client, client.submit(chooser_form(home_chooser(client), "sessions")))
+            assert 'href="/sessions/decisions"' in page
+            page = client.page("/sessions/decisions")
             assert_context(page, "en", hand=SESSION_HAND, prefix=(("B", "HJ"), ("C", "DJ")), actor="A", trick=4, play=3)
             # One representative #250 no-op Preview/Cancel, retaining the same real review.
             navigate("/sessions/current", True)

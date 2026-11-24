@@ -9,7 +9,8 @@ help. Retrospective entry does not change a Session's capture mode, perspective,
 or decision-time information.
 
 From **Analyze**, open a saved recording (partial recordings are supported).
-For a Match, choose the whole Match, all own plays of the numbered game, or
+The next page asks what to analyze; it has no evaluation form. For a Match,
+choose the whole Match, all own plays of the numbered game, or
 one recorded decision. For a Session, choose one observed local-player
 checkpoint or all available checkpoints in that game. Selecting a decision
 prepares the form. **Start** uses the selected objective and effort. A rollout
@@ -26,8 +27,13 @@ Forced plays and evidence gaps have explanations instead of percentages.
 Exact complete retained executions can be reused across scopes.
 
 After Start, status reads identify the same run and read its checkpoint. The
-browser fetches comparisons when the processed count changes; it does not
-reload the page, start another run, or update Learning. Without JavaScript
+browser compares a digest of the checkpoint's exact row receipts with the
+revision delivered alongside the comparison. A replacement original therefore
+updates even at the same processed count. If a concurrent publication invalidates
+delivery, the rejected fragment is discarded. Up to three delayed retries first
+check the same signed status URL. Changed run authority or persistent failure
+restores the native controls. Polling does not reload the page, start another
+run, or update Learning. Without JavaScript
 use **Refresh progress** and **Comparisons**. Cancel and Resume are explicit.
 An original's return link is bound to the recording, file, run and decision;
 the archive's independent Request and Result downloads remain available even
@@ -37,7 +43,12 @@ An original can be selected for or excluded from automatic Learning. The
 choice is saved by retained evidence identity. It affects the next explicit
 Learning update, and an older generation containing excluded evidence cannot
 be delivered as a usable analysis. Recording exclusions and eligibility still
-apply. Changing the choice neither deletes the original nor changes its result.
+apply. A direct result signs its own receipt, file and destination independently
+of any batch. Include and exclude return to that same report or Session
+decision result; a replaced file or recording cannot authorize the old form.
+From an earlier Session result, the decision link opens the original saved
+selection even if another decision's form is currently visible. Changing the
+Learning choice neither deletes the original nor changes its result.
 Standalone manual Historical Reviews remain ineligible under #324; a genuine
 recorded-Match Historical execution keeps its existing eligibility.
 
@@ -66,6 +77,17 @@ that exact original; changing language and excluding it from Learning did not
 evaluate additional cards. A second explicit Start analyzed a saved individual
 Session. Its comparisons linked to the original, overview and decision chooser.
 The verifier compares both saved recordings byte-for-byte.
+
+For the published-source corrections, the same source verifier also exercises
+two forced delivery sequences on fresh recordings. In a six-play Session it
+releases the second evaluation after the comparison captures the first
+original: the rejected comparison returns 409, then the same page shows both
+originals. In a resumed Match it observes a timeout at one processed decision,
+keeps keyboard focus inside that table during completion, and then observes
+the completed game-2 comparison at the same count after focus leaves. The
+native direct-result checks toggle Learning membership in German and English
+without starting a batch and return to Match game 2 or Session decision 5.
+Selecting Session decision 1 in between does not relabel the earlier result.
 
 The 1280- and 390-pixel screenshots show the actual browser layout. At narrow
 width the comparison **table** scrolls horizontally within a focusable region;

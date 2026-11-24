@@ -8,7 +8,9 @@ from skatmind.match_workspace_persistence import load_match_workspace_file_v1
 
 from .managed_item_storage import validate_managed_direct_child_path_v1
 from .match_frontend import open_unified_match_v1
+from .session_batch_routes import SCOPES as SESSION_SCOPES
 from .session_frontend import open_guided_session_v1
+from .whole_match_routes import SCOPES as MATCH_SCOPES
 from .workflow_state import StaleFrontendWorkflowRevisionError
 
 RECORDED_REVIEW_ROUTE = "/review/recorded"
@@ -96,8 +98,7 @@ def open_recording_for_review_v1(context, values: dict[str, str]) -> str:
                     else:
                         managed.activate_match(active)
                     context.form_feedback.clear(family)
-            location = ("/sessions/decisions" if family == "sessions"
-                        else f"/matches/review/{active.selected_position}")
+            location = SESSION_SCOPES if family == "sessions" else MATCH_SCOPES
         if not same and previous is not None:
             old_lock = previous.lock if family == "sessions" else previous.capture.lock
             with old_lock:

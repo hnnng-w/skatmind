@@ -94,7 +94,8 @@ def render_recorded_session_decisions_v1(
             "recommendation_method", "immediate_expected_value")
         content += (
             '<li>'
-            + f'<p id="{label_id}">{_decision_label(locale, context.state.players, row)}</p>'
+            + f'<p id="{label_id}" tabindex="-1">'
+            + _decision_label(locale, context.state.players, row) + '</p>'
             + '<form novalidate class="recorded-rollout-form" method="post" '
             + 'action="/sessions/review-whole-game">' + fields
             + '<div class="recorded-basic">' + basic + '</div>'
@@ -130,17 +131,18 @@ def render_recorded_session_decisions_v1(
 
 def render_recorded_review_source_v1(
     context: GuidedSessionContextV1, *, locale: str, game_label: str,
-    rollout: bool = False,
+    rollout: bool = False, decision_page: bool = False,
 ) -> str:
     source = context.rollout_review_source if rollout else context.recorded_review_source
     if source is None:
         return ""
+    target = "/sessions/decisions/" + source.decision.selection if decision_page else ""
     return (
         '<p class="recorded-review-source"><strong>'
         + translated(locale, "recorded_review.result", game=game_label) + '</strong><br>'
         + _decision_label(locale, source.document.state.players, source.decision) + '</p>'
         + ("" if rollout else paragraph(locale, "recorded_review.limit"))
-        + '<p><a href="#recorded-decision-'
+        + f'<p><a href="{target}#recorded-decision-'
         + escape(str(source.decision.checkpoint.decision_index)) + '">'
         + translated(locale, "recorded_review.back", trick=source.decision.checkpoint.trick_number,
                      position=source.decision.checkpoint.play_index) + '</a></p>'

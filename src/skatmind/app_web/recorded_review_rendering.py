@@ -3,8 +3,49 @@ from __future__ import annotations
 from .friendly_creation_rendering import managed_item_label_v1
 from .recorded_review_opening import OPEN_RECORDING_ROUTE, RECORDING_FAMILIES
 from .recording_deletion_http import render_delete_action
-from .stateful_localization import translated
-from .task_first_rendering import hidden, paragraph
+from .stateful_localization import managed_name, text, translated
+from .task_first_rendering import hidden, paragraph, select_field
+
+
+def recording_scopes(handler, path):
+    from html import escape
+
+    from .language_context import capture_language_source_v1, validate_language_source_v1
+    from .session_batch_routes import DECISIONS
+    from .session_batch_routes import PAGE as SESSION_GAME
+    from .whole_match_routes import SCOPES, WHOLE_SETUP
+
+    app, locale = handler.server.app_context, handler._frontend_state().locale
+    source = capture_language_source_v1(app, path)
+    def guard():
+        validate_language_source_v1(app, source, check_files=True)
+
+    def choice(url, key):
+        return f'<li><a class="button-link" href="{url}">{translated(locale, key)}</a></li>'
+
+    profile = app.frontend_profile.document
+    if path == SCOPES:
+        active = handler._active_match()
+        definition = active.workspace.match_definition
+        title = managed_name(locale, profile, "matches", definition.match_id, definition.title)
+        position = active.selected_position
+        choices = choice(WHOLE_SETUP, "whole_review.title")
+        choices += f'<li><form method="get" action="{SCOPES}">' + select_field(locale,
+            "position", "recordings.match.select", [(n, text(locale, "accounting.game_number",
+            number=n)) for n in range(1, 37)], position)
+        choices += '<button type="submit">' + translated(locale, "batch.scope_game")
+        choices += '</button></form></li>'
+        choices += choice(f"/matches/review/{position}", "match_nav.single")
+    else:
+        active = handler._active_session()
+        title = managed_name(locale, profile, "sessions", active.state.session_id)
+        choices = choice(SESSION_GAME, "batch.session") + choice(DECISIONS, "match_nav.single")
+    handler._rendered_language_source = source
+    handler._retained_delivery_guard = guard
+    handler._content_page("/matches" if path == SCOPES else "/sessions", return_to=path,
+        title=text(locale, "batch.scope"), content='<p>' + escape(title)
+        + '</p><ul class="workflow-list" id="analysis-scopes">' + choices + '</ul>',
+        analysis=True, task_first=True, untranslated_workflow_body=False)
 
 
 def render_recorded_review_chooser_v1(discoveries, *, profile, locale, active_sources=()):

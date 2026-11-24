@@ -1072,6 +1072,13 @@ main p { max-width: 72ch; }
   overflow-wrap: anywhere;
 }
 
+#analysis-scopes {
+  display: grid;
+  gap: var(--space-4);
+  list-style: none;
+  padding-inline-start: 0;
+}
+
 .home-group > p {
   max-width: 48rem;
   color: var(--muted);

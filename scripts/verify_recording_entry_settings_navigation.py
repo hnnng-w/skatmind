@@ -254,6 +254,7 @@ def main():
             action("home-recorded-review", 'main a[href="/review/recorded"]', native_key=True)
             session_open = 'form[action="/review/open-recording"]:has(input[name="family"][value="sessions"]) button'
             action("same-session-open", session_open, post="/review/open-recording")
+            action("decision-scope", '#analysis-scopes a[href="/sessions/decisions"]', native_key=True)
             action("execute-saved-decision", 'form[action="/sessions/review-decision"] button', native_key=True, post="/sessions/review-decision")
             result, source = active.execution, active.recorded_review_source
             assert result is not None and source is not None

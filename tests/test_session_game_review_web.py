@@ -44,8 +44,8 @@ def test_native_scope_progress_original_selection_language_and_foreign_return(
     page = follow(browser, browser.submit(chooser_form(home_chooser(browser), "sessions")))
     assert mode == active.state.capture_mode == "live"
     assert 'href="/review/recorded" aria-current="page"' in page
-    assert page.count('action="/sessions/review-whole-game"') == 1
-    page = browser.page(routes.PAGE)
+    assert 'action="/sessions/review-whole-game"' not in page
+    page = browser.page(re.search(r'href="(/sessions/game-review)"', page)[1])
     start = Forms(page).find(routes.PAGE + "/start")
     assert not calls
     status, _, rejected = browser.submit(start, random_seed="invalid", analysis_effort="quick")

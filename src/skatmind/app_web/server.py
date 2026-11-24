@@ -378,6 +378,7 @@ from .validation_rendering import (
 )
 from .whole_match_routes import ACTIONS as WHOLE_MATCH_ACTIONS
 from .whole_match_routes import ORIGIN as WHOLE_MATCH_ORIGIN
+from .whole_match_routes import SCOPES as MATCH_SCOPES
 from .whole_match_routes import WATCH, batch_page
 from .workflow_operations import (
     FrontendWorkflowValidationError,
@@ -930,6 +931,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 ),
             )
             return False
+        if self._cookie_is_valid() and path == MATCH_SCOPES and query:
+            if selection := re.fullmatch(r"position=([1-9]|[12][0-9]|3[0-6])", query):
+                self._redirect(f"/matches/whole-review/game/{selection[1]}")
+                return False
         if self._cookie_is_valid() and _MATCH_REVIEW_PATTERN.fullmatch(path) and query:
             # Native GET selector: one canonical integer, immediately normalized
             # to the fragment/query-free presentation route. No Product operation.
@@ -2852,6 +2857,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         return False
 
     def _stateful_get(self, path: str) -> bool:
+        if path in (MATCH_SCOPES, session_batch_routes.SCOPES):
+            from .recorded_review_rendering import recording_scopes
+            recording_scopes(self, path)
+            return True
         if session := session_batch_routes.ORIGIN.fullmatch(path):
             from .session_batch_web import render, require_origin
             if not session["destination"]:

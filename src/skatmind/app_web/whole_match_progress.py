@@ -16,6 +16,11 @@ HEX = re.compile(r"[a-f0-9]{64}\Z")
 ROW = re.compile(r"(?:[1-9]|[12][0-9]|3[0-6]):(?:[1-9]|[12][0-9]|30)\Z")
 
 
+def result_revision(state):
+    """Identify the projected receipt set, including replacement at an existing row."""
+    return hashlib.sha256(canonical_json(state["refs"])).hexdigest()
+
+
 def file_identity(path):
     stat = io.checked_path(path)
     # Size/mtime also distinguish a newly imported copy if its inode was recycled.

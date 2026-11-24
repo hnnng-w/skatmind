@@ -21,7 +21,7 @@ from .stateful_localization import card_name, managed_name, player_name, text, t
 from .task_first_rendering import disclosure, form, hidden, input_field, paragraph, select_field
 from .validation_contracts import FrontendValidationIssueV1
 from .whole_match_job import control, evidence_view, progress_file, proof, row_options
-from .whole_match_progress import file_identity
+from .whole_match_progress import file_identity, result_revision
 from .whole_match_routes import OVERVIEW, PAGE, WHOLE_SETUP, game_scope, original_path
 
 _localized_success = localized_render(simulation_success)
@@ -280,7 +280,7 @@ def handle_get(handler, path, *, rejection=None, origin=None):
             run_binding = proof(active, state)
             watch = f"{PAGE}/watch/{run_binding}"
             body += f'<p data-batch-watch="{watch}" role="status" aria-live="polite" '
-            body += 'data-unavailable="' + translated(locale, "batch.unavailable") + '">'
+            body += 'data-unavailable="' + translated(locale, "batch.watch_unavailable") + '">'
             body += translated(locale, "whole_review." + phase) + '</p>'
             body += paragraph(locale, "whole_review.settings", objective=text(locale,
                 "rollout.objective." + settings["objective"]), worlds=settings["requested_worlds"],
@@ -298,9 +298,9 @@ def handle_get(handler, path, *, rejection=None, origin=None):
             if reading:
                 fragment = overview(app, workspace, state, rows, options, values, space, locale,
                                     binding, title, origin=origin)
-                count = sum(ref[0] != "saving" for ref in state["refs"].values())
                 body += (fragment if origin else
-                         f'<div data-batch-results data-processed="{count}">{fragment}</div>')
+                         f'<div data-batch-results data-revision="{result_revision(state)}">'
+                         f'{fragment}</div>')
                 values.clear()
             else:
                 body += '<div data-batch-results></div>'
@@ -474,7 +474,7 @@ def watch_run(handler, watch):
         handler._retained_delivery_guard = final
         if watch[2] == "status":
             handler._send_json(200, {"phase": phase, "processed": count,
-                "counts": _counts(locale, rows, state),
+                "revision": result_revision(state), "counts": _counts(locale, rows, state),
                 "label": text(locale, "whole_review." + phase) + " · " + text(
                     locale, "batch.processed", count=count,
                     total=sum(o is not None for o in options.values()))})
@@ -486,10 +486,13 @@ def watch_run(handler, watch):
                             watch[1], title)
             def authorize_results():
                 guard()
-                final()
+                with active.capture.lock, app.lock:
+                    if checked()["refs"] != state["refs"]:
+                        raise RecordingOpenConflict()
                 require_recording_fresh_v1(active, "matches")
             handler._retained_delivery_guard = authorize_results
-            handler._send_bytes(200, body.encode(), content_type="text/html; charset=utf-8")
+            handler._send_bytes(200, body.encode(), content_type="text/html; charset=utf-8",
+                                extra_headers=(("X-Result-Revision", result_revision(state)),))
     except (OSError, ValueError, RecordingOpenConflict, SkatMindError):
         handler._retained_delivery_guard = None
         handler._send_common_error(409)

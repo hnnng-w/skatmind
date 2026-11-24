@@ -454,10 +454,10 @@ if (watch) {
   const controller = new AbortController();
   const signal = controller.signal;
   window.addEventListener("pagehide", () => controller.abort(), {once: true});
-  let displayed = Number(results?.dataset.processed ?? -1);
+  let displayed = results?.dataset.revision, conflicts = 0;
   async function read(part) {
     const response = await fetch(`${watch.dataset.batchWatch}/${part}`, {signal, cache: "no-store"});
-    if (!response.ok) throw new Error();
+    if (!response.ok) throw response;
     return response;
   }
   async function update() {
@@ -469,12 +469,27 @@ if (watch) {
       const counts = document.querySelector("[data-batch-counts]");
       if (counts && counts.textContent !== status.counts) counts.textContent = status.counts;
       const active = ["working", "stopping"].includes(status.phase);
-      if (results && displayed !== status.processed && (!active || status.processed > 0)
+      if (results && displayed !== status.revision && (!active || status.processed > 0)
           && !results.contains(document.activeElement)) {
-        const html = await (await read("results")).text();
+        let response;
+        try {
+          response = await read("results");
+        } catch (error) {
+          // Only retry projection conflicts. Each delayed attempt first rechecks
+          // status at the original signed run URL; a stale authority stops here.
+          if (error.status === 409 && ++conflicts <= 3 && !signal.aborted) {
+            window.setTimeout(update, 2500);
+            return;
+          }
+          throw error;
+        }
+        const revision = response.headers.get("X-Result-Revision");
+        if (!/^[0-9a-f]{64}$/.test(revision)) throw new Error();
+        const html = await response.text();
         if (!signal.aborted && !results.contains(document.activeElement)) {
           results.innerHTML = html;
-          displayed = status.processed;
+          displayed = revision;
+          conflicts = 0;
         }
       }
       if (!active) {
@@ -485,11 +500,16 @@ if (watch) {
           if (cancel) cancel.closest("[data-batch-cancel]").hidden = true;
         }
       }
-      if (active || (results && displayed !== status.processed)) window.setTimeout(update, 2500);
+      if (active || (results && displayed !== status.revision)) window.setTimeout(update, 2500);
     } catch {
       if (!signal.aborted) {
         watch.textContent = watch.dataset.unavailable;
-        if (fallback) fallback.hidden = false;
+        if (fallback) {
+          fallback.hidden = false;
+          if (results?.contains(document.activeElement)) {
+            fallback.querySelector("a")?.focus({preventScroll: true});
+          }
+        }
         if (results) results.replaceChildren();
       }
     }

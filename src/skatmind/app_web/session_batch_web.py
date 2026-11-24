@@ -33,7 +33,7 @@ from .task_first_rendering import disclosure, form, hidden, input_field, paragra
 from .task_first_session_rendering import _analysis_controls, _analysis_result
 from .validation_contracts import FrontendValidationIssueV1
 from .whole_match_plan import OwnPlay
-from .whole_match_progress import file_identity
+from .whole_match_progress import file_identity, result_revision
 from .whole_match_web import batch_settings, comparison_document, link
 
 
@@ -203,6 +203,7 @@ def render(handler, path, status=200, *, origin=None):
                     active.live.configure(None)
             document, generation = active.document, active.generation
             coordinator, epoch = session_source_epoch(active)
+            worker = app.session_batch.worker
             state = progress.read()
             binding = job.proof(active, state)
             current = state and state["source"] == document.content_fingerprint and (
@@ -214,10 +215,12 @@ def render(handler, path, status=200, *, origin=None):
             if origin:
                 require_origin(app, origin)
             with active.lock, app.lock:
+                now = progress.read()
                 if (active.document is not document or active.generation != generation
                         or coordinator.generation != epoch
                         or app.managed_stateful.active_session is not active
-                        or job.proof(active, progress.read()) != binding):
+                        or job.proof(active, now) != binding
+                        or watch and watch[2] == "results" and now["refs"] != state["refs"]):
                     raise RecordingOpenConflict()
                 if not watch or watch[2] == "results":
                     require_recording_fresh_v1(active, "sessions")
@@ -249,25 +252,26 @@ def render(handler, path, status=200, *, origin=None):
                     view=view, selected=chosen)
                 body += disclosure(locale, "analysis.technical", _analysis_controls(active, locale,
                     project_task_first_session_v1(active.state)))
-                body += session_receipt(active, locale) + _analysis_result(active, locale, title)
+                body += session_receipt(active, locale) + _analysis_result(
+                    active, locale, title, decision_page=True)
                 guard = session_delivery_guard(app, active)
                 notice = active.evidence_notice
                 if notice and notice[1] == "saved":
-                    from .saved_match_analyses import selection_form
+                    from .saved_match_analyses import direct_selection, selection_form
                     scope, store = app.saved_match_analyses, archive_store(app)
                     snapshot = store.snapshot()
                     entry = next((e for e in snapshot.manifest.evidence
                                   if e.identity == notice[2]), None)
                     if entry is None:
                         raise RecordingOpenConflict()
-                    body += selection_form(scope, snapshot.manifest, entry, locale)
+                    direct, _ = direct_selection(app, active, entry, "session")
+                    body += selection_form(scope, snapshot.manifest, entry, locale, origin=direct)
                     source_guard = guard
                     def guard():
                         source_guard()
                         validate_saved_delivery(app, scope, store, snapshot.manifest,
                                                 evidence_ids=(entry.identity,))
         else:
-            worker = app.session_batch.worker
             running = current and worker and worker.active is active and (
                 worker.state["run"] == state["run"])
             phase = ("stopping" if worker.stop.is_set() else "working") if running else (
@@ -284,17 +288,19 @@ def render(handler, path, status=200, *, origin=None):
                              "whole_review." + phase) + " · " + text(
                                  locale, "batch.processed", count=count, total=cached[2])
             if watch and watch[2] == "status":
-                handler._send_json(200, {"phase": phase, "processed": count, "label": label})
+                handler._send_json(200, {"phase": phase, "processed": count, "label": label,
+                                         "revision": result_revision(state)})
                 return
             if watch:
                 fragment, guard = comparisons(app, active, state, locale)
-                handler._send_bytes(200, fragment.encode(), content_type="text/html; charset=utf-8")
+                handler._send_bytes(200, fragment.encode(), content_type="text/html; charset=utf-8",
+                                    extra_headers=(("X-Result-Revision", result_revision(state)),))
                 return
             body += '<h2>' + translated(locale, "batch.session") + '</h2>'
             body += link(locale, detail + "/review" if detail else DECISIONS, "match_nav.single")
             if current:
                 body += f'<p data-batch-watch="{PAGE}/watch/{binding}" role="status" '
-                body += 'data-unavailable="' + translated(locale, "batch.unavailable") + '">'
+                body += 'data-unavailable="' + translated(locale, "batch.watch_unavailable") + '">'
                 body += escape(label) + '</p>'
                 settings = state["settings"]
                 body += paragraph(locale, "whole_review.settings", objective=text(locale,
@@ -312,7 +318,8 @@ def render(handler, path, status=200, *, origin=None):
                 if path == OVERVIEW:
                     fragment, guard = comparisons(app, active, state, locale)
                     body += (fragment if origin else
-                             f'<div data-batch-results data-processed="{count}">{fragment}</div>')
+                             f'<div data-batch-results data-revision="{result_revision(state)}">'
+                             f'{fragment}</div>')
                 else:
                     body += '<div data-batch-results></div>'
             if not running and path != OVERVIEW:

@@ -3,7 +3,9 @@
 import argparse
 import hashlib
 import json
+from contextlib import closing
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from _workflow_visual_browser import LocalBrowser
 from verify_saved_match_analyses import TOKEN, wait
@@ -14,6 +16,76 @@ from skatmind.app_web.session_batch_routes import DECISIONS
 from skatmind.app_web.session_batch_routes import PAGE as SESSION
 from skatmind.match_workspace_persistence import save_match_workspace_file_v1
 from skatmind.match_workspace_persistence_codec import build_match_workspace_persistence_document_v1
+
+
+def verify_publication_and_returns(output, cdp, evidence):
+    from test_direct_analysis_returns import direct_result
+    from test_frontend_language_switching import localized_server
+    from test_recorded_analysis_races import interleaved_run
+
+    for family in ("matches", "sessions"):
+        for scenario in ("race", "direct"):
+            fixture = localized_server.__wrapped__(output / f"{scenario}-{family}")
+            with closing(fixture):
+                server = next(fixture)
+                origin = server.origin
+                cdp.call("Emulation.setScriptExecutionDisabled", value=scenario == "direct")
+                cdp.call("Page.navigate", url=origin + "/?token=localization-test-token")
+                wait(cdp, "location.pathname==='/'")
+                if scenario == "race":
+                    with interleaved_run(server, family) as run:
+                        client, page, watch, release, finish, conflicts = run
+                        before = json.loads(client.page(watch + "/status"))
+                        assert (before["phase"], before["processed"]) == ("working", 1)
+                        cdp.navigate(origin + page)
+                        table = "document.querySelector('[data-batch-results]')"
+                        if family == "matches":
+                            wait(cdp, f"{table}?.innerText.includes('/25)')")
+                            cdp.evaluate(f"{table}.querySelector('tbody a').focus()")
+                            release.set()
+                            finish()
+                            wait(cdp, "!document.querySelector('[data-batch-resume]').hidden")
+                            assert cdp.evaluate(f"{table}.contains(document.activeElement)")
+                            assert cdp.evaluate(f"{table}.innerText.includes('/25)')")
+                            cdp.evaluate("document.querySelector('.site-nav a').focus()")
+                            wait(cdp, rf"/\b84\s*%/.test({table}?.innerText)")
+                        else:
+                            wait(cdp, f"{table}?.querySelectorAll('tbody a').length===2")
+                            assert conflicts == [watch + "/results"]
+                        after = json.loads(client.page(watch + "/status"))
+                        assert after["phase"] == "finished"
+                        assert before["revision"] != after["revision"]
+                        assert cdp.evaluate("location.pathname") == page
+                        evidence["race_" + family] = dict(before=before, after=after,
+                                                            conflicts=len(conflicts))
+                        cdp.screenshot(output / f"recovered-{family}.png")
+                else:
+                    with direct_result(server, family) as (_, route, first, fifth, _path):
+                        cdp.call("Page.navigate", url=origin + route)
+                        choose = 'form[action="/learning/analysis-selection"]'
+                        for locale, choice in (("de", "include"), ("en", "exclude")):
+                            wait(cdp, f"!!document.querySelector('{choose}')")
+                            cdp.activate(f'.language-selector button[value="{locale}"]')
+                            wait(cdp, f"document.documentElement.lang==='{locale}'")
+                            cdp.activate(choose + ' button')
+                            field = f"document.querySelector('{choose} [name=choice]')"
+                            wait(cdp, f"{field}?.value==='{choice}'")
+                            assert cdp.evaluate("location.pathname+location.hash") == route
+                        if fifth:
+                            cdp.activate(f'a[href="{first}"]')
+                            wait(cdp, "!!document.getElementById('recorded-decision-1')")
+                            back = f'a[href="{fifth}#recorded-decision-5"]'
+                            cdp.activate(back)
+                            wait(cdp, "!!document.querySelector('#recorded-decision-5:target')")
+                            actual = cdp.evaluate("location.pathname")
+                            assert actual == fifth
+                        else:
+                            cdp.activate('a[href="/matches/position/2#match-recording"]')
+                            wait(cdp, "document.querySelector(':target')?.id==='match-recording'")
+                            actual = cdp.evaluate("location.pathname")
+                            assert actual == "/matches/position/2"
+                        evidence["direct_" + family] = dict(result=urlsplit(route).path,
+                                                             returned=actual)
 
 
 def probe(output, executable):
@@ -34,6 +106,13 @@ def probe(output, executable):
     evidence = {"browser": browser.version}
     def visible(selector):
         wait(cdp, f"!!document.querySelector({json.dumps(selector)})?.getClientRects().length")
+    def open_scopes(family):
+        cdp.activate('.site-nav a[href="/review/recorded"]')
+        saved = f'form[action="/review/open-recording"]:has(input[value="{family}"]) button'
+        visible(saved)
+        cdp.activate(saved)
+        visible('#analysis-scopes')
+        assert not cdp.evaluate("!!document.querySelector('[name=analysis_effort]')")
     def shot(name, width):
         cdp.call("Emulation.setDeviceMetricsOverride", width=width, height=900,
                  deviceScaleFactor=1, mobile=False)
@@ -48,9 +127,19 @@ def probe(output, executable):
         cdp.activate('form[action="/matches/open"] button')
         cdp.activate('a[href="/matches/position/2#match-recording"]')
         assert not cdp.evaluate("!!document.querySelector('form[action=\"/matches/live-start\"]')")
-        cdp.activate('.match-navigation a')
+        open_scopes("matches")
+        shot("match-scopes", 390)
+        cdp.activate('#analysis-scopes a[href="/matches/review/2"]')
+        visible('#match-review')
+        open_scopes("matches")
+        cdp.activate(f'#analysis-scopes a[href="{PAGE}/match"]')
+        visible(f'form[action="{PAGE}/start"] button')
+        open_scopes("matches")
+        assert server.control()["counts"] == {}
         cdp.activate('form.language-selector button[value="en"]')
-        cdp.activate(f'a[href="{PAGE}/game/2"]')
+        scope = f'#analysis-scopes form[action="{PAGE}/scopes"]'
+        assert cdp.evaluate(f"document.querySelector('{scope} select').value") == "2"
+        cdp.activate(scope + ' button')
         start = f'form[action="{PAGE}/start"]'
         visible(start + ' button')
         assert not cdp.evaluate("!!document.querySelector('[name=matadors_5]')")
@@ -97,11 +186,12 @@ def probe(output, executable):
         visible("#game-2 tbody a")
         assert cdp.evaluate("!!document.querySelector('#game-5')")
         cdp.call("Emulation.setScriptExecutionDisabled", value=False)
-        cdp.activate('.site-nav a[href="/review/recorded"]')
-        saved_game = 'form[action="/review/open-recording"]:has(input[value="sessions"]) button'
-        visible(saved_game)
-        cdp.activate(saved_game)
-        wait(cdp, f'location.pathname==="{DECISIONS}"')
+        open_scopes("sessions")
+        shot("session-scopes", 390)
+        cdp.activate(f'#analysis-scopes a[href="{DECISIONS}"]')
+        visible('form[action="/sessions/review-whole-game"] button')
+        open_scopes("sessions")
+        assert server.control()["counts"] == evidence["processed"]["counts"]
         cdp.activate(f'a[href="{SESSION}"]')
         one = f'form[action="{SESSION}/start"]'
         visible(one + ' button')
@@ -122,6 +212,7 @@ def probe(output, executable):
         assert sample.path.read_bytes() == session_bytes
         assert recording.read_bytes() == original
         evidence["recording_sha256"] = hashlib.sha256(original).hexdigest()
+        verify_publication_and_returns(output, cdp, evidence)
     except Exception:
         evidence["page"] = cdp.evaluate("location.pathname")
         evidence["visible_text"] = cdp.evaluate("document.body?.innerText.slice(0,2500)")

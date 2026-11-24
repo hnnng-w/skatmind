@@ -3,7 +3,9 @@
 The [#333 task and scope amendment](match_game_navigation.md#task-and-analysis-scope-amendment-333)
 keeps one ordinary **Analyze** entry and replaces the two recording-format
 entries with **Live play** and **Retrospective recording**. Both tasks offer both
-formats and use the same saved recordings.
+formats and use the same saved recordings. Opening a saved recording from
+Analyze first shows the applicable analysis scopes. Deliberate decision links
+and validated original-result returns still go directly to their destinations.
 
 Issue #324 superseded the five-task presentation below with one ordinary **Analyze**
 entry at `/review/recorded`. Home had three tasks in two groups; main navigation was

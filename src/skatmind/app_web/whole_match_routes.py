@@ -4,6 +4,7 @@ from hmac import digest
 PAGE = "/matches/whole-review"
 OVERVIEW = PAGE + "/overview"
 WHOLE_SETUP = PAGE + "/match"
+SCOPES = PAGE + "/scopes"
 GAME = re.compile(PAGE + r"/game/([1-9]|[12][0-9]|3[0-6])\Z")
 WATCH = re.compile(PAGE + r"/watch/([0-9a-f]{64})/(status|results)\Z")
 
@@ -14,7 +15,7 @@ def game_scope(path):
 
 
 def batch_page(path):
-    return path in (PAGE, OVERVIEW, WHOLE_SETUP) or game_scope(path) is not None
+    return path in (PAGE, OVERVIEW, WHOLE_SETUP, SCOPES) or game_scope(path) is not None
 
 
 ACTIONS = tuple(PAGE + "/" + action for action in ("start", "cancel", "resume"))

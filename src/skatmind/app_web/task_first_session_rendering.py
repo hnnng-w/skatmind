@@ -326,12 +326,13 @@ def _analysis_controls(context, locale, view):
     return disclosure(locale, "task.session.specialist_analysis", controls)
 
 
-def _analysis_result(context, locale, game_label):
-    rollout = _rollout_result(context, locale, game_label)
+def _analysis_result(context, locale, game_label, *, decision_page=False):
+    rollout = _rollout_result(context, locale, game_label, decision_page=decision_page)
     if context.execution is None:
         return rollout
     return rollout + ('<div id="session-result" tabindex="-1">'
-        + render_recorded_review_source_v1(context, locale=locale, game_label=game_label)
+        + render_recorded_review_source_v1(context, locale=locale, game_label=game_label,
+                                           decision_page=decision_page)
         + render_result_presentation_v1(
             build_result_presentation_v1(context.execution.result, locale=locale,
                 information_source=session_information_source(context)),
@@ -345,7 +346,7 @@ def _analysis_result(context, locale, game_label):
         ) + '</div>')
 
 
-def _rollout_result(context, locale, game_label):
+def _rollout_result(context, locale, game_label, *, decision_page=False):
     execution = context.rollout_execution
     if execution is None:
         return ""
@@ -355,7 +356,8 @@ def _rollout_result(context, locale, game_label):
         if execution.result.result.document["whole_game_rollout_result"]["status"] == "complete":
             content += paragraph(locale, "rollout.retained")
     return ('<div id="session-rollout-result" tabindex="-1">' + content
-        + render_recorded_review_source_v1(context, locale=locale, game_label=game_label, rollout=True)
+        + render_recorded_review_source_v1(context, locale=locale, game_label=game_label,
+                                           rollout=True, decision_page=decision_page)
         + render_result_presentation_v1(
             build_result_presentation_v1(execution.result, locale=locale,
                                          information_source="session_checkpoint"),

@@ -5,6 +5,7 @@ import hmac
 import os
 import re
 import secrets
+from contextlib import ExitStack, contextmanager, nullcontext
 from dataclasses import dataclass, field, replace
 from html import escape
 from threading import RLock
@@ -115,9 +116,49 @@ def selection_form(scope, manifest, entry, locale, *, origin=None):
               + hidden("manifest", manifest.fingerprint)
               + hidden("choice", "include" if excluded else "exclude"))
     if origin is not None:
-        fields += hidden("origin", origin[0])
+        fields += hidden("origin", origin)
     return paragraph(locale, status) + form(locale, SELECTION_ROUTE, fields,
                                            "batch.include" if excluded else "batch.exclude")
+
+
+def direct_selection(app, active, entry, family):
+    """Reconstruct only the current genuine receipt's destination, never a submitted URL."""
+    from .match_evidence_retention import _selection, require_capture_owner
+    from .recorded_review_opening import require_recording_fresh_v1
+    from .session_recorded_review import _require_source
+    from .whole_match_progress import file_identity
+
+    notice = active.evidence_notice
+    if active.retired or not notice or notice[1:] != ("saved", entry.identity):
+        raise RecordingOpenConflict()
+    if family == "session":
+        source = notice[0]
+        if app.managed_stateful.active_session is not active:
+            raise RecordingOpenConflict()
+        _require_source(active, source)
+        rollout = entry.envelope.kind == "session_rollout"
+        route = "/sessions/decisions/" + source.decision.selection + (
+            "#session-rollout-result" if rollout else "#session-result")
+        key, owner = active.review_selection_key, (source.generation, source.source_epoch)
+        require_recording_fresh_v1(active, "sessions")
+    else:
+        if app.managed_stateful.active_match is not active:
+            raise RecordingOpenConflict()
+        binding = active.rollout_evidence_binding
+        if binding is not None and binding.report.report_id == notice[0]:
+            require_capture_owner(app, active, binding)
+            report = binding.display_report
+        else:
+            report = active.capture.report_store.get(notice[0])
+        if report is None or report.match_position != active.selected_position:
+            raise RecordingOpenConflict()
+        route = "/matches/reports/" + report.report_id
+        key = active.card_entry_key
+        owner = (active.capture.content_fingerprint, active.capture.report_store.generation,
+                 _selection(active))
+        require_recording_fresh_v1(active, "matches")
+    material = (route, entry.identity, owner, file_identity(active.path))
+    return "direct:" + hmac.digest(key, repr(material).encode(), "sha256").hex(), route
 
 
 def change_selection(handler, fields):
@@ -136,7 +177,8 @@ def change_selection(handler, fields):
                 or fields["manifest"] != manifest.fingerprint):
             raise RecordingOpenConflict()
         route = (SAVED_MATCH_ROUTE if family == "match" else SAVED_SESSION_ROUTE) + "/" + token
-        if origin is not None:
+        direct = origin is not None and re.fullmatch(r"direct:[0-9a-f]{64}", origin)
+        if origin is not None and not direct:
             match = (ORIGIN if family == "match" else SESSION_ORIGIN).fullmatch(origin)
             if not match or match["destination"] or match["token"] != token:
                 raise RecordingOpenConflict()
@@ -152,11 +194,36 @@ def change_selection(handler, fields):
             allowed.add(identity)
         requested = replace(manifest, revision=manifest.revision + 1,
                             excluded_analysis_ids=tuple(sorted(allowed)))
+        publication = nullcontext
+        if direct:
+            active = (app.managed_stateful.active_match if family == "match"
+                      else app.managed_stateful.active_session)
+            if active is None:
+                raise RecordingOpenConflict()
+            lock = active.capture.lock if family == "match" else active.lock
+            with lock, app.lock:
+                expected_origin, route = direct_selection(app, active, value.entry, family)
+                if not hmac.compare_digest(expected_origin, origin):
+                    raise RecordingOpenConflict()
+
+            @contextmanager
+            def publication():
+                # The archive already holds its writer lock. Never wait for a producer.
+                with ExitStack() as locks:
+                    for fence in (lock, app.lock):
+                        if not fence.acquire(blocking=False):
+                            raise RecordingOpenConflict()
+                        locks.callback(fence.release)
+                    if direct_selection(app, active, value.entry, family)[0] != origin:
+                        raise RecordingOpenConflict()
+                    yield
+
         result = store.update_manifest(requested, expected_manifest=manifest.fingerprint,
+            publication_context=publication,
             commit_guard=lambda: app.saved_match_analyses is scope and scope.store is store)
         if result.status != "saved":
             raise RecordingOpenConflict()
-    except (OSError, ValueError, RecordingOpenConflict, SkatMindError):
+    except (OSError, ValueError, RuntimeError, SkatMindError):
         handler._send_common_error(409)
         return
     handler._redirect(route)
@@ -257,7 +324,10 @@ def live_retention_delivery(context, active, report_id, locale):
     body = _retention_feedback(locale, active, status, retry, rollout) if show_feedback else ""
     if show_feedback and status == "saved":
         entry = next(e for e in resumed.manifest.evidence if e.identity == notice[2])
-        body += selection_form(scope, resumed.manifest, entry, locale)
+        with active.capture.lock, context.lock:
+            require_live_owner()
+            origin, _ = direct_selection(context, active, entry, "match")
+        body += selection_form(scope, resumed.manifest, entry, locale, origin=origin)
     return body, guard
 
 
@@ -396,7 +466,7 @@ def handle_saved_analysis_get(handler, path, *, origin=None):
                     handler._content_page(area, return_to=return_to,
                         title=text(locale, "saved_analysis.title"),
                         content=navigation + selection_form(scope, manifest, value.entry, locale,
-                            origin=origin if return_to != path else None)
+                            origin=origin[0] if return_to != path else None)
                         + render_saved_analysis(value, path, locale),
                         feedback_identity=scope, analysis=True,
                         untranslated_workflow_body=False)
@@ -408,7 +478,6 @@ def handle_saved_analysis_get(handler, path, *, origin=None):
         refs = () if snapshot is None else tuple(
             entry.envelope for entry in entries
             if entry.identity in snapshot.available_evidence_ids)
-        from contextlib import nullcontext
         with (nullcontext() if store is None else store.pin_objects(refs,
                 expected_manifest=snapshot.manifest.fingerprint)):
             values = (() if store is None else store.read_evidence_many(
