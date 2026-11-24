@@ -1,5 +1,77 @@
 # Match Game navigation and recording focus
 
+## Task and analysis scope amendment (#333)
+
+Home and the main navigation offer **Live play**, **Retrospective recording**,
+and **Analyze**. Either recording task opens the same saved individual games
+and 36-position Matches. Live help is optional; changing tasks retires active
+help. Retrospective entry does not change a Session's capture mode, perspective,
+or decision-time information.
+
+From **Analyze**, open a saved recording (partial recordings are supported).
+For a Match, choose the whole Match, all own plays of the numbered game, or
+one recorded decision. For a Session, choose one observed local-player
+checkpoint or all available checkpoints in that game. Selecting a decision
+prepares the form. **Start** uses the selected objective and effort. A rollout
+from one decision can reach the end of the game; that does not evaluate every
+recorded decision. Manual situation entry and manual completed-game review
+are separate choices.
+
+The Match worker keeps the original workspace and filters the game **before**
+building the decision plan. The original version-1 checkpoint still describes
+a whole Match; version 2 adds a fixed game number. Session game review uses a
+separate per-file checkpoint with accepted-log observations and saved decision-time
+checkpoints. Neither worker backfills unknown hands or rewrites the recording.
+Forced plays and evidence gaps have explanations instead of percentages.
+Exact complete retained executions can be reused across scopes.
+
+After Start, status reads identify the same run and read its checkpoint. The
+browser fetches comparisons when the processed count changes; it does not
+reload the page, start another run, or update Learning. Without JavaScript
+use **Refresh progress** and **Comparisons**. Cancel and Resume are explicit.
+An original's return link is bound to the recording, file, run and decision;
+the archive's independent Request and Result downloads remain available even
+after that return expires.
+
+An original can be selected for or excluded from automatic Learning. The
+choice is saved by retained evidence identity. It affects the next explicit
+Learning update, and an older generation containing excluded evidence cannot
+be delivered as a usable analysis. Recording exclusions and eligibility still
+apply. Changing the choice neither deletes the original nor changes its result.
+Standalone manual Historical Reviews remain ineligible under #324; a genuine
+recorded-Match Historical execution keeps its existing eligibility.
+
+### Narrow installed follow-up (maintainer)
+
+After reviewed publication and successful exact-commit main gates, use a fresh
+disposable home. Keep the prior A acceptance and B execution/return evidence;
+this follow-up checks the amended workflow. Enter the same recording through both tasks, then open it from
+Analyze. In a synthetic Match with own plays in games 2 and 5, start game 2 and
+check that game 5 is absent. Observe progress without reloading, follow an
+original back to game 2, and start the whole Match with the same settings to
+check reuse. For an individual game, select one saved decision, then separately
+start the game scope. Check one original's Learning exclusion, explicit update,
+re-inclusion and unchanged downloads. Repeat a native return and language
+switch at narrow width. These checks do not repeat the #332 benchmark or
+constitute formal UAT.
+
+### Source-browser evidence
+
+`scripts/verify_task_analysis_scopes.py` uses a disposable source server,
+headless Microsoft Edge and native keyboard activation. The synthetic Hearts
+game-2 decision (play 3, Quick, played-game goal, seed 0) showed Clubs Seven
+at **21/25 (84%)** and Clubs King at **22/25 (88%)**. JavaScript inserted the
+comparison without navigation. The separate native whole-Match Start reused
+that exact original; changing language and excluding it from Learning did not
+evaluate additional cards. A second explicit Start analyzed a saved individual
+Session. Its comparisons linked to the original, overview and decision chooser.
+The verifier compares both saved recordings byte-for-byte.
+
+The 1280- and 390-pixel screenshots show the actual browser layout. At narrow
+width the comparison **table** scrolls horizontally within a focusable region;
+the document fits the viewport and the German Resume button wraps. These are
+source observations on synthetic data, not installed usability acceptance.
+
 ## Opened Match navigation (Issue #333)
 
 The local work-area navigation names the opened Match and the game. Its

@@ -853,6 +853,8 @@ class AutomaticLearningStoreV1:
             requested = replace(
                 current, revision=current.revision + int(changed),
                 sources=sources, evidence=evidence,
+                excluded_analysis_ids=tuple(identity for identity in current.excluded_analysis_ids
+                                            if identity not in removed),
                 objects=tuple(entry for entry in current.objects if entry.reference in reached),
                 current_generation=generations[0], previous_generation=generations[1],
                 match_basis=basis,

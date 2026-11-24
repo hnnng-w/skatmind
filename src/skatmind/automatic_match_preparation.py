@@ -56,7 +56,7 @@ class EvidenceOutcome(Record):
         self.validate()
         digest(self.evidence_id)
         if self.status not in ("selected", "non_current", "missing", "corrupt",
-                               "dependency_unavailable", "unsupported"):
+                               "dependency_unavailable", "unsupported", "explicit"):
             raise ValueError("Unsupported automatic evidence outcome.")
 
 

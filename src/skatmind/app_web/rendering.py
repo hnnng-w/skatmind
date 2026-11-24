@@ -165,7 +165,7 @@ def _home(
             task = state_tasks[route]
             if not task.available:
                 raise ValueError("Home tasks must remain available.")
-            prefix = f"home.task.{task_key}"
+            prefix = ("primary." if task_key in ("live", "after") else "home.task.") + task_key
             cards.append(
                 '<article class="task-card">'
                 f"<h3>{_translated(frontend, f'{prefix}.title')}</h3>"
@@ -324,6 +324,7 @@ def _shell(
     return_to: str,
     extra_stylesheets: tuple[str, ...],
     extra_scripts: tuple[str, ...],
+    primary_task=None,
 ) -> str:
     warning = (
         '<aside class="profile-warning" role="alert">'
@@ -339,8 +340,7 @@ def _shell(
         "{{SKIP_LINK}}": _translated(frontend, "shell.skip_link"),
         "{{BRAND_LABEL}}": _translated(frontend, "shell.brand_label"),
         "{{NAVIGATION_LABEL}}": _translated(frontend, "navigation.label"),
-        "{{NAVIGATION}}": _navigation(state, "/review/recorded" if return_to.startswith(
-            ("/matches/review/", "/matches/reports/")) else route, frontend),
+        "{{NAVIGATION}}": _navigation(state, primary_task or route, frontend),
         "{{LANGUAGE_SELECTOR}}": _language_selector(frontend, return_to),
         "{{HEADING}}": escape(title),
         "{{WORKFLOW}}": escape(route.removeprefix("/"), quote=True),
@@ -401,6 +401,14 @@ def render_app_page_v1(
     frontend_state = frontend or _default_frontend_state()
     if route == "/":
         title, content = _home(state, frontend_state)
+    elif route in ("/live-play", "/record-after"):
+        prefix = "primary.live" if route == "/live-play" else "primary.after"
+        title = _text(frontend_state, prefix + ".title")
+        content = (f'<p>{_translated(frontend_state, prefix + ".summary")}</p>'
+                   + '<p><a class="button-link" href="/sessions">'
+                   + _translated(frontend_state, "navigation.sessions") + '</a></p>'
+                   + '<p><a class="button-link" href="/matches">'
+                   + _translated(frontend_state, "navigation.matches") + '</a></p>')
     elif route == "/analyze":
         title = _text(frontend_state, "page.analyze.title")
         content = render_analyze_workflow_v1(
@@ -420,6 +428,8 @@ def render_app_page_v1(
         content = _profile_settings_section(frontend_state, profile, settings_editor)
     else:
         title, content = _placeholder(route, frontend_state)
+    if route in ("/analyze", "/review"):
+        content += '<p>' + _translated(frontend_state, "batch.ineligible") + '</p>'
     if route in _WORKFLOW_ROUTES:
         content = _workflow_concept(route, frontend_state) + content
     return _shell(
@@ -448,6 +458,7 @@ def render_app_content_page_v1(
     empty_state_key: str | None = None,
     extra_stylesheets: tuple[str, ...] = (),
     extra_scripts: tuple[str, ...] = (),
+    primary_task=None,
 ) -> str:
     """Renders trusted server-built stateful content inside the canonical shell."""
 
@@ -485,6 +496,7 @@ def render_app_content_page_v1(
         return_to=return_to or route,
         extra_stylesheets=extra_stylesheets,
         extra_scripts=extra_scripts,
+        primary_task=primary_task,
     )
 
 

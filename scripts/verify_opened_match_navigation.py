@@ -114,7 +114,7 @@ def probe(output, executable):
         cdp.activate('.match-navigation a')
         context("record")
         cdp.activate('.match-navigation a')
-        cdp.activate(f'a[href="{PAGE}"]')
+        cdp.activate(f'a[href="{PAGE}/match"]')
         context("review")
         start = f'form[action="{PAGE}/start"]'
         settings(start)

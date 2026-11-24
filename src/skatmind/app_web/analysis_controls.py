@@ -78,18 +78,18 @@ def control_values(values=None, *, fresh=False):
             "settings_mode": values.get("settings_mode", "ordinary" if fresh else "custom")}
 
 
-def effort_fields(locale, values=None, *, fresh=False, position=False):
+def effort_fields(locale, values=None, *, fresh=False, position=False, compact=False):
     from .stateful_localization import text
     from .task_first_rendering import paragraph, select_field
 
     values = control_values(values, fresh=fresh)
-    return (select_field(locale, "analysis_effort", "analysis.effort", (
+    control = (select_field(locale, "analysis_effort", "analysis.effort", (
         (value, text(locale, "analysis.effort." + value)) for value in EFFORTS),
         values["analysis_effort"])
-        + '<p class="analysis-custom-state">' + text(locale, "analysis.mode.custom") + '</p>'
-        + paragraph(locale, "analysis.effort.help")
-        + paragraph(locale, "analysis.effort.position" if position
-                    else "analysis.effort.decisions"))
+          + '<p class="analysis-custom-state">' + text(locale, "analysis.mode.custom") + '</p>')
+    return control if compact else (control + paragraph(locale, "analysis.effort.help")
+        + paragraph(locale, "analysis.effort.position" if position else "analysis.effort.decisions")
+    )
 
 
 def mode_fields(locale, values=None, *, fresh=False):

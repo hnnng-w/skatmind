@@ -13,7 +13,7 @@ from test_review_return_labels import Links
 from test_session_recorded_review_web import Forms
 
 from skatmind.app_web.stateful_localization import card_name, text
-from skatmind.app_web.whole_match_routes import OVERVIEW, PAGE
+from skatmind.app_web.whole_match_routes import OVERVIEW, PAGE, WHOLE_SETUP
 
 
 @pytest.fixture
@@ -419,7 +419,7 @@ def test_native_controls_progress_comparison_and_original(localized_server, monk
     from skatmind.app_web.whole_match_job import progress_file
 
     browser, _, recording = open_alex(localized_server, count=18)
-    assert f'href="{PAGE}"' in recording
+    assert f'href="{WHOLE_SETUP}"' in recording
     page = browser.page(PAGE)
     start = Forms(page).find(PAGE + "/start")
     assert start["values"]["analysis_effort"] == "standard"

@@ -5,7 +5,7 @@ import hmac
 import os
 import re
 import secrets
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from html import escape
 from threading import RLock
 
@@ -22,14 +22,17 @@ from .match_navigation import match_navigation
 from .match_report_rendering import render_match_reports_v1
 from .recorded_decision_context_sources import match_analysis_explanation, match_decision_context
 from .recorded_review_opening import RecordingOpenConflict
+from .session_batch_routes import ORIGIN as SESSION_ORIGIN
 from .stateful_localization import managed_name, text, translated
-from .task_first_rendering import paragraph
+from .task_first_rendering import form, hidden, paragraph
+from .whole_match_routes import ORIGIN
 
 SAVED_MATCH_ROUTE = "/matches/saved-analyses"
 RETRY_MATCH_ROUTE = "/matches/retry-saving"
 SAVED_MATCH_PATTERN = re.compile(
     r"/matches/saved-analyses/([0-9a-f]{64})(?:/(request|result|strategy-source)\.json)?\Z")
 SAVED_SESSION_ROUTE = "/sessions/saved-analyses"
+SELECTION_ROUTE = "/learning/analysis-selection"
 SAVED_SESSION_PATTERN = re.compile(
     r"/sessions/saved-analyses/([0-9a-f]{64})(?:/(request|result)\.json)?\Z")
 
@@ -90,6 +93,73 @@ def validate_saved_delivery(context, scope, store, manifest, value=None, *, evid
 def saved_analyses_link(locale):
     return ('<p><a class="button-link secondary" href="' + SAVED_MATCH_ROUTE + '">'
             + escape(text(locale, "saved_analysis.title")) + '</a></p>')
+
+
+def selection_status(manifest, entry, locale):
+    source = next(r.source_version.source for r in manifest.sources
+                  if r.source_version.identity == entry.source_version_id)
+    if source.family not in ("match", "session"):
+        return "batch.ineligible"
+    if any(e.source == source for e in manifest.exclusions):
+        return "batch.source_excluded"
+    return ("batch.excluded" if entry.identity in manifest.excluded_analysis_ids
+            else "batch.selected")
+
+
+def selection_form(scope, manifest, entry, locale, *, origin=None):
+    status = selection_status(manifest, entry, locale)
+    if status == "batch.ineligible":
+        return paragraph(locale, status)
+    excluded = entry.identity in manifest.excluded_analysis_ids
+    fields = (hidden("analysis", scope.token(manifest.space_id, entry))
+              + hidden("manifest", manifest.fingerprint)
+              + hidden("choice", "include" if excluded else "exclude"))
+    if origin is not None:
+        fields += hidden("origin", origin[0])
+    return paragraph(locale, status) + form(locale, SELECTION_ROUTE, fields,
+                                           "batch.include" if excluded else "batch.exclude")
+
+
+def change_selection(handler, fields):
+    app = handler.server.app_context
+    try:
+        origin = fields.pop("origin", None)
+        if set(fields) != {"analysis", "manifest", "choice"}:
+            raise RecordingOpenConflict()
+        token = fields["analysis"]
+        scope, store, manifest, value = resolve_saved_analysis(app, token)
+        family = value.source.record.source_version.source.family
+        allowed = set(manifest.excluded_analysis_ids)
+        identity = value.entry.identity
+        expected = "include" if identity in allowed else "exclude"
+        if (family not in ("match", "session") or fields["choice"] != expected
+                or fields["manifest"] != manifest.fingerprint):
+            raise RecordingOpenConflict()
+        route = (SAVED_MATCH_ROUTE if family == "match" else SAVED_SESSION_ROUTE) + "/" + token
+        if origin is not None:
+            match = (ORIGIN if family == "match" else SESSION_ORIGIN).fullmatch(origin)
+            if not match or match["destination"] or match["token"] != token:
+                raise RecordingOpenConflict()
+            if family == "session":
+                from .session_batch_web import require_origin
+            else:
+                from .whole_match_web import require_origin
+            require_origin(app, match)
+            route = origin
+        if expected == "include":
+            allowed.remove(identity)
+        else:
+            allowed.add(identity)
+        requested = replace(manifest, revision=manifest.revision + 1,
+                            excluded_analysis_ids=tuple(sorted(allowed)))
+        result = store.update_manifest(requested, expected_manifest=manifest.fingerprint,
+            commit_guard=lambda: app.saved_match_analyses is scope and scope.store is store)
+        if result.status != "saved":
+            raise RecordingOpenConflict()
+    except (OSError, ValueError, RecordingOpenConflict, SkatMindError):
+        handler._send_common_error(409)
+        return
+    handler._redirect(route)
 
 
 def _retention_feedback(locale, active, status, retry, rollout):
@@ -185,6 +255,9 @@ def live_retention_delivery(context, active, report_id, locale):
                 raise RecordingOpenConflict()
         require_live_owner()  # Unlocked archive validation may race a recording change.
     body = _retention_feedback(locale, active, status, retry, rollout) if show_feedback else ""
+    if show_feedback and status == "saved":
+        entry = next(e for e in resumed.manifest.evidence if e.identity == notice[2])
+        body += selection_form(scope, resumed.manifest, entry, locale)
     return body, guard
 
 
@@ -251,7 +324,7 @@ def render_saved_analysis(value, route, locale):
 def handle_saved_analysis_get(handler, path, *, origin=None):
     return_to = path
     if origin is not None:
-        path = SAVED_MATCH_ROUTE + "/" + origin["token"]
+        path = path.partition("/" + origin["token"] + "/")[0] + "/" + origin["token"]
     session = path == SAVED_SESSION_ROUTE or path.startswith(SAVED_SESSION_ROUTE + "/")
     route = SAVED_SESSION_ROUTE if session else SAVED_MATCH_ROUTE
     family = "session" if session else "match"
@@ -277,7 +350,23 @@ def handle_saved_analysis_get(handler, path, *, origin=None):
                     from .language_context import capture_language_source_v1
 
                     navigation = ""
-                    if origin is not None:
+                    if origin is not None and session:
+                        from .session_batch_web import require_origin
+                        try:
+                            require_origin(context, origin)
+                        except (OSError, ValueError, RecordingOpenConflict, SkatMindError):
+                            return_to = path
+                            navigation = paragraph(locale, "batch.unavailable")
+                        else:
+                            navigation = f'<p><a href="{return_to}/overview">' + translated(
+                                locale, "whole_review.overview") + '</a></p>'
+                            navigation += f'<p><a href="{return_to}/recording#session-recording">'
+                            navigation += translated(locale, "batch.back") + '</a></p>'
+                            def guard():
+                                validate_saved_delivery(context, scope, store, manifest, value)
+                                require_origin(context, origin)
+                            handler._retained_delivery_guard = guard
+                    elif origin is not None:
                         from .whole_match_web import origin_fallback, require_origin
 
                         try:
@@ -306,8 +395,10 @@ def handle_saved_analysis_get(handler, path, *, origin=None):
                         context, return_to)
                     handler._content_page(area, return_to=return_to,
                         title=text(locale, "saved_analysis.title"),
-                        content=navigation + render_saved_analysis(value, path, locale),
-                        feedback_identity=scope,
+                        content=navigation + selection_form(scope, manifest, value.entry, locale,
+                            origin=origin if return_to != path else None)
+                        + render_saved_analysis(value, path, locale),
+                        feedback_identity=scope, analysis=True,
                         untranslated_workflow_body=False)
             return True
         snapshot = None if store is None else store.snapshot()
@@ -349,7 +440,7 @@ def handle_saved_analysis_get(handler, path, *, origin=None):
                      + escape(text(locale, "automatic.back")) + '</a></p>')
             handler._content_page(area, return_to=path,
                 title=text(locale, "saved_analysis.title"), content=body,
-                feedback_identity=scope,
+                feedback_identity=scope, analysis=True,
                 untranslated_workflow_body=False)
     except (OSError, ValueError, KeyError, SkatMindError, RecordingOpenConflict):
         handler._retained_delivery_guard = None

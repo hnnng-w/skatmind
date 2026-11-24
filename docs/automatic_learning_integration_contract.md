@@ -7,6 +7,11 @@ Saved Review access, identities, original evidence, correction and explicit dele
 remain supported; recorded Match Historical evidence remains eligible. Earlier S7
 inclusion requirements and verification below retain their historical meaning.
 
+The [#333 analysis selection](match_game_navigation.md#task-and-analysis-scope-amendment-333)
+is an additional filter on genuine retained evidence. It never makes an
+ineligible source eligible. Excluding one analysis keeps the original available
+for comparison and download, independently of the automatic Learning generation.
+
 ## 1. Status, decision and reading guide
 
 **Status: documentation contract and recommended implementation sequence.** This

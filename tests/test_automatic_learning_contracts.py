@@ -65,6 +65,18 @@ def test_strict_canonical_roundtrip_and_immutable_records():
     assert len(manifest.sources) == 1
 
 
+def test_analysis_selection_preserves_legacy_bytes_and_requires_a_retained_identity():
+    manifest = manifest_fixture()
+    original = manifest_bytes(manifest)
+    assert b"excluded_analysis_ids" not in original
+    identity = manifest.evidence[0].identity
+    opted_out = replace(manifest, excluded_analysis_ids=(identity,))
+    assert resume_manifest(manifest_bytes(opted_out)) == opted_out
+    assert manifest_bytes(replace(opted_out, excluded_analysis_ids=())) == original
+    with pytest.raises(ValueError, match="retained evidence"):
+        replace(manifest, excluded_analysis_ids=("0" * 64,))
+
+
 @pytest.mark.parametrize("raw", [
     b'{"x":1,"x":2}', b'{"x":NaN}', b'{"x":Infinity}', b'{"x":-Infinity}',
     b'{"x":1e999}', b'[]', b'null', b'\xef\xbb\xbf{}', b'\xff', b'{',

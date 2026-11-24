@@ -40,17 +40,17 @@ def test_information_architecture_contract_values_are_exact_and_private() -> Non
         "analyze_and_review",
     )
     assert HOME_TASK_KEYS == (
-        "record_match",
-        "record_session",
+        "live",
+        "after",
         "review_game",
     )
     assert HOME_TASK_ROUTE_MAPPINGS == (
-        ("record_match", "/matches"),
-        ("record_session", "/sessions"),
+        ("live", "/live-play"),
+        ("after", "/record-after"),
         ("review_game", "/review/recorded"),
     )
     assert HOME_GROUP_TASK_MEMBERSHIP == (
-        ("record_games", ("record_match", "record_session")),
+        ("record_games", ("live", "after")),
         ("analyze_and_review", ("review_game",)),
     )
     assert HOME_RELATED_TASK_MEMBERSHIP == ()
@@ -109,8 +109,8 @@ def test_information_architecture_rejects_drift(
                 "Analyze and review",
             ),
             (
-                "Record a 36-game Match",
-                "Record an individual game",
+                "Live play",
+                "Retrospective recording",
                 "Analyze",
             ),
             "Which area do I need?",
@@ -122,8 +122,8 @@ def test_information_architecture_rejects_drift(
                 "Analysieren und auswerten",
             ),
             (
-                "36er-Match erfassen",
-                "Einzelspiel erfassen",
+                "Live spielen",
+                "Nachträglich erfassen",
                 "Analysieren",
             ),
             "Welchen Bereich brauche ich?",
@@ -165,7 +165,9 @@ def test_home_groups_match_first_and_one_analysis_entry(
         groups_html.index(value) for value in task_titles
     )
     assert groups_html.index(task_titles[0]) < groups_html.index(task_titles[1])
-    assert groups_html.index('href="/matches"') < groups_html.index('href="/sessions"')
+    for route in ("/live-play", "/record-after"):
+        formats = render_app_page_v1(state, route, frontend=_frontend(locale))
+        assert 'href="/matches"' in formats and 'href="/sessions"' in formats
     assert "Available now." not in html and "Jetzt verfügbar." not in html
     assert "Live</dd>" not in html
     assert "english-workflow-body" not in html

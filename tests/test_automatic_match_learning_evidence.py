@@ -111,6 +111,24 @@ def test_all_methods_rollout_separation_restart_bytes_and_zero_analysis(
 
 
 @pytest.mark.parametrize("family", ("ordinary", "rollout"))
+def test_source_removal_precedes_retained_analysis_choice(tmp_path, executions, family):
+    value = executions[0 if family == "ordinary" else -2]
+    app, service = setup_service(tmp_path)
+    source = decode_match_source(value.objects[0], value.source)
+    path, _ = save(app, workspace=source.document.workspace)
+    archive = stage(app, (value,))
+    assert service.update().generation.recipe.evidence_ids == (value.evidence.identity,)
+    before = archive.snapshot().manifest
+    assert archive.update_manifest(replace(before, revision=before.revision + 1,
+        excluded_analysis_ids=(value.evidence.identity,)),
+        expected_manifest=before.fingerprint).status == "saved"
+    assert service.inspect().status == "excluded"
+    path.rename(path.with_suffix(".away"))
+    assert service.inspect().status == "deleted"
+    assert archive.read_evidence(value.evidence.identity).source.document == source.document
+
+
+@pytest.mark.parametrize("family", ("ordinary", "rollout"))
 def test_correction_with_equal_revision_never_rebinds_report(
     tmp_path, monkeypatch, executions, family,
 ):

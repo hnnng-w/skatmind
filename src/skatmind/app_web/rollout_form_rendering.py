@@ -4,7 +4,7 @@ from html import escape
 
 from .analysis_controls import effort_fields, mode_fields
 from .stateful_localization import translated
-from .task_first_rendering import disclosure, select_field
+from .task_first_rendering import disclosure, paragraph, select_field
 
 
 def rollout_basic_fields(locale, settings, missing, supplied, *, help_prefix="recorded"):
@@ -23,11 +23,14 @@ def rollout_basic_fields(locale, settings, missing, supplied, *, help_prefix="re
             + f'name="analysis_{name}" aria-describedby="{help_ids}" '
             + f'value="{escape(str(supplied.get(name, "")))}"></label>'
             + f'<!-- validation-messages:analysis_{name} --></div>')
-    return basic + '<div class="recorded-field">' + effort_fields(locale, settings) + '</div>'
+    return basic + '<div class="recorded-field">' + effort_fields(locale, settings,
+                                                                  compact=True) + '</div>'
 
 
 def rollout_technical_fields(locale, settings):
-    advanced = mode_fields(locale, settings) + '<div class="recorded-technical-fields">'
+    advanced = (paragraph(locale, "analysis.effort.help")
+                + paragraph(locale, "analysis.effort.decisions")
+                + mode_fields(locale, settings) + '<div class="recorded-technical-fields">')
     for name, key, maximum in (("requested_worlds", "rollout.worlds", 1000),
                                ("random_seed", "rollout.seed", 2**64 - 1)):
         advanced += (f'<div class="recorded-field"><label>{translated(locale, key)} '

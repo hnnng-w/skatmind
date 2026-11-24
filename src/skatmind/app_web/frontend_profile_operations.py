@@ -13,7 +13,9 @@ from .frontend_profile_contracts import (
 from .frontend_profile_persistence import save_frontend_profile_file_v1
 from .frontend_profile_state import state_from_saved_profile_v1
 from .historical_review_routes import historical_html_route
-from .whole_match_routes import ORIGIN
+from .session_batch_routes import ORIGIN as SESSION_ORIGIN
+from .session_batch_routes import review_page
+from .whole_match_routes import ORIGIN, batch_page
 
 if TYPE_CHECKING:
     from .context import AppWebContextV1
@@ -46,6 +48,9 @@ FRONTEND_PROFILE_ACTION_ROUTES = (
 
 _SAFE_STATIC_HTML_ROUTES = {
     "/",
+    "/live-play",
+    "/record-after",
+    "/sessions/decisions",
     "/analyze",
     "/review",
     "/review/recorded",
@@ -103,6 +108,10 @@ def is_safe_frontend_return_path_v1(value: object) -> bool:
         return False
     return (
         value in _SAFE_STATIC_HTML_ROUTES
+        or batch_page(value)
+        or review_page(value)
+        or (session := SESSION_ORIGIN.fullmatch(value)) is not None and session["destination"] in (
+            None, "overview")
         or _SAFE_MATCH_POSITION.fullmatch(value) is not None
         or _SAFE_MATCH_REPORT.fullmatch(value) is not None
         or _SAFE_SAVED_MATCH.fullmatch(value) is not None

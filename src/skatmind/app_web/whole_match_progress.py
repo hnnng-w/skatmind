@@ -23,8 +23,10 @@ def file_identity(path):
 
 
 class ProgressFile:
+    directory = "whole-match-reviews"
+
     def __init__(self, home: Path, filename: str):
-        self.root = home / "whole-match-reviews"
+        self.root = home / self.directory
         self.path = self.root / (hashlib.sha256(filename.encode()).hexdigest() + ".json")
 
     def lease(self):
@@ -46,9 +48,13 @@ class ProgressFile:
             return None
         value = decode_json(raw)
         checksum = value.pop("digest", None)
-        if (hashlib.sha256(canonical_json(value)).hexdigest() != checksum or set(value) != {
-                "version", "run", "source", "file", "settings", "supplements", "refs", "phase"}
-                or type(value["version"]) is not int or value["version"] != 1
+        scoped = value.get("version") == 2
+        keys = {"version", "run", "source", "file", "settings", "supplements", "refs", "phase"}
+        if scoped:
+            keys.add("game")
+        if (hashlib.sha256(canonical_json(value)).hexdigest() != checksum or set(value) != keys
+                or type(value["version"]) is not int or value["version"] not in (1, 2)
+                or scoped and (type(value["game"]) is not int or not 1 <= value["game"] <= 36)
                 or not all(isinstance(value[k], str) and HEX.fullmatch(value[k])
                            for k in ("run", "source", "file"))
                 or value["phase"] not in ("working", "paused", "finished", "unsaved", "quota",
@@ -56,6 +62,9 @@ class ProgressFile:
                 or type(value["refs"]) is not dict or len(value["refs"]) > 360
                 or type(value["supplements"]) is not dict or len(value["supplements"]) > 36):
             raise ValueError("Invalid whole-Match progress.")
+        if scoped and (set(value["supplements"]) - {str(value["game"])} or any(
+                k.partition(":")[0] != str(value["game"]) for k in value["refs"])):
+            raise ValueError("Evidence is outside the frozen game scope.")
         settings = parse_rollout_settings(value["settings"])
         if (serialize_rollout_settings(settings) != value["settings"]
                 or (settings.requested_worlds, settings.wall_clock_timeout_ms)
@@ -90,7 +99,8 @@ class ProgressFile:
             io.discard_temporary(self.root, temporary)
 
     @staticmethod
-    def initial(source, file, run, settings, supplements):
-        return {"version": 1, "source": source, "file": file, "run": run, "phase": "working",
+    def initial(source, file, run, settings, supplements, game=None):
+        return {**({"version": 1} if game is None else {"version": 2, "game": game}),
+                "source": source, "file": file, "run": run, "phase": "working",
                 "settings": serialize_rollout_settings(settings), "supplements": supplements,
                 "refs": {}}

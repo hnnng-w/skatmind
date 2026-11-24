@@ -446,7 +446,57 @@ document.addEventListener("invalid", (event) => {
   }
 }, true);
 
-// Preserve presentation only during the explicit native language POST.
+// The checkpoint is cheap. Read a comparison projection only after a receipt changes.
+const watch = document.querySelector("[data-batch-watch]");
+if (watch) {
+  const results = document.querySelector("[data-batch-results]");
+  const fallback = document.querySelector("[data-batch-native]");
+  const controller = new AbortController();
+  const signal = controller.signal;
+  window.addEventListener("pagehide", () => controller.abort(), {once: true});
+  let displayed = Number(results?.dataset.processed ?? -1);
+  async function read(part) {
+    const response = await fetch(`${watch.dataset.batchWatch}/${part}`, {signal, cache: "no-store"});
+    if (!response.ok) throw new Error();
+    return response;
+  }
+  async function update() {
+    if (signal.aborted) return;
+    try {
+      const status = await (await read("status")).json();
+      if (fallback) fallback.hidden = true;
+      if (watch.textContent !== status.label) watch.textContent = status.label;
+      const counts = document.querySelector("[data-batch-counts]");
+      if (counts && counts.textContent !== status.counts) counts.textContent = status.counts;
+      const active = ["working", "stopping"].includes(status.phase);
+      if (results && displayed !== status.processed && (!active || status.processed > 0)
+          && !results.contains(document.activeElement)) {
+        const html = await (await read("results")).text();
+        if (!signal.aborted && !results.contains(document.activeElement)) {
+          results.innerHTML = html;
+          displayed = status.processed;
+        }
+      }
+      if (!active) {
+        const resume = document.querySelector("[data-batch-resume]");
+        if (resume) {
+          resume.hidden = false;
+          const cancel = document.querySelector('form[action$="/cancel"]:has(input[name="binding"])');
+          if (cancel) cancel.closest("[data-batch-cancel]").hidden = true;
+        }
+      }
+      if (active || (results && displayed !== status.processed)) window.setTimeout(update, 2500);
+    } catch {
+      if (!signal.aborted) {
+        watch.textContent = watch.dataset.unavailable;
+        if (fallback) fallback.hidden = false;
+        if (results) results.replaceChildren();
+      }
+    }
+  }
+  update();
+}
+
 // Product operations, legality, and validation remain server-owned.
 document.addEventListener("submit", (event) => {
   const languageForm = event.target;

@@ -64,21 +64,23 @@ def test_routes_navigation_home_tasks_and_categories_are_exact_and_ordered() -> 
         "/settings",
         "/about",
         "/review/recorded",
+        "/live-play",
+        "/record-after",
     )
     assert APP_NAVIGATION_LABELS == (
         "Home",
-        "Record a 36-game Match",
-        "Record an individual game",
+        "Live play",
+        "Retrospective recording",
         "Analyze",
         "Settings",
     )
     assert APP_HOME_TASK_TITLES == (
-        "Record a 36-game Match",
-        "Record an individual game",
+        "Live play",
+        "Retrospective recording",
         "Analyze",
     )
     assert APP_NAVIGATION_ROUTE_PATHS == (
-        "/", "/matches", "/sessions", "/review/recorded", "/settings",
+        "/", "/live-play", "/record-after", "/review/recorded", "/settings",
     )
     assert MANAGED_LOCAL_DATA_CATEGORIES == ("sessions", "matches", "corpora")
     validate_unified_local_frontend_contract_v1()

@@ -11,17 +11,17 @@ HOME_GROUP_KEYS: Final[tuple[str, ...]] = (
     "analyze_and_review",
 )
 HOME_TASK_KEYS: Final[tuple[str, ...]] = (
-    "record_match",
-    "record_session",
+    "live",
+    "after",
     "review_game",
 )
 HOME_TASK_ROUTE_MAPPINGS: Final[tuple[tuple[str, str], ...]] = (
-    ("record_match", "/matches"),
-    ("record_session", "/sessions"),
+    ("live", "/live-play"),
+    ("after", "/record-after"),
     ("review_game", "/review/recorded"),
 )
 HOME_GROUP_TASK_MEMBERSHIP: Final[tuple[tuple[str, tuple[str, ...]], ...]] = (
-    ("record_games", ("record_match", "record_session")),
+    ("record_games", ("live", "after")),
     ("analyze_and_review", ("review_game",)),
 )
 HOME_RELATED_TASK_MEMBERSHIP: Final[tuple[tuple[str, tuple[str, ...]], ...]] = ()

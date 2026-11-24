@@ -86,9 +86,9 @@ def probe(output, executable):
         cdp.activate('form[action="/matches/open"] button')
         wait(cdp, '!!document.querySelector(".match-navigation a")')
         cdp.activate(".match-navigation a")
-        wait(cdp, f'!!document.querySelector(\'a[href="{PAGE}"]\')')
-        cdp.activate(f'a[href="{PAGE}"]')
-        wait(cdp, f'location.pathname==="{PAGE}"')
+        wait(cdp, f'!!document.querySelector(\'a[href="{PAGE}/match"]\')')
+        cdp.activate(f'a[href="{PAGE}/match"]')
+        wait(cdp, f'location.pathname==="{PAGE}/match"')
 
     def button(action):
         return f'form[action="{PAGE}/{action}"] button'

@@ -282,11 +282,11 @@ def test_review_secondary_form_and_native_result_focus_contract(localized_server
         r'<form\b[^>]*action="/sessions/(review-decision|review-whole-game)"[^>]*>.*?</form>',
         page, re.S)}
     assert set(review_forms) == {"review-decision", "review-whole-game"}
-    assert review_forms["review-decision"].buttons == []
-    primary, button = review_forms["review-whole-game"].buttons
+    button, = review_forms["review-decision"].buttons
+    primary, = review_forms["review-whole-game"].buttons
     assert button == {"type": "submit", "class": "secondary",
-                      "form": "recorded-legacy-1", "aria-describedby": "recorded-decision-1"}
-    tag, owner = markup.targets[button["form"]]
+                      "aria-describedby": "recorded-decision-1"}
+    tag, owner = markup.targets["recorded-legacy-1"]
     assert tag == "form" and owner["action"] == "/sessions/review-decision"
     assert primary == {"type": "submit", "class": "primary",
                        "aria-describedby": "recorded-decision-1"}

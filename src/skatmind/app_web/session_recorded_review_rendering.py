@@ -30,6 +30,7 @@ def _decision_label(locale: str, players, row: RecordedDecisionV1) -> str:
 def render_recorded_session_decisions_v1(
     context: GuidedSessionContextV1, *, locale: str,
     view: RecordedReviewProjectionV1 | None = None,
+    selected=None,
 ) -> str:
     view = project_recorded_session_decisions_v1(context) if view is None else view
     content = ""
@@ -57,6 +58,8 @@ def render_recorded_session_decisions_v1(
             locale, "declaration.count_examples") + '</p>'
     content += '<ul class="recorded-decisions">' if view.decisions else ""
     for row in view.decisions:
+        if selected is not None and row != selected:
+            continue
         index = row.checkpoint.decision_index
         label_id = f"recorded-decision-{index}"
         legacy_id = f"recorded-legacy-{index}"
@@ -98,13 +101,14 @@ def render_recorded_session_decisions_v1(
             + '<div class="recorded-actions">'
             + f'<button type="submit" class="primary" aria-describedby="{label_id}">'
             + translated(locale, "rollout.action") + '</button>'
-            + f'<button type="submit" class="secondary" form="{legacy_id}" '
+            + '</div>' + advanced + '</form><details><summary>'
+            + translated(locale, "match_rollout.legacy") + '</summary>'
+            + f'<form id="{legacy_id}" method="post" action="/sessions/review-decision">'
+            + fields + '<button type="submit" class="secondary" '
             + f'aria-describedby="{label_id}">'
             + translated(locale, "rollout.legacy_action", method=translated(
                 locale, f"task.value.{method}"))
-            + '</button></div>' + advanced + '</form>'
-            + f'<form id="{legacy_id}" method="post" action="/sessions/review-decision">'
-            + fields + '</form></li>'
+            + '</button></form></details></li>'
         )
     content += '</ul>' if view.decisions else ""
     for status, count in view.unavailable_counts:

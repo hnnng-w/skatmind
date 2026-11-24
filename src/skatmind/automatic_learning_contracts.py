@@ -374,6 +374,7 @@ class ManifestV1(Record):
     match_basis: MatchSliceBasisV1 | None = None
     historical_heads: tuple[HistoricalReviewHeadV1, ...] = ()
     historical_retired: tuple[SourceKeyV1, ...] = ()
+    excluded_analysis_ids: tuple[str, ...] = ()
     version: int = 1
 
     def __post_init__(self):
@@ -385,6 +386,14 @@ class ManifestV1(Record):
         unique(tuple(entry.identity for entry in self.bindings))
         unique(tuple(entry.identity for entry in self.evidence))
         unique(tuple(entry.source for entry in self.exclusions))
+        unique(self.excluded_analysis_ids)
+        limit = len(EVIDENCE_CLASSES) * AUTOMATIC_LEARNING_MAX_EVIDENCE_PER_CLASS
+        if len(self.excluded_analysis_ids) > limit:
+            raise ValueError("Too many analysis exclusions.")
+        for identity in self.excluded_analysis_ids:
+            digest(identity)
+        if set(self.excluded_analysis_ids) - {entry.identity for entry in self.evidence}:
+            raise ValueError("An analysis exclusion must name retained evidence.")
         unique(self.generations)
         if len(self.generations) > AUTOMATIC_LEARNING_MAX_GENERATIONS:
             raise ValueError("Only current and one previous generation may be retained.")
@@ -490,6 +499,8 @@ class ManifestV1(Record):
             result.pop("historical_heads")
         if not self.historical_retired:
             result.pop("historical_retired")
+        if not self.excluded_analysis_ids:
+            result.pop("excluded_analysis_ids")
         return result
 
     @classmethod
@@ -497,7 +508,8 @@ class ManifestV1(Record):
         if type(value) is not dict:
             raise ValueError("Invalid private manifest field set.")
         return Record.from_dict.__func__(cls, {
-            "match_basis": None, "historical_heads": [], "historical_retired": [], **value})
+            "match_basis": None, "historical_heads": [], "historical_retired": [],
+            "excluded_analysis_ids": [], **value})
 
     @property
     def fingerprint(self):

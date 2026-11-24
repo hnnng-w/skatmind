@@ -54,6 +54,8 @@ class RecordedReviewSourceV1:
     attempt: object
     coordinator: object = None
     source_epoch: int | None = None
+    batch_guard: object = None
+    batch_file: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,6 +119,13 @@ def _require_source(context: GuidedSessionContextV1, source: RecordedReviewSourc
         raise RecordedDecisionReviewConflictError("superseded")
     if source.coordinator is not None and source.coordinator.generation != source.source_epoch:
         raise RecordedDecisionReviewConflictError("source_changed")
+    if source.batch_guard is not None:
+        from .whole_match_progress import file_identity
+        if file_identity(context.path) != source.batch_file:
+            raise RecordedDecisionReviewConflictError("source_changed")
+        notice = context.evidence_notice
+        if notice is None or notice[0] is not source or notice[1] != "saved":
+            source.batch_guard()
 
 
 def execute_recorded_session_decision_v1(
@@ -124,6 +133,7 @@ def execute_recorded_session_decision_v1(
     rollout_settings: WholeGameRolloutSettingsV1 | None = None,
     rollout_supplements: dict[str, str] | None = None,
     rollout_form: dict[str, str] | None = None,
+    batch_guard=None, before_batch_attempt=None,
 ) -> RecordedRolloutNoticeV1 | None:
     """Publish after unlocked execution; return only the source-checked incomplete notice."""
     from .session_evidence_retention import retain_published_session, session_source_epoch
@@ -163,9 +173,15 @@ def execute_recorded_session_decision_v1(
             raise RecordedDecisionReviewConflictError()
         with app.lock:
             _require_binding(app, context)
+            if batch_guard is not None:
+                before_batch_attempt()
+                if context.pending_evidence is not None:
+                    raise RecordedDecisionReviewConflictError("superseded")
             attempt = context.begin_execution()
+            from .whole_match_progress import file_identity
             source = RecordedReviewSourceV1(context.document, context.generation, decision, attempt,
-                                            coordinator, epoch)
+                                            coordinator, epoch, batch_guard,
+                                            file_identity(context.path) if batch_guard else None)
         request = exported.request
         if rollout_settings is not None:
             from .session_recorded_review_form import parse_recorded_rollout_supplements_v1

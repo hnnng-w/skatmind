@@ -36,16 +36,24 @@ class OwnPlay:
             rollout_settings=settings, settlement_supplements=supplied, use_profile_presets=False)
 
 
-def own_plays(workspace):
-    traces = dict(_validate_match_workspace_with_traces_v1(workspace))
+def own_plays(workspace, game_position=None):
+    if game_position is None:
+        slots = workspace.slots
+        traces = dict(_validate_match_workspace_with_traces_v1(workspace))
+    else:
+        if type(game_position) is not int or not 1 <= game_position <= len(workspace.slots):
+            raise ValueError("Expected a recorded Match game position.")
+        slots = (workspace.slots[game_position - 1],)
+        traces = {}
     perspective = workspace.match_definition.perspective_player_id
     rows = []
-    for slot in workspace.slots:
+    for slot in slots:
         game = slot.observed_game
         if game is None:
             continue
-        trace = traces[slot.match_position]
-        reconstruction = build_match_observed_game_reconstruction_v1(game, validated_trace=trace)
+        reconstruction = build_match_observed_game_reconstruction_v1(
+            game, validated_trace=traces.get(slot.match_position))
+        trace = reconstruction.trace
         snapshots, skips, _ = _build_match_decision_states_from_reconstruction_v1(
             reconstruction, source_played_at=workspace.match_definition.played_at)
         by_index = {s.decision_index: s for s in snapshots}

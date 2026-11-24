@@ -1659,6 +1659,15 @@ form:has(> input[name="declaration_form"]) > p { margin-block: 0.25em; }
 .panel:not(:target) > .comparison-location { display: none; }
 .comparison-location { margin-block: 0 .35rem; overflow-wrap: anywhere; }
 
+form:is([action^="/sessions/game-review/"], [action^="/matches/whole-review/"]) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+form:is([action^="/sessions/game-review/"], [action^="/matches/whole-review/"]) :is(label, select) {
+  min-width: 0;
+  max-width: 100%;
+}
+
 @container match-recording (min-width: 49em) {
   .live-table { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 }
@@ -2323,18 +2332,18 @@ main[data-workflow="matches"] .match-diagnostic {
   border-color: #9f392b;
 }
 
-main[data-workflow="matches"] .workflow-table-scroll {
+:is(main[data-workflow="matches"], main[data-workflow="sessions"]) .workflow-table-scroll {
   max-width: 100%;
   overflow-x: auto;
   padding: 0.3rem;
 }
 
-main[data-workflow="matches"] .workflow-table-scroll table {
+:is(main[data-workflow="matches"], main[data-workflow="sessions"]) .workflow-table-scroll table {
   min-width: 32em;
   overflow-wrap: normal;
 }
 
-main[data-workflow="matches"] .workflow-table-scroll:focus-visible {
+:is(main[data-workflow="matches"], main[data-workflow="sessions"]) .workflow-table-scroll:focus-visible {
   outline: 0.2rem solid var(--focus);
   outline-offset: 0.2rem;
 }

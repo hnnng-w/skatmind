@@ -115,6 +115,7 @@ class GuidedSessionContextV1:
     document: session_api.SessionPersistenceDocumentV1 = field(repr=False)
     generation: int = 1
     retired: bool = field(default=False, repr=False)
+    review_page: str | None = None
     last_operation: GuidedSessionOperationResultV1 | None = None
     execution: GuidedFrontendExecutionV1 | None = field(default=None, repr=False)
     recorded_review_source: RecordedReviewSourceV1 | None = field(default=None, repr=False)
@@ -152,6 +153,10 @@ class GuidedSessionContextV1:
     def begin_execution(self) -> object:
         """Caller owns the Session lock; a newer attempt supersedes older work."""
         self.require_attached()
+        if (self.pending_evidence is not None
+                and self.pending_evidence.source.batch_guard is not None):
+            from .session_recorded_review import RecordedDecisionReviewConflictError
+            raise RecordedDecisionReviewConflictError("superseded")
         self.live.invalidate()
         self.operation_feedback.begin()
         self.execution_attempt = object()

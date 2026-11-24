@@ -24,6 +24,7 @@ from skatmind.corpus_web.uploads import parse_learning_corpus_multipart_upload_v
 from skatmind.errors import SkatMindError, SkatMindInvariantError, SkatMindWorkflowError
 from skatmind.match_workspace_persistence_codec import resume_match_workspace_document_v1
 
+from . import session_batch_routes
 from .accounting_forms import ACCOUNTING_ROUTES
 from .accounting_frontend import dispatch_accounting
 from .accounting_rendering import render_accounting
@@ -377,6 +378,7 @@ from .validation_rendering import (
 )
 from .whole_match_routes import ACTIONS as WHOLE_MATCH_ACTIONS
 from .whole_match_routes import ORIGIN as WHOLE_MATCH_ORIGIN
+from .whole_match_routes import WATCH, batch_page
 from .workflow_operations import (
     FrontendWorkflowValidationError,
     back_review_v1,
@@ -466,6 +468,8 @@ _SESSION_DOWNLOAD_ROUTES = {
 }
 _STATEFUL_POST_ROUTES = {
     *WHOLE_MATCH_ACTIONS,
+    *session_batch_routes.ACTIONS,
+    "/learning/analysis-selection",
     *ACCOUNTING_ROUTES,
     *EVENT_ROUTES,
     *HISTORICAL_POST_ROUTES,
@@ -542,7 +546,9 @@ _COMMON_ERROR_MESSAGE_KEYS = {
 def _is_stateful_get_route(path: str) -> bool:
     return (
         automatic_html_route(path) or AUTOMATIC_VIEW.fullmatch(path) is not None or
-        path in ("/matches/whole-review", "/matches/whole-review/overview") or
+        batch_page(path) or WATCH.fullmatch(path) or
+        session_batch_routes.review_page(path) or session_batch_routes.WATCH.fullmatch(path) or
+        session_batch_routes.ORIGIN.fullmatch(path) or
         path == SAVED_MATCH_ROUTE or SAVED_MATCH_PATTERN.fullmatch(path) is not None or
         WHOLE_MATCH_ORIGIN.fullmatch(path) is not None or
         path
@@ -974,6 +980,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         return True
 
     def _page(self, route: str, *, status: int = HTTPStatus.OK) -> None:
+        if route in ("/live-play", "/record-after"):
+            from .primary_tasks import enter_recording_task
+            enter_recording_task(self.server.app_context, route)
+        elif route in ("/analyze", "/review"):
+            from .primary_tasks import retire_help
+            retire_help(self.server.app_context, active_only=True)
         manual = None
         if route == "/review":
             from .historical_review_retention import capture_manual_delivery
@@ -1150,6 +1162,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         last_valid_result_retained: bool = False,
         untranslated_workflow_body: bool = True,
         task_first: bool | None = None,
+        analysis: bool = False,
     ) -> None:
         with self.server.app_context.lock:
             state = self.server.app_context.browser_state
@@ -1168,6 +1181,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             extra_scripts=extra_scripts,
             untranslated_workflow_body=untranslated_workflow_body,
             task_first=feedback_identity is not None if task_first is None else task_first,
+            primary_task=("/review/recorded" if analysis else
+                self.server.app_context.recording_task or "/live-play" if route in (
+                    "/matches", "/sessions") else route),
         )
         families = (
             (feedback_family, "local_settings", "profile")
@@ -1770,7 +1786,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             return True
         if isinstance(error, LanguageContextConflict):
             route = getattr(self, "_profile_action_return_to", "")
-            if (route in {"/learning", "/matches/whole-review", "/matches/whole-review/overview"}
+            if (route == "/learning" or batch_page(route) or session_batch_routes.review_page(route)
+                    or session_batch_routes.ORIGIN.fullmatch(route)
                     or WHOLE_MATCH_ORIGIN.fullmatch(route)
                     or automatic_html_route(route)):
                 # A stale language form must not refresh or rebind these source-bound tasks.
@@ -2269,6 +2286,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
 
     def _recorded_review_page(self, *, status=HTTPStatus.OK):
         context = self.server.app_context
+        if status == HTTPStatus.OK:
+            from .primary_tasks import retire_help
+            retire_help(context, active_only=True)
         discoveries = {}
         for family in ("sessions", "matches"):
             with context.lock:
@@ -2295,9 +2315,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 locale=locale, active_sources=tuple(sources)), status=status,
             feedback_family="recordings", untranslated_workflow_body=False)
 
-    def _session_page(self, *, status: int = HTTPStatus.OK) -> None:
+    def _session_page(self, *, status: int = HTTPStatus.OK, session_origin=None) -> None:
         self._session_page_return = True
         active = self._active_session()
+        if active.review_page and status >= 400:
+            from .session_batch_web import render
+            render(self, active.review_page, status=status)
+            return
         with active.lock:
             expire_changed_cent_advice(self.server.app_context, active)
             if active.declaration_correction.selected is not None:
@@ -2342,6 +2366,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             self._retained_delivery_guard = live_delivery_guard(
                 self.server.app_context, active,
                 session_delivery_guard(self.server.app_context, active))
+            if session_origin:
+                from .session_batch_web import require_origin
+                previous = self._retained_delivery_guard
+                def guard():
+                    if previous:
+                        previous()
+                    require_origin(self.server.app_context, session_origin)
+                self._retained_delivery_guard = guard
             session_body = session_receipt(active, locale) + render_task_first_session_v1(
                 active, app_context=self.server.app_context, locale=locale,
                 show_operation_notice=status < HTTPStatus.BAD_REQUEST,
@@ -2397,6 +2429,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 with self.server.app_context.lock:
                     self.server.app_context.form_feedback.clear("matches")
             select_unified_match_position_v1(active, position)
+            if review and active.live.effort is not None:
+                active.live.configure(None)
             expire_changed_match_live(active)
             if debrief_evidence is not None:
                 apply_match_decision_selection(active, debrief_evidence.report.decision_index)
@@ -2429,7 +2463,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             select_unified_match_position_v1(active, position)
             view = project_task_first_match_v1(active.workspace, selected_position=position)
             state = build_task_first_match_page_state_v1(active, view, report_id=report_id)
-            if not review and state["game"] is not None:
+            if (not review and state["game"] is not None
+                    and self.server.app_context.recording_task != "/record-after"):
                 state["live"] = replace(active.live)
                 state["live_bindings"] = {route: match_live_binding(active, route)
                                           for route in MATCH_LIVE_ROUTES}
@@ -2597,6 +2632,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             feedback_family="matches",
             feedback_identity=active,
             last_valid_result_retained=report_id is not None,
+            analysis=review,
             untranslated_workflow_body=False,
         )
 
@@ -2816,6 +2852,33 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         return False
 
     def _stateful_get(self, path: str) -> bool:
+        if session := session_batch_routes.ORIGIN.fullmatch(path):
+            from .session_batch_web import render, require_origin
+            if not session["destination"]:
+                return handle_saved_analysis_get(self, path, origin=session)
+            with self.server.app_context.managed_stateful.session_lifecycle_lock:
+                try:
+                    active = require_origin(self.server.app_context, session)
+                    if session["destination"] in ("overview", "review"):
+                        render(self, (session_batch_routes.OVERVIEW
+                            if session["destination"] == "overview" else
+                            session_batch_routes.DECISIONS), origin=session)
+                    else:
+                        active.review_page = None
+                        self._session_page(session_origin=session)
+                except (RecordingOpenConflict, OSError, ValueError, SkatMindError):
+                    route = "/sessions/saved-analyses/" + session["token"]
+                    locale = self._frontend_state().locale
+                    self._content_page("/sessions", return_to=route, status=409, analysis=True,
+                        title=translate_frontend_message_v1(locale, "batch.unavailable"),
+                        content=f'<p><a href="{route}">'
+                        + escape(translate_frontend_message_v1(locale, "saved_analysis.open"))
+                        + '</a></p>', untranslated_workflow_body=False)
+            return True
+        if session_batch_routes.review_page(path) or session_batch_routes.WATCH.fullmatch(path):
+            from .session_batch_web import render
+            render(self, path)
+            return True
         origin = WHOLE_MATCH_ORIGIN.fullmatch(path)
         if origin is not None:
             if origin["destination"]:
@@ -2824,7 +2887,11 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             else:
                 handle_saved_analysis_get(self, path, origin=origin)
             return True
-        if path in ("/matches/whole-review", "/matches/whole-review/overview"):
+        if watch := WATCH.fullmatch(path):
+            from .whole_match_web import watch_run
+            watch_run(self, watch)
+            return True
+        if batch_page(path):
             from .whole_match_web import dispatch
             dispatch(self, path)
             return True
@@ -2880,6 +2947,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             self._managed_category_page("corpora", independent=True)
             return True
         if path == "/sessions/current":
+            self._active_session().review_page = None
             self._session_page()
             return True
         if path == "/matches/new":
@@ -3184,12 +3252,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     "decision_selection": values.get("decision_selection", "")})
             except ValueError as error:
                 raise RecordedRolloutFormError("invalid_selection") from error
+            destination = (session_batch_routes.DECISIONS + "/" + selection if active.review_page
+                           else "/sessions/current")
             self._rollout_execution_started = True
             notice = execute_recorded_session_decision_v1(
                 self.server.app_context, active, selection=selection, rollout_form=values,
             )
             if notice is None:
-                self._redirect("/sessions/current#session-rollout-result")
+                self._redirect(destination + "#session-rollout-result")
             else:
                 self._retain_form_feedback(
                     self._current_form_definition,
@@ -3199,10 +3269,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             return
         if path == "/sessions/review-decision":
             selection = parse_recorded_review_selection_v1(values)
+            destination = (session_batch_routes.DECISIONS + "/" + selection if active.review_page
+                           else "/sessions/current")
             execute_recorded_session_decision_v1(
                 self.server.app_context, active, selection=selection,
             )
-            self._redirect("/sessions/current#session-result")
+            self._redirect(destination + "#session-result")
             return
         if path == "/sessions/analyze":
             export_options = build_session_position_options_from_form_v1(values)
@@ -3301,6 +3373,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if active.state.revision != revision:
             raise StaleFrontendWorkflowRevisionError()
         if path in LIVE_ROUTES:
+            if self.server.app_context.recording_task == "/record-after":
+                raise StaleFrontendWorkflowRevisionError()
             configure_live(active, path, values)
             return "/sessions/current#session-recording"
         binding = values.pop("input_binding", None)
@@ -3858,6 +3932,12 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         elif path in WHOLE_MATCH_ACTIONS:
             from .whole_match_web import dispatch
             dispatch(self, path, values)
+        elif path in session_batch_routes.ACTIONS:
+            from .session_batch_web import submit
+            submit(self, path, values)
+        elif path == "/learning/analysis-selection":
+            from .saved_match_analyses import change_selection
+            change_selection(self, values)
         elif path == "/sessions/retry-saving":
             from .session_evidence_retention import save_pending_session
             active = self._bound_active("sessions", values)

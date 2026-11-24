@@ -34,13 +34,13 @@ class Controller:
     generation: int = 0
     plan: tuple | None = None
 
-    def plays(self, workspace):
+    def plays(self, workspace, game=None):
         with self.lock:
-            if self.plan and self.plan[0] is workspace:
-                return self.plan[1]
-        rows = own_plays(workspace)
+            if self.plan and self.plan[0] is workspace and self.plan[1] == game:
+                return self.plan[2]
+        rows = own_plays(workspace, game)
         with self.lock:
-            self.plan = (workspace, rows)
+            self.plan = (workspace, game, rows)
         return rows
 
 
@@ -48,9 +48,9 @@ def progress_file(app, active):
     return ProgressFile(app.managed_home.root, active.path.name)
 
 
-def proof(active, state):
+def proof(active, state, *, requested_game=None):
     source = (active.handle, active.capture.content_fingerprint, file_identity(active.path),
-              state["run"] if state else None)
+              state["run"] if state else None, state.get("game") if state else None, requested_game)
     return hmac.digest(active.card_entry_key, repr(source).encode(), "sha256").hex()
 
 
@@ -90,7 +90,7 @@ def evidence_view(app, workspace, source, options):
                     or current.manifest != snapshot.manifest
                     or not identities.issubset(current.available_evidence_ids)):
                 raise RecordingOpenConflict()
-        yield compatible, snapshot.manifest.space_id, validate
+        yield compatible, snapshot.manifest, validate
 
 
 def row_options(rows, state):
@@ -228,7 +228,7 @@ class Worker:
         self.pending = None
 
     def process(self):
-        rows = self.app.whole_match.plays(self.workspace)
+        rows = self.app.whole_match.plays(self.workspace, self.state.get("game"))
         options = row_options(rows, self.state)
         done = self.reconcile(options)
         if self.pending:
@@ -279,7 +279,7 @@ class Worker:
                 release_local_lease(self.lease)
 
 
-def control(app, active, action, binding, *, configuration=None):
+def control(app, active, action, binding, *, configuration=None, game=None):
     owner = app.whole_match
     progress = progress_file(app, active)
     with active.capture.lock, app.lock, owner.lock:
@@ -288,7 +288,9 @@ def control(app, active, action, binding, *, configuration=None):
             raise RecordingOpenConflict()
         require_recording_fresh_v1(active, "matches")
         state = progress.read()
-        if not hmac.compare_digest(proof(active, state), binding):
+        if game is not None and (action != "start" or type(game) is not int or not 1 <= game <= 36):
+            raise RecordingOpenConflict()
+        if not hmac.compare_digest(proof(active, state, requested_game=game), binding):
             raise RecordingOpenConflict()
         if action == "cancel":
             worker = owner.worker
@@ -307,9 +309,13 @@ def control(app, active, action, binding, *, configuration=None):
             pending = None
             file = file_identity(active.path)
             if action == "start":
+                old = owner.pending
+                if (old and state and old[0] is active and old[1] is active.workspace
+                        and old[2] is app.saved_match_analyses and old[3] == state["run"]):
+                    raise RecordingOpenConflict()
                 fresh = progress.initial(document.content_fingerprint, file, secrets.token_hex(32),
-                    *configuration)
-                if (state and all(fresh[k] == state[k] for k in
+                    *configuration, game=game)
+                if (state and state.get("game") == game and all(fresh[k] == state[k] for k in
                                   ("source", "file", "settings", "supplements"))):
                     raise RecordingOpenConflict()  # Use explicit Resume on this job.
                 state = fresh
@@ -324,7 +330,7 @@ def control(app, active, action, binding, *, configuration=None):
                 state.update(run=secrets.token_hex(32), phase="working")
             worker = Worker(app, active, document, progress, state, lease, pending)
             if file_identity(active.path) != file or not hmac.compare_digest(
-                    proof(active, progress.read()), binding):
+                    proof(active, progress.read(), requested_game=game), binding):
                 raise RecordingOpenConflict()
             progress.write(state)
             owner.generation += 1

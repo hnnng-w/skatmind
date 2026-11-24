@@ -117,7 +117,7 @@ def session_guidance(handler, active, values, *, export_options=None):
         remember_controls(active, "session.analyze" if export_options is not None else
             "session.review_whole_game", session_scope(active) if export_options is not None else
             (*session_scope(active), selection), values)
-    send_guidance(handler, value, guard, "/sessions/current")
+    send_guidance(handler, value, guard, active.review_page or "/sessions/current")
     return True
 
 

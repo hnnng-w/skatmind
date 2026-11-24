@@ -1,7 +1,12 @@
 # Home and recorded-game review navigation
 
-Issue #324 supersedes the five-task presentation below with one ordinary **Analyze**
-entry at `/review/recorded`. Home has three tasks in two groups; main navigation is
+The [#333 task and scope amendment](match_game_navigation.md#task-and-analysis-scope-amendment-333)
+keeps one ordinary **Analyze** entry and replaces the two recording-format
+entries with **Live play** and **Retrospective recording**. Both tasks offer both
+formats and use the same saved recordings.
+
+Issue #324 superseded the five-task presentation below with one ordinary **Analyze**
+entry at `/review/recorded`. Home had three tasks in two groups; main navigation was
 Home, Match recording, individual recording, Analyze, Settings. The existing chooser
 links to single-situation `/analyze`, manual completed-game `/review`, and secondary
 `/learning`. Its source lists and native `POST /review/open-recording` owner remain.

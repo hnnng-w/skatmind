@@ -14,7 +14,7 @@ from .task_first_match_rendering import (
 )
 from .task_first_rendering import disclosure, hidden, paragraph, section, select_field
 from .unplayed_card_rendering import render_unplayed_cards
-from .whole_match_routes import PAGE
+from .whole_match_routes import PAGE, WHOLE_SETUP
 
 
 def render_match_analysis_v1(state, view, handle, locale):
@@ -85,7 +85,9 @@ def render_match_review_v1(state, view, *, managed_handle, locale, transfer=""):
     body += match_navigation(locale, state.get("display_name") or state["match"]["title"] or
         text(locale, "task.identity.matches"), position, recording=f"/matches/position/{position}#match-recording",
         decision=decision)
-    body += '<p><a href="' + PAGE + '">' + translated(locale, "whole_review.title") + '</a></p>'
+    body += '<p><a href="' + WHOLE_SETUP + '">' + translated(locale, "whole_review.title") + '</a></p>'
+    body += f'<p><a href="{PAGE}/game/{position}">' + translated(
+        locale, "batch.game", number=position) + '</a></p>'
     body += '<h2>' + translated(locale, "match_nav.single") + '</h2>'
     body += '<form method="get" class="match-review-selector" action="/matches/review/' + str(position) + '">'
     body += select_field(locale, "position", "recordings.match.select", tuple(

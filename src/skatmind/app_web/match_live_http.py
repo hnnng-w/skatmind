@@ -25,6 +25,8 @@ def _apply(handler, app, active, path, body, content_type):
         values = handler._text_form(body, content_type)
         handler._bound_active("matches", values)
         if path in MATCH_LIVE_ROUTES:
+            if app.recording_task == "/record-after":
+                raise StaleFrontendWorkflowRevisionError()
             configure_match_live(active, path, values)
             return f"/matches/position/{active.selected_position}#match-recording"
         return dispatch_match_recovery(app, active, path, values)

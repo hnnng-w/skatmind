@@ -83,10 +83,14 @@ def test_ten_decisions_separate_basic_actions_and_technical_controls(
         assert [node["attrs"]["value"] for node in technical[1:]] == ["100", "0"]
         assert all("required" in node["attrs"] for node in technical[1:])
         assert "novalidate" in form["attrs"]  # Mode-aware server validation owns these fields.
-        primary, secondary = descendants(tree, actions, "button")
+        primary, = descendants(tree, actions, "button")
         assert primary["attrs"]["class"] == "primary" and "form" not in primary["attrs"]
+        row = next(p for p in form["parents"] if p["tag"] == "li")
+        legacy, = [n for n in descendants(tree, row, "form") if n is not form]
+        disclosure = next(p for p in legacy["parents"] if p["tag"] == "details")
+        assert "open" not in disclosure["attrs"]
+        secondary, = descendants(tree, legacy, "button")
         assert secondary["attrs"]["class"] == "secondary"
-        legacy = tree.by_id(secondary["attrs"]["form"])
         assert legacy["attrs"]["action"] == "/sessions/review-decision"
         assert not descendants(tree, legacy, "form") and not descendants(tree, form, "form")
         assert len([node for node in owned if node["attrs"].get("class") == "primary"]) == 1

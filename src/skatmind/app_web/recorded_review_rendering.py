@@ -10,6 +10,7 @@ from .task_first_rendering import hidden, paragraph
 def render_recorded_review_chooser_v1(discoveries, *, profile, locale, active_sources=()):
     """Render strict discovery classifications, never decision eligibility or Requests."""
     body = '<div id="recorded-review-chooser">' + paragraph(locale, "recordings.introduction")
+    body += paragraph(locale, "batch.scope_help")
     body += paragraph(locale, "recordings.lifetime")
     body += '<p class="entry-actions"><a class="button-link secondary" href="/analyze">'
     body += translated(locale, "entry.decision.heading") + '</a> '

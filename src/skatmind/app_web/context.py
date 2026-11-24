@@ -84,6 +84,8 @@ class AppWebContextV1:
     automatic_learning_ui: object = field(default_factory=_new_automatic_learning_ui, repr=False)
     historical_reviews: object = field(default_factory=_new_historical_reviews, repr=False)
     whole_match: object = field(default_factory=_new_whole_review, repr=False)
+    session_batch: object = field(default_factory=_new_whole_review, repr=False)
+    recording_task: str | None = None
 
     def __post_init__(self) -> None:
         from .stateful_context import ManagedStatefulContextV1

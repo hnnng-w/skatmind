@@ -443,7 +443,10 @@ def render_task_first_session_v1(
                 current += paragraph(locale, f"task.session.phase.{facts.phase}")
             current += paragraph(locale, "task.session.perspective",
                                  player=player_name(locale, facts.players, facts.local_player_id))
-        if recorded.local_play_count and not ended:
+        separate = app_context is not None and app_context.recording_task is not None
+        if separate and not ended:
+            current += '<p><a href="/sessions/decisions">' + translated(locale, "navigation.review") + '</a></p>'
+        elif recorded.local_play_count and not ended:
             current += '<p><a href="#recorded-decisions">' + translated(
                 locale, "recorded_review.selection" if recorded.decisions else "recorded_review.inspect") + '</a></p>'
         primary = view.workflow.primary_action
@@ -455,6 +458,8 @@ def render_task_first_session_v1(
         task_content = '<h2>' + _task_heading(locale, view) + '</h2>' + controls
         if ended:
             task_content = _completion_content(locale, view, progress, recorded)
+            if separate:
+                task_content = task_content.replace('href="#recorded-decisions"', 'href="/sessions/decisions"')
         elif not set_entry and not live_play:
             task_content = ('<div class="recording-progress-layout"><div>' + task_content
                             + '</div>' + render_recorded_summary(progress, locale) + '</div>')
@@ -466,7 +471,8 @@ def render_task_first_session_v1(
         normal += ('<div id="session-recording"' + variant + ' tabindex="-1"><div id="session-card-feedback"></div>'
             + '<!-- operation-feedback -->'
             + '<section class="panel">' + task_content + '</section></div>')
-        normal += live_controls(context, locale, ended)
+        if app_context is None or app_context.recording_task != "/record-after":
+            normal += live_controls(context, locale, ended)
         if facts.declaration is not None:
             normal += accepted_declaration_summary(locale,
                 build_serializable_game_declaration(facts.declaration),
@@ -479,7 +485,8 @@ def render_task_first_session_v1(
         normal += render_session_correction(context, locale)
         normal += render_unplayed_cards(unplayed, locale,
             original_skat=facts.known_skat or None, discarded_cards=facts.discarded_cards or None)
-        normal += render_recorded_session_decisions_v1(context, locale=locale, view=recorded)
+        if not separate:
+            normal += render_recorded_session_decisions_v1(context, locale=locale, view=recorded)
         normal += render_recorded_history(progress, locale, anchor_prefix="session-play")
         entered = ""
         if ended:
@@ -536,8 +543,9 @@ def render_task_first_session_v1(
             _command(context, locale, view, kind, app=app_context)) for kind in view.workflow.secondary_actions
             if kind not in correction_links)
         normal += disclosure(locale, "task.session.optional", optional)
-        normal += _analysis_controls(context, locale, view)
-        normal += _analysis_result(context, locale, game_label or text(locale, "page.session_current.title"))
+        if not separate:
+            normal += _analysis_controls(context, locale, view)
+            normal += _analysis_result(context, locale, game_label or text(locale, "page.session_current.title"))
         corrections = paragraph(locale, "task.session.correction_help")
         corrections += ''.join(disclosure(locale, f"task.command.{kind}",
             _command(context, locale, view, kind, correction=True, app=app_context))

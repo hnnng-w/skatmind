@@ -89,7 +89,7 @@ def test_home_session_real_review_round_trip_keeps_exact_context_and_bytes(
     form = chooser_form(page, "sessions")
     assert set(form["values"]) == {"family", "handle", "generation", "_frontend_form_instance"}
     response = browser.submit(form)
-    assert response[1]["location"] == "/sessions/current#recorded-decisions"
+    assert response[1]["location"] == "/sessions/decisions"
     follow(browser, response)
     assert not calls
     _, review_form = review_first(browser)

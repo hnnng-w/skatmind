@@ -60,8 +60,9 @@ def test_complete_policy_catalog_and_packaged_projection_modules():
         assert forbidden not in script
     selection_start = script.index("function initializeMatchDecisionSelection(")
     selection_end = script.index('\ndocument.addEventListener("DOMContentLoaded"', selection_start)
-    assert script.count("fetch(") == 1
+    assert script.count("fetch(") == 2
     assert "fetch(" in script[selection_start:selection_end]
+    assert 'fetch(`${watch.dataset.batchWatch}/${part}`' in script[selection_end:]
     assert '"X-SkatMind-Selection": "prepare"' in script[selection_start:selection_end]
 
 

@@ -202,9 +202,7 @@ def test_browser_german_does_not_write_and_localizes_shell_home_about_and_errors
     assert "Welchen Bereich brauche ich?" not in home_html
     assert "Benötigte Angaben" not in home_html
     assert "Analysieren" in home_html
-    assert home_groups.index("36er-Match erfassen") < home_groups.index(
-        "Einzelspiel erfassen"
-    )
+    assert home_groups.index("Live spielen") < home_groups.index("Nachträglich erfassen")
     assert 'href="/review/recorded"' in home_groups
 
     status, _headers, about = _request(server, "GET", "/about", headers=german)

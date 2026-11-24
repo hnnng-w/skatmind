@@ -12,7 +12,11 @@ from .automatic_learning_routes import automatic_html_route
 from .frontend_profile_codec import build_local_frontend_profile_v1
 from .frontend_profile_operations import is_safe_frontend_return_path_v1
 from .historical_review_routes import historical_html_route
-from .whole_match_routes import ORIGIN
+from .session_batch_routes import ORIGIN as SESSION_ORIGIN
+from .session_batch_routes import OVERVIEW as SESSION_OVERVIEW
+from .session_batch_routes import PAGE as SESSION_BATCH
+from .session_batch_routes import review_page
+from .whole_match_routes import ORIGIN, batch_page, game_scope
 from .workflow_state import StaleFrontendWorkflowRevisionError
 
 if TYPE_CHECKING:
@@ -34,6 +38,7 @@ class LanguageSourceV1:
     automatic_view: object | None = None
     historical_delivery: object | None = None
     whole_match_binding: str | None = None
+    session_batch_binding: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,7 +123,8 @@ class LanguageContextV1:
 
 def capture_language_source_v1(context: AppWebContextV1, route: str, *,
                                automatic_view=None, historical_delivery=None,
-                               whole_match_binding=None) -> LanguageSourceV1:
+                               whole_match_binding=None, session_batch_binding=None
+                               ) -> LanguageSourceV1:
     """Snapshot immutable source references under existing locks, with no I/O.
 
     Never acquire a Product lock while holding the app or profile lock. Retained
@@ -127,8 +133,18 @@ def capture_language_source_v1(context: AppWebContextV1, route: str, *,
     """
     if not is_safe_frontend_return_path_v1(route):
         raise ValueError("Language origin must be a safe HTML route.")
-    if (route in ("/matches/whole-review", "/matches/whole-review/overview")
-            or ORIGIN.fullmatch(route)):
+    if route in (SESSION_BATCH, SESSION_OVERVIEW) or SESSION_ORIGIN.fullmatch(route):
+        with context.lock:
+            active = context.managed_stateful.active_session
+            if active is None:
+                raise LanguageContextConflict
+            feedback = context.form_feedback._feedback.get("sessions")
+            rejected = (feedback[1] if feedback and feedback[0] is active and
+                        feedback[1].form_key == "session.batch.start" else None)
+            return LanguageSourceV1(route, (active, active.document, context.saved_match_analyses,
+                rejected), (context.session_batch.generation, active.generation),
+                session_batch_binding=session_batch_binding)
+    if batch_page(route) or ORIGIN.fullmatch(route):
         with context.lock:
             match = context.managed_stateful.active_match
             if match is None:
@@ -194,6 +210,11 @@ def capture_language_source_v1(context: AppWebContextV1, route: str, *,
             raise LanguageContextConflict from error
     with context.lock:
         managed = context.managed_stateful
+        if route in ("/live-play", "/record-after", "/sessions", "/matches") or route.startswith(
+                ("/sessions/", "/matches/")):
+            values.append(context.recording_task)
+        if review_page(route):
+            values.append(context.session_batch.generation)
         session = managed.active_session
         match = managed.active_match
         learning = managed.active_learning
@@ -237,14 +258,14 @@ def capture_language_source_v1(context: AppWebContextV1, route: str, *,
                 context, setup_family, context.frontend_profile.document))
         # Reading the private binding avoids current()'s invalidation side effect.
         feedback = context.form_feedback._feedback.get(feedback_family)
-        expected_identity = (session if route == "/sessions/current" else
+        expected_identity = (session if route == "/sessions/current" or review_page(route) else
             match if route == "/matches/current" or route.startswith(
                 ("/matches/position/", "/matches/review/", "/matches/reports/")) else
             learning if learning_page else None)
         if feedback is not None and feedback[0] is not expected_identity:
             feedback = None
         references.append(None if feedback is None else feedback[1])
-    if route == "/sessions/current":
+    if route == "/sessions/current" or review_page(route):
         if session is None:
             raise LanguageContextConflict
         with session.lock:
@@ -359,12 +380,23 @@ def validate_language_source_v1(
     if (check_files or automatic_html_route(source.route) or historical_html_route(source.route)
             or source.route == "/learning"):
         _require_files(context, source.route, automatic_view=source.automatic_view)
+        if source.session_batch_binding is not None:
+            from .session_batch import progress_file, proof
+            session = source.references[0]
+            with session.lock:
+                try:
+                    binding = proof(session, progress_file(context, session).read())
+                except (ValueError, OSError) as error:
+                    raise LanguageContextConflict from error
+                if not hmac.compare_digest(binding, source.session_batch_binding):
+                    raise LanguageContextConflict
         if source.whole_match_binding is not None:
             from .whole_match_job import progress_file, proof
             match = source.references[0]
             with match.capture.lock:
                 try:
-                    binding = proof(match, progress_file(context, match).read())
+                    binding = proof(match, progress_file(context, match).read(),
+                                    requested_game=game_scope(source.route))
                 except (ValueError, OSError) as error:
                     raise LanguageContextConflict from error
                 if not hmac.compare_digest(binding, source.whole_match_binding):
@@ -383,6 +415,13 @@ def validate_language_page_v1(
 
 
 def _require_files(context: AppWebContextV1, route: str, *, automatic_view=None) -> None:
+    if session := SESSION_ORIGIN.fullmatch(route):
+        from .session_batch_web import require_origin
+        try:
+            require_origin(context, session)
+        except (OSError, ValueError, RuntimeError) as error:
+            raise LanguageContextConflict from error
+        return
     if origin := ORIGIN.fullmatch(route):
         from skatmind.errors import SkatMindError
 
@@ -457,7 +496,7 @@ def _require_files(context: AppWebContextV1, route: str, *, automatic_view=None)
         session, match, learning = (
             managed.active_session, managed.active_match, managed.active_learning)
     try:
-        if route == "/sessions/current" and session is not None:
+        if (route == "/sessions/current" or review_page(route)) and session is not None:
             with session.lock:
                 validate_managed_direct_child_path_v1(session.category_root, session.path,
                                                      expected_kind="file")
@@ -465,8 +504,7 @@ def _require_files(context: AppWebContextV1, route: str, *, automatic_view=None)
                 if loaded.content_fingerprint != session.document.content_fingerprint:
                     raise LanguageContextConflict
         if (route.startswith(("/matches/position/", "/matches/review/", "/matches/reports/"))
-                or route in ("/matches/current", "/matches/whole-review",
-                             "/matches/whole-review/overview")):
+                or route == "/matches/current" or batch_page(route)):
             if match is None:
                 raise LanguageContextConflict
             with match.capture.lock:

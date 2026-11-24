@@ -52,6 +52,7 @@ from .profile_driven_creation import (
 )
 from .recorded_review_opening import OPEN_RECORDING_ROUTE, RECORDED_REVIEW_ROUTE
 from .recording_deletion import DELETION_BODY_LIMIT, DELETION_PAGE, DELETION_POST_ROUTES
+from .session_batch_routes import ACTIONS as SESSION_BATCH_ACTIONS
 from .session_declaration_correction import CORRECTION_BODY_LIMIT, CORRECTION_ROUTES
 from .session_live_advice import LIVE_ROUTES
 from .whole_match_routes import ACTIONS as WHOLE_MATCH_ACTIONS
@@ -1560,6 +1561,20 @@ for _route in WHOLE_MATCH_ACTIONS:
 _FORMS.append(_definition(
     "session.retry_saving", "/sessions/retry-saving", page="/sessions/current", active="sessions",
     body_limit=8192, value_free=True, success="contextual"))
+_FORMS.append(_definition("learning.analysis_selection", "/learning/analysis-selection",
+    page="/learning", body_limit=4096, value_free=True, success="contextual"))
+for _route in SESSION_BATCH_ACTIONS:
+    _action = _route.rsplit("/", 1)[1]
+    _FORMS.append(_definition("session.batch." + _action, _route,
+        ("binding", "objective", "analysis_effort", "random_seed", "analysis_bid_value",
+         "analysis_matadors") if _action == "start" else (),
+        page="/sessions/current", active="sessions", body_limit=4096, value_free=_action != "start",
+        choice_overrides={"objective": ("played_game_goal", "complete_settlement")},
+        control_overrides={"objective": "select"},
+        label_overrides={"objective": "validation.field.rollout_objective",
+                        "analysis_bid_value": "validation.field.bid_value",
+                        "analysis_matadors": "validation.field.matadors"},
+        success="contextual"))
 _FORMS.extend(_definition("automatic." + action, route,
     ("confirm_apply",) if action == "confirm" else (), page=AUTOMATIC_PAGE,
     active="automatic", success="contextual", body_limit=AUTOMATIC_BODY_LIMIT,
@@ -1639,9 +1654,11 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             "/matches/select-decision",
             "/matches/retry-saving",
             *WHOLE_MATCH_ACTIONS,
+            *SESSION_BATCH_ACTIONS,
             "/matches/transfer-report",
             *RECOVERY_ROUTES,
             "/learning/create",
+            "/learning/analysis-selection",
             LEARNING_ADD_ROUTE,
             "/learning/open",
             "/learning/api/v1/operations",

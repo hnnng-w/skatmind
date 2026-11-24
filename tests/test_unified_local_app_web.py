@@ -265,6 +265,8 @@ def test_all_authenticated_routes_render_shared_navigation_and_one_h1(
         assert '<a class="skip-link" href="#main-content">Skip to main content</a>' in html
         assert "<header" in html and "<nav" in html and "<main" in html and "<footer" in html
         parent = "/review/recorded" if route in {"/analyze", "/review", "/learning"} else route
+        if route in ("/matches", "/sessions"):
+            parent = "/live-play"
         assert html.count('aria-current="page"') == int(parent in APP_NAVIGATION_ROUTE_PATHS)
         if parent in APP_NAVIGATION_ROUTE_PATHS:
             assert f'href="{parent}" aria-current="page"' in html
@@ -293,10 +295,8 @@ def test_home_has_exact_tasks_local_no_cloud_copy_and_honest_status(
     assert html.count('class="task-action"') == 3
     assert '<details class="task-disclosure"' not in html
     assert "Which area do I need?" not in html
-    assert groups_html.index("Record a 36-game Match") < groups_html.index(
-        "Record an individual game"
-    )
-    assert groups_html.index("Record an individual game") < groups_html.index(
+    assert groups_html.index("Live play") < groups_html.index("Retrospective recording")
+    assert groups_html.index("Retrospective recording") < groups_html.index(
         "Analyze"
     )
     assert "Available now." not in html

@@ -96,7 +96,7 @@ def open_recording_for_review_v1(context, values: dict[str, str]) -> str:
                     else:
                         managed.activate_match(active)
                     context.form_feedback.clear(family)
-            location = ("/sessions/current#recorded-decisions" if family == "sessions"
+            location = ("/sessions/decisions" if family == "sessions"
                         else f"/matches/review/{active.selected_position}")
         if not same and previous is not None:
             old_lock = previous.lock if family == "sessions" else previous.capture.lock

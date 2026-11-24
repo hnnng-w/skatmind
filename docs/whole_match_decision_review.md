@@ -446,3 +446,7 @@ only the matador field starts the Quick review and produces a computed original;
 replaying the consumed retry or old control returns 409. The complete
 `test_whole_match_web`, `test_whole_match_job`, `test_frontend_validation_preservation`
 and `test_language_switch_context` modules passed 96 tests in 290.79 s.
+
+#333 adds a [numbered-game scope and passive progress display](match_game_navigation.md#task-and-analysis-scope-amendment-333)
+over the same worker, options and retained originals. Existing version-1
+checkpoints continue as whole-Match runs.

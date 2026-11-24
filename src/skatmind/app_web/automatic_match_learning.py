@@ -150,9 +150,11 @@ def _selection(inventory, resumed):
         exclusions[key] = ExclusionV1(source=key, reason="ambiguous")
     selected = tuple(value for value in selected if value[1].source_version.source not in untrusted)
     ids = tuple(value[1].source_version.identity for value in selected)
+    opted_out = frozenset(manifest.excluded_analysis_ids)
     outcomes = tuple(EvidenceOutcome(evidence_id=entry.identity,
         status=(states[entry.envelope] if states[entry.envelope] != "available" else
-                "selected" if entry.source_version_id in ids else "non_current"))
+                "non_current" if entry.source_version_id not in ids else
+                "explicit" if entry.identity in opted_out else "selected"))
         for entry in sorted(manifest.evidence, key=lambda entry: entry.identity))
     exclusions = tuple(sorted(exclusions.values(), key=lambda row: row.source.identity))
     identity = input_fingerprint(inventory.rows, outcomes, exclusions, ids)
@@ -292,6 +294,8 @@ class AutomaticMatchLearningServiceV1:
         blocked = {row.source for row in inventory.rows if row.status != "selected"}
         if any(sources[key].source_version.source in blocked
                for key in generation.recipe.source_version_ids):
+            return AutomaticMatchServiceResult("excluded", generation), resumed, inventory
+        if set(manifest.excluded_analysis_ids).intersection(generation.recipe.evidence_ids):
             return AutomaticMatchServiceResult("excluded", generation), resumed, inventory
         _, _, _, identity = _selection(inventory, resumed)
         outdated = identity != generation.input_fingerprint or ref != manifest.current_generation
