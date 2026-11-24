@@ -243,7 +243,7 @@ def test_retained_evaluation_survives_navigation_refresh_language_duplicate_and_
     assert save_match_workspace_file_v1(first_path,
         build_match_workspace_persistence_document_v1(first),
         expected_content_fingerprint=None).status == "saved"
-    original = path.read_bytes()
+    recordings = saved_bytes(path.parent)
     calls = Counter()
 
     def counted(name, real):
@@ -279,10 +279,15 @@ def test_retained_evaluation_survives_navigation_refresh_language_duplicate_and_
     current = active.corpus.store.document.catalog.current_matches
     assert tuple(learning.build_unified_learning_state_v1(active)["prepared"][key] for key in (
         "observed_decision_count", "record_count", "skipped_decision_count")) == (6, 2, 4)
-    # Learning is secondary under Analyze; follow each emitted link without opening a source.
-    for route in ("/", "/matches", "/review/recorded", "/learning"):
-        assert f'href="{route}"' in page
-        page = browser.page(route)
+    # Visit the Match list from a recording task and Learning from Analyze.
+    for landmark, route in (
+        ("nav", "/"), ("nav", "/live-play"), ("nav", "/record-after"),
+        ("main", "/matches"), ("nav", "/review/recorded"), ("main", "/learning"),
+    ):
+        [href] = [n["attrs"]["href"] for n in Hierarchy(page).nodes
+                  if n["tag"] == "a" and n["attrs"].get("href") == route
+                  and any(p["tag"] == landmark for p in n["parents"])]
+        page = browser.page(href)
         assert downloads(browser) == retained
     # HTTP lifetime probe; native browser Back is verified separately. The list's
     # explicit Open form is a strict reopen, not a passive current-page link.
@@ -310,7 +315,7 @@ def test_retained_evaluation_survives_navigation_refresh_language_duplicate_and_
     assert 'data-operation-feedback' not in page
     assert active.corpus.prepared_artifacts is artifacts and downloads(browser) == retained
     assert active.corpus.store.document.catalog.current_matches == current
-    assert saved_bytes(active.path) == files and path.read_bytes() == original
+    assert saved_bytes(active.path) == files and saved_bytes(path.parent) == recordings
     assert localized_server.app_context.managed_stateful.active_match is None
     assert calls == Counter(imports=2, preparations=1, catalog_saves=1)
     # A genuine later Add keeps Current but invalidates the retained preparation.
