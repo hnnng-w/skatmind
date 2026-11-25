@@ -257,20 +257,20 @@ Each part should:
 * keep existing behavior backward-compatible where possible
 * follow [the local/CI validation policy](faster_validation.md) before manual review
 
-The no-argument Full command is (routine Quick is explicit and CI remains required):
+After complete affected modules and necessary targeted source verification, finish with:
 
 ```powershell
-.\scripts\check.ps1
+.\scripts\check.ps1 -Mode Quick
 ```
 
-Full covers all of the following; Quick covers only the first three:
+Quick runs Ruff, packaged-schema parity and input examples. Before Quick:
 
-* Ruff checks
-* packaged-schema filename and byte parity
-* input JSON schema validation
-* generated output JSON schema validation
-* Wheel, sdist, and clean-install distribution validation
-* pytest regression tests
+* use two file-grouped workers with restarts disabled for affected non-exclusive modules;
+* run affected exclusive modules serially after worker exit;
+* check tracked, new-file and index whitespace without staging.
+
+Local Full or equivalent comprehensive runs require separate authorization for that specific
+run. Report **Locally validated; hosted acceptance pending.** Complete gates run on main push.
 
 ## Important assumptions
 
@@ -3151,3 +3151,14 @@ When continuing in a new ChatGPT thread, provide:
 3. the current roadmap
 4. the next desired milestone
 5. the instruction that code and program output should remain in English while discussion can remain in German
+
+## Issue #334 grouped format selection and direct Cent entry
+
+Starting point: `feat/334-format-cent-entry`, `01acbf4670136cf1c485d23cd82d4d2443c1ccb5`.
+See [current entry, recovery and the narrow installed check](mode_accounting_and_cent_rounds.md#direct-cent-entry-334).
+Previously attached games remain bound. The ordinary start creates its own game;
+there is no independent saved-game picker at start or at later unbound positions.
+Keep #334 open for publication, partial development feedback, independent
+published-source review, fast-forward integration and main push, both successful
+exact-commit main gates, and the affected installed check. #333 is complete;
+#208 UAT and the comprehensive architecture/code review remain separate.

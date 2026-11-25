@@ -44,10 +44,10 @@ Run:
 python scripts/validate_examples_schema.py
 ```
 
-The project check script also runs this validation:
+The routine Quick check includes input-example validation:
 
 ```powershell
-.\scripts\check.ps1
+.\scripts\check.ps1 -Mode Quick
 ```
 
 ## Packaged schema resources
@@ -68,7 +68,7 @@ python scripts/sync_packaged_schemas.py --check
 ```
 
 Check mode validates exact filename-set and byte parity and never modifies
-files. The full local check and CI run it before Root/example validation.
+files. Local Quick and CI run it before Root/example validation.
 
 The public Python API loads only the packaged mirror at runtime through
 `importlib.resources`. Loading remains lazy and does not depend on the current
@@ -150,17 +150,11 @@ Each scenario invokes the real CLI and output writer, writes a temporary output
 file, parses that generated file, checks the scenario-specific output branch,
 and validates the result against `schemas/output.schema.json`.
 
-Run:
-
-```powershell
-python scripts/validate_generated_outputs_schema.py
-```
-
-The project check script also runs this validation:
-
-```powershell
-.\scripts\check.ps1
-```
+The automatic main-push generated-output gate runs
+`python scripts/validate_generated_outputs_schema.py`. Quick does **not** run
+this matrix. For a local change, test the affected output contract and run the
+complete affected modules. Running Full locally requires separate, specific
+maintainer authorization under the [validation policy](faster_validation.md).
 
 The output schema checks the main output structure, including:
 
@@ -803,22 +797,12 @@ duplicate supplied `game_id` values.
 When adding a new file to `examples/`:
 
 1. Keep it valid JSON.
-2. Run input schema validation:
+2. Run the complete affected test modules and any targeted checks needed for the example.
+3. Check tracked, new-file and index whitespace, then run Quick for schema parity
+   and input examples. The automatic main-push gate validates generated outputs.
 
 ```powershell
-python scripts/validate_examples_schema.py
-```
-
-3. Run generated-output schema validation:
-
-```powershell
-python scripts/validate_generated_outputs_schema.py
-```
-
-4. Run Full when required by [validation policy](faster_validation.md); otherwise Quick plus CI:
-
-```powershell
-.\scripts\check.ps1
+.\scripts\check.ps1 -Mode Quick
 ```
 
 If schema validation fails, decide whether:
@@ -837,8 +821,10 @@ When adding a new stable output field:
 3. Update `schemas/output.schema.json` if the field belongs to a schema-validated summary object.
 4. Update `docs/output_json.md`.
 5. Update any relevant topic-specific docs.
-6. Run generated-output schema validation.
-7. Follow [validation policy](faster_validation.md); report focused/Quick and full CI separately.
+6. Verify the affected field and its schema in the complete affected test modules.
+7. Follow the [validation policy](faster_validation.md): check whitespace and run
+   `.\scripts\check.ps1 -Mode Quick`. Report generated-output validation from the
+   automatic main-push gate separately.
 
 For experimental or unstable nested analysis fields, it may be better to leave them in a schema area with `additionalProperties: true` until the structure stabilizes.
 

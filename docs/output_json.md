@@ -113,16 +113,16 @@ Opt-in public field provenance uses:
 
 The schema is intended as a documentation and validation aid. It checks the main output structure, important summary fields, and stable optional branch structures such as Multi-Step and policy-comparison results.
 
-Generated outputs for selected examples can be validated against the schema with:
+The automatic main-push gate validates generated outputs against the schema with:
 
 ```powershell
 python scripts/validate_generated_outputs_schema.py
 ```
 
-The project check script also runs generated-output schema validation:
+After the affected output-contract tests, finish routine local validation with Quick (which does not validate generated outputs):
 
 ```powershell
-.\scripts\check.ps1
+.\scripts\check.ps1 -Mode Quick
 ```
 
 Generated-output schema validation uses the real CLI and output writer. Position

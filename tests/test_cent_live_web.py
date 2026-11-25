@@ -4,7 +4,7 @@ from fractions import Fraction
 from threading import Event
 
 import pytest
-from test_accounting_web import activate_session, game_form, open_form, start
+from test_accounting_web import activate_session, game_form, historical_round, open_form
 from test_event_context_web import native_submit
 from test_frontend_language_switching import localized_server
 from test_match_recording_recovery_web import follow
@@ -29,7 +29,8 @@ HAND = "CQ C9 SK H10 HQ HJ H7 DA D9 D8".split()
 def prepare_opening(server, *, enable=True):
     browser = Browser(server)
     active = activate_session(server.app_context)
-    page = start(browser, title="Synthetic round")
+    historical_round(server.app_context, title="Synthetic round")
+    page = browser.page()
     page = follow(browser, post(browser, "/sessions/cards", page, cards=HAND))
     browser.command("set_declarer")
     if enable:
@@ -86,7 +87,7 @@ def test_existing_binding_uses_rotated_participants_and_accepted_count(localized
         document=build_session_persistence_document_v1(state).to_dict())
     app.managed_stateful.activate_session(first)
     browser = Browser(localized_server)
-    start(browser, title="Bound Session")
+    historical_round(app, title="Bound Session")
     page = follow(browser, post(browser, START))
     base = first.live.outcome
     assert base.money_basis == "net" and base.completed_common_worlds == 25
@@ -123,8 +124,8 @@ def test_in_person_uses_gross_for_every_candidate(localized_server):
     app = localized_server.app_context
     active = activate_session(app)
     browser = Browser(localized_server)
-    form = Forms(browser.page()).find("/sessions/accounting/start")
-    page = follow(browser, native_submit(browser, form, platform="in_person", cent_tariff="1/2"))
+    historical_round(app, platform="in_person")
+    page = browser.page()
     follow(browser, post(browser, "/sessions/cards", page, cards=HAND))
     browser.command("set_declarer")
     follow(browser, post(browser, START))

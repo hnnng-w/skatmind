@@ -1,5 +1,10 @@
 # Match Game navigation and recording focus
 
+Issue #334 extends the accepted recording-format page to three grouped
+destinations; see [recording and Analyze entry](home_and_recorded_review_navigation.md)
+and [the Cent lifecycle](mode_accounting_and_cent_rounds.md#direct-cent-entry-334).
+The #333 observations below describe its accepted baseline.
+
 ## Task and analysis scope amendment (#333)
 
 Home and the main navigation offer **Live play**, **Retrospective recording**,

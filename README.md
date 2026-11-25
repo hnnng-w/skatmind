@@ -657,13 +657,13 @@ Install the project with development dependencies:
 python -m pip install -e ".[dev]"
 ```
 
-Run the combined check script:
+Run the routine local check in the development environment:
 
 ```powershell
-.\scripts\check.ps1
+.\scripts\check.ps1 -Mode Quick
 ```
 
-Build one Wheel and one sdist without publishing them:
+To build release artifacts separately from routine validation:
 
 ```powershell
 python -m build
@@ -1407,17 +1407,17 @@ Detailed documentation is split into topic-specific files:
 
 ## Development
 
-Run Full (the unchanged no-argument meaning; `-Workers 1` provides serial diagnosis):
+Run the complete modules affected by the change (packaging example), then explicit Quick:
 
 ```powershell
-.\scripts\check.ps1
+python -m pytest -n 2 --dist=loadfile --max-worker-restart=0 tests/test_packaging_and_distribution.py
+.\scripts\check.ps1 -Mode Quick
 ```
 
-Routine work uses focused tests plus `-Mode Quick`; see [validation policy](docs/faster_validation.md):
-
-```powershell
-python -m pytest tests/test_packaging_and_distribution.py
-```
+Run affected exclusive modules serially after worker exit. Complete targeted source
+verification and tracked/new-file/index whitespace checks before Quick. Full is the no-mode
+default; any comprehensive local OpenCode run needs separate, specific maintainer authorization.
+The automatic main push runs the complete [acceptance gates](docs/faster_validation.md).
 
 Run Ruff checks:
 

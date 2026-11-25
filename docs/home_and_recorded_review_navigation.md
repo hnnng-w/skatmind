@@ -2,10 +2,21 @@
 
 The [#333 task and scope amendment](match_game_navigation.md#task-and-analysis-scope-amendment-333)
 keeps one ordinary **Analyze** entry and replaces the two recording-format
-entries with **Live play** and **Retrospective recording**. Both tasks offer both
-formats and use the same saved recordings. Opening a saved recording from
+entries with **Live play** and **Retrospective recording**. Under #334 both tasks
+show three headings with actionable formats on one page: **Tournaments → 36-game
+Standard**, **Real-money games → Cent-Skat**, and **Individual games → Individual
+game**. The first and last open their existing workflows. See
+[Direct Cent entry](mode_accounting_and_cent_rounds.md#direct-cent-entry-334)
+for round creation and resumption. Opening a saved recording from
 Analyze first shows the applicable analysis scopes. Deliberate decision links
 and validated original-result returns still go directly to their destinations.
+
+Analyze labels a bound individual recording with its actual round title and game
+position. Round membership comes from the current accounting head, its explicit
+participant/perspective binding and the validated recording. The two scopes still
+target just that Session: the whole individual game or one decision. Retained
+originals, their return links and per-analysis Learning selection keep their
+existing source and eligibility checks.
 
 Issue #324 superseded the five-task presentation below with one ordinary **Analyze**
 entry at `/review/recorded`. Home had three tasks in two groups; main navigation was

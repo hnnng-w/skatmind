@@ -167,7 +167,14 @@ def test_home_groups_match_first_and_one_analysis_entry(
     assert groups_html.index(task_titles[0]) < groups_html.index(task_titles[1])
     for route in ("/live-play", "/record-after"):
         formats = render_app_page_v1(state, route, frontend=_frontend(locale))
-        assert 'href="/matches"' in formats and 'href="/sessions"' in formats
+        labels = (("Turniere", "36er Standard", "Echtgeld-Spiele", "Cent-Skat",
+                   "Einzelspiele", "Einzelspiel") if locale == "de" else
+                  ("Tournaments", "36-game Standard", "Real-money games", "Cent-Skat",
+                   "Individual games", "Individual game"))
+        groups = re.findall(r'<section><h2>([^<]+)</h2><a class="button-link" href="([^"]+)">'
+                            r'([^<]+)</a></section>', formats)
+        assert groups == list(zip(labels[::2], ("/matches", "/cent", "/sessions"), labels[1::2],
+                                  strict=True))
     assert "Available now." not in html and "Jetzt verfügbar." not in html
     assert "Live</dd>" not in html
     assert "english-workflow-body" not in html

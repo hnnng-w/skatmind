@@ -25,7 +25,7 @@ from skatmind.errors import SkatMindError, SkatMindInvariantError, SkatMindWorkf
 from skatmind.match_workspace_persistence_codec import resume_match_workspace_document_v1
 
 from . import session_batch_routes
-from .accounting_forms import ACCOUNTING_ROUTES
+from .accounting_forms import ACCOUNTING_ROUTES, CENT_ROUTES
 from .accounting_frontend import dispatch_accounting
 from .accounting_rendering import render_accounting
 from .automatic_learning_routes import (
@@ -472,6 +472,7 @@ _STATEFUL_POST_ROUTES = {
     *session_batch_routes.ACTIONS,
     "/learning/analysis-selection",
     *ACCOUNTING_ROUTES,
+    *CENT_ROUTES,
     *EVENT_ROUTES,
     *HISTORICAL_POST_ROUTES,
     *AUTOMATIC_POST_ROUTES,
@@ -555,6 +556,7 @@ def _is_stateful_get_route(path: str) -> bool:
         path
         in {
             DELETION_PAGE,
+            "/cent",
             "/sessions/current",
             "/matches/new",
             "/matches/current",
@@ -1657,6 +1659,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         status: int,
     ) -> None:
         page = definition.originating_page
+        if page == "/cent":
+            from .cent_entry import render_entry
+            render_entry(self, status=status)
+            return
         if page == AUTOMATIC_PAGE:
             from .automatic_learning_http import recovery
             recovery(self, status=status)
@@ -2313,11 +2319,13 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             with match.capture.lock:
                 sources.append(("matches", match.handle, match.selected_position))
         locale = self._frontend_state().locale
+        from .cent_sources import review_memberships
         self._content_page(RECORDED_REVIEW_ROUTE, return_to=RECORDED_REVIEW_ROUTE,
             title=translate_frontend_message_v1(locale, "navigation.review"),
             content=deletion_notice(context, RECORDED_REVIEW_ROUTE, locale)
             + render_recorded_review_chooser_v1(discoveries, profile=profile,
-                locale=locale, active_sources=tuple(sources)), status=status,
+                locale=locale, active_sources=tuple(sources),
+                memberships=review_memberships(context, discoveries["sessions"])), status=status,
             feedback_family="recordings", untranslated_workflow_body=False)
 
     def _session_page(self, *, status: int = HTTPStatus.OK, session_origin=None) -> None:
@@ -2383,11 +2391,14 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 active, app_context=self.server.app_context, locale=locale,
                 show_operation_notice=status < HTTPStatus.BAD_REQUEST,
                 game_label=managed_name(locale, profile, "sessions", active.state.session_id))
+        from .cent_sources import member_label
+        member = member_label(self.server.app_context, active, locale)
         self._content_page(
             "/sessions",
             return_to="/sessions/current",
             title=managed_name(locale, profile, "sessions", active.state.session_id),
-            content=notice + session_body
+            content=(f'<p class="cent-membership">{escape(member)}</p>' if member else '')
+            + notice + session_body
             + render_event_context(self.server.app_context, active, "sessions", locale)
             + render_accounting(self.server.app_context, active, "sessions", locale),
             status=status,
@@ -2857,6 +2868,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         return False
 
     def _stateful_get(self, path: str) -> bool:
+        if path == "/cent":
+            from .cent_entry import render_entry
+            render_entry(self)
+            return True
         if path in (MATCH_SCOPES, session_batch_routes.SCOPES):
             from .recorded_review_rendering import recording_scopes
             recording_scopes(self, path)
@@ -3882,6 +3897,11 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         body: bytes,
         content_type: str,
     ) -> None:
+        if path in CENT_ROUTES:
+            from .cent_entry import dispatch_entry
+            self._redirect(dispatch_entry(self.server.app_context, path,
+                self._text_form(body, content_type), activate_session=self._activate_session))
+            return
         if path in ACCOUNTING_ROUTES:
             self._redirect(dispatch_accounting(self.server.app_context, path,
                 self._text_form(body, content_type), activate_session=self._activate_session))
@@ -4132,7 +4152,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     self._profile_operation(parsed.path, body, content_type)
                 return
             if parsed.path in _STATEFUL_POST_ROUTES:
-                if parsed.path in (*ACCOUNTING_ROUTES, *MATCH_LIVE_ROUTES):
+                if parsed.path in (*ACCOUNTING_ROUTES, *CENT_ROUTES, *MATCH_LIVE_ROUTES):
                     max_bytes = resolve_frontend_form_v1(parsed.path).body_limit
                 elif parsed.path in EVENT_ROUTES:
                     max_bytes = 32768

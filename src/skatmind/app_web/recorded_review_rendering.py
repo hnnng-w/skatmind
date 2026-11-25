@@ -37,8 +37,10 @@ def recording_scopes(handler, path):
         choices += '</button></form></li>'
         choices += choice(f"/matches/review/{position}", "match_nav.single")
     else:
+        from .cent_sources import member_label
         active = handler._active_session()
         title = managed_name(locale, profile, "sessions", active.state.session_id)
+        title = member_label(app, active, locale) or title
         choices = choice(SESSION_GAME, "batch.session") + choice(DECISIONS, "match_nav.single")
     handler._rendered_language_source = source
     handler._retained_delivery_guard = guard
@@ -48,7 +50,8 @@ def recording_scopes(handler, path):
         analysis=True, task_first=True, untranslated_workflow_body=False)
 
 
-def render_recorded_review_chooser_v1(discoveries, *, profile, locale, active_sources=()):
+def render_recorded_review_chooser_v1(discoveries, *, profile, locale, active_sources=(),
+                                      memberships=None):
     """Render strict discovery classifications, never decision eligibility or Requests."""
     body = '<div id="recorded-review-chooser">' + paragraph(locale, "recordings.introduction")
     body += paragraph(locale, "batch.scope_help")
@@ -71,12 +74,19 @@ def render_recorded_review_chooser_v1(discoveries, *, profile, locale, active_so
             label = managed_item_label_v1(item, profile=profile, locale=locale)
             body += '<article class="recording-choice"><h3>' + label + '</h3>'
             body += paragraph(locale, f"creation.managed.status.{item.status}")
-            if item.status == "available":
+            member = (memberships or {}).get(item.handle) if family == "sessions" else None
+            if member:
+                label = (translated(locale, "cent.member", title=member[0], number=member[1])
+                         if member[2] else translated(locale, "cent.source"))
+                body += f'<p>{label}</p>'
+            if item.status == "available" and (not member or member[2]):
                 body += (f'<form method="post" action="{OPEN_RECORDING_ROUTE}">'
                          + hidden("family", family) + hidden("handle", item.handle)
-                         + hidden("generation", view.generation)
+                          + hidden("generation", view.generation)
+                          + (hidden("bound_selection", member[2]) if member else "")
                          + '<button type="submit">' + translated(locale, "recordings.open")
                           + '</button></form>')
+            if item.status == "available":
                 body += render_delete_action(item, locale, "review")
             body += '</article>'
         body += (f'<p class="entry-actions"><a class="button-link secondary" href="/{family}">'

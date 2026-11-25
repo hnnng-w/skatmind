@@ -27,7 +27,6 @@ from skatmind.event_context_contracts import (
     EventContextV1,
     bounded_text,
 )
-from skatmind.event_context_recording_files import load_event_recording_v1
 from skatmind.event_context_sources import (
     build_event_binding_v1,
     build_recording_facts_v1,
@@ -44,20 +43,17 @@ from skatmind.mode_accounting import (
 )
 
 from .accounting_forms import ACCOUNTING_FIELDS, AccountingFormError, optional_amount
+from .cent_publication import publish_game
+from .cent_sources import open_bound, session_entries
 from .event_context_forms import LOCAL_SOURCE, actual_platform, resolve_platform, supported_terms
 from .event_context_frontend import (
     EventFormConflict,
-    _documents,
     capture_event_page,
     checkpoint_review,
     platform_document,
 )
-from .managed_item_discovery import discover_managed_items_v1
-from .session_frontend import (
-    build_guided_session_players_v1,
-    create_guided_session_v1,
-    open_guided_session_v1,
-)
+from .session_frontend import build_guided_session_players_v1, prepare_guided_session_document
+from .whole_match_progress import file_identity
 
 
 @dataclass(frozen=True)
@@ -75,9 +71,16 @@ def capture_accounting_page(app, active, family):
     current = journal.for_source(recording_version_v1(event.document).source)
     documents = event.documents
     if type(current) is CentRoundV1:
-        documents = _documents(app, current.context, active, family, event.document)
+        entries = session_entries(app)
+        sources = tuple(open_bound(app, current, binding, entries)
+                        for binding in current.context.bindings)
+        documents = tuple((source.path, source.document) for source in sources)
+        if (active.path, event.document) not in documents:
+            raise EventFormConflict("source")
     scope = [event.selection, journal.fingerprint,
              [recording_version_v1(doc).to_dict() for _, doc in documents]]
+    if type(current) is CentRoundV1:
+        scope.append([[path.name, file_identity(path)] for path, _ in documents])
     selection = hmac.new(app.language_context.key,
         b"mode_accounting_form_v2\0" + canonical_json(scope), hashlib.sha256).hexdigest()
     return AccountingPage(event, journal, current, documents, selection)
@@ -125,42 +128,18 @@ def known_declarer(row, number):
     return None
 
 
-def _start(page, values):
-    if page.current is not None:
-        raise AccountingFormError("owned")
-    document = page.event_page.document
+def new_round(document, title, term):
     players, selected = recording_players_v1(document)
-    existing = page.event_page.context
-    if selected is None:
-        selected = (existing.binding(recording_version_v1(document).source)
-                    .source_selected_player_id
-                    if existing is not None else
-                    players[_integer(values, "selected_player", maximum=3) - 1])
     provenance = "Explicit native three-game round start."
-    if existing is not None:
-        if existing.tournament:
-            raise AccountingFormError("owned")
-        term = existing.applicable_terms(1)
-        platform = resolve_platform(document, values, term)
-        context = replace(existing, event_name=values.get("title", "").strip(),
-            terms=tuple(supported_terms("cent", platform, from_position=prior.from_position,
-                tariff=values.get("cent_tariff") if prior.from_position == 1
-                    else prior.financial.cent_tariff) for prior in existing.terms))
-    else:
-        binding = build_event_binding_v1(document, game_position=1, selected_player_id=selected)
-        context = EventContextV1(event_id="round-" + secrets.token_hex(16),
-            series_id="block-" + secrets.token_hex(16),
-            event_name=values.get("title", "").strip(),
-            series_name="Local round 1", participant_ids=players,
-            selected_participant_id=selected, bindings=(binding,), provenance=provenance,
-            terms=(supported_terms("cent", resolve_platform(document, values),
-                tariff=values.get("cent_tariff")),))
-    selected_binding = context.binding(recording_version_v1(document).source)
-    labels = {selected_binding.player(player.player_id): player.player_label or player.player_id
-              for player in document.state.players}
+    binding = build_event_binding_v1(document, game_position=1, selected_player_id=selected)
+    context = EventContextV1(event_id="round-" + secrets.token_hex(16),
+        series_id="block-" + secrets.token_hex(16), event_name=title,
+        series_name="Local round 1", participant_ids=players,
+        selected_participant_id=selected, bindings=(binding,), provenance=provenance, terms=(term,))
     return CentRoundV1(context=context, table_id="table-" + secrets.token_hex(16),
-        participant_labels=tuple(labels.get(player, player) for player in context.participant_ids),
-        recordings=_round_facts(context, page.documents), confirmations=(),
+        participant_labels=tuple(p.player_label or p.player_id for p in document.state.players),
+        recordings=(build_recording_facts_v1(document, through_position=1,
+                                             selected_player_id=selected),), confirmations=(),
         rule_source=context.terms[0].scoring_source, provenance=provenance,
         rule=CENT_ACCOUNTING_RULE if context.terms[0].platform == "euroskat"
             else CENT_PAIRWISE_RULE)
@@ -234,73 +213,25 @@ def _tournament(page, values):
         table_rule="published_plus" if platform == "euroskat" and plus is not None else "supplied")
 
 
-def session_choices(app):
-    result = discover_managed_items_v1(app.managed_stateful.root("sessions"),
-        family="sessions", generation=1, active_handle=None)
-    if result.view.candidate_limit_reached:
-        raise EventFormConflict("source")
-    return tuple(entry for entry in result.entries if entry.summary.status == "available")
-
-
-def choice_key(entry):
-    document = load_event_recording_v1(entry.path, "session")
-    return hashlib.sha256(canonical_json([entry.path.name,
-        recording_version_v1(document).to_dict()])).hexdigest()
-
-
-def _create_round_session(app, row, number):
+def _prepare_round_game(row, number, documents):
     ids = row.context.participant_ids
     labels = dict(zip(ids, row.participant_labels, strict=True))
     ordered = ids[number - 1:] + ids[:number - 1]
     values = {f"player_{index}_{field}": value
               for index, player in enumerate(ordered, 1)
               for field, value in (("id", player), ("label", labels[player]))}
-    return create_guided_session_v1(app.managed_stateful.root("sessions"),
-        handle=secrets.token_hex(32), session_id="cent-session-" + secrets.token_hex(16),
-        players=build_guided_session_players_v1(values), capture_mode="live",
-        local_player_id=row.context.selected_participant_id)
-
-
-def _open_position(app, row, number, values):
-    binding = next((b for b in row.context.bindings if b.game_position == number), None)
-    entries = session_choices(app)
-    created = None
-    if binding is not None:
-        matches = [entry for entry in entries if entry.summary.semantic_product_id
-                   == binding.source.product_id]
-    elif values.get("source_choice") != "new":
-        matches = [entry for entry in entries if choice_key(entry) == values.get("source_choice")]
-    else:
-        created = _create_round_session(app, row, number)
-        matches = []
-    if created is None:
-        if len(matches) != 1:
-            raise AccountingFormError("source", "source_choice")
-        created = open_guided_session_v1(app.managed_stateful.root("sessions"), matches[0])
-    if binding is None:
-        players, selected = recording_players_v1(created.document)
-        mapping = {player: player if player in row.context.participant_ids else
-                   row.context.participant_ids[_integer(values, f"map_{index}", maximum=3) - 1]
-                   for index, player in enumerate(players, 1)}
-        selected = selected or next(player for player in players
-            if mapping[player] == row.context.selected_participant_id)
-        binding = build_event_binding_v1(created.document, game_position=number,
-            player_map=mapping, selected_player_id=selected)
-        ids = row.context.participant_ids
-        expected = ids[number - 1:] + ids[:number - 1]
-        if tuple(p.event_player_id for p in binding.players) != expected:
-            raise AccountingFormError("source", "source_choice")
-        row = replace(row, context=replace(row.context, bindings=row.context.bindings + (binding,)))
-    facts = build_recording_facts_v1(created.document, through_position=1,
-                                    selected_player_id=binding.source_selected_player_id)
-    row = replace(row, recordings=tuple(f for f in row.recordings
-                                       if f.source.source != binding.source) + (facts,))
-    return row, created
+    first = next((doc for _, doc in documents if row.context.binding(
+        recording_version_v1(doc).source).game_position == 1), None)
+    if first is None:
+        raise AccountingFormError("source")
+    return prepare_guided_session_document("cent-session-" + secrets.token_hex(16),
+        build_guided_session_players_v1(values), first.state.initial_capture_mode,
+        row.context.selected_participant_id)
 
 
 def dispatch_accounting(app, route, values, *, activate_session):
     family, action = route.split("/")[1], route.rsplit("/", 1)[1]
-    if set(values) - {"managed_handle", "accounting_selection", "round_id",
+    if set(values) - {"managed_handle", "accounting_selection",
                       *ACCOUNTING_FIELDS[action]}:
         raise AccountingFormError()
     managed = app.managed_stateful
@@ -316,23 +247,10 @@ def dispatch_accounting(app, route, values, *, activate_session):
                     or not hmac.compare_digest(page.selection, selection)):
                 raise EventFormConflict()
             row = page.current
-            opened = None
+            created = None
             provenance = "Explicit native round action."
             if action == "save":
                 row = _tournament(page, values)
-            elif action == "start":
-                row = _start(page, values)
-            elif action == "open" and values.get("round_id"):
-                row = page.journal.head(values["round_id"])
-                if type(row) is not CentRoundV1:
-                    raise AccountingFormError("source")
-                # Navigation to an existing source does not refresh or write an accounting.
-                number = _integer(values, "position", maximum=3)
-                if not any(b.game_position == number for b in row.context.bindings):
-                    raise AccountingFormError("source")
-                _, opened = _open_position(app, row, number, values)
-                activate_session(opened)
-                return "/sessions/current#accounting"
             elif type(row) is not CentRoundV1:
                 raise AccountingFormError("context")
             elif action == "next":
@@ -342,8 +260,8 @@ def dispatch_accounting(app, route, values, *, activate_session):
                 term = row.context.applicable_terms(3)
                 term = supported_terms("cent", resolve_platform(page.event_page.document,
                     values, term), tariff=values.get("cent_tariff"))
-                opened = _create_round_session(app, row, 1)
-                binding = build_event_binding_v1(opened.document, game_position=1)
+                created = _prepare_round_game(row, 1, page.documents)
+                binding = build_event_binding_v1(created, game_position=1)
                 count = 1 + sum(r.table_id == row.table_id for r in page.journal.round_heads)
                 context = replace(row.context, event_id="round-" + secrets.token_hex(16),
                     series_id="block-" + secrets.token_hex(16), revision=0, change="created",
@@ -353,7 +271,7 @@ def dispatch_accounting(app, route, values, *, activate_session):
                     provenance=provenance)
                 row = CentRoundV1(context=context, table_id=row.table_id,
                     participant_labels=row.participant_labels,
-                    recordings=_round_facts(context, ((opened.path, opened.document),)),
+                    recordings=_round_facts(context, ((None, created),)),
                     confirmations=(), rule_source=term.scoring_source, provenance=provenance,
                     rule=CENT_ACCOUNTING_RULE if term.platform == "euroskat"
                         else CENT_PAIRWISE_RULE,
@@ -364,8 +282,24 @@ def dispatch_accounting(app, route, values, *, activate_session):
                     raise AccountingFormError("reopen")
                 row = fresh_round(row, page.documents)
                 if action == "open":
-                    row, opened = _open_position(app, row,
-                        _integer(values, "position", maximum=3), values)
+                    number = _integer(values, "position", maximum=3)
+                    bound = next((b for b in row.context.bindings if b.game_position == number),
+                                 None)
+                    if bound:
+                        opened = open_bound(app, row, bound, session_entries(app))
+                        if capture_accounting_page(app, active, family).selection != page.selection:
+                            raise EventFormConflict("source")
+                        activate_session(opened)
+                        return "/sessions/current"
+                    if any(ordinary_round(row, page.documents).game(n)[0] not in (
+                            "passed", "settled") for n in range(1, number)):
+                        raise AccountingFormError("confirm")
+                    created = _prepare_round_game(row, number, page.documents)
+                    binding = build_event_binding_v1(created, game_position=number)
+                    row = replace(row, context=replace(row.context,
+                        bindings=(*row.context.bindings, binding)), recordings=(*row.recordings,
+                        build_recording_facts_v1(created, through_position=1,
+                            selected_player_id=row.context.selected_participant_id)))
                 elif action == "game":
                     number = _integer(values, "position", maximum=3)
                     if not any(b.game_position == number for b in row.context.bindings):
@@ -405,19 +339,18 @@ def dispatch_accounting(app, route, values, *, activate_session):
                                 "settled", "passed") for n in range(1, 4)):
                         raise AccountingFormError("context")
                     row = replace(row, status=values.get("status"), provenance=provenance)
-            journal = append_accounting(page.journal, row)
-
             def guard():
-                return (capture_accounting_page(app, active, family).selection == page.selection
-                        and (opened is None or load_event_recording_v1(opened.path, "session")
-                             == opened.document))
+                return capture_accounting_page(app, active, family).selection == page.selection
 
             try:
-                save_accounting(app.managed_home.root, journal,
-                    expected_fingerprint=page.journal.fingerprint, source_guard=guard)
+                if created is not None:
+                    opened = publish_game(app, page.journal, row, created, parent=page.current,
+                                          documents=page.documents, guard=guard)
+                    activate_session(opened)
+                    return "/sessions/current"
+                save_accounting(app.managed_home.root, append_accounting(page.journal, row),
+                                expected_fingerprint=page.journal.fingerprint, source_guard=guard)
             except (AccountingConflict, OSError) as error:
                 raise EventFormConflict("save") from error
-            if opened is not None:
-                activate_session(opened)
     return (f"/matches/position/{active.selected_position}" if family == "matches"
             else "/sessions/current") + "#accounting"

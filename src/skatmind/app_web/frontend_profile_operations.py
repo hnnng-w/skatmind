@@ -50,6 +50,7 @@ _SAFE_STATIC_HTML_ROUTES = {
     "/",
     "/live-play",
     "/record-after",
+    "/cent",
     "/sessions/decisions",
     "/analyze",
     "/review",

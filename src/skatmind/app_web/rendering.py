@@ -404,11 +404,13 @@ def render_app_page_v1(
     elif route in ("/live-play", "/record-after"):
         prefix = "primary.live" if route == "/live-play" else "primary.after"
         title = _text(frontend_state, prefix + ".title")
-        content = (f'<p>{_translated(frontend_state, prefix + ".summary")}</p>'
-                   + '<p><a class="button-link" href="/sessions">'
-                   + _translated(frontend_state, "navigation.sessions") + '</a></p>'
-                   + '<p><a class="button-link" href="/matches">'
-                   + _translated(frontend_state, "navigation.matches") + '</a></p>')
+        content = f'<p>{_translated(frontend_state, prefix + ".summary")}</p>'
+        content += '<div id="recording-formats">' + ''.join(
+            f'<section><h2>{_translated(frontend_state, "formats." + group)}</h2>'
+            f'<a class="button-link" href="{url}">'
+            f'{_translated(frontend_state, "formats." + choice)}</a></section>'
+            for group, choice, url in (("tournaments", "standard", "/matches"),
+                ("money", "cent", "/cent"), ("individual", "game", "/sessions"))) + '</div>'
     elif route == "/analyze":
         title = _text(frontend_state, "page.analyze.title")
         content = render_analyze_workflow_v1(

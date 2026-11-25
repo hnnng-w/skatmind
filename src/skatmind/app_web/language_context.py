@@ -210,8 +210,8 @@ def capture_language_source_v1(context: AppWebContextV1, route: str, *,
             raise LanguageContextConflict from error
     with context.lock:
         managed = context.managed_stateful
-        if route in ("/live-play", "/record-after", "/sessions", "/matches") or route.startswith(
-                ("/sessions/", "/matches/")):
+        if (route in ("/live-play", "/record-after", "/cent", "/sessions", "/matches")
+                or route.startswith(("/sessions/", "/matches/"))):
             values.append(context.recording_task)
         if review_page(route):
             values.append(context.session_batch.generation)
@@ -225,6 +225,8 @@ def capture_language_source_v1(context: AppWebContextV1, route: str, *,
             profile.managed_item_display_labels))
         if route == "/analyze":
             references.append(context.analyze_state)
+        elif route == "/cent":
+            references.extend((session, None if session is None else session.document))
         elif route == "/review":
             references.append(context.review_state)
         elif route == "/review/recorded":

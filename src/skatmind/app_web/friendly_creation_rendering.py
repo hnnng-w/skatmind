@@ -59,6 +59,17 @@ def render_profile_driven_session_creation_v1(
         + _profile_generation(profile_generation)
         + f"<label>{_t(locale, 'creation.session.name')} "
         '<input name="game_name" maxlength="160" required></label>'
+        + render_card_knowledge(locale)
+        + render_seat_setup_v1(profile, locale, family="sessions", setup=setup)
+        + _save_controls(locale)
+        + render_setup_actions_v1(locale, family="sessions", setup=setup)
+        + "</form></section>"
+    )
+    return _setup_values(html, setup)
+
+
+def render_card_knowledge(locale):
+    return (
         f"<fieldset><legend>{_t(locale, 'creation.session.knowledge_question')}</legend>"
         '<label><input type="radio" name="capture_mode" value="live" checked '
         'aria-describedby="perspective-knowledge-help"> '
@@ -69,12 +80,7 @@ def render_profile_driven_session_creation_v1(
         f"{_t(locale, 'session.knowledge.reconstruction')}</label>"
         '<p id="reconstruction-knowledge-help">'
         f'{_t(locale, "creation.session.reconstruction_help")}</p></fieldset>'
-        + render_seat_setup_v1(profile, locale, family="sessions", setup=setup)
-        + _save_controls(locale)
-        + render_setup_actions_v1(locale, family="sessions", setup=setup)
-        + "</form></section>"
     )
-    return _setup_values(html, setup)
 
 
 def _platform_options(

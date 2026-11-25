@@ -19,9 +19,28 @@ supports this sequence. Its complete 23-job graph, four hosted regression worker
 exclusive phase, final gates and reuse logic retain their contracts. Hosted
 acceptance remains pending; no shorter full-suite runtime is claimed.
 
-The active routine local policy remains focused tests plus explicit Quick, with
-task-specific verification taking precedence over the general local-Full rule.
-For this bounded #323 text/policy follow-up, run the complete CI validation and
+For routine OpenCode work, run the complete test modules affected by the change,
+including genuinely affected validation and distribution consumers. Use the worker
+and exclusive-module rules below. Diagnose a failure and rerun the necessary complete
+affected modules. Perform necessary targeted source verification, check tracked,
+new-file and index whitespace, and finish with explicit `.\scripts\check.ps1 -Mode Quick`.
+Report **Locally validated; hosted acceptance pending.** Complete acceptance belongs
+to the automatic main-push gates `check` and `v1-supported-platform-matrix`.
+
+Local Full or equivalent comprehensive validation requires separate, explicit
+maintainer authorization for that specific run. This applies to the no-mode script
+default, explicit Full, whole-suite pytest (including wrappers or batches that
+reconstruct it), and complete local distribution, installation or platform-matrix
+runs. A change to tests, validation tools, distribution smoke guards, packaging,
+schemas or platform code is not by itself a reason to request or run any of these.
+If an exception is necessary, first explain the concrete risk, why targeted tests
+and hosted gates are insufficient, and the proposed command, scope, environment
+and expected time. Implementation approval and a 7,200,000 ms execution limit
+do not authorize a comprehensive run.
+
+### Historical activation notes
+
+For the bounded #323 text/policy follow-up, the agreed scope was the complete CI validation and
 rename modules listed below, then final Quick on development CPython 3.13, using
 two file-grouped workers, disabled worker restarts, external temporary outputs
 and **7,200,000 ms invocation timeouts**. Finish the documentation before final
@@ -32,8 +51,6 @@ build/install, benchmark-only run or installed UAT is required. Handoff is
 #323 open until automatic branch feedback, published-source review and successful
 complete exact-commit main gates are verified. Accepted #316–#320 evidence and
 paused combined #321/#322 installed acceptance remain intact.
-
-### Historical activation notes
 
 Current Issue-#316 baseline: the maintainer has accepted #279 and #315; #315 is
 closed. S6/#314 installed acceptance also completed on main
@@ -61,11 +78,9 @@ CI acceptance**. Local coordinator tests and a local Full pass cannot close #279
 Until the maintainer accepts that evidence, the prior final-local-Full policy
 continues to apply. Historical audit evidence remains point-in-time evidence.
 
-After activation, routine agent completion is **locally validated, CI pending**:
-focused tests plus Quick are sufficient for local handoff, with exact-commit full
-CI required for acceptance. Validation-tool changes, diagnosis, relevant platform
-changes, and release/platform evidence still require Full. Explicit task-specific
-verification requirements take precedence.
+The original post-activation policy had exceptions for validation-tool changes,
+diagnosis and platform work. The current policy above removes those automatic
+local Full exceptions; the hosted acceptance gates are unchanged.
 
 ## Commands
 
@@ -73,27 +88,28 @@ Install development tooling with `python -m pip install -e ".[dev]"`.
 pytest-xdist is a development-only extra; no runtime dependency or version changed.
 
 ```powershell
-python -m pytest tests/test_packaging_and_distribution.py
+# Example when this non-exclusive module is affected:
+python -m pytest -n 2 --dist=loadfile --max-worker-restart=0 tests/test_packaging_and_distribution.py
 .\scripts\check.ps1 -Mode Quick
-.\scripts\check.ps1                       # Full, unchanged default
-.\scripts\check.ps1 -Mode Full -Workers 2
-.\scripts\check.ps1 -Mode Full -Workers 1  # complete serial diagnostic path
 ```
 
-`-Workers` accepts 1 through 8, default 2. `-LogDirectory` optionally selects a
-fresh external directory. The cross-platform equivalent is
-`python scripts/run_validation.py --mode Full --workers 2`; `--stage` selects one
-explicit CI gate and never reports Full. Focused pytest is separate from Quick.
+Use external cache, temporary and report paths; `-LogDirectory` selects a fresh
+external directory for check logs. The cross-platform Quick command is
+`python scripts/run_validation.py --mode Quick`. Focused pytest is separate from Quick.
+The PowerShell no-mode default is still Full. Only for a separately authorized
+exception, explicit `-Mode Full` or `python scripts/run_validation.py --mode Full`
+runs the complete check. `-Workers` accepts 1 through 8 (default 2; 1 for serial
+diagnosis). `--stage` selects one CI gate and never reports Full.
 
-For the bounded Issue-#323 text/policy follow-up, run the complete modules:
+The bounded Issue-#323 text/policy follow-up specified these complete modules:
 
 * `tests/test_ci_validation.py`
 * `tests/test_skatmind_rename.py` (against the final documentation)
 
-Run them together with `-n 2 --dist=loadfile --max-worker-restart=0`, external
+That scope specified `-n 2 --dist=loadfile --max-worker-restart=0`, external
 `cache_dir`, `--basetemp` and report paths, and no test selectors. Neither module
-requires the exclusive phase. Finish with `.\scripts\check.ps1 -Mode Quick` and
-`git diff --check`. Local results cannot stand in for hosted execution.
+requires the exclusive phase. For current changes, select modules by the actual
+change. Local results cannot stand in for hosted execution.
 
 The original #323 implementation required the following six complete modules;
 this historical verification scope is not repeated for the text/policy follow-up:
@@ -106,9 +122,11 @@ this historical verification scope is not repeated for the text/policy follow-up
 * `tests/test_cli_internal_architecture.py`
 
 Quick means Ruff, exact packaged-schema filename/byte parity, and Root/Session
-input-example schema validation. Full retains those gates, all 98 generated-output
+input-example schema validation. Full retains those gates, all generated-output
 scenarios, inspected Wheel/sdist and clean-install smoke/parity, and the entire
-pytest suite. The separate all-six-cells local platform entry point remains:
+pytest suite. The maintainer separately plans genuine platform evidence and installed
+acceptance. The six-cell local platform runner is a separate comprehensive command;
+OpenCode needs specific maintainer authorization to execute it:
 
 ```powershell
 py -3.13 scripts/validate_v1_supported_platform_matrix.py
@@ -133,7 +151,7 @@ checks to the maintainer's installed UAT environment.
 | Raw resolved Wheel/sdist smoke equality | Full distribution validator | Each `matrix-result` (preserves this stronger original assertion too) |
 | Six-cell normalized semantic parity, dependency/import inventory, source non-mutation | Separate local platform runner | Each `matrix-result` plus final evidence verification |
 | Complete regression suite | Full | `regression (ubuntu)` and `regression (windows)` |
-| Windows 11 / PowerShell 5.1 evidence | Real local platform runner and Full when required | Hosted Windows is additional coverage, not a replacement |
+| Windows 11 / PowerShell 5.1 evidence | Separately planned maintainer evidence on real Windows 11 | Hosted Windows is additional coverage, not a replacement |
 
 CI consolidates overlapping distribution build/smoke work into the inspected
 build plus resolved Wheel/sdist cells. Every original assertion remains in the

@@ -10,7 +10,7 @@ from skatmind.capture_web.contracts import (
 from skatmind.corpus_web.contracts import LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES
 from skatmind.session_commands import SESSION_COMMAND_KINDS
 
-from .accounting_forms import ACCOUNTING_FIELDS, ACCOUNTING_ROUTES
+from .accounting_forms import ACCOUNTING_FIELDS, ACCOUNTING_ROUTES, CENT_ROUTES, CENT_SETUP_FIELDS
 from .automatic_learning_routes import AUTOMATIC_BODY_LIMIT, AUTOMATIC_PAGE, AUTOMATIC_POST_ROUTES
 from .card_entry_http import CARD_ENTRY_ROUTES, MATCH_CARD_OPERATIONS, MATCH_EVIDENCE_FORMS
 from .compact_declaration_form import DECLARATION_FIELDS
@@ -1599,6 +1599,20 @@ for _family in ("matches", "sessions"):
             label_overrides={"title": "validation.field.event_title",
                              "platform": "validation.field.platform"}))
 
+for _route in CENT_ROUTES:
+    _action = _route.rsplit("/", 1)[1]
+    _FORMS.append(_definition(f"cent.{_action}", _route,
+        tuple(n for n in CENT_SETUP_FIELDS if n != "own_player_handle")
+        if _action == "start" else (),
+        page="/cent", active="cent", body_limit=16384, success="contextual",
+        value_free=_action != "start",
+        control_overrides={"platform": "select", "cent_tariff": "select", "capture_mode": "radio",
+            "perspective_seat": "select", "own_seat": "select", **{
+                f"{seat}_handle": "select" for seat in ("forehand", "middlehand", "rearhand")}},
+        choice_overrides={"platform": ("", "euroskat", "in_person"),
+            "capture_mode": ("live", "retrospective"),
+            "cent_tariff": ("", "1/2", "1", "2", "3", "5")}))
+
 for _route in ACCOUNTING_ROUTES:
     _family, _action = _route.split("/")[1], _route.rsplit("/", 1)[1]
     _FORMS.append(_definition(
@@ -1631,6 +1645,7 @@ UNIFIED_FRONTEND_POST_ROUTES = tuple(
             *HISTORICAL_POST_ROUTES,
             *EVENT_ROUTES,
             *ACCOUNTING_ROUTES,
+            *CENT_ROUTES,
             *DEBRIEF_POST_ROUTES,
             "/sessions/create",
             "/sessions/import",

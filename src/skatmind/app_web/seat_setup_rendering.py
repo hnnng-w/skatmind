@@ -25,7 +25,7 @@ def _select(name, label, choices, selected, *, own="", required=False):
                   for value, text in choices) + '</select></label>')
 
 
-def render_seat_setup_v1(profile, locale, *, family, setup=None):
+def render_seat_setup_v1(profile, locale, *, family, setup=None, cent=False):
     values = initial_seat_values_v1(profile) if setup is None else dict(setup.values)
     token = '' if setup is None else setup.token
     own = values.get("own_player_handle", "")
@@ -35,8 +35,8 @@ def render_seat_setup_v1(profile, locale, *, family, setup=None):
         player = resolve_known_player_handle_v1(profile, own)
         modes = (("own", _t(locale, "creation.setup.own", name=player.display_name)), *modes)
     controls = (
-        f'<input type="hidden" name="setup_context" value="{token}">'
-        f'<input type="hidden" name="own_player_handle" value="{own}">'
+        ('' if cent else f'<input type="hidden" name="setup_context" value="{token}">')
+        + f'<input type="hidden" name="own_player_handle" value="{own}">'
         + (_select("perspective_mode", _t(locale, "creation.setup.mode"), modes,
                   values.get("perspective_mode"))
         + '<div class="own-seat-choice">'
@@ -55,7 +55,9 @@ def render_seat_setup_v1(profile, locale, *, family, setup=None):
         own_label = (
             f'<p class="derived-own"><strong>{escape(player.display_name)}</strong> · '
             f'{_t(locale, "settings.preferences.own_player")}'
-            f'<span class="own-pending"> — {_t(locale, "creation.setup.pending")}</span></p>'
+             + ('' if cent else
+                f'<span class="own-pending"> — {_t(locale, "creation.setup.pending")}</span>')
+             + '</p>'
             if own else '')
         release = ('<p class="own-release">'
                    + _t(locale, "creation.setup.release", name=player.display_name)
@@ -93,16 +95,17 @@ def render_seat_setup_v1(profile, locale, *, family, setup=None):
     else:
         perspective_control = _select(
             "perspective_seat", _t(locale, "creation.session.perspective"),
-            (("", _t(locale, "creation.common.no_perspective")), *seats), perspective)
+            (("", _t(locale, "creation.setup.choose_seat" if cent else
+                     "creation.common.no_perspective")), *seats), perspective)
     return (
         '<div class="seat-setup"'
         + (' data-reviewed' if setup is not None and setup.reviewed else '') + '>' + controls
-        + '<p>' + _t(locale, "creation.match.setup_help"
+         + '<p>' + _t(locale, "cent.seats" if cent else "creation.match.setup_help"
             if family == "matches" and values.get("perspective_mode") == "manual"
             else "creation.setup.help") + '</p>'
         + (f'<p>{_t(locale, "creation.setup.game_one")}</p>' if family == "matches" else '')
         + (f'<p>{_t(locale, "creation.session.knowledge_perspective")}</p>'
-           if family == "sessions" else '')
+           if family == "sessions" and not cent else '')
         + ''.join(rows)
         + '<div class="manual-perspective">'
         + perspective_control + '</div>'

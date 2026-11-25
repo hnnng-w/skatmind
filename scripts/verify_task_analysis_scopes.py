@@ -123,7 +123,9 @@ def probe(output, executable):
         visible('main a[href="/record-after"]')
         shot("tasks", 1280)
         cdp.activate('main a[href="/record-after"]')
-        cdp.activate('main a[href="/matches"]')
+        assert cdp.evaluate("Array.from(document.querySelectorAll('#recording-formats a'),"
+                            "a=>a.pathname)") == ["/matches", "/cent", "/sessions"]
+        cdp.activate('#recording-formats a[href="/matches"]')
         cdp.activate('form[action="/matches/open"] button')
         cdp.activate('a[href="/matches/position/2#match-recording"]')
         assert not cdp.evaluate("!!document.querySelector('form[action=\"/matches/live-start\"]')")

@@ -140,33 +140,33 @@ For each task:
 
 ## Standard check command
 
-No arguments means Full; `-Mode Quick` is explicit partial validation (see policy below):
+After the affected modules and targeted source checks, finish routine local validation with:
 
 ```powershell
-.\scripts\check.ps1
+.\scripts\check.ps1 -Mode Quick
 ```
 
-The full check covers:
+Quick covers:
 
 * Ruff checks
 * packaged-schema filename and byte parity
-* input JSON schema validation
-* generated output JSON schema validation
-* Wheel, sdist, and clean-install API/installed/module CLI validation
-* complete file-grouped pytest regression tests and an exclusive serial phase
+* input-example JSON schema validation
+
+Generated outputs, distributions and the complete regression suite belong to full validation.
+Omitting `-Mode` selects Full and requires separate authorization under the policy below.
 
 ## Useful focused checks
 
-Run specific tests when working on focused areas:
+Select complete affected modules. Examples for non-exclusive modules:
 
 ```powershell
-python -m pytest tests/test_post_game_review.py
-python -m pytest tests/test_matador_inference.py
-python -m pytest tests/test_cli.py
-python -m pytest tests/test_examples.py
-python scripts/validate_examples_schema.py
-python scripts/validate_generated_outputs_schema.py
+python -m pytest -n 2 --dist=loadfile --max-worker-restart=0 tests/test_post_game_review.py
+python -m pytest -n 2 --dist=loadfile --max-worker-restart=0 tests/test_examples.py
 ```
+
+Run affected exclusive modules in a separate serial process after the workers exit.
+Use external cache, temporary and report paths. For the exclusive list, see
+[Faster complete validation](docs/faster_validation.md#pytest-execution-and-isolation-review).
 
 ## Agent governance
 
@@ -183,7 +183,7 @@ Agents may:
 
 * inspect the repository and Git history
 * edit files for an explicitly assigned task
-* run focused checks and the full project check
+* run affected-module tests, targeted source verification, whitespace checks and explicit Quick
 * inspect `git status` and `git diff`
 * provide a ready-to-paste concise English commit message
 * provide a ready-to-paste English GitHub issue update comment
@@ -1062,7 +1062,7 @@ The issue update comment should include:
 * what was implemented
 * changed files or areas
 * checks that were run
-* whether the full check passed
+* which local checks passed and whether hosted acceptance is pending
 * whether product code changed
 * whether the issue is ready to close or should remain open
 
@@ -1093,19 +1093,26 @@ earlier pending-acceptance paragraphs in historical verification records remain
 point-in-time history. Preserve #315's hosted four-worker policy and the local
 two-worker default, complete affected modules, and exclusive-phase isolation.
 
-After that acceptance, routine local completion requires explicit focused tests
-and `./scripts/check.ps1 -Mode Quick`.
-Report **locally validated; hosted acceptance pending**. Quick runs Ruff, packaged-schema parity,
-and input examples; it does not certify generated outputs, distributions, the
-installation matrix, or the complete regression suite. A Quick pass never
-authorizes issue closure.
+Run the complete modules affected by the actual change, including affected consumers of
+validation or distribution tooling. Use two file-grouped workers with restarts disabled;
+run affected exclusive modules serially after the workers exit. Diagnose failures and
+rerun the necessary complete affected modules. Perform necessary targeted source verification,
+check tracked, new-file and index whitespace without staging, and finish with explicit
+`.\scripts\check.ps1 -Mode Quick`. Report **Locally validated; hosted acceptance pending.**
 
-Use `.\scripts\check.ps1` or `-Mode Full` for validation-tool changes, diagnosis,
-relevant platform-specific work, and required release/platform evidence. Use
-`-Workers 1` for complete serial diagnosis; default Full uses two file-grouped
-workers and the complete exclusive phase. Logs go outside the repository.
-Genuine Windows 11 / PowerShell 5.1 matrix checks and installed UAT boundaries
-remain required where documented; hosted Windows Server does not replace them.
+OpenCode must not run comprehensive local validation unless the maintainer separately and
+explicitly authorizes that specific run. This includes bare `.\scripts\check.ps1`, `-Mode Full`,
+`run_validation.py --mode Full`, whole-suite pytest (including equivalent batches or wrappers),
+and complete local distribution, installation or supported-platform orchestration.
+Changes to tests, validation tooling, distribution smoke guards, packaging, schemas or
+platform code do not grant an exception or, by themselves, warrant asking for one.
+
+If an exceptional run is necessary, first explain the unresolved risk, why targeted checks
+and hosted gates cannot adequately resolve it, and the exact command, scope, environment
+and expected duration. General implementation approval is not authorization. A 7,200,000 ms
+timeout is an execution limit, not permission to spend two hours validating locally.
+Genuine Windows 11 / PowerShell 5.1 evidence and installed acceptance remain separately
+planned maintainer responsibilities; hosted Windows Server cannot substitute for them.
 
 Issue #323 separates publication feedback from complete acceptance. The human
 maintainer commits/pushes a working branch, which automatically runs
@@ -1140,11 +1147,11 @@ publish, trigger Actions, perform UAT, or change UAT findings. See
 24-hour/current-integration-cycle reuse policy, force-full path, serial exceptions,
 required settings, and acceptance procedure.
 
-For the bounded Issue-#323 text/policy correction, run the complete
+The historical scope for the bounded Issue-#323 text/policy correction specified the complete
 `tests/test_ci_validation.py` and `tests/test_skatmind_rename.py` modules against
 the final documentation, then explicit `.\scripts\check.ps1 -Mode Quick` and
-whitespace checks. This supersedes the original six-module selection and the
-general local-Full rule for this wording correction. Use development CPython
+whitespace checks. That scope superseded the original six-module selection and the
+then-current local-Full rule for that wording correction. Use development CPython
 3.13, two file-grouped workers, disabled worker restarts, external temporary
 outputs, and 7,200,000 ms invocation timeouts. Keep #323 open for automatic branch
 feedback, published-source review, and successful complete exact-commit gates

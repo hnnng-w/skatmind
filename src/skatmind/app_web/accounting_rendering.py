@@ -5,21 +5,18 @@ from html import escape
 
 from skatmind.accounting_state import CentRoundV1
 from skatmind.errors import SkatMindError
-from skatmind.event_context_recording_files import load_event_recording_v1
-from skatmind.event_context_sources import recording_players_v1
 
 from .accounting_frontend import (
     _tournament,
     capture_accounting_page,
-    choice_key,
     known_declarer,
     ordinary_round,
-    session_choices,
     tournament_values,
 )
+from .cent_publication import pending
 from .event_context_forms import actual_platform
 from .event_context_frontend import platform_document
-from .event_context_rendering import platform_field, suggested_title
+from .event_context_rendering import platform_field
 from .translation_catalog import translate_frontend_message_v1 as translate
 from .workflow_state import StaleFrontendWorkflowRevisionError
 
@@ -59,13 +56,11 @@ def choices(locale, *keys):
     return [(key, translate(locale, "accounting." + key)) for key in keys]
 
 
-def form(page, active, family, action, fields, locale, *, label=None, round_id=None):
-    hidden = ('' if round_id is None else
-              f'<input type="hidden" name="round_id" value="{e(round_id)}">')
+def form(page, active, family, action, fields, locale, *, label=None):
     return (f'<form method="post" action="/{family}/accounting/{action}" class="form-grid">'
         f'<input type="hidden" name="managed_handle" value="{e(active.handle)}">'
         f'<input type="hidden" name="accounting_selection" value="{page.selection}">'
-        + hidden + fields + f'<button type="submit">{t(locale, label or action)}</button></form>')
+        + fields + f'<button type="submit">{t(locale, label or action)}</button></form>')
 
 
 def _costs(page, active, family, locale):
@@ -168,63 +163,31 @@ def _result_form(page, active, row, number, locale):
     return result
 
 
-def _open_forms(page, active, row, number, locale, entries):
+def _open_forms(page, active, row, number, locale):
     hidden = f'<input type="hidden" name="position" value="{number}">'
     bound = next((b for b in row.context.bindings if b.game_position == number), None)
-    fields = hidden if bound else hidden + '<input type="hidden" name="source_choice" value="new">'
-    body = form(page, active, "sessions", "open", fields, locale,
+    body = form(page, active, "sessions", "open", hidden, locale,
                 label="open" if bound else "continue_game")
     if bound:
         return body + _result_form(page, active, row, number, locale)
-    if not entries:
-        return body
-    body += f'<details><summary>{t(locale, "attach_existing")}</summary>'
-    for entry in entries:
-        document = load_event_recording_v1(entry.path, "session")
-        fields = hidden + f'<input type="hidden" name="source_choice" value="{choice_key(entry)}">'
-        fields += f'<p>{e(entry.summary.display_label)}</p>'
-        for index, player in enumerate(document.state.players, 1):
-            if player.player_id in row.context.participant_ids:
-                continue
-            fields += f'<p>{e(player.player_label or player.player_id)}</p>'
-            fields += select(locale, f"map_{index}", [("", translate(locale, "accounting.choose")),
-                *[(str(i), label) for i, label in enumerate(row.participant_labels, 1)]],
-                key="maps_to")
-        body += form(page, active, "sessions", "open", fields, locale, label="attach_existing")
-    return body + '</details>'
+    return body
 
 
-def _cent(page, active, locale, app):
+def _cent(page, active, locale):
     row = page.current
     body = f'<h3>{t(locale, "cent")}</h3>'
     document = page.event_page.document
-    if row is None and (page.event_page.context is None or not page.event_page.context.tournament):
-        existing = page.event_page.context
-        term = None if existing is None else existing.applicable_terms(1)
-        fields = field(locale, "title", existing.event_name if existing else
-            suggested_title(app, document, locale), key="editable_title", required=True)
-        fields += platform_field(document, locale, term)
-        fields += _tariff(locale, None if term is None else term.financial.cent_tariff)
-        if recording_players_v1(document)[1] is None and existing is None:
-            fields += select(locale, "selected_player", [(str(index), p.player_label or p.player_id)
-                for index, p in enumerate(document.state.players, 1)], key="participant")
-        fields += f'<p>{t(locale, "participants_once")}</p>'
-        body += form(page, active, "sessions", "start", fields, locale)
     if type(row) is CentRoundV1:
         preview = ordinary_round(row, page.documents)
         body += _round_summary(preview, locale, status=row.status)
         if row.status == "open":
-            owned = {b.source.product_id for r in page.journal.round_heads
-                     for b in r.context.bindings}
-            entries = tuple(entry for entry in session_choices(app)
-                            if entry.summary.semantic_product_id not in owned)
             for number in range(1, 4):
                 # Only the next position is offered until previous games are established.
                 if number > 1 and preview.game(number - 1)[0] not in (
                         "settled", "passed"):
                     break
                 body += f'<h4>{t(locale, "game_number", number=number)}</h4>'
-                body += _open_forms(page, active, preview, number, locale, entries)
+                body += _open_forms(page, active, preview, number, locale)
         status = "finished" if row.status == "open" else "open"
         if status == "open" or all(preview.game(n)[0] in ("settled", "passed")
                                    for n in range(1, 4)):
@@ -241,12 +204,7 @@ def _cent(page, active, locale, app):
             fields += _tariff(locale, row.context.applicable_terms(3).financial.cent_tariff)
             body += form(page, active, "sessions", "next", fields, locale)
     if page.journal.round_heads:
-        body += f'<details><summary>{t(locale, "history")}</summary>'
-        for saved in page.journal.round_heads:
-            fields = (f'<p>{e(saved.context.event_name)}</p><input type="hidden" name="position" '
-                      f'value="{saved.context.bindings[0].game_position}">')
-            body += form(page, active, "sessions", "open", fields, locale, round_id=saved.identity)
-        body += '</details>'
+        body += f'<p><a href="/cent#round-history">{t(locale, "history")}</a></p>'
     return body
 
 
@@ -257,7 +215,10 @@ def render_accounting(app, active, family, locale):
         body = f'<section class="panel" id="accounting"><h2>{t(locale, "title")}</h2>'
         body += _costs(page, active, family, locale)
         if family == "sessions":
-            body += _cent(page, active, locale, app)
+            body += _cent(page, active, locale)
+            if pending(app.managed_home.root) is not None:
+                body += ('<p role="status">' + e(translate(locale, "cent.pending"))
+                         + ' <a href="/cent">' + e(translate(locale, "cent.recover")) + '</a></p>')
         return body + '</section>'
     except (OSError, ValueError, SkatMindError, StaleFrontendWorkflowRevisionError):
         return (f'<section id="accounting"><h2>{t(locale, "title")}</h2>'

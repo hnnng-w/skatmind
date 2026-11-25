@@ -133,7 +133,7 @@ Build one Wheel and one sdist manually when local artifact inspection is needed:
 python -m build
 ```
 
-That direct command writes to `dist/`. Normal project checks instead use:
+That build writes to `dist/`. The complete distribution check below requires separate, specific maintainer authorization for local OpenCode execution:
 
 ```powershell
 python scripts/validate_distribution_artifacts.py
@@ -361,7 +361,7 @@ is unchanged, and failure still returns Code `1`.
 
 ## Local and CI gates
 
-The complete local check runs, in fail-fast order:
+Routine local work uses affected modules and explicit `.\scripts\check.ps1 -Mode Quick`. A separately authorized local Full runs, in fail-fast order:
 
 1. Ruff;
 2. packaged-schema parity;

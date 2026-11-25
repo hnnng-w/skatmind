@@ -42,10 +42,11 @@ def require_recording_fresh_v1(active, family: str) -> None:
 
 
 def open_recording_for_review_v1(context, values: dict[str, str]) -> str:
-    if set(values) != {"family", "handle", "generation"}:
+    if set(values) - {"bound_selection"} != {"family", "handle", "generation"}:
         raise ValueError("Recording selection accepts only family, handle and generation.")
     family = values["family"]
-    if (family not in RECORDING_FAMILIES or not re.fullmatch(r"[0-9a-f]{64}", values["handle"])
+    if (family not in RECORDING_FAMILIES or (family != "sessions" and "bound_selection" in values)
+            or not re.fullmatch(r"[0-9a-f]{64}", values["handle"])
             or not re.fullmatch(r"[1-9][0-9]{0,15}", values["generation"])):
         raise ValueError("Recording selection fields are invalid.")
     managed = context.managed_stateful
@@ -87,6 +88,26 @@ def open_recording_for_review_v1(context, values: dict[str, str]) -> str:
             if identity != entry.summary.semantic_product_id:
                 raise RecordingOpenConflict()
             require_recording_fresh_v1(active, family)
+            if family == "sessions":
+                from skatmind.accounting_state import CentRoundV1
+                from skatmind.accounting_store import load_accounting
+                from skatmind.event_context_sources import recording_version_v1
+
+                from .cent_sources import bound_selection, open_bound, session_entries
+                journal = load_accounting(context.managed_home.root)
+                owner = journal.for_source(recording_version_v1(active.document).source)
+                if isinstance(owner, CentRoundV1):
+                    binding = owner.context.binding(recording_version_v1(active.document).source)
+                    try:
+                        bound = open_bound(context, owner, binding, session_entries(context))
+                    except (OSError, ValueError, SkatMindError) as error:
+                        raise RecordingOpenConflict("file") from error
+                    if (bound.path != active.path or bound.document != active.document
+                            or values.get("bound_selection") != bound_selection(
+                                context, journal, owner, binding, bound)):
+                        raise RecordingOpenConflict("file")
+                elif "bound_selection" in values:
+                    raise RecordingOpenConflict("file")
             with context.lock:
                 if getattr(managed, attribute) is not previous or resolve() is not entry:
                     raise RecordingOpenConflict()

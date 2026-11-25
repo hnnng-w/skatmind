@@ -91,10 +91,10 @@ Example files can be validated against the schema with:
 python scripts/validate_examples_schema.py
 ```
 
-The project check script also runs input schema validation:
+The routine Quick check includes input-example schema validation:
 
 ```powershell
-.\scripts\check.ps1
+.\scripts\check.ps1 -Mode Quick
 ```
 
 The schema checks stable structural constraints such as:

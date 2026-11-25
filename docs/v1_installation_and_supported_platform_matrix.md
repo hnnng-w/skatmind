@@ -170,19 +170,26 @@ files are removed. A content snapshot rejects repository mutation.
 Package metadata remains Python `>=3.13`; the certified v1 runtime is CPython
 3.13 only.
 
-Windows acceptance uses Windows 11 and Windows PowerShell 5.1:
+Routine OpenCode work uses complete affected modules, including affected matrix
+or distribution consumers, and explicit `.\scripts\check.ps1 -Mode Quick`
+under the [local validation policy](faster_validation.md).
+
+The following commands are for separately planned maintainer platform evidence,
+not routine local validation. OpenCode must have separate, explicit maintainer
+authorization for the specific comprehensive run. Windows acceptance uses real
+Windows 11 and Windows PowerShell 5.1:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Command `
   "py -3.13 scripts/validate_v1_supported_platform_matrix.py"
 ```
 
-For release/platform evidence, the local Full check is separately run through Windows
-PowerShell 5.1:
+Where a release/platform plan requires local Full in addition to the matrix,
+its separate Windows PowerShell 5.1 command is:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Command `
-  "& { function python { py -3.13 @args }; .\scripts\check.ps1 }"
+  "& { function python { py -3.13 @args }; .\scripts\check.ps1 -Mode Full }"
 ```
 
 Issue #279 retains `v1-supported-platform-matrix` as a strict final aggregate over
@@ -190,7 +197,7 @@ six independent Ubuntu cells and six separately identified hosted Windows Server
 cells. Full regression/distribution coverage runs on both operating systems. The
 Windows Server lane is additional automation, never Windows-11 certification.
 Real Windows 11 / PowerShell 5.1 release, platform-change, and installed-UAT checks
-remain required. See [Faster complete validation](faster_validation.md) for activation.
+remain required and are planned separately by the maintainer.
 
 No macOS support, Python 3.14 certification, named browser-vendor matrix,
 hardware requirement, cross-machine latency guarantee, Docker/remote-hosting

@@ -1183,8 +1183,8 @@ assert FRONTEND_TRANSLATION_CATALOG_VERSION == 1
 assert LOCAL_FRONTEND_PROFILE_VERSION == 1
 assert FRONTEND_INFORMATION_ARCHITECTURE_VERSION == 1
 assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
-assert len(UNIFIED_FRONTEND_POST_ROUTES) == 117
-assert len(FRONTEND_FORM_REGISTRY) == 169
+assert len(UNIFIED_FRONTEND_POST_ROUTES) == 119
+assert len(FRONTEND_FORM_REGISTRY) == 171
 assert {form.action_route for form in FRONTEND_FORM_REGISTRY
         if form.form_key.startswith("session.batch.")} == {
     "/sessions/game-review/start", "/sessions/game-review/resume", "/sessions/game-review/cancel"}
@@ -1201,16 +1201,15 @@ assert {form.action_route for form in FRONTEND_FORM_REGISTRY
 accounting = tuple(form for form in FRONTEND_FORM_REGISTRY
                    if form.form_key.startswith("accounting."))
 assert {form.action_route for form in accounting} == {
-    "/matches/accounting/save", "/sessions/accounting/save", "/sessions/accounting/start",
+    "/matches/accounting/save", "/sessions/accounting/save",
     "/sessions/accounting/game", "/sessions/accounting/open", "/sessions/accounting/lifecycle",
     "/sessions/accounting/next",
 }
-assert len(accounting) == 7
+assert len(accounting) == 6
 expected_accounting_fields = {
     "save": ("entry_total", "table_total", "plus_level"),
-    "start": ("title", "cent_tariff", "platform", "selected_player"),
     "game": ("position", "game_status", "declarer", "game_value"),
-    "open": ("position", "source_choice", "map_1", "map_2", "map_3"),
+    "open": ("position",),
     "lifecycle": ("status",),
     "next": ("title", "cent_tariff", "platform"),
 }
@@ -1218,6 +1217,15 @@ for form in accounting:
     assert tuple(field.field_key for field in form.safe_fields) == expected_accounting_fields[
         form.form_key.rsplit(".", 1)[1]]
 assert all(form.body_limit == 16384 for form in accounting)
+cent = {form.action_route: form for form in FRONTEND_FORM_REGISTRY
+       if form.form_key.startswith("cent.")}
+assert set(cent) == {"/cent/start", "/cent/resume", "/cent/recover"}
+assert all(form.body_limit == 16384 and form.originating_page == "/cent" for form in cent.values())
+assert all(cent[path].value_free for path in ("/cent/resume", "/cent/recover"))
+assert {field.field_key for field in cent["/cent/start"].safe_fields} == {
+    "title", "capture_mode", "cent_tariff", "platform", "own_seat", "perspective_mode",
+    "perspective_seat", *(seat + "_" + field for seat in ("forehand", "middlehand", "rearhand")
+                          for field in ("name", "mode", "handle"))}
 recording_input, = (form for form in FRONTEND_FORM_REGISTRY
                    if form.form_key == "match.recording_input")
 assert recording_input.action_route == "/matches/recording-input"

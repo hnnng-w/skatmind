@@ -218,6 +218,21 @@ def _create_context(
     )
 
 
+def prepare_guided_session_document(
+    session_id: str,
+    players: tuple[session_api.SessionPlayerV1, ...],
+    capture_mode: str,
+    local_player_id: str | None,
+) -> session_api.SessionPersistenceDocumentV1:
+    created = session_api.create_session(
+        session_id=session_id,
+        players=players,
+        capture_mode=capture_mode,
+        local_player_id=local_player_id,
+    )
+    return session_api.build_session_persistence_document(created.value).value
+
+
 def create_guided_session_v1(
     category_root: Path,
     *,
@@ -227,13 +242,7 @@ def create_guided_session_v1(
     capture_mode: str,
     local_player_id: str | None,
 ) -> GuidedSessionContextV1:
-    created = session_api.create_session(
-        session_id=session_id,
-        players=players,
-        capture_mode=capture_mode,
-        local_player_id=local_player_id,
-    )
-    document = session_api.build_session_persistence_document(created.value).value
+    document = prepare_guided_session_document(session_id, players, capture_mode, local_player_id)
     path = build_managed_item_storage_path_v1(
         category_root,
         family="sessions",

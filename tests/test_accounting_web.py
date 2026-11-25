@@ -40,10 +40,42 @@ def activate_session(app, identity="synthetic-cent-one", ids=("a", "b", "c")):
     return active
 
 
+def setup_values(**overrides):
+    return dict(cent_tariff="1/2", platform="euroskat", forehand_name="Alice",
+        middlehand_name="Bob", rearhand_name="Carol", perspective_seat="forehand") | overrides
+
+
 def start(browser, **values):
-    form = Forms(browser.page()).find("/sessions/accounting/start")
-    return follow(browser, native_submit(browser, form, cent_tariff="1/2", platform="euroskat",
-                                         **values))
+    form = Forms(browser.page("/cent")).find("/cent/start")
+    return follow(browser, native_submit(browser, form, **setup_values(**values)))
+
+
+def historical_round(app, *, title="Historical Cent", platform="euroskat", seat=0):
+    """Seed the persisted contract used by previously supported attachments."""
+    from skatmind.accounting_state import CentRoundV1
+    from skatmind.app_web.event_context_forms import supported_terms
+    from skatmind.event_context_contracts import EventContextV1
+    from skatmind.event_context_sources import build_event_binding_v1, build_recording_facts_v1
+    from skatmind.mode_accounting import CENT_ACCOUNTING_RULE, CENT_PAIRWISE_RULE
+    doc = app.managed_stateful.active_session.document
+    ids = tuple(p.player_id for p in doc.state.players)
+    selected = doc.state.local_player_id or ids[seat]
+    term = supported_terms("cent", platform, tariff="1/2")
+    binding = build_event_binding_v1(doc, game_position=1, selected_player_id=selected)
+    context = EventContextV1(event_id="previous-round", series_id="previous-series",
+        event_name=title, series_name="Original series", participant_ids=ids,
+        selected_participant_id=selected, bindings=(binding,), provenance="Earlier attachment",
+        terms=(term,))
+    row = CentRoundV1(context=context, table_id="previous-table",
+        participant_labels=tuple(p.player_label or p.player_id for p in doc.state.players),
+        recordings=(build_recording_facts_v1(doc, through_position=1,
+                                             selected_player_id=selected),),
+        confirmations=(), rule_source=term.scoring_source, provenance=context.provenance,
+        rule=CENT_ACCOUNTING_RULE if platform == "euroskat" else CENT_PAIRWISE_RULE)
+    journal = load_accounting(app.managed_home.root)
+    save_accounting(app.managed_home.root, append_accounting(journal, row),
+                    expected_fingerprint=journal.fingerprint, source_guard=lambda: True)
+    return row
 
 
 def action_fields(form):
@@ -56,11 +88,10 @@ def game_form(page, number):
                 and form["values"].get("position") == str(number))
 
 
-def open_form(page, number, *, external=False):
+def open_form(page, number):
     return next(form for form in Forms(page).forms if form["action"] == "/sessions/accounting/open"
                 and form["values"].get("position") == str(number)
-                and "round_id" not in form["values"]
-                and (form["values"].get("source_choice", "new") != "new") == external)
+                and "round_id" not in form["values"])
 
 
 def result(browser, page, number, value="100", status="won"):
@@ -86,22 +117,20 @@ def test_three_sessions_reuse_rotation_finish_explicit_next_and_immutable_histor
         pytest.fail("Accounting must not run Card analysis")
     monkeypatch.setattr("skatmind.app_web.execution.execute_guided_frontend_analysis_v1", forbidden)
     browser = Browser(localized_server)
-    page = switch(browser, browser.page(), locale)
-    form = Forms(page).find("/sessions/accounting/start")
-    assert action_fields(form) == {
-        "title", "platform", "cent_tariff"}
+    page = switch(browser, browser.page("/cent"), locale)
+    form = Forms(page).find("/cent/start")
     assert form["values"]["title"]
     page = start(browser, title="Edited Cent title")
+    ids = tuple(p.player_id for p in app.managed_stateful.active_session.state.players)
     for number, value, status in ((1, "23", "won"), (2, "23", "lost"), (3, "100", "won")):
         if number > 1:
             form = open_form(page, number)
-            assert action_fields(form) == {
-                "position", "source_choice"}
+            assert action_fields(form) == {"position"}
             page = follow(browser, native_submit(browser, form))
         current = app.managed_stateful.active_session.document.state
         assert tuple(p.player_id for p in current.players) == (
-            ("a", "b", "c")[number - 1:] + ("a", "b", "c")[:number - 1])
-        assert current.local_player_id == "a"
+            ids[number - 1:] + ids[:number - 1])
+        assert current.local_player_id == ids[0]
         page = result(browser, page, number, value, status)
     journal = load_accounting(app.managed_home.root)
     row = journal.round_heads[0]
@@ -151,9 +180,8 @@ def test_established_recording_reused_and_only_actual_platform_controls_fees(
     app.managed_stateful.activate_session(active)
     original = active.path.read_bytes()
     browser = Browser(localized_server)
-    form = Forms(browser.page()).find("/sessions/accounting/start")
-    page = follow(browser, native_submit(browser, form, platform=platform, cent_tariff="1/2",
-                                         selected_player="2"))
+    historical_round(app, platform=platform, seat=1)
+    page = follow(browser, browser.submit(Forms(browser.page("/cent")).find("/cent/resume")))
     row = load_accounting(app.managed_home.root).round_heads[0]
     assert row.game(1)[0] == "settled" and row.game(1)[2] == "derived"
     assert not any(f["action"] == "/sessions/accounting/game" for f in Forms(page).forms)
@@ -181,7 +209,8 @@ def test_partial_recording_asks_only_missing_result_and_reuses_known_declarer(lo
     app.managed_stateful.activate_session(active)
     original = active.path.read_bytes()
     browser = Browser(localized_server)
-    page = start(browser, selected_player="2")
+    historical_round(app, seat=1)
+    page = browser.page()
     form = game_form(page, 1)
     assert action_fields(form) == {"position", "game_status", "game_value"}
     follow(browser, native_submit(browser, form, game_status="lost", game_value="72"))
@@ -192,7 +221,7 @@ def test_partial_recording_asks_only_missing_result_and_reuses_known_declarer(lo
     assert active.path.read_bytes() == original
 
 
-def test_saved_session_title_is_reused_but_profile_platform_is_not(localized_server):
+def test_standalone_session_label_and_profile_platform_do_not_define_round(localized_server):
     from skatmind.app_web.frontend_profile_codec import build_local_frontend_profile_v1
     from skatmind.app_web.frontend_profile_state import state_from_saved_profile_v1
     from skatmind.app_web.profile_player_contracts import ManagedItemDisplayLabelV1
@@ -204,8 +233,10 @@ def test_saved_session_title_is_reused_but_profile_platform_is_not(localized_ser
             family="sessions", product_id=active.state.session_id,
             display_name="Saved own title"),))
     app.frontend_profile = state_from_saved_profile_v1(app.frontend_profile, profile)
-    form = Forms(Browser(localized_server).page()).find("/sessions/accounting/start")
-    assert form["values"]["title"] == "Saved own title"
+    browser = Browser(localized_server)
+    assert "/sessions/accounting/start" not in browser.page()
+    form = Forms(browser.page("/cent")).find("/cent/start")
+    assert form["values"]["title"] == "Cent round 1"
     assert form["values"]["platform"] == ""
 
 
@@ -220,7 +251,7 @@ def test_old_game_payment_override_does_not_hide_an_established_recording(locali
                                       document=completed_cent_session().to_dict())
     app.managed_stateful.activate_session(active)
     browser = Browser(localized_server)
-    start(browser, selected_player="2")
+    historical_round(app, seat=1)
     journal = load_accounting(app.managed_home.root)
     row = replace(journal.round_heads[0], confirmations=(ConfirmedGameV1(position=1,
         status="external", personal_net=SignedMoneyV1.parse("987"),
@@ -476,7 +507,7 @@ def test_passed_missing_and_unfinished_remain_distinct(localized_server):
     pytest.param(("b", "x", "a"), {"map_2": "3"}, id="mixed"),
     pytest.param(("b", "c", "a"), {}, id="all_known"),
 ])
-def test_external_session_mapping_only_for_unresolved_identity_and_correct_rotation(
+def test_obsolete_attachment_rejected_but_historical_rotated_mapping_resumes(
         localized_server, source_ids, mapping):
     app = localized_server.app_context
     other = activate_session(app, "alias-session", source_ids)
@@ -491,16 +522,22 @@ def test_external_session_mapping_only_for_unresolved_identity_and_correct_rotat
     first = activate_session(app)
     first_bytes = first.path.read_bytes()
     browser = Browser(localized_server)
-    page = result(browser, start(browser), 1)
-    form = open_form(page, 2, external=True)
-    assert action_fields(form) == {"position", "source_choice", *mapping}
-    if mapping:
-        journal = load_accounting(app.managed_home.root)
-        invalid = {key: key.rsplit("_", 1)[1] for key in mapping}
-        assert native_submit(browser, form, **invalid)[0] == 400
-        assert load_accounting(app.managed_home.root) == journal
-        assert app.managed_stateful.active_session is first
-    response = native_submit(browser, form, **mapping)
+    historical_round(app)
+    page = result(browser, browser.page(), 1)
+    form = open_form(page, 2)
+    assert action_fields(form) == {"position"}
+    journal = load_accounting(app.managed_home.root)
+    assert browser.submit(form, source_choice="stale-source", **mapping)[0] == 400
+    assert load_accounting(app.managed_home.root) == journal
+    assert app.managed_stateful.active_session is first
+    from skatmind.event_context_sources import build_event_binding_v1
+    row, = journal.round_heads
+    binding = build_event_binding_v1(document, game_position=2,
+                                    player_map=dict(zip(source_ids, ("b", "c", "a"), strict=True)))
+    row = replace(row, context=replace(row.context, bindings=(*row.context.bindings, binding)))
+    save_accounting(app.managed_home.root, append_accounting(journal, row),
+                    expected_fingerprint=journal.fingerprint, source_guard=lambda: True)
+    response = native_submit(browser, Forms(browser.page("/cent")).find("/cent/resume", index=1))
     assert response[0] == 303
     page = follow(browser, response)
     assert other.path.read_bytes() == before
@@ -588,15 +625,15 @@ def test_accounting_preserves_genuine_reports_and_independent_collection(localiz
 def test_accounting_oversized_start_rejected_before_mutation(localized_server):
     import http.client
 
-    from skatmind.app_web.accounting_forms import ACCOUNTING_ROUTES
+    from skatmind.app_web.accounting_forms import ACCOUNTING_ROUTES, CENT_ROUTES
 
     app = localized_server.app_context
     active = activate_session(app)
     original = active.path.read_bytes()
     browser = Browser(localized_server)
-    form = Forms(browser.page()).find("/sessions/accounting/start")
+    form = Forms(browser.page("/cent")).find("/cent/start")
     values = dict(title="x" * 20000, cent_tariff="1/2", platform="euroskat")
-    for route in ACCOUNTING_ROUTES:
+    for route in (*ACCOUNTING_ROUTES, *CENT_ROUTES):
         assert browser.request("POST", route, {**form["values"], **values})[0] == 413
         assert not (app.managed_home.root / ACCOUNTING_FILENAME).exists()
         assert active.path.read_bytes() == original
@@ -611,7 +648,7 @@ def test_accounting_oversized_start_rejected_before_mutation(localized_server):
         assert connection.getresponse().status == 413
     finally:
         connection.close()
-    follow(browser, native_submit(browser, form, **{**values, "title": "Recovered"}))
+    follow(browser, native_submit(browser, form, **setup_values(title="Recovered")))
     assert len(load_accounting(app.managed_home.root).round_heads) == 1
 
 
@@ -621,7 +658,7 @@ def test_cross_family_stale_publication_and_fresh_retry_preserve_both(localized_
     activate_session(app)
     browser = Browser(localized_server)
     match_page = create_context(browser)
-    stale_cent = Forms(browser.page()).find("/sessions/accounting/start")
+    stale_cent = Forms(browser.page("/cent")).find("/cent/start")
     follow(browser, native_submit(browser, Forms(match_page).find("/matches/accounting/save")))
     accepted = load_accounting(app.managed_home.root)
     assert native_submit(browser, stale_cent, cent_tariff="1/2", platform="euroskat")[0] == 409
@@ -629,3 +666,194 @@ def test_cross_family_stale_publication_and_fresh_retry_preserve_both(localized_
     start(browser)
     current = load_accounting(app.managed_home.root)
     assert current.tournaments == accepted.tournaments and len(current.round_heads) == 1
+
+
+@pytest.mark.parametrize("mode", ["retrospective", "live"])
+def test_direct_start_rejects_invalid_and_duplicate_and_preserves_knowledge(localized_server, mode):
+    from concurrent.futures import ThreadPoolExecutor
+    app = localized_server.app_context
+    browser = Browser(localized_server)
+    form = Forms(browser.page("/cent")).find("/cent/start")
+    for bad in (dict(title=" "), dict(cent_tariff="1/4"), dict(platform="unknown"),
+                dict(perspective_seat=""), dict(rearhand_name="Alice")):
+        assert browser.submit(form, **setup_values(**bad))[0] == 400
+        assert not tuple(app.managed_stateful.root("sessions").iterdir())
+        assert not load_accounting(app.managed_home.root).rounds
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        answers = list(pool.map(lambda _: browser.submit(form, **setup_values(capture_mode=mode)),
+                                range(2)))
+    assert sorted(r[0] for r in answers) == [303, 409]
+    assert len(tuple(app.managed_stateful.root("sessions").iterdir())) == 1
+    page = complete_round(browser, browser.page())
+    assert app.managed_stateful.active_session.state.capture_mode == mode
+    page = follow(browser, browser.submit(Forms(page).find("/sessions/accounting/lifecycle")))
+    follow(browser, native_submit(browser, Forms(page).find("/sessions/accounting/next")))
+    assert app.managed_stateful.active_session.state.capture_mode == mode
+
+
+@pytest.mark.parametrize("failure", ["before_session", "before_journal", "after_journal"])
+def test_interrupted_publication_recovers_exact_attempt_after_restart(tmp_path, monkeypatch,
+                                                                     failure):
+    from contextlib import closing
+
+    from skatmind.app_web import cent_publication
+    with closing(_localized_server.__wrapped__(tmp_path)) as fixture:
+        server = next(fixture)
+        app = server.app_context
+        other = activate_session(app)
+        before = other.path.read_bytes()
+        browser = Browser(server)
+        with monkeypatch.context() as m:
+            real = cent_publication.save_accounting
+            def interrupt(*args, **kwargs):
+                if failure == "after_journal":
+                    real(*args, **kwargs)
+                raise OSError("injected accounting write failure")
+            m.setattr(cent_publication, "create_guided_session_v1" if failure == "before_session"
+                      else "save_accounting", interrupt)
+            form = Forms(browser.page("/cent")).find("/cent/start")
+            assert browser.submit(form, **setup_values())[0] == 409
+        assert app.managed_stateful.active_session is other
+        files = {p: p.read_bytes() for p in other.category_root.glob("*.json")}
+        assert len(files) == (1 if failure == "before_session" else 2)
+        assert files[other.path] == before
+        assert len(load_accounting(app.managed_home.root).rounds) == int(failure == "after_journal")
+    with closing(_localized_server.__wrapped__(tmp_path)) as fixture:
+        server = next(fixture)
+        browser = Browser(server)
+        page = browser.page("/cent")
+        assert "/cent/start" not in page
+        recover = Forms(page).find("/cent/recover")
+        follow(browser, browser.submit(recover))
+        assert browser.submit(recover)[0] == 409
+        new_files = {p: p.read_bytes() for p in other.category_root.glob("*.json")}
+        assert len(new_files) == 2 and files.items() <= new_files.items()
+        app = server.app_context
+        row, = load_accounting(app.managed_home.root).round_heads
+        assert app.managed_stateful.active_session.path in new_files.keys() - {other.path}
+        binding, = row.context.bindings
+        assert binding.attached_source.content_fingerprint == (
+            app.managed_stateful.active_session.document.content_fingerprint)
+
+
+@pytest.mark.parametrize("failure", ["missing", "duplicate", "replacement", "copy", "stale"])
+def test_resume_requires_current_unique_source_before_activation(localized_server, failure):
+    from skatmind.session_persistence import save_session_persistence_file_v1
+    from skatmind.session_persistence_codec import build_session_persistence_document_v1
+    app = localized_server.app_context
+    browser = Browser(localized_server)
+    start(browser)
+    bound = app.managed_stateful.active_session
+    other = activate_session(app)
+    form = Forms(browser.page("/cent")).find("/cent/resume")
+    if failure == "missing":
+        bound.path.rename(bound.path.with_suffix(".aside"))
+    elif failure == "duplicate":
+        bound.path.with_name("duplicate.json").write_bytes(bound.path.read_bytes())
+    elif failure == "replacement":
+        doc = build_session_persistence_document_v1(replace(bound.state,
+            local_player_id=bound.state.players[1].player_id))
+        save_session_persistence_file_v1(bound.path, doc,
+            expected_content_fingerprint=bound.document.content_fingerprint)
+    elif failure == "copy":
+        copy = bound.path.with_suffix(".copy")
+        copy.write_bytes(bound.path.read_bytes())
+        copy.replace(bound.path)
+    else:
+        form["values"]["bound_selection"] = "a" * 64
+    assert browser.submit(form)[0] in (400, 409)
+    assert app.managed_stateful.active_session is other
+    if failure not in ("stale", "copy"):
+        assert text("en", "cent.source") in browser.page("/cent")
+
+
+def test_analyze_membership_requires_bound_file_and_exact_selection(localized_server):
+    app = localized_server.app_context
+    browser = Browser(localized_server)
+    independent = activate_session(app)
+    start(browser, title="Same names")
+    bound = app.managed_stateful.active_session
+    before = {p: p.read_bytes() for p in (bound.path, independent.path)}
+    def choices():
+        page = browser.page("/review/recorded")
+        assert page.count("Same names · Cent-Skat · Game 1 of 3") == 1
+        forms = [f for f in Forms(page).forms if f["action"] == "/review/open-recording"]
+        return (next(f for f in forms if "bound_selection" in f["values"]),
+                next(f for f in forms if "bound_selection" not in f["values"]))
+    form, other = choices()
+    scopes = follow(browser, browser.submit(other))
+    assert "Same names" not in scopes
+    assert app.managed_stateful.active_session.path == independent.path
+    form, _ = choices()
+    broken = dict(form, values=dict(form["values"]))
+    del broken["values"]["bound_selection"]
+    assert browser.submit(broken)[0] == 409
+    assert app.managed_stateful.active_session.path == independent.path
+    form, _ = choices()
+    scopes = follow(browser, browser.submit(form))
+    assert "Same names · Cent-Skat · Game 1 of 3" in scopes
+    for route in ("/sessions/game-review", "/sessions/decisions"):
+        assert f'href="{route}"' in scopes
+        browser.page(route)
+        assert app.managed_stateful.active_session.path == bound.path
+    assert before == {p: p.read_bytes() for p in before}
+
+
+def test_direct_entry_uses_saved_own_seat_and_rejects_stale_profile(localized_server):
+    from test_settings_seat_setup_web import add_players
+    browser = Browser(localized_server)
+    stale = Forms(browser.page("/cent")).find("/cent/start")
+    _, handles = add_players(browser)
+    app = localized_server.app_context
+    profile = app.frontend_profile.profile_path.read_bytes()
+    assert browser.submit(stale, **setup_values())[0] == 409
+    assert not load_accounting(app.managed_home.root).rounds
+    form = Forms(browser.page("/cent")).find("/cent/start")
+    # A conflict keeps the submitted draft. Explicitly select the saved roster instead.
+    assert form["values"]["forehand_name"] == "Alice"
+    follow(browser, browser.submit(form, title="Saved players", platform="in_person",
+        cent_tariff="5", perspective_mode="own", perspective_seat="", own_seat="rearhand",
+        forehand_mode="saved", forehand_name="", forehand_handle=handles[1],
+        middlehand_mode="saved", middlehand_name="", middlehand_handle=handles[2],
+        rearhand_name="", rearhand_mode="saved"))
+    state = app.managed_stateful.active_session.state
+    assert tuple(p.player_label for p in state.players) == ("B", "C", "A")
+    assert state.local_player_id == state.players[2].player_id
+    assert app.frontend_profile.profile_path.read_bytes() == profile
+
+
+@pytest.mark.parametrize("restore", [True, False])
+def test_continuation_retry_rejects_replaced_predecessor(localized_server, monkeypatch, restore):
+    from skatmind.app_web import cent_publication
+    browser = Browser(localized_server)
+    app = localized_server.app_context
+    page = result(browser, start(browser), 1)
+    active = app.managed_stateful.active_session
+    root = app.managed_home.root
+    journal = load_accounting(root)
+    with monkeypatch.context() as m:
+        def interrupt(*args, **kwargs):
+            raise OSError("interrupted")
+        m.setattr(cent_publication, "save_accounting", interrupt)
+        assert browser.submit(open_form(page, 2))[0] == 409
+        assert 'href="/cent">' + text("en", "cent.recover") in browser.page()
+    files = {p: p.read_bytes() for p in active.category_root.glob("*.json")}
+    assert len(files) == 2
+    # New file object with identical contents must not satisfy the earlier selection.
+    aside = active.path.with_suffix(".aside")
+    active.path.rename(aside)
+    active.path.write_bytes(aside.read_bytes())
+    recover = Forms(browser.page("/cent")).find("/cent/recover")
+    assert browser.submit(recover)[0] == 409
+    assert load_accounting(root) == journal and app.managed_stateful.active_session is active
+    if not restore:
+        stop = Forms(browser.page("/cent")).find("/cent/recover", index=1)
+        assert "/cent/start" in follow(browser, browser.submit(stop))
+        assert browser.submit(recover)[0] == 409
+        assert load_accounting(root) == journal and app.managed_stateful.active_session is active
+        assert files == {p: p.read_bytes() for p in active.category_root.glob("*.json")}
+        return
+    aside.replace(active.path)
+    follow(browser, browser.submit(Forms(browser.page("/cent")).find("/cent/recover")))
+    assert len(load_accounting(root).round_heads[0].context.bindings) == 2
+    assert files == {p: p.read_bytes() for p in active.category_root.glob("*.json")}

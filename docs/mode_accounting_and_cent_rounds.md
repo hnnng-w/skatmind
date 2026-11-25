@@ -8,7 +8,49 @@ the value before loss doubling. Nonempty invalid values keep existing validation
 passed/derived results, source freshness, fees and exactly-once doubling retain
 their existing behavior. See [the #324 verification boundary](simple_analysis_entry_and_recording_metadata.md).
 
-Current ordinary behavior is defined by the maintainer-approved
+## Direct Cent entry (#334)
+
+From either **Live play** or **Retrospective recording**, choose **Cent-Skat**
+under **Real-money games**. The same page lists saved rounds, their status and
+their bound games, including finished rounds and games attached by older versions.
+You do not need an open recording. Each game opens in the individual-game recorder.
+
+For a new round, edit the proposed title, choose three players in first-game seat
+order (new names or saved players), the recorded perspective, available card
+knowledge, actual platform and one fixed tariff. **Start round and open game 1**
+creates the first game. After a settled or passed game, continue to create the
+next game or open the existing binding. Generated games rotate the round's
+participants and keep the first game's initial card-knowledge choice. Moving
+between tasks does not change this choice. All three results, local finish,
+reopen and explicit next-round/table lineage work as before. Independent Session
+import/export is still available in Individual games.
+
+**Interrupted creation.** Return to **Cent-Skat** and choose **Continue interrupted
+creation**. A private, bounded `.cent-game-start.json` reservation in the managed
+home identifies the intended revision-zero Session and round revision. It is
+published before the Session. The action verifies that exact recording (or
+creates it if publication never completed), then uses the accounting journal's
+guarded compare-and-swap. It verifies the committed binding before opening and
+clearing the reservation. Only journal heads count as saved rounds. If the bound
+source is unavailable, restore the original unique recording before retrying:
+matching titles, seats or filenames do not authorize substitution. If the original
+source cannot be restored, **Stop this recovery attempt** releases just that
+reservation. All saved recordings and accounting remain intact, including an
+already created game. Recovery does not attach unrelated recordings.
+
+**Narrow subsequent installed check (maintainer only).** From both tasks inspect
+the three grouped choices in German and English. With disposable installed data,
+start one round, check the proposed title, chosen perspective and knowledge,
+record a result and continue through the rotated positions, finish and start the
+explicit next round. Restart and open one earlier binding and one independent
+recording. From Analyze open the bound game at both scopes and inspect one
+retained original and its Learning selection. Refresh and switch language; no
+analysis should start. Check native keyboard use and a narrow viewport.
+This check follows successful exact integrated-commit hosted acceptance.
+#333 remains complete. Full #208 UAT and the comprehensive pre-v1 architecture
+review and treatment of material findings are separate.
+
+The earlier ordinary behavior was defined by the maintainer-approved
 [A–F simplification](simple_event_and_cent_forms.md): one title, actual-platform
 rules, conditional checkpoints, cost-only Tournament inputs, reused Cent players
 and results, and local-only completion. The original questionnaires and prepared

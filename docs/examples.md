@@ -18,10 +18,10 @@ The examples are used for:
 
 All example JSON files should remain valid.
 
-Run the full project check:
+For input-example validation, run explicit Quick; the main-push gate validates generated outputs:
 
 ```powershell
-.\scripts\check.ps1
+.\scripts\check.ps1 -Mode Quick
 ```
 
 The historical published `v0.16.0` baseline at commit `91b1360` contains 63

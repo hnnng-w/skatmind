@@ -2,17 +2,20 @@
 
 from skatmind.event_context_contracts import AmountV1
 
+from .player_seat_setup import SEAT_SETUP_FIELDS
+
+CENT_ROUTES = ("/cent/start", "/cent/resume", "/cent/recover")
+CENT_SETUP_FIELDS = ("title", "capture_mode", "cent_tariff", "platform", *SEAT_SETUP_FIELDS)
 ACCOUNTING_FIELDS = {
     "save": ("entry_total", "table_total", "plus_level"),
-    "start": ("title", "cent_tariff", "platform", "selected_player"),
     "game": ("position", "game_status", "declarer", "game_value"),
-    "open": ("position", "source_choice", "map_1", "map_2", "map_3"),
+    "open": ("position",),
     "lifecycle": ("status",),
     "next": ("title", "cent_tariff", "platform"),
 }
 ACCOUNTING_ROUTES = ("/matches/accounting/save", "/sessions/accounting/save",
     *(f"/sessions/accounting/{action}" for action in (
-        "start", "game", "open", "lifecycle", "next")))
+        "game", "open", "lifecycle", "next")))
 
 
 class AccountingFormError(ValueError):
