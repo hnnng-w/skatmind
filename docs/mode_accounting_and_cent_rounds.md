@@ -38,6 +38,24 @@ source cannot be restored, **Stop this recovery attempt** releases just that
 reservation. All saved recordings and accounting remain intact, including an
 already created game. Recovery does not attach unrelated recordings.
 
+**Editing a bound game.** Card capture, a saved decision checkpoint, Undo and
+command correction keep the same round and game position, including after
+restart. A private `.cent-member-<digest>.receipt` in the managed home binds the
+exact recording file and content to the original participant mapping and game.
+It covers at most two file versions: before and after the last managed edit.
+The receipt is written at the Session's guarded replacement boundary, so an
+interruption leaves the file on disk identifiable. New games start with one
+endpoint. For earlier games without a receipt, the first managed edit must
+verify the retained attachment and accounting fingerprints against the current
+document or its accepted prefix, including checkpoints at the prefix boundary.
+An already diverged legacy file with no such proof cannot be adopted by ID.
+
+The receipt proves membership only. Old accounting revisions keep their exact
+source facts; an explicit accounting action refreshes them from the unique
+current recordings. Analysis originals and Learning evidence stay bound to
+their original versions. Resume, accounting and Analyze forms must still
+match the current selection; an identical copy is not the selected file.
+
 **Narrow subsequent installed check (maintainer only).** From both tasks inspect
 the three grouped choices in German and English. With disposable installed data,
 start one round, check the proposed title, chosen perspective and knowledge,

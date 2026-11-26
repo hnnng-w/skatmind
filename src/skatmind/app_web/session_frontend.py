@@ -18,6 +18,7 @@ from skatmind.session_checkpoint_collection import (
 from skatmind.session_persistence import _build_session_persistence_file_bytes_v1
 from skatmind.simulation import DEFAULT_IMMEDIATE_ANALYSIS_SAMPLE_COUNT
 
+from .cent_continuity import save_cent_member_edit
 from .execution import (
     GuidedFrontendExecutionV1,
     execute_guided_frontend_analysis_v1,
@@ -32,6 +33,7 @@ from .operation_feedback import PendingOperationFeedback, feedback_source
 from .operation_feedback_mapping import session_command_message
 from .session_declaration_correction import SessionDeclarationCorrectionState
 from .session_live_advice import LiveAssistance, game_identity
+from .whole_match_progress import file_identity
 
 if TYPE_CHECKING:
     from .session_recorded_review import RecordedReviewSourceV1
@@ -113,6 +115,7 @@ class GuidedSessionContextV1:
     path: Path = field(repr=False)
     handle: str
     document: session_api.SessionPersistenceDocumentV1 = field(repr=False)
+    saved_file_identity: str | None = field(default=None, repr=False)
     generation: int = 1
     retired: bool = field(default=False, repr=False)
     review_page: str | None = None
@@ -205,12 +208,14 @@ def _create_context(
     document: session_api.SessionPersistenceDocumentV1,
     status: str,
     message: str,
+    stamp: str | None = None,
 ) -> GuidedSessionContextV1:
     return GuidedSessionContextV1(
         category_root=category_root,
         path=path,
         handle=handle,
         document=document,
+        saved_file_identity=stamp or file_identity(path),
         last_operation=GuidedSessionOperationResultV1(
             status=status,
             message=message,
@@ -299,6 +304,14 @@ def import_guided_session_v1(
     )
 
 
+def _load_selected_document(path):
+    stamp = file_identity(path)
+    document = session_files.load_session_file(path).value.document
+    if file_identity(path) != stamp:
+        raise ValueError("The selected Session file changed while opening.")
+    return document, stamp
+
+
 def open_guided_session_v1(
     category_root: Path,
     entry: DiscoveredManagedItemV1,
@@ -310,7 +323,7 @@ def open_guided_session_v1(
         entry.path,
         expected_kind="file",
     )
-    loaded = session_files.load_session_file(entry.path).value.document
+    loaded, stamp = _load_selected_document(entry.path)
     if loaded.state.session_id != entry.summary.semantic_product_id:
         raise ValueError("Managed Session identity changed after discovery.")
     return _create_context(
@@ -319,6 +332,7 @@ def open_guided_session_v1(
         handle=entry.summary.handle,
         document=loaded,
         status="opened",
+        stamp=stamp,
         message="The Session was opened.",
     )
 
@@ -332,10 +346,11 @@ def reload_guided_session_v1(context: GuidedSessionContextV1) -> GuidedSessionOp
             context.path,
             expected_kind="file",
         )
-        loaded = session_files.load_session_file(context.path).value.document
+        loaded, stamp = _load_selected_document(context.path)
         if loaded.state.session_id != context.state.session_id:
             raise ValueError("Managed Session identity changed on disk.")
         context.document = loaded
+        context.saved_file_identity = stamp
         context.live.configure(None)
         context.generation += 1
         context.clear_execution()
@@ -377,12 +392,11 @@ def _persist_session_mutation(
         state,
         decision_checkpoints=checkpoints,
     ).value
-    saved = session_files.save_session_file(
-        context.path,
-        persistence,
-        expected_content_fingerprint=context.document.content_fingerprint,
-    ).value
-    if saved.status == "conflict":
+    status = save_cent_member_edit(context, persistence)
+    if status is None:
+        status = session_files.save_session_file(context.path, persistence,
+            expected_content_fingerprint=context.document.content_fingerprint).value.status
+    if status == "conflict":
         operation = GuidedSessionOperationResultV1(
             status="conflict",
             message="The Session changed on disk. Reload before retrying this edit.",
@@ -393,6 +407,7 @@ def _persist_session_mutation(
             if old_game is not None and old_game != game_identity(state):
                 context.live.configure(None)
         context.document = persistence
+        context.saved_file_identity = file_identity(context.path)
         context.generation += 1
         context.clear_execution()
         operation = GuidedSessionOperationResultV1(

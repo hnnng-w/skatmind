@@ -5,7 +5,7 @@ import json
 import os
 import stat
 import tempfile
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -241,6 +241,7 @@ def save_session_persistence_file_v1(
     document: SessionPersistenceDocumentV1,
     *,
     expected_content_fingerprint: str | None,
+    before_replace: Callable[[Path], None] | None = None,
 ) -> SessionPersistenceWriteResultV1:
     """Optimistically saves one private Session through atomic replacement."""
     requested = _validate_requested_document(document)
@@ -296,6 +297,10 @@ def save_session_persistence_file_v1(
                     expected_content_fingerprint=expected,
                     existing_content_fingerprint=current,
                 )
+            if before_replace is not None:
+                # The staged file already has its final bytes and identity. A
+                # private managed writer may durably guard this exact replacement.
+                before_replace(temporary_path)
             os.replace(temporary_path, path)
             coordinator.accepted_write(path.name)
             temporary_path = None

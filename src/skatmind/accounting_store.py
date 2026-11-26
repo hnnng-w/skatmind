@@ -152,6 +152,11 @@ def watch_cent_source(root, session_id):
     return match_source_coordinator(root).watch_source(session_id)
 
 
+def accounting_publication_lock():
+    """Serialize a Cent member file transition with accounting source guards."""
+    return _PUBLICATION_LOCK
+
+
 def save_accounting(root, journal, *, expected_fingerprint, source_guard):
     """Serialize comparison, guards and publication for every cooperating local writer."""
     with _PUBLICATION_LOCK:

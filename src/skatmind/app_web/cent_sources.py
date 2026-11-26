@@ -1,6 +1,5 @@
 """Resolve round membership against a unique managed recording and its retained version."""
 
-from dataclasses import replace
 from hashlib import sha256
 from hmac import new as hmac_new
 
@@ -8,12 +7,10 @@ from skatmind.accounting_state import CentRoundV1
 from skatmind.accounting_store import load_accounting
 from skatmind.automatic_learning_codec import canonical_json
 from skatmind.errors import SkatMindError
-from skatmind.event_context_sources import build_event_binding_v1, recording_version_v1
-from skatmind.session_history import build_session_state_from_accepted_prefix_v1
-from skatmind.session_persistence_codec import build_session_persistence_document_v1
+from skatmind.event_context_sources import recording_version_v1
 
 from .accounting_forms import AccountingFormError
-from .managed_item_discovery import discover_managed_items_v1
+from .cent_continuity import entries_for, unique_entry, validate_binding
 from .session_frontend import open_guided_session_v1
 from .translation_catalog import translate_frontend_message_v1
 from .whole_match_progress import file_identity
@@ -25,49 +22,14 @@ def selection(app, purpose, *scope):
 
 
 def session_entries(app):
-    result = discover_managed_items_v1(app.managed_stateful.root("sessions"),
-        family="sessions", generation=1)
-    if result.view.candidate_limit_reached:
-        raise AccountingFormError("source")
-    return result.entries
-
-
-def validate_binding(row, document):
-    version = recording_version_v1(document)
-    binding = row.context.binding(version.source)
-    if binding is None:
-        raise AccountingFormError("source")
-    rebuilt = build_event_binding_v1(document, game_position=binding.game_position,
-        selected_player_id=binding.source_selected_player_id,
-        player_map={p.source_player_id: p.event_player_id for p in binding.players})
-    if replace(rebuilt, attached_source=binding.attached_source) != binding:
-        raise AccountingFormError("source")
-    # Normal capture appends commands and pre-play checkpoints. An ID alone
-    # cannot distinguish a replaced file with the same seats and perspective.
-    retained = {binding.attached_source, *(r.source for r in row.recordings
-                                            if r.source.source == version.source)}
-    for prior in retained:
-        if prior == version:
-            continue
-        if prior.revision >= version.revision:
-            raise AccountingFormError("source")
-        prefix = build_session_state_from_accepted_prefix_v1(document.state,
-                                                             target_revision=prior.revision)
-        checkpoints = tuple(c for c in document.decision_checkpoints
-                            if c.source_revision < prior.revision)
-        if build_session_persistence_document_v1(prefix, decision_checkpoints=checkpoints
-                ).content_fingerprint != prior.content_fingerprint:
-            raise AccountingFormError("source")
-    return binding
+    return entries_for(app.managed_stateful.root("sessions"))
 
 
 def open_bound(app, row, binding, entries):
-    entries = [e for e in entries if e.summary.semantic_product_id == binding.source.product_id]
-    if len(entries) != 1 or entries[0].summary.status != "available":
-        raise AccountingFormError("source")
-    active = open_guided_session_v1(app.managed_stateful.root("sessions"), entries[0])
+    entry = unique_entry(entries, binding.source)
+    active = open_guided_session_v1(app.managed_stateful.root("sessions"), entry)
     try:
-        if validate_binding(row, active.document) != binding:
+        if validate_binding(row, active.document, active.path) != binding:
             raise AccountingFormError("source")
     except (SkatMindError, ValueError) as error:
         raise AccountingFormError("source") from error
@@ -75,8 +37,10 @@ def open_bound(app, row, binding, entries):
 
 
 def bound_selection(app, journal, row, binding, active):
+    if file_identity(active.path) != active.saved_file_identity:
+        raise AccountingFormError("source")
     return selection(app, "bound", journal.fingerprint, row.identity, binding.game_position,
-                     active.handle, active.document.content_fingerprint, file_identity(active.path))
+                     active.handle, active.document.content_fingerprint, active.saved_file_identity)
 
 
 def member_label(app, active, locale):

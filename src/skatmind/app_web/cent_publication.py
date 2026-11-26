@@ -23,6 +23,7 @@ from skatmind.event_context_sources import recording_version_v1
 from skatmind.session_persistence_codec import resume_session_document_v1
 
 from .accounting_forms import AccountingFormError
+from .cent_continuity import anchor_created
 from .cent_sources import open_bound, session_entries
 from .event_context_frontend import EventFormConflict
 from .managed_item_storage import build_managed_item_handle_v1, build_managed_item_storage_path_v1
@@ -146,5 +147,6 @@ def complete_game(app, raw, journal, *, guard):
     if (active.path != path or active.document != document or pending(root) != raw
             or published.head(row.identity) != row):
         raise EventFormConflict("save")
+    anchor_created(owner, binding, active)
     release_attempt(root, raw)
     return active
