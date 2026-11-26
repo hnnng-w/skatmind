@@ -4,6 +4,7 @@ import os
 import re
 from dataclasses import replace
 from hashlib import sha256
+from itertools import combinations
 
 from skatmind.accounting_state import CentRoundV1
 from skatmind.accounting_store import accounting_publication_lock, load_accounting
@@ -22,6 +23,9 @@ from skatmind.session_persistence_codec import build_session_persistence_documen
 from .accounting_forms import AccountingFormError
 from .managed_item_discovery import discover_managed_items_v1
 from .whole_match_progress import file_identity
+
+# At most 16 candidate documents per retained fingerprint during passive discovery.
+_MAX_BOUNDARY_CHECKPOINTS_FOR_SUBSETS = 4
 
 
 def entries_for(category):
@@ -82,6 +86,19 @@ def anchor_created(row, binding, active):
         raise AccountingFormError("source")
 
 
+def _legacy_checkpoint_candidates(checkpoints, revision):
+    earlier = tuple(c for c in checkpoints if c.source_revision < revision)
+    yield earlier
+    boundary = tuple(c for c in checkpoints if c.source_revision == revision)
+    if boundary:
+        yield earlier + boundary
+    # Same-revision variants are sorted by content, not by collection time.
+    if len(boundary) <= _MAX_BOUNDARY_CHECKPOINTS_FOR_SUBSETS:
+        for size in range(1, len(boundary)):
+            for subset in combinations(boundary, size):
+                yield earlier + subset
+
+
 def validate_binding(row, document, path):
     version = recording_version_v1(document)
     binding = row.context.binding(version.source)
@@ -107,12 +124,9 @@ def validate_binding(row, document, path):
             raise AccountingFormError("source")
         prefix = build_session_state_from_accepted_prefix_v1(document.state,
                                                              target_revision=prior.revision)
-        earlier = tuple(c for c in document.decision_checkpoints if c.source_revision <
-                        prior.revision)
-        through = tuple(c for c in document.decision_checkpoints if c.source_revision <=
-                        prior.revision)
+        candidates = _legacy_checkpoint_candidates(document.decision_checkpoints, prior.revision)
         if not any(build_session_persistence_document_v1(prefix, decision_checkpoints=cs
-                ).content_fingerprint == prior.content_fingerprint for cs in (earlier, through)):
+                ).content_fingerprint == prior.content_fingerprint for cs in candidates):
             raise AccountingFormError("source")
     return binding
 

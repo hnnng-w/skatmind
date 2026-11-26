@@ -4,6 +4,7 @@ import json
 from contextlib import closing
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from test_accounting_web import activate_session, game_form, historical_round
@@ -15,6 +16,9 @@ from test_session_recorded_review_web import Browser, Forms
 import skatmind.api.v1.session as api
 from skatmind.accounting_store import append_accounting, load_accounting, save_accounting
 from skatmind.api.v1 import ExecutionOptionsV1
+from skatmind.api.v1.session.files import save_session_file
+from skatmind.app_web import session_frontend
+from skatmind.app_web.accounting_forms import AccountingFormError
 from skatmind.app_web.accounting_frontend import fresh_round, new_round
 from skatmind.app_web.cent_publication import publish_game
 from skatmind.app_web.cent_sources import open_bound, session_entries
@@ -30,6 +34,7 @@ from skatmind.app_web.session_frontend import (
 )
 from skatmind.deck import get_full_deck
 from skatmind.game_declaration import GameDeclaration
+from skatmind.session_checkpoint_collection import collect_session_decision_checkpoint_v1
 from skatmind.session_history import build_session_state_from_accepted_prefix_v1
 from skatmind.session_persistence import load_session_persistence_file_v1
 from skatmind.session_persistence_codec import build_session_persistence_document_v1
@@ -94,6 +99,81 @@ def correct(active, cmd):
 
 def bound(app, row):
     return open_bound(app, row, row.context.bindings[0], session_entries(app))
+
+
+def legacy_checkpoint_pair(app):
+    active, row = opening(app, direct=False)
+    original, = active.decision_checkpoints
+    # Exercise the ordinary writer used before member receipts existed. The
+    # checkpoint collection, document builder, sort and file CAS all run.
+    options = replace(default_session_position_export_options_v1(), sample_count=1)
+    with (patch.object(session_frontend, "save_cent_member_edit", return_value=None),
+          patch.object(session_frontend, "execute_guided_frontend_analysis_v1",
+                       side_effect=RuntimeError("stop at evaluator entry")),
+          pytest.raises(RuntimeError, match="stop at evaluator entry")):
+        execute_guided_session_position_v1(active, export_options=options,
+                                           execution_options=ExecutionOptionsV1())
+    saved = load_session_persistence_file_v1(active.path).document
+    newer, retained = saved.decision_checkpoints
+    assert retained == original and newer.source_revision == retained.source_revision == 12
+    rebuilt = build_session_persistence_document_v1(saved.state, decision_checkpoints=(retained,))
+    attached = row.context.bindings[0].attached_source
+    assert rebuilt.content_fingerprint == attached.content_fingerprint
+    assert saved.content_fingerprint != rebuilt.content_fingerprint
+    assert not tuple(app.managed_home.root.glob("*.receipt"))
+    return active, row
+
+
+def test_legacy_partial_boundary_reopens_read_only_then_accepts_managed_undo(tmp_path):
+    with closing(localized_server.__wrapped__(tmp_path)) as servers:
+        server = next(servers)
+        app = server.app_context
+        active, row = legacy_checkpoint_pair(app)
+        home = app.managed_home.root
+        def files():
+            return {p: (p.stat().st_mtime_ns, p.read_bytes()) for p in home.rglob("*")
+                    if p.is_file()}
+        before = files()
+        with patch("skatmind.app_web.execution.execute") as evaluate:
+            assert bound(app, row).document == active.document
+            browser = Browser(server)
+            resume = Forms(browser.page("/cent")).find("/cent/resume")
+            assert game_form(follow(browser, browser.submit(resume)), 1)
+            analyze = Forms(browser.page("/review/recorded")).find("/review/open-recording")
+            assert analyze["values"]["bound_selection"]
+            assert 'href="/sessions/decisions"' in follow(browser, browser.submit(analyze))
+            evaluate.assert_not_called()
+        assert files() == before
+        selected = app.managed_stateful.active_session
+        assert selected.path == active.path and selected.document == active.document
+        assert rewind_guided_session_v1(selected, target_revision=11).status == "applied"
+        assert len(tuple(home.glob("*.receipt"))) == 1
+        assert bound(app, row).document == selected.document
+        assert load_accounting(home).head(row.identity) == row
+
+
+@pytest.mark.parametrize("missing", [True, False], ids=["missing-original", "over-subset-bound"])
+def test_unproven_legacy_checkpoint_subset_cannot_grant_membership(tmp_path, missing):
+    with closing(localized_server.__wrapped__(tmp_path)) as servers:
+        app = next(servers).app_context
+        active, row = legacy_checkpoint_pair(app)
+        # Either the required checkpoint is absent from two genuine variants, or
+        # it is present among five, where partial-subset search is not attempted.
+        variants = active.decision_checkpoints[:1] if missing else active.decision_checkpoints
+        for count in ((2,) if missing else (2, 3, 4)):
+            variants = collect_session_decision_checkpoint_v1(
+                state=active.state, decision_checkpoints=variants, export_options=replace(
+                    default_session_position_export_options_v1(), sample_count=count)
+            ).decision_checkpoints
+        assert len(variants) == (2 if missing else 5)
+        candidate = build_session_persistence_document_v1(active.state,
+                                                          decision_checkpoints=variants)
+        saved = save_session_file(active.path, candidate,
+                                  expected_content_fingerprint=active.document.content_fingerprint)
+        assert saved.value.status == "saved"
+        with pytest.raises(AccountingFormError):
+            bound(app, row)
+        assert not tuple(app.managed_home.root.glob("*.receipt"))
 
 
 @pytest.mark.parametrize("direct", [False, True], ids=["historical", "direct"])
@@ -217,8 +297,6 @@ def test_checkpoint_only_save_and_original_analysis_remain_source_scoped(tmp_pat
 
 @pytest.mark.parametrize("tamper", ["unrelated_same_id", "foreign", "identical_copy", "duplicate"])
 def test_edited_member_rejects_substitution_without_activation(tmp_path, tamper):
-    from skatmind.api.v1.session.files import save_session_file
-
     with closing(localized_server.__wrapped__(tmp_path)) as servers:
         server = next(servers)
         app, browser = server.app_context, Browser(server)

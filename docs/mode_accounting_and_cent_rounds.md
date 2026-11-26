@@ -47,8 +47,12 @@ The receipt is written at the Session's guarded replacement boundary, so an
 interruption leaves the file on disk identifiable. New games start with one
 endpoint. For earlier games without a receipt, the first managed edit must
 verify the retained attachment and accounting fingerprints against the current
-document or its accepted prefix, including checkpoints at the prefix boundary.
-An already diverged legacy file with no such proof cannot be adopted by ID.
+document or its accepted prefix. Earlier checkpoints stay fixed. Checkpoints at
+the prefix revision are sorted by content, so the original need not come first.
+With up to four checkpoints at that revision, any subset can prove membership
+if it reproduces the exact historical document fingerprint (at most 16 tries).
+With more than four, only the empty and complete boundary sets are tried. If no
+candidate matches, the file cannot be adopted by ID.
 
 The receipt proves membership only. Old accounting revisions keep their exact
 source facts; an explicit accounting action refreshes them from the unique
