@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import multiprocessing
 from contextlib import ExitStack, closing
 from pathlib import Path
 from unittest.mock import patch
@@ -11,12 +12,70 @@ from _workflow_visual_browser import LocalBrowser
 from verify_saved_match_analyses import wait
 
 
+def continued_after_restart(output, round_id):
+    """Open the saved German history in a fresh source process and start round two."""
+    from test_accounting_web import start
+    from test_frontend_language_switching import localized_server
+    from test_match_recording_recovery_web import follow
+    from test_session_recorded_review_web import Browser, Forms
+
+    from skatmind.accounting_store import load_accounting
+
+    with closing(localized_server.__wrapped__(output / "source")) as fixture:
+        server = next(fixture)
+        app = server.app_context
+        browser = Browser(server)
+        root = app.managed_home.root
+        # Start another session with the same names before returning to the
+        # finished round. The most recently chosen rate must not become a default.
+        page = start(browser, cent_tariff="5")
+        assert "Cent-Skat-Sitzung 3 · Runde 1 · Spiel 1 von 3" in page
+        journal = load_accounting(root)
+        assert journal.round_heads[-1].context.terms[0].financial.cent_tariff == "5"
+        history = browser.page("/cent")
+        assert "Cent-Skat-Sitzung 1 · Runde 1 · Earlier bound game" in history
+        assert "Cent-Skat-Sitzung 2 · Runde 1" in history
+        resume = next(f for f in Forms(history).forms if f["action"] == "/cent/resume"
+                      and f["values"]["round_id"] == round_id)
+        page = follow(browser, browser.submit(resume))
+        assert "Sitzungstarif: 3 Cent je Spielpunkt" in page
+        form = Forms(page).find("/sessions/accounting/next")
+        assert not {"title", "cent_tariff"} & form["values"].keys()
+        assert browser.submit(form, cent_tariff="5")[0] == 400
+        assert load_accounting(root) == journal
+        page = follow(browser, browser.submit(form))
+        assert "Cent-Skat-Sitzung 2 · Runde 2 · Spiel 1 von 3" in page
+        current = load_accounting(root)
+        row = current.round_heads[-1]
+        term, = row.context.terms
+        assert current.rounds[:-1] == journal.rounds
+        assert row.previous_round_id == round_id and term.financial.cent_tariff == "3"
+        assert term.platform == "in_person" and row.rule == journal.head(round_id).rule
+        label = "Cent-Skat-Sitzung 2 · Runde 2"
+        def saved_files():
+            return {p: (p.stat().st_mtime_ns, p.read_bytes())
+                    for p in root.rglob("*") if p.is_file()}
+        saved = saved_files()
+        for route in ("/sessions/current", "/cent", "/review/recorded"):
+            page = browser.page(route)
+            assert label in page
+            if route != "/sessions/current":
+                assert "Cent-Skat-Sitzung 3 · Runde 1" in page
+        assert saved_files() == saved
+        (output / "restart.json").write_text(json.dumps({
+            "label": label, "tariff": term.financial.cent_tariff, "platform": term.platform,
+            "override_status": 400, "earlier_revisions": len(journal.rounds),
+            "independent_session_rate": "5", "passive_files_unchanged": len(saved),
+        }, indent=2), encoding="utf8")
+
+
 def probe(output, executable):
     from test_accounting_web import activate_session, historical_round
     from test_direct_analysis_returns import direct_result
     from test_frontend_language_switching import localized_server
     from test_session_recorded_review_web import Browser, Forms
 
+    from skatmind.accounting_store import ACCOUNTING_FILENAME, load_accounting
     from skatmind.app_web.session_batch_routes import DECISIONS, PAGE
 
     output.mkdir()
@@ -70,6 +129,8 @@ def probe(output, executable):
                 shot("formats-" + locale)
                 activate('#recording-formats a[href="/cent"]')
                 assert cdp.evaluate("!!document.querySelector('form[action=\"/cent/start\"]')")
+                assert cdp.evaluate("!document.querySelector('form[action=\"/cent/start\"] "
+                                    "[name=title]')")
                 shot("cent-" + locale)
             assert app.managed_stateful.active_session is None
             activate('form[action="/cent/resume"] button')
@@ -78,7 +139,7 @@ def probe(output, executable):
             assert "Earlier bound game" in cdp.evaluate("document.querySelector('main').innerText")
             activate('.site-nav a[href="/record-after"]')
             activate('#recording-formats a[href="/cent"]')
-            fields = dict(title="Direct synthetic round", platform="in_person", cent_tariff="3",
+            fields = dict(platform="in_person", cent_tariff="3",
                 forehand_name="Alice", middlehand_name="Bob", rearhand_name="Carol",
                 perspective_seat="middlehand")
             for name, value in fields.items():
@@ -89,7 +150,7 @@ def probe(output, executable):
             first = app.managed_stateful.active_session
             assert first.state.capture_mode == "retrospective"
             assert cdp.evaluate("document.querySelector('.cent-membership').innerText") == (
-                "Direct synthetic round · Cent-Skat · Game 1 of 3")
+                "Cent-Skat session 2 · Round 1 · Game 1 of 3")
             game = 'form[action="/sessions/accounting/game"]'
             cdp.evaluate(f"document.querySelector('{game} [name=game_status]').value='passed'")
             activate(game + ' button')
@@ -113,11 +174,28 @@ def probe(output, executable):
             for index, recording in enumerate((first, second, third)):
                 assert [p.player_id for p in recording.state.players] == [
                     p.player_id for p in first.state.players[index:] + first.state.players[:index]]
+            last_result = game + ':has([name=position][value="3"])'
+            cdp.evaluate(f"document.querySelector('{last_result} [name=game_status]')"
+                         ".value='passed'")
+            activate(last_result + ' button')
+            activate('form[action="/sessions/accounting/lifecycle"] button')
+            next_round = 'form[action="/sessions/accounting/next"]'
+            wait(cdp, f"!!document.querySelector('{next_round}')")
+            assert cdp.evaluate(f"!document.querySelector('{next_round} [name=title],"
+                                f"{next_round} [name=cent_tariff]')")
+            assert "Session tariff: 3 cents" in cdp.evaluate(
+                f"document.querySelector('{next_round}').innerText")
+            shot("next-round-en")
+            root = app.managed_home.root
+            round_id = load_accounting(root).round_heads[-1].identity
+            before[root / ACCOUNTING_FILENAME] = (root / ACCOUNTING_FILENAME).read_bytes()
             before.update({p: p.read_bytes() for p in (first.path, second.path, third.path)})
             activate('.site-nav a[href="/review/recorded"]')
             archive_choice = ("Array.from(document.querySelectorAll('.recording-choice')).find("
-                              "e=>e.innerText.includes('Earlier bound game'))")
+                              "e=>e.innerText.includes('Cent-Skat session 1 · Round 1'))")
             assert cdp.evaluate(archive_choice + ".innerText.includes('Game 1 of 3')")
+            assert "Cent-Skat session 2 · Round 1 · Game 3 of 3" in cdp.evaluate(
+                "document.querySelector('main').innerText")
             shot("analyze-membership")
             cdp.evaluate(archive_choice + ".id='earlier'")
             activate('#earlier form[action="/review/open-recording"] button')
@@ -159,6 +237,11 @@ def probe(output, executable):
     finally:
         edge.close()
         (output / "observations.json").write_text(json.dumps(evidence, indent=2), encoding="utf8")
+    process = multiprocessing.get_context("spawn").Process(
+        target=continued_after_restart, args=(output, round_id))
+    process.start()
+    process.join()
+    assert process.exitcode == 0
 
 
 if __name__ == "__main__":

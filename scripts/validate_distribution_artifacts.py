@@ -1211,7 +1211,7 @@ expected_accounting_fields = {
     "game": ("position", "game_status", "declarer", "game_value"),
     "open": ("position",),
     "lifecycle": ("status",),
-    "next": ("title", "cent_tariff", "platform"),
+    "next": ("platform",),
 }
 for form in accounting:
     assert tuple(field.field_key for field in form.safe_fields) == expected_accounting_fields[
@@ -1223,7 +1223,7 @@ assert set(cent) == {"/cent/start", "/cent/resume", "/cent/recover"}
 assert all(form.body_limit == 16384 and form.originating_page == "/cent" for form in cent.values())
 assert all(cent[path].value_free for path in ("/cent/resume", "/cent/recover"))
 assert {field.field_key for field in cent["/cent/start"].safe_fields} == {
-    "title", "capture_mode", "cent_tariff", "platform", "own_seat", "perspective_mode",
+    "capture_mode", "cent_tariff", "platform", "own_seat", "perspective_mode",
     "perspective_seat", *(seat + "_" + field for seat in ("forehand", "middlehand", "rearhand")
                           for field in ("name", "mode", "handle"))}
 recording_input, = (form for form in FRONTEND_FORM_REGISTRY

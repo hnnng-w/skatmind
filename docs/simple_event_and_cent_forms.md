@@ -17,7 +17,9 @@ Request/Result, recording and retained-analysis formats remain unchanged.
 
 The table records the accepted #322 behavior. For current Cent creation,
 resumption and subsequent positions, see [#334 direct Cent entry](mode_accounting_and_cent_rounds.md#direct-cent-entry-334).
-The independent attachment controls described below are historical.
+The Cent title, editable continuation tariff and independent attachment controls
+described below are historical. Current entry numbers sessions and rounds
+automatically and takes the tariff only when starting a Cent-Skat session.
 
 | Action | Inputs the user can edit |
 | --- | --- |

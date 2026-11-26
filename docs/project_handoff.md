@@ -3158,6 +3158,10 @@ Starting point: `feat/334-format-cent-entry`, `01acbf4670136cf1c485d23cd82d4d244
 See [current entry, recovery and the narrow installed check](mode_accounting_and_cent_rounds.md#direct-cent-entry-334).
 Previously attached games remain bound. The ordinary start creates its own game;
 there is no independent saved-game picker at start or at later unbound positions.
+The installed follow-up from `6982eef` numbers Cent-Skat sessions and rounds
+automatically. Each new session sets one tariff; continuation reads it from
+saved terms. Historical mixed-rate tables retain their evidence and cannot
+start another round under an inferred tariff.
 Keep #334 open for publication, partial development feedback, independent
 published-source review, fast-forward integration and main push, both successful
 exact-commit main gates, and the affected installed check. #333 is complete;

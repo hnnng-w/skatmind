@@ -11,6 +11,7 @@ from skatmind.event_context_sources import recording_version_v1
 
 from .accounting_forms import AccountingFormError
 from .cent_continuity import entries_for, unique_entry, validate_binding
+from .cent_round_context import round_labels
 from .session_frontend import open_guided_session_v1
 from .translation_catalog import translate_frontend_message_v1
 from .whole_match_progress import file_identity
@@ -46,21 +47,24 @@ def bound_selection(app, journal, row, binding, active):
 def member_label(app, active, locale):
     try:
         key = recording_version_v1(active.document).source
-        owner = load_accounting(app.managed_home.root).for_source(key)
+        journal = load_accounting(app.managed_home.root)
+        owner = journal.for_source(key)
         if not isinstance(owner, CentRoundV1):
             return ""
         binding = owner.context.binding(key)
         bound = open_bound(app, owner, binding, session_entries(app))
         if bound.path != active.path or bound.document != active.document:
             raise AccountingFormError("source")
-        return translate_frontend_message_v1(locale, "cent.member", title=owner.context.event_name,
+        labels, _ = round_labels(journal, locale)
+        return translate_frontend_message_v1(locale, "cent.member", title=labels[owner.identity],
                                              number=binding.game_position)
     except (OSError, ValueError, SkatMindError):
         return translate_frontend_message_v1(locale, "cent.source")
 
 
-def review_memberships(app, discovery):
+def review_memberships(app, discovery, locale):
     journal = load_accounting(app.managed_home.root)
+    labels, _ = round_labels(journal, locale)
     result = {}
     by_id = {}
     for entry in discovery.entries:
@@ -76,5 +80,5 @@ def review_memberships(app, discovery):
                 except (OSError, ValueError, SkatMindError):
                     pass
             for entry in matches:
-                result[entry.summary.handle] = row.context.event_name, binding.game_position, token
+                result[entry.summary.handle] = labels[row.identity], binding.game_position, token
     return result

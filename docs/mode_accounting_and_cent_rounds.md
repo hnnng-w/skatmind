@@ -15,15 +15,30 @@ under **Real-money games**. The same page lists saved rounds, their status and
 their bound games, including finished rounds and games attached by older versions.
 You do not need an open recording. Each game opens in the individual-game recorder.
 
-For a new round, edit the proposed title, choose three players in first-game seat
-order (new names or saved players), the recorded perspective, available card
-knowledge, actual platform and one fixed tariff. **Start round and open game 1**
-creates the first game. After a settled or passed game, continue to create the
+To start a Cent-Skat session, choose three players in first-game seat order
+(new names or saved players), the recorded perspective, available card knowledge,
+actual platform and the tariff for the session. **Start round and open game 1**
+creates the first game of round 1. After a settled or passed game, continue to create the
 next game or open the existing binding. Generated games rotate the round's
 participants and keep the first game's initial card-knowledge choice. Moving
 between tasks does not change this choice. All three results, local finish,
 reopen and explicit next-round/table lineage work as before. Independent Session
 import/export is still available in Individual games.
+
+**Which round am I in?** Entry, history, the open game and Analyze show the same
+localized session and round numbers (for example, **Cent-Skat session 2 · Round 1**).
+The numbers follow the first appearance of each table and each of its rounds in
+the saved accounting journal. They survive reopen, later edits and restart.
+Neither number is a form field or a recording identity. Existing round titles
+are still displayed alongside the numbers. Each game keeps its own recording.
+
+**Starting the next round.** The next-round form shows the inherited tariff as
+text. The server reads the current terms for every saved round of that table
+under the journal selection check. It rejects submitted titles and tariff
+overrides. Actual platform and fee rules retain their separate meanings. If
+older rounds have different rates, their titles, rates and results remain
+available. There is no single tariff to inherit: the next-round action is
+unavailable for that table; a new Cent-Skat session can start at its own rate.
 
 **Interrupted creation.** Return to **Cent-Skat** and choose **Continue interrupted
 creation**. A private, bounded `.cent-game-start.json` reservation in the managed
@@ -60,15 +75,14 @@ current recordings. Analysis originals and Learning evidence stay bound to
 their original versions. Resume, accounting and Analyze forms must still
 match the current selection; an identical copy is not the selected file.
 
-**Narrow subsequent installed check (maintainer only).** From both tasks inspect
-the three grouped choices in German and English. With disposable installed data,
-start one round, check the proposed title, chosen perspective and knowledge,
-record a result and continue through the rotated positions, finish and start the
-explicit next round. Restart and open one earlier binding and one independent
-recording. From Analyze open the bound game at both scopes and inspect one
-retained original and its Learning selection. Refresh and switch language; no
-analysis should start. Check native keyboard use and a narrow viewport.
-This check follows successful exact integrated-commit hosted acceptance.
+**Narrow subsequent installed check (maintainer only).** The maintainer accepted
+the grouped recording tasks, direct entry, the three rotated games with retained
+perspective and card knowledge, saving the three supplied results and finishing
+the round. After exact-commit hosted acceptance, check the amended initial and
+next-round controls with disposable installed data: no name entry, a tariff
+choice only on session start, and the correct read-only rate on continuation
+after restart. Distinguish the same numbered session and round in history, the
+open game and Analyze in both languages, including a different session's round 1.
 #333 remains complete. Full #208 UAT and the comprehensive pre-v1 architecture
 review and treatment of material findings are separate.
 

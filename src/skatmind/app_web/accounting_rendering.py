@@ -14,6 +14,7 @@ from .accounting_frontend import (
     tournament_values,
 )
 from .cent_publication import pending
+from .cent_round_context import round_labels, session_tariff
 from .event_context_forms import actual_platform
 from .event_context_frontend import platform_document
 from .event_context_rendering import platform_field
@@ -95,9 +96,9 @@ def _costs(page, active, family, locale):
     return body + form(page, active, family, "save", fields, locale)
 
 
-def _round_summary(row, locale, *, status=None):
+def _round_summary(row, locale, label, *, status=None):
     state = t(locale, "round_state." + (status or row.status))
-    body = f'<p>{e(row.context.event_name)} · {state}</p>'
+    body = f'<p>{e(label)} · {state}</p>'
     platform = row.context.terms[-1].platform or "unknown"
     body += f'<p>{e(translate(locale, "event.platform." + platform))}</p>'
     boundary = "provider_boundary" if platform == "euroskat" else "local_fees_unknown"
@@ -179,7 +180,8 @@ def _cent(page, active, locale):
     document = page.event_page.document
     if type(row) is CentRoundV1:
         preview = ordinary_round(row, page.documents)
-        body += _round_summary(preview, locale, status=row.status)
+        labels, proposed = round_labels(page.journal, locale, next_table=row.table_id)
+        body += _round_summary(preview, locale, labels[row.identity], status=row.status)
         if row.status == "open":
             for number in range(1, 4):
                 # Only the next position is offered until previous games are established.
@@ -195,14 +197,13 @@ def _cent(page, active, locale):
             body += form(page, active, "sessions", "lifecycle", fields, locale,
                          label="finish_round" if status == "finished" else "reopen_round")
         if row.status != "open":
-            count = 1 + sum(r.table_id == row.table_id for r in page.journal.round_heads)
-            first = next(r for r in page.journal.round_heads if r.table_id == row.table_id)
-            title = translate(locale, "accounting.next_title", title=first.context.event_name[:450],
-                              number=count)
-            fields = field(locale, "title", title, key="editable_title", required=True)
-            fields += platform_field(document, locale, row.context.applicable_terms(3))
-            fields += _tariff(locale, row.context.applicable_terms(3).financial.cent_tariff)
-            body += form(page, active, "sessions", "next", fields, locale)
+            rate = session_tariff(page.journal, row.table_id)
+            if rate is None:
+                body += f'<p>{e(translate(locale, "validation.accounting.session_tariff"))}</p>'
+            else:
+                fields = f'<p>{e(proposed)} · {t(locale, "saved_tariff", rate=rate)}</p>'
+                fields += platform_field(document, locale, row.context.applicable_terms(3))
+                body += form(page, active, "sessions", "next", fields, locale)
     if page.journal.round_heads:
         body += f'<p><a href="/cent#round-history">{t(locale, "history")}</a></p>'
     return body

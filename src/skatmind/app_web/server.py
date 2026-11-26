@@ -2325,7 +2325,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
             content=deletion_notice(context, RECORDED_REVIEW_ROUTE, locale)
             + render_recorded_review_chooser_v1(discoveries, profile=profile,
                 locale=locale, active_sources=tuple(sources),
-                memberships=review_memberships(context, discoveries["sessions"])), status=status,
+                memberships=review_memberships(context, discoveries["sessions"], locale)),
+            status=status,
             feedback_family="recordings", untranslated_workflow_body=False)
 
     def _session_page(self, *, status: int = HTTPStatus.OK, session_origin=None) -> None:

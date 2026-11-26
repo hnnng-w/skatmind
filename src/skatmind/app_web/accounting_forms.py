@@ -5,13 +5,13 @@ from skatmind.event_context_contracts import AmountV1
 from .player_seat_setup import SEAT_SETUP_FIELDS
 
 CENT_ROUTES = ("/cent/start", "/cent/resume", "/cent/recover")
-CENT_SETUP_FIELDS = ("title", "capture_mode", "cent_tariff", "platform", *SEAT_SETUP_FIELDS)
+CENT_SETUP_FIELDS = ("capture_mode", "cent_tariff", "platform", *SEAT_SETUP_FIELDS)
 ACCOUNTING_FIELDS = {
     "save": ("entry_total", "table_total", "plus_level"),
     "game": ("position", "game_status", "declarer", "game_value"),
     "open": ("position",),
     "lifecycle": ("status",),
-    "next": ("title", "cent_tariff", "platform"),
+    "next": ("platform",),
 }
 ACCOUNTING_ROUTES = ("/matches/accounting/save", "/sessions/accounting/save",
     *(f"/sessions/accounting/{action}" for action in (

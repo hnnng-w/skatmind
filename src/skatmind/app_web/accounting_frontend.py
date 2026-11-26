@@ -25,7 +25,6 @@ from skatmind.automatic_learning_codec import canonical_json
 from skatmind.event_context_contracts import (
     AmountV1,
     EventContextV1,
-    bounded_text,
 )
 from skatmind.event_context_sources import (
     build_event_binding_v1,
@@ -44,6 +43,7 @@ from skatmind.mode_accounting import (
 
 from .accounting_forms import ACCOUNTING_FIELDS, AccountingFormError, optional_amount
 from .cent_publication import publish_game
+from .cent_round_context import AUTOMATIC_ROUND_PROVENANCE, session_tariff
 from .cent_sources import open_bound, session_entries
 from .event_context_forms import LOCAL_SOURCE, actual_platform, resolve_platform, supported_terms
 from .event_context_frontend import (
@@ -80,6 +80,7 @@ def capture_accounting_page(app, active, family):
     scope = [event.selection, journal.fingerprint,
              [recording_version_v1(doc).to_dict() for _, doc in documents]]
     if type(current) is CentRoundV1:
+        scope.append("cent-session-tariff-v1")
         scope.append([[path.name, file_identity(path)] for path, _ in documents])
     selection = hmac.new(app.language_context.key,
         b"mode_accounting_form_v2\0" + canonical_json(scope), hashlib.sha256).hexdigest()
@@ -128,12 +129,12 @@ def known_declarer(row, number):
     return None
 
 
-def new_round(document, title, term):
+def new_round(document, term):
     players, selected = recording_players_v1(document)
-    provenance = "Explicit native three-game round start."
+    provenance = AUTOMATIC_ROUND_PROVENANCE
     binding = build_event_binding_v1(document, game_position=1, selected_player_id=selected)
     context = EventContextV1(event_id="round-" + secrets.token_hex(16),
-        series_id="block-" + secrets.token_hex(16), event_name=title,
+        series_id="block-" + secrets.token_hex(16), event_name="Round 1",
         series_name="Local round 1", participant_ids=players,
         selected_participant_id=selected, bindings=(binding,), provenance=provenance, terms=(term,))
     return CentRoundV1(context=context, table_id="table-" + secrets.token_hex(16),
@@ -256,19 +257,21 @@ def dispatch_accounting(app, route, values, *, activate_session):
             elif action == "next":
                 if row.status == "open":
                     raise AccountingFormError("confirm")
-                bounded_text(values.get("title", "").strip())
+                rate = session_tariff(page.journal, row.table_id)
+                if rate is None:
+                    raise AccountingFormError("session_tariff")
                 term = row.context.applicable_terms(3)
                 term = supported_terms("cent", resolve_platform(page.event_page.document,
-                    values, term), tariff=values.get("cent_tariff"))
+                    values, term), tariff=rate)
                 created = _prepare_round_game(row, 1, page.documents)
                 binding = build_event_binding_v1(created, game_position=1)
                 count = 1 + sum(r.table_id == row.table_id for r in page.journal.round_heads)
                 context = replace(row.context, event_id="round-" + secrets.token_hex(16),
                     series_id="block-" + secrets.token_hex(16), revision=0, change="created",
-                    event_name=values.get("title", "").strip(),
+                    event_name=f"Round {count}",
                     series_name=f"Local round {count}",
                     bindings=(binding,), terms=(term,),
-                    provenance=provenance)
+                    provenance=AUTOMATIC_ROUND_PROVENANCE)
                 row = CentRoundV1(context=context, table_id=row.table_id,
                     participant_labels=row.participant_labels,
                     recordings=_round_facts(context, ((None, created),)),

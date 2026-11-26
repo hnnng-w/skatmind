@@ -50,7 +50,7 @@ def publish_facts(app, row, active):
 
 
 def direct_row(document):
-    return new_round(document, "Synthetic round", supported_terms("cent", "euroskat", tariff="1/2"))
+    return new_round(document, supported_terms("cent", "euroskat", tariff="1/2"))
 
 
 def command(active, cmd):

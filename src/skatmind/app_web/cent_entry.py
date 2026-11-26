@@ -8,11 +8,13 @@ from html import escape
 
 from skatmind.accounting_store import AccountingConflict, load_accounting
 from skatmind.errors import SkatMindError
+from skatmind.event_context_contracts import CENT_TARIFFS
 
 from .accounting_forms import CENT_SETUP_FIELDS, AccountingFormError
 from .accounting_frontend import new_round
-from .accounting_rendering import _tariff, field
+from .accounting_rendering import _tariff
 from .cent_publication import complete_game, pending, publish_game, release_attempt
+from .cent_round_context import round_labels
 from .cent_sources import bound_selection, open_bound, selection, session_entries
 from .event_context_forms import resolve_platform, supported_terms
 from .event_context_frontend import EventFormConflict
@@ -29,7 +31,7 @@ from .task_first_rendering import hidden
 
 def entry_selection(app, journal, raw):
     active = app.managed_stateful.active_session
-    return selection(app, "entry", journal.fingerprint, app.recording_task,
+    return selection(app, "entry-v2", journal.fingerprint, app.recording_task,
         hashlib.sha256(raw).hexdigest() if raw else None,
         None if active is None else [active.review_selection_key.hex(), active.generation,
                                      active.document.content_fingerprint])
@@ -46,14 +48,14 @@ def entry_fields(app, journal, raw):
             + hidden("profile_generation", app.frontend_profile.generation))
 
 
-def round_history(app, journal, token, locale):
+def round_history(app, journal, labels, token, locale):
     body = ""
     try:
         entries = session_entries(app) if journal.round_heads else ()
     except (ValueError, SkatMindError, OSError):
         entries = ()  # No selection can be authorized from an incomplete inventory.
     for row in journal.round_heads:
-        body += '<article><h3>' + escape(row.context.event_name) + '</h3><p>' + translated(
+        body += '<article><h3>' + escape(labels[row.identity]) + '</h3><p>' + translated(
             locale, "accounting.round_state." + row.status) + '</p>'
         for binding in sorted(row.context.bindings, key=lambda b: b.game_position):
             label = translated(locale, "accounting.game_number", number=binding.game_position)
@@ -78,6 +80,7 @@ def render_entry(handler, *, status=200):
         root = app.managed_home.root
         journal, raw = load_accounting(root), pending(root)
         token = entry_fields(app, journal, raw)
+        labels, proposed = round_labels(journal, locale)
         handler._rendered_language_source = capture_language_source_v1(app, "/cent")
         if raw is not None:
             body = ('<p role="status">' + translated(locale, "cent.pending")
@@ -88,12 +91,9 @@ def render_entry(handler, *, status=200):
                 + 'action="/cent/recover">' + token + hidden("stop", "yes")
                 + '<button>' + translated(locale, "cent.stop") + '</button></form></details>')
         else:
-            from .translation_catalog import translate_frontend_message_v1
-            title = translate_frontend_message_v1(locale, "cent.title",
-                                                   number=1 + len(journal.round_heads))
             body = ('<section class="friendly-create"><h2>' + translated(locale, "cent.new")
-                + '</h2><form class="form-grid" method="post" action="/cent/start">' + token
-                + field(locale, "title", title, key="editable_title", required=True)
+                + '</h2><p>' + escape(proposed) + '</p>'
+                + '<form class="form-grid" method="post" action="/cent/start">' + token
                 + render_card_knowledge(locale)
                 + render_seat_setup_v1(app.frontend_profile.document, locale, family="sessions",
                                        cent=True)
@@ -101,7 +101,7 @@ def render_entry(handler, *, status=200):
                 + '<button type="submit">' + translated(locale, "accounting.start")
                 + '</button></form></section>')
         body += f'<section id="round-history"><h2>{translated(locale, "accounting.history")}</h2>'
-        body += round_history(app, journal, token, locale)
+        body += round_history(app, journal, labels, token, locale)
     handler._content_page("/sessions", return_to="/cent", status=status,
         title=translated(locale, "formats.cent"), content=body + '</section>',
         feedback_family="cent", untranslated_workflow_body=False, task_first=True)
@@ -128,7 +128,7 @@ def dispatch_entry(app, path, values, *, activate_session):
                     if set(values) - set(CENT_SETUP_FIELDS) or app.frontend_profile.load_status == (
                             "invalid"):
                         raise AccountingFormError()
-                    if values.get("cent_tariff") not in ("1/2", "1", "2", "3", "5"):
+                    if values.get("cent_tariff") not in CENT_TARIFFS:
                         raise AccountingFormError("invalid", "cent_tariff")
                     term = supported_terms("cent", resolve_platform(None, values),
                                            tariff=values["cent_tariff"])
@@ -136,7 +136,7 @@ def dispatch_entry(app, path, values, *, activate_session):
                     if not fields.get("perspective_seat"):
                         raise AccountingFormError("invalid", "perspective_seat")
                     setup = prepare_profile_driven_session_creation_v1(
-                        {**fields, "game_name": fields.get("title", "")},
+                        {**fields, "game_name": "Round 1"},
                         profile=app.frontend_profile.document,
                         expected_profile_generation=app.frontend_profile.generation,
                         existing_session_ids=tuple(e.summary.semantic_product_id for e in
@@ -144,7 +144,7 @@ def dispatch_entry(app, path, values, *, activate_session):
                         entropy_source=secrets.token_bytes)
                     doc = prepare_guided_session_document(setup.session_id, setup.players,
                                                           setup.capture_mode, setup.local_player_id)
-                    row = new_round(doc, fields["title"].strip(), term)
+                    row = new_round(doc, term)
                     opened = publish_game(app, journal, row, doc, guard=current)
                 elif path == "/cent/recover" and raw is not None and not values:
                     opened = complete_game(app, raw, journal, guard=current)

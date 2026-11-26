@@ -119,8 +119,11 @@ def test_three_sessions_reuse_rotation_finish_explicit_next_and_immutable_histor
     browser = Browser(localized_server)
     page = switch(browser, browser.page("/cent"), locale)
     form = Forms(page).find("/cent/start")
-    assert form["values"]["title"]
-    page = start(browser, title="Edited Cent title")
+    assert "title" not in form["values"]
+    label = text(locale, "cent.title", session=1, number=1)
+    assert label in page
+    page = start(browser)
+    assert text(locale, "cent.member", title=label, number=1) in page
     ids = tuple(p.player_id for p in app.managed_stateful.active_session.state.players)
     for number, value, status in ((1, "23", "won"), (2, "23", "lost"), (3, "100", "won")):
         if number > 1:
@@ -134,7 +137,7 @@ def test_three_sessions_reuse_rotation_finish_explicit_next_and_immutable_histor
         page = result(browser, page, number, value, status)
     journal = load_accounting(app.managed_home.root)
     row = journal.round_heads[0]
-    assert row.context.event_name == "Edited Cent title"
+    assert row.context.event_name == "Round 1"
     assert len({b.source.product_id for b in row.context.bindings}) == 3
     assert row.game(1)[1][1].gross.value == Fraction(-23, 200)
     assert row.game(2)[1][0].gross.value == Fraction(-46, 100)
@@ -156,17 +159,62 @@ def test_three_sessions_reuse_rotation_finish_explicit_next_and_immutable_histor
     page = follow(browser, native_submit(browser,
         Forms(page).find("/sessions/accounting/lifecycle")))
     next_form = Forms(page).find("/sessions/accounting/next")
-    assert "platform" not in next_form["values"]
-    assert next_form["values"]["cent_tariff"] == "1/2"
+    assert not action_fields(next_form)
+    assert text(locale, "accounting.saved_tariff", rate="1/2") in page
+    before = (app.managed_home.root / ACCOUNTING_FILENAME).read_bytes()
+    for extra in ({"cent_tariff": "5"}, {"title": "Override"}):
+        assert browser.submit(next_form, **extra)[0] == 400
+        assert (app.managed_home.root / ACCOUNTING_FILENAME).read_bytes() == before
     page = follow(browser, native_submit(browser, next_form))
     heads = load_accounting(app.managed_home.root).round_heads
     assert len(heads) == 2 and heads[1].previous_round_id == heads[0].identity
     assert heads[1].context.participant_ids == heads[0].context.participant_ids
     assert heads[1].context.terms[0].platform == "euroskat"
+    assert heads[1].context.terms[0].financial.cent_tariff == "1/2"
+    assert heads[1].context.event_name == "Round 2"
+    assert text(locale, "cent.title", session=1, number=2) in page
+    assert native_submit(browser, next_form)[0] == 409
     assert heads[1].game(1)[0] == "unfinished"
     assert first.path.read_bytes() == original
     assert not (app.managed_home.root / "automatic-learning").exists()
     assert not (app.managed_home.root / EVENT_CONTEXT_FILENAME).exists()
+
+
+def test_mixed_legacy_session_keeps_each_title_and_rate_without_a_continuation(localized_server):
+    app = localized_server.app_context
+    root = app.managed_home.root
+    browser = Browser(localized_server)
+    activate_session(app)
+    first = historical_round(app, title="Earlier <title>")
+    journal = load_accounting(root)
+    save_accounting(root, append_accounting(journal, replace(first, status="interrupted")),
+                    expected_fingerprint=journal.fingerprint, source_guard=lambda: True)
+    page = follow(browser, browser.submit(Forms(browser.page()).find("/sessions/accounting/next")))
+    journal = load_accounting(root)
+    second = journal.round_heads[1]
+    term, = second.context.terms
+    mixed = replace(second, status="interrupted", context=replace(second.context,
+        provenance="Earlier explicit title and tariff", event_name="Different past rate",
+        terms=(replace(term, financial=replace(term.financial, cent_tariff="3")),)))
+    save_accounting(root, append_accounting(journal, mixed),
+                    expected_fingerprint=journal.fingerprint, source_guard=lambda: True)
+    before = (root / ACCOUNTING_FILENAME).read_bytes()
+    page = browser.page()
+    assert text("en", "validation.accounting.session_tariff") in page
+    assert "/sessions/accounting/next" not in page
+    # A current selection is insufficient when historical terms disagree.
+    form = Forms(page).find("/sessions/accounting/lifecycle")
+    forged = {k: v for k, v in form["values"].items() if k in (
+        "managed_handle", "accounting_selection")}
+    assert browser.request("POST", "/sessions/accounting/next", forged)[0] == 400
+    history = browser.page("/cent")
+    assert "Cent-Skat session 1 · Round 1 · Earlier &lt;title&gt;" in history
+    assert "Cent-Skat session 1 · Round 2 · Different past rate" in history
+    assert (root / ACCOUNTING_FILENAME).read_bytes() == before
+    old = load_accounting(root)
+    page = start(browser, cent_tariff="5")
+    assert "Cent-Skat session 2 · Round 1 · Game 1 of 3" in page
+    assert load_accounting(root).rounds[:-1] == old.rounds
 
 
 @pytest.mark.parametrize("platform", ["euroskat", "in_person"])
@@ -236,7 +284,7 @@ def test_standalone_session_label_and_profile_platform_do_not_define_round(local
     browser = Browser(localized_server)
     assert "/sessions/accounting/start" not in browser.page()
     form = Forms(browser.page("/cent")).find("/cent/start")
-    assert form["values"]["title"] == "Cent round 1"
+    assert "title" not in form["values"]
     assert form["values"]["platform"] == ""
 
 
@@ -648,7 +696,7 @@ def test_accounting_oversized_start_rejected_before_mutation(localized_server):
         assert connection.getresponse().status == 413
     finally:
         connection.close()
-    follow(browser, native_submit(browser, form, **setup_values(title="Recovered")))
+    follow(browser, native_submit(browser, form, **setup_values()))
     assert len(load_accounting(app.managed_home.root).round_heads) == 1
 
 
@@ -674,7 +722,7 @@ def test_direct_start_rejects_invalid_and_duplicate_and_preserves_knowledge(loca
     app = localized_server.app_context
     browser = Browser(localized_server)
     form = Forms(browser.page("/cent")).find("/cent/start")
-    for bad in (dict(title=" "), dict(cent_tariff="1/4"), dict(platform="unknown"),
+    for bad in (dict(title="Old title"), dict(cent_tariff="1/4"), dict(platform="unknown"),
                 dict(perspective_seat=""), dict(rearhand_name="Alice")):
         assert browser.submit(form, **setup_values(**bad))[0] == 400
         assert not tuple(app.managed_stateful.root("sessions").iterdir())
@@ -771,18 +819,18 @@ def test_analyze_membership_requires_bound_file_and_exact_selection(localized_se
     app = localized_server.app_context
     browser = Browser(localized_server)
     independent = activate_session(app)
-    start(browser, title="Same names")
+    start(browser)
     bound = app.managed_stateful.active_session
     before = {p: p.read_bytes() for p in (bound.path, independent.path)}
     def choices():
         page = browser.page("/review/recorded")
-        assert page.count("Same names · Cent-Skat · Game 1 of 3") == 1
+        assert page.count("Cent-Skat session 1 · Round 1 · Game 1 of 3") == 1
         forms = [f for f in Forms(page).forms if f["action"] == "/review/open-recording"]
         return (next(f for f in forms if "bound_selection" in f["values"]),
                 next(f for f in forms if "bound_selection" not in f["values"]))
     form, other = choices()
     scopes = follow(browser, browser.submit(other))
-    assert "Same names" not in scopes
+    assert "Cent-Skat session 1" not in scopes
     assert app.managed_stateful.active_session.path == independent.path
     form, _ = choices()
     broken = dict(form, values=dict(form["values"]))
@@ -791,7 +839,7 @@ def test_analyze_membership_requires_bound_file_and_exact_selection(localized_se
     assert app.managed_stateful.active_session.path == independent.path
     form, _ = choices()
     scopes = follow(browser, browser.submit(form))
-    assert "Same names · Cent-Skat · Game 1 of 3" in scopes
+    assert "Cent-Skat session 1 · Round 1 · Game 1 of 3" in scopes
     for route in ("/sessions/game-review", "/sessions/decisions"):
         assert f'href="{route}"' in scopes
         browser.page(route)
@@ -811,7 +859,7 @@ def test_direct_entry_uses_saved_own_seat_and_rejects_stale_profile(localized_se
     form = Forms(browser.page("/cent")).find("/cent/start")
     # A conflict keeps the submitted draft. Explicitly select the saved roster instead.
     assert form["values"]["forehand_name"] == "Alice"
-    follow(browser, browser.submit(form, title="Saved players", platform="in_person",
+    follow(browser, browser.submit(form, platform="in_person",
         cent_tariff="5", perspective_mode="own", perspective_seat="", own_seat="rearhand",
         forehand_mode="saved", forehand_name="", forehand_handle=handles[1],
         middlehand_mode="saved", middlehand_name="", middlehand_handle=handles[2],

@@ -1618,14 +1618,12 @@ for _route in ACCOUNTING_ROUTES:
     _FORMS.append(_definition(
         f"accounting.{_family}.{_action}", _route, ACCOUNTING_FIELDS[_action],
         page=f"/{_family}/current", active=_family, body_limit=16384, success="contextual",
-        control_overrides={name: "select" for name in ("platform", "cent_tariff", "game_status",
+        control_overrides={name: "select" for name in ("platform", "game_status",
                                                        "plus_level", "declarer")},
         choice_overrides={"platform": ("", "euroskat", "in_person"),
-            "cent_tariff": ("", "1/2", "1", "2", "3", "5"),
             "game_status": ("won", "lost", "passed", "derived"),
             "plus_level": ("", *(str(n) for n in range(9))), "declarer": ("", "1", "2", "3")},
-        label_overrides={"title": "validation.field.event_title",
-                         "platform": "validation.field.platform",
+        label_overrides={"platform": "validation.field.platform",
                          "game_value": "validation.field.game_value"}))
 
 FRONTEND_FORM_REGISTRY = tuple(_FORMS)
