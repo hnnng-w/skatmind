@@ -3108,7 +3108,7 @@ Keep immutable imported Workspace Snapshots separate from derived artifacts.
 Public Match/Corpus/Dataset-v2 surfaces, derived persistence, broader Player
 Ratings and tactical truth, latency guarantees, database deployment, and
 Historical Teacher import are not v1 requirements. The approved local Session
-browser integration is implemented by #212; broader solver, auction, learned-model,
+browser integration is implemented by #212; broader solver, learned-model,
 and hosted/remote work remains post-v1.
 
 Do not infer automatic newest selection, fuzzy Player merging, cross-revision
@@ -3138,8 +3138,8 @@ adaptation remains a later goal, #208 remains open and formal UAT-02–12 remain
 Release preparation is not authorized; accepted S5/S6 acceptance is not repeated.
 
 The approved pre-`v1.0.0`, post-`v1.0.0`, not-required, and excluded product
-areas are recorded in [v1.0 scope](v1_scope.md) and frozen by the
-[v1.0 scope and traceability audit](v1_0_scope_and_traceability_audit.md).
+areas are recorded in [current v1.0 scope](v1_scope.md); the
+[v1.0 scope and traceability audit](v1_0_scope_and_traceability_audit.md) records the earlier baseline.
 Four-player tables remain the only unconditional exclusion.
 
 ## New-thread starter instruction
@@ -3162,7 +3162,17 @@ The installed follow-up from `6982eef` numbers Cent-Skat sessions and rounds
 automatically. Each new session sets one tariff; continuation reads it from
 saved terms. Historical mixed-rate tables retain their evidence and cannot
 start another round under an inferred tariff.
-Keep #334 open for publication, partial development feedback, independent
-published-source review, fast-forward integration and main push, both successful
-exact-commit main gates, and the affected installed check. #333 is complete;
-#208 UAT and the comprehensive architecture/code review remain separate.
+#333 and #334 are complete. The v1 formats are 36er Standard, Cent-Skat and
+individual games. 18er Rangliste remains post-v1 under Tournaments; Skat Open
+is outside v1.
+
+## Issue #335 recording start
+
+Ordinary Match and individual-game forms propose editable titles. Entering a
+saved player's display name selects that same person. Every seat still needs a
+name; no anonymous mode or previous lineup is supplied. See the
+[creation guide and narrow installed follow-up](profile_driven_stateful_creation.md#recording-start-issue-335).
+The required bidding/pass/hold/raise, game choice, declaration, discard and
+card-play decision chain remains incomplete. Full mandatory #208 UAT and the
+current comprehensive architecture/code review with treatment of material
+findings remain outstanding.

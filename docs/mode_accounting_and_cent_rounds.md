@@ -10,13 +10,17 @@ their existing behavior. See [the #324 verification boundary](simple_analysis_en
 
 ## Direct Cent entry (#334)
 
+#333 and #334 are complete. The installed check recorded below is historical.
+Full mandatory #208 UAT and the current comprehensive architecture/code review
+with treatment of material findings remain outstanding.
+
 From either **Live play** or **Retrospective recording**, choose **Cent-Skat**
 under **Real-money games**. The same page lists saved rounds, their status and
 their bound games, including finished rounds and games attached by older versions.
 You do not need an open recording. Each game opens in the individual-game recorder.
 
 To start a Cent-Skat session, choose three players in first-game seat order
-(new names or saved players), the recorded perspective, available card knowledge,
+(type a name or select a saved player), the recorded perspective, available card knowledge,
 actual platform and the tariff for the session. **Start round and open game 1**
 creates the first game of round 1. After a settled or passed game, continue to create the
 next game or open the existing binding. Generated games rotate the round's
@@ -24,6 +28,9 @@ participants and keep the first game's initial card-knowledge choice. Moving
 between tasks does not change this choice. All three results, local finish,
 reopen and explicit next-round/table lineage work as before. Independent Session
 import/export is still available in Individual games.
+
+As in ordinary recording setup, typing a matching saved display name reuses that
+player. This does not change Cent numbering, ownership, tariff or rotation.
 
 **Which round am I in?** Entry, history, the open game and Analyze show the same
 localized session and round numbers (for example, **Cent-Skat session 2 · Round 1**).

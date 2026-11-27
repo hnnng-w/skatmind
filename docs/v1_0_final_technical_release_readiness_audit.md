@@ -6,7 +6,7 @@ This document is the authoritative Issue #207 final technical audit of the
 bounded SkatMind v1 technical baseline. It reconciles Issues #201 through #206,
 the complete required-before-v1 ledger, current executable contracts, Package
 and platform evidence, and the remaining Release-process Gates. It changes
-documentation only.
+documentation only. For the current decision-chain requirement, see the [dated supersession below](#accepted-bounded-v1-limitations).
 
 The audit finds no material technical Release blocker and records the technical
 decision to close B-06. That closure and approval to begin hands-on maintainer
@@ -478,6 +478,12 @@ This local boundary is not an encryption, key-management, account, remote-
 hosting, cloud, collaboration, backup, or production-security claim.
 
 ## Accepted bounded v1 limitations
+
+**Current authority (2026-11-27):** The final-declaration limitation, auction
+deferral and R-05 verdict describe the #207 baseline. [Current v1 scope](v1_scope.md#required-before-v100)
+requires the complete bidding-to-card decision chain. The #207 evidence does not
+complete mandatory #208 UAT or the current comprehensive architecture/code review
+and treatment of material findings.
 
 The following are accepted limitations, not technical blockers:
 

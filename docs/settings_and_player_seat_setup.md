@@ -33,8 +33,9 @@ own mode hides them and rejects forged manual actions. Existing automatic-source
 release, occupied-target, account and duplicate-Player checks still apply. The
 own-seat control remains the correction target for inconsistent own placement.
 
-Manual Match choices in the existing private `perspective_seat` field now identify
-a person: a saved-Player handle or a digest of the explicitly entered new name.
+Manual Match choices in the existing private `perspective_seat` field identify
+a person: a saved-Player handle (including a typed name resolved to that player)
+or a digest of a genuinely new name.
 The normal form carries that binding as regenerated hidden transport, not an
 editable dropdown. Its submitter is exactly one of `choose_forehand`,
 `choose_middlehand`, or `choose_rearhand` in the existing `setup_action` field.
@@ -209,8 +210,9 @@ saved mode, the current validated own handle, and a blank new-name field qualify
 for adoption on **Update**. Selecting saved A again at own Rearhand therefore
 produces the same reviewed roster as the former empty-placeholder workaround.
 The adopted row becomes the server-retained automatic bundle, and repeated unchanged
-Update is idempotent. Other handles, same-name new entries, mixed modes and an
-independent duplicate own row remain rejected. Original inputs survive rejection.
+Update is idempotent. A name-only entry matching the saved own player is also
+an exact-self selection. Other occupants, mixed name/handle inputs and an
+independent duplicate own row remain rejected.
 
 The automatic source identity is validated before movement. Explicit account
 values use the existing trimming/validation boundary: neither supplied stays empty;
@@ -259,8 +261,11 @@ unchanged rotation. Existing/imported Workspace bytes are never rotated or repai
 
 **Save new players** is a native initially unchecked checkbox. Omission means
 false. One-off participants still receive stable IDs in the saved recording.
-Saved-Player reuse adds no duplicate directory entries. Managed display labels
-retain the existing creation enrichment boundary.
+Typing a unique saved display name reuses the same player as selecting it.
+Matching trims outer whitespace and uses Unicode NFC and casefold only. It
+preserves the directory entry, including aliases and platform IDs. Every seat
+requires a name. `Player 1` and `Player 2` are ordinary names with the same
+matching and saving rules. No previous party or placeholder names are filled in.
 
 Session creation saves no perspective default. Match's separate unchecked **Save
 this platform as my default** changes only that platform preference. It saves no

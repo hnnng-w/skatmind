@@ -26,6 +26,7 @@ from .player_seat_setup import (
     SEAT_SETUP_FIELDS,
     match_perspective_seat_v1,
     require_own_binding_v1,
+    resolve_entered_player_names_v1,
 )
 from .profile_player_contracts import (
     MAX_KNOWN_PLAYERS,
@@ -213,13 +214,6 @@ def _select_players(
                     f"{seat}_name",
                     str(exc),
                 ) from exc
-            if profile is not None and any(
-                normalize_player_display_name_v1(player.display_name)
-                == normalize_player_display_name_v1(display_name)
-                for player in profile.known_players
-            ):
-                raise ProfileDrivenCreationFieldError(
-                    f"{seat}_name", "Duplicate saved Player name; select the existing Player.")
             selected.append(_SelectedPlayerV1(None, display_name, f"{seat}_name"))
     if len(known_ids) != len(set(known_ids)):
         repeated = next(
@@ -366,6 +360,7 @@ def prepare_profile_driven_session_creation_v1(
             "Recording mode must be one of Player-perspective recording "
             "or Complete-deal reconstruction.",
         )
+    values = resolve_entered_player_names_v1(values, profile)
     selected = _select_players(values, profile)
     perspective_seat = _trimmed(values, "perspective_seat")
     if perspective_seat not in {"", *_SEATS}:
@@ -572,6 +567,7 @@ def prepare_profile_driven_match_creation_v1(
         played_date=played_date,
     )
     platform = _friendly_platform(values)
+    values = resolve_entered_player_names_v1(values, profile)
     selected = _select_players(values, profile)
     perspective_seat = match_perspective_seat_v1(values)
     incomplete = (validation_only and allow_missing_perspective

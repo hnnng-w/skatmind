@@ -2,6 +2,12 @@
 
 ## Audit purpose
 
+**Current authority (2026-11-27):** The auction deferral and R-05 verdict below
+describe the audited baseline. [Current v1 scope](v1_scope.md#required-before-v100)
+requires the complete bidding-to-card decision chain. Full #208 UAT and a
+current comprehensive architecture/code review with treatment of material
+findings remain outstanding.
+
 This document is the authoritative Issue #200 audit of the bounded product scope,
 traceability, and release gates for `skatmind` `v1.0.0`. It classifies every row
 marked required before v1.0 in

@@ -36,6 +36,11 @@ def _profile_generation(generation: int) -> str:
     return f'<input type="hidden" name="profile_generation" value="{generation}">'
 
 
+def _next_label_number(profile, family):
+    labels = () if profile is None else profile.managed_item_display_labels
+    return 1 + sum(label.family == family for label in labels)
+
+
 def _setup_values(html, setup):
     if setup is None:
         return html
@@ -52,13 +57,16 @@ def render_profile_driven_session_creation_v1(
     locale: str,
     setup=None,
 ) -> str:
+    title = _t(locale, "creation.session.proposed_title",
+               number=_next_label_number(profile, "sessions"))
     html = (
         '<section class="panel friendly-create" aria-labelledby="session-create-heading">'
         f'<h2 id="session-create-heading">{_t(locale, "creation.session.heading")}</h2>'
         '<form method="post" action="/sessions/create" class="form-grid">'
         + _profile_generation(profile_generation)
         + f"<label>{_t(locale, 'creation.session.name')} "
-        '<input name="game_name" maxlength="160" required></label>'
+        '<input name="game_name" maxlength="160" required '
+        f'value="{title}"></label>'
         + render_card_knowledge(locale)
         + render_seat_setup_v1(profile, locale, family="sessions", setup=setup)
         + _save_controls(locale)
@@ -143,6 +151,8 @@ def render_profile_driven_match_creation_v1(
             for seat in ("forehand", "middlehand", "rearhand"))
     )
     escaped_custom_platform = escape(custom_platform, quote=True)
+    title = _t(locale, "creation.match.proposed_title",
+               number=_next_label_number(profile, "matches"))
     html = (
         '<section class="panel friendly-create" aria-labelledby="match-create-heading">'
         f'<h2 id="match-create-heading">{_t(locale, "creation.match.heading")}</h2>'
@@ -151,7 +161,8 @@ def render_profile_driven_match_creation_v1(
         'hidden tabindex="-1" aria-hidden="true"></button>'
         + _profile_generation(profile_generation)
         + f"<label>{_t(locale, 'creation.match.title')} "
-        '<input name="match_title" maxlength="160" required></label>'
+        '<input name="match_title" maxlength="160" required '
+        f'value="{title}"></label>'
         '<details class="match-optional-details"><summary>'
         f"{_t(locale, 'creation.match.optional_details')}</summary>"
         f"<label>{_t(locale, 'creation.match.date')} "

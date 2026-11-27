@@ -96,6 +96,33 @@ generation applies only to normal creation.
 
 ## Creation forms
 
+### Recording start (Issue #335)
+
+An ordinary individual game or 36er Match starts with a localized title in
+its existing required field. The suggested number is one plus the number of
+local display labels for that family. It is a convenience, not a unique number
+or a recording ID. Keep the proposal or edit it. Once submitted, the draft
+keeps the entered title through validation and language changes. A completed
+review shows the exact title that will be saved, with outer whitespace trimmed
+as required by the existing label contract. Clearing it leaves it empty and it
+must be filled before creation.
+
+Type or select a name for every seat. After trimming, a unique saved display
+name match (Unicode NFC and casefold) uses the saved player's ID and canonical
+name, whether or not **Save new players** is checked. No aliases or accounts
+are used for matching. The review shows the saved selection; changing that
+selection or the title requires another Update. A new party starts without a
+lineup. Cent uses the same name resolution and keeps its own automatic session
+and round labels and saved tariff.
+
+**Narrow installed follow-up for the maintainer:** In a disposable home with
+one named saved player, keep the proposed individual-game title, type that
+player's name and choose their seat. Edit the proposed 36er Match title and
+choose the typed saved player as its recording perspective. Review, create
+once and reopen each. Check the saved titles, the same player identity, the
+intended perspective and no duplicate directory entry. This is separate from
+full #208 UAT.
+
 Issue #324 rearranges existing controls: the required Match title is followed
 immediately by closed **Optional details**, before player setup. It contains the
 date-only field, unchanged nested exact local-time editor, and one Source group
@@ -116,7 +143,7 @@ The form asks for a Game name, three named Players, and a perspective seat requi
 for `live` and optional for reconstruction. Selecting a local Player does not reduce
 reconstruction's complete-deal requirement. See
 [Knowledge-based Session entry](session_knowledge_based_entry.md).
-A Player seat uses either saved-Player or new-name mode. Own identity never implies a seat;
+A Player seat uses either saved-Player selection or name entry. Own identity never implies a seat;
 the own seat begins empty and must be explicitly selected. A setup-only POST
 projects the named roster before final creation. Saving new Players defaults off;
 Session creation saves no separate perspective preference. The compatible hidden
@@ -128,8 +155,8 @@ the initially unset own seat, enter the other two Players, Update once, then exp
 Create. Native CSS presents a free own row as derived before the first submission;
 it retains real occupied destinations and error controls. Reviewed automatic rows
 and pending moves remain distinguishable, without a second full roster summary.
-The exact saved-own target (saved mode/current handle/blank new name) is idempotent
-on Update. Explicit same-identity accounts are retained losslessly or rejected if
+The exact saved-own target, including an entered name resolved to that selection,
+is idempotent on Update. Explicit same-identity accounts are retained losslessly or rejected if
 both nonempty values differ. Account-only occupancy, other Players, mixed names/modes
 and independent own duplicates remain conflicts. See the
 [exact-self and account rules](settings_and_player_seat_setup.md#seat-projection-and-match-translation).

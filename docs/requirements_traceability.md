@@ -412,8 +412,8 @@ Only these values are used in the `Current status` column:
 
 An output field alone is not evidence of support.
 
-Issue #200 applies its separate v1 Gate vocabulary to every row whose `Required
-before v1.0` cell contains `Yes`. The final technical ledger contains 53 rows:
+Issue #200 applied its separate v1 Gate vocabulary to every row then required
+before v1.0. The historical final technical ledger contains 53 rows:
 19 `satisfied`, 34 `satisfied_with_approved_bounded_scope`, and 0
 `evidence_required`, 0 `implementation_required`, and 0
 `product_decision_required`. No required row is unclassified. B-09 is outside
@@ -430,7 +430,7 @@ the [scope audit](v1_0_scope_and_traceability_audit.md) and
 | Trump rules | ISkO | 2.2.1-2.2.4 | `supported` | `get_trump_suit`, `is_trump`, and effective-suit logic implement Suit jacks plus trump suit, Grand jacks, and no Null trumps. | Game type and card. | Does not adjudicate rule violations or exposed-card consequences. | Retain focused Suit, Grand, Null, and all-jack ordering tests. | v1.0 | Yes |
 | Following suit and legal-card rules | ISkO | 4.1.1-4.1.2; 4.2.1-4.2.3 | `supported` | `get_legal_cards` requires the led effective suit or trump when held; historical games replay every supplied normal or concession-prefix card against the player's exact remaining hand. | Current hand, led cards, and game type; complete playable hands for historical replay. | General revoke adjudication and rule-consequence correction are not modeled; only bounded open-play continuation under 4.1.6 is represented. | Retain Suit/Grand/Null follow tests and strict historical violation tests. | v1.0 | Yes |
 | Trick resolution | ISkO | 4.3.1-4.3.4 | `supported` | `get_trick_winner` derives each winner; complete historical records derive stable winner IDs, side ownership, points, and next leaders for all ten tricks. | Three ordered cards, game type, and player order for ownership validation. | Partial legacy histories without players still cannot prove a concrete winner identity. | Retain rule-winner, strict complete-history ownership, and next-leader tests. | v1.0 | Yes |
-| Bidding and declarations | ISkO | 3.3.1-3.3.11; 3.5.1-3.5.6 | `partially_supported` | `GameDeclaration` represents the final contract and bid value; runtime validation canonicalizes Suit/Grand declaration dependencies and checks Null exclusions. | Final game type, declaration modifiers, optional matadors, and optional bid value. | No auction sequence, bid/hold/pass model, declarer derivation, legal bid-value validation, or passed-in game. | Retain final-declaration dependency and precedence tests; full auction modeling is planned after v1.0 and needs separate acceptance criteria. | v1.0 final declaration; post-v1.0 auction | Final declaration: Yes; full auction: No |
+| Bidding and declarations | ISkO | 3.3.1-3.3.11; 3.5.1-3.5.6 | `partially_supported` | `GameDeclaration` represents the final contract and bid value; runtime validation canonicalizes Suit/Grand declaration dependencies and checks Null exclusions. | Final game type, declaration modifiers, optional matadors, and optional bid value. | Final facts do not reconstruct the auction or provide the missing pre-play advice and review. | Retain final-declaration tests and verify advice and review across bidding (pass, hold, raise), game choice, declarations, discarding and card play using the information available at each decision. | v1.0 complete decision chain | Yes |
 | Suit and Grand game values | ISkO | 2.4.1; 2.5.1-2.5.8 | `partially_supported` | Base values, cumulative canonical declaration levels, and multiplier calculation are implemented in `game_declaration.py` and `game_value.py`. Issue #201 adds 220 Suit and 20 Grand independent declared-value rows across all supported matador counts and five canonical variants. | Valid final declaration and known matador count. | The exhaustive evidence covers declared/pre-result value; broader official outcome and Settlement coverage remains bounded under the separate Final Settlement row. | Retain the 240-row oracle, legal-level and invalid-dependency tests, and the declared-value/Final-Settlement boundary. | v1.0; Issue #201 evidence closure complete | Yes |
 | Null game values | ISkO | 2.4.2; 2.5.9 | `supported` | Null, Null Hand, Null Ouvert, and Null Hand Ouvert map to 23, 35, 46, and 59 with focused tests. | Null game type plus Hand and Ouvert flags. | This row covers fixed values, not impossible Null overbid settlement. | Retain all four variant tests and declaration-exclusion tests. | v1.0 | Yes |
 | Matadors | ISkO | 2.3.1-2.3.4; 2.5.2-2.5.3 | `partially_supported` | Explicit Suit `1..11` and Grand `1..4` bounds plus conservative position inference are tested; all supported complete historical deals deterministically infer and verify the count from declarer ownership including the original skat. | Explicit count or deterministic declarer ownership including the skat where known. | Partial positions can remain ambiguous; other complete-game claims and shortening forms are not represented. | Retain boundary, with/without sequence, Hand skat, complete-deal consistency, and ambiguity tests. | v1.0 | Yes |
@@ -907,3 +907,11 @@ no 54th row or classification change; see [Profile-driven stateful
 creation](profile_driven_stateful_creation.md). Issue #220 implements active workflows. Issue #208 remains
 open; UAT-02 through UAT-12 remain paused; B-09 and B-07 remain open; B-06
 remains closed; and Package `1.0.0` and Release preparation are not ready.
+
+As of 2026-11-27, the supported v1 recording formats are 36er Standard,
+Cent-Skat and individual games. 18er Rangliste remains post-v1 under Tournaments;
+Skat Open is outside v1. The current bidding and declarations row supersedes
+the historical auction deferral. #333 and #334 are complete. Neither recording
+entry nor the earlier technical audit completes the required pre-play decision
+support, full mandatory #208 UAT, or the current comprehensive architecture/code
+review and treatment of material findings.

@@ -55,6 +55,112 @@ def setup_own(browser, family, handles, seat):
 
 
 @pytest.mark.parametrize("family", ("sessions", "matches"))
+@pytest.mark.parametrize("edit_title", (False, True))
+def test_recording_title_and_entered_saved_person_survive_review(localized_server, family,
+                                                                edit_title, monkeypatch):
+    from test_language_switch_context import switch
+
+    import skatmind.app_web.execution as execution
+    import skatmind.app_web.server as server
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Recording setup must not run analysis or prepare Learning.")
+
+    monkeypatch.setattr(execution, "execute", forbidden)
+    monkeypatch.setattr(server, "prepare_unified_learning_artifacts_v1", forbidden)
+    browser = Browser(localized_server)
+    _, handles = add_players(browser)
+    app = localized_server.app_context
+    profile = app.frontend_profile.document
+    route, action, field = (("/sessions", "/sessions/create", "game_name") if family == "sessions"
+                            else ("/matches/new", "/matches/api/v1/create", "match_title"))
+    form = Forms(browser.page(route)).find(action)
+    proposed = form["values"][field]
+    assert proposed.strip()
+    title = 'Club "A" & B' if edit_title else proposed
+    roster = dict(forehand_name="Player 1", forehand_mode="new", middlehand_name=" b ",
+                  middlehand_mode="new", rearhand_name="Player 2", rearhand_mode="new",
+                  perspective_mode="manual")
+    if family == "sessions":
+        roster.update(perspective_seat="middlehand", setup_action="update")
+    else:
+        roster.update(setup_action="choose_middlehand")
+    if edit_title:
+        status, _, rejected = browser.submit(form, **roster, **{field: ""})
+        assert status == 400
+        page = switch(browser, rejected.decode(), "de")
+        form = Forms(page).find(action)
+        assert form["values"][field] == ""
+        page = follow(browser, browser.submit(form, setup_action="update", **{field: f" {title} "}))
+    else:
+        page = follow(browser, browser.submit(form, **roster))
+        assert app.frontend_profile.document is profile
+    root = app.managed_stateful.root(family)
+    assert not tuple(root.glob("*.json"))
+    page = switch(browser, page, "en" if edit_title else "de")
+    reviewed = Forms(page).find(action)
+    assert reviewed["values"][field] == title
+    assert reviewed["values"]["middlehand_handle"] == handles[1]
+    assert browser.submit(reviewed, setup_action="create", **{field: title + "!"})[0] == 400
+    assert browser.submit(reviewed, setup_action="create", middlehand_handle="",
+                          middlehand_mode="new", middlehand_name="B")[0] == 400
+    if family == "matches":
+        # Move the chosen person, using the other entry mode. Neutral Update
+        # must follow B, not the new occupant of middlehand.
+        page = follow(browser, browser.submit(reviewed, setup_action="update", forehand_name="b",
+            middlehand_handle="", middlehand_mode="new", middlehand_name="Player 1"))
+        reviewed = Forms(page).find(action)
+        assert reviewed["values"]["perspective_seat"] == "saved:" + handles[1]
+    follow(browser, browser.submit(reviewed, setup_action="create"))
+    assert browser.submit(reviewed, setup_action="create")[0] == 409
+    path, = root.glob("*.json")
+    if family == "sessions":
+        state = session_files.load_session_file(path).value.document.state
+        assert state.local_player_id == state.players[1].player_id
+        assert state.local_player_id == profile.known_players[1].player_id
+        product_id = state.session_id
+    else:
+        definition = load_match_workspace_file_v1(path).document.workspace.match_definition
+        assert definition.title == title
+        assignment = build_match_workspace_seat_assignment_v1(definition, 1)
+        assert definition.perspective_player_id == assignment.forehand_player_id
+        assert definition.perspective_player_id == profile.known_players[1].player_id
+        product_id = definition.match_id
+    after = app.frontend_profile.document
+    assert after.known_players == profile.known_players
+    label, = after.managed_item_display_labels
+    assert (label.family, label.product_id, label.display_name) == (family, product_id, title)
+
+
+@pytest.mark.parametrize("change", ("rename", "remove"))
+def test_changed_directory_invalidates_typed_match_perspective(localized_server, change):
+    browser = Browser(localized_server)
+    _, handles = add_players(browser)
+    action = "/matches/api/v1/create"
+    form = Forms(browser.page("/matches/new")).find(action)
+    page = follow(browser, browser.submit(form, perspective_mode="manual",
+        forehand_handle=handles[0], middlehand_mode="new", middlehand_name=" b ",
+        rearhand_handle=handles[2], setup_action="choose_middlehand"))
+    reviewed = Forms(page).find(action)
+    assert reviewed["values"]["perspective_seat"] == "saved:" + handles[1]
+    page = browser.page("/settings")
+    if change == "rename":
+        page = follow(browser, browser.submit(player_action(page, "edit", handles[1])))
+        follow(browser, browser.submit(player_action(page, "update", handles[1]), display_name="D"))
+    else:
+        page = follow(browser, browser.submit(player_action(page, "remove-preview", handles[1])))
+        follow(browser, browser.submit(
+            player_action(page, "remove", handles[1]), confirm_replace="on"))
+    app = localized_server.app_context
+    directory = app.frontend_profile.document.known_players
+    assert browser.submit(reviewed, setup_action="create")[0] == 409
+    assert browser.submit(reviewed, setup_action="create",
+                          profile_generation=str(app.frontend_profile.generation))[0] == 409
+    assert app.frontend_profile.document.known_players == directory
+    assert not tuple(app.managed_stateful.root("matches").glob("*.json"))
+
+
+@pytest.mark.parametrize("family", ("sessions", "matches"))
 def test_duplicate_saved_own_payload_real_http_compatibility(localized_server, family):
     """Direct R02 payload compatibility, separate from native one-assignment UI use."""
     browser = Browser(localized_server)

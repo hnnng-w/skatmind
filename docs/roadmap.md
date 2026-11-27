@@ -1349,7 +1349,7 @@ v1 scope now accepts the current Claim/Settlement, bounded PIMC and selected-wor
 Information-set Search, one-game and private bounded Coaching, structural Tactical
 evidence, and private Match/Corpus/Dataset-v2 surfaces. Broader tactical truth,
 Player Ratings, latency guarantees, public Match/Corpus/Dataset-v2 surfaces, and
-derived persistence are not v1 requirements. Broader solver, auction,
+derived persistence are not v1 requirements. Broader solver,
 learned-model, and hosted/remote work is post-v1.
 
 Issue #201 closes the exhaustive official-rule evidence gate without product-code
@@ -1385,7 +1385,15 @@ is implemented through delegation to the existing terminal cases. Claims,
 Concessions, and Final Settlement remain partially supported. See
 [Claim and Settlement v1 boundaries](claim_and_settlement_v1_boundaries.md).
 
-Full auction modeling, broader solver work, learned opponent profiles,
+The v1 recording formats are 36er Standard, Cent-Skat and individual games.
+18er Rangliste remains post-v1 under Tournaments; Skat Open is outside v1.
+The complete bidding-to-card decision chain is required before v1: bidding,
+pass/hold/raise, game choice, declarations, discarding and card play. Advice
+and review before play remain incomplete. #333 and #334 are complete; #335
+simplifies titles and player entry only. Full #208 UAT and the current
+comprehensive architecture/code review with treatment of material findings remain open.
+
+Broader solver work, learned opponent profiles,
 machine-learning card-decision models, and online-platform, hosted-browser, or
 browser-extension adapters are planned after `v1.0.0`. Formal
 series aggregation, tournament management, and official federation report

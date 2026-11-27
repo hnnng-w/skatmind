@@ -847,7 +847,8 @@ def test_analyze_membership_requires_bound_file_and_exact_selection(localized_se
     assert before == {p: p.read_bytes() for p in before}
 
 
-def test_direct_entry_uses_saved_own_seat_and_rejects_stale_profile(localized_server):
+@pytest.mark.parametrize("typed", (False, True))
+def test_direct_entry_uses_saved_own_seat_and_rejects_stale_profile(localized_server, typed):
     from test_settings_seat_setup_web import add_players
     browser = Browser(localized_server)
     stale = Forms(browser.page("/cent")).find("/cent/start")
@@ -859,14 +860,19 @@ def test_direct_entry_uses_saved_own_seat_and_rejects_stale_profile(localized_se
     form = Forms(browser.page("/cent")).find("/cent/start")
     # A conflict keeps the submitted draft. Explicitly select the saved roster instead.
     assert form["values"]["forehand_name"] == "Alice"
-    follow(browser, browser.submit(form, platform="in_person",
-        cent_tariff="5", perspective_mode="own", perspective_seat="", own_seat="rearhand",
-        forehand_mode="saved", forehand_name="", forehand_handle=handles[1],
+    roster = (dict(forehand_mode="new", forehand_name=" b ", middlehand_mode="new",
+        middlehand_name="C", rearhand_mode="new", rearhand_name="a") if typed else
+        dict(forehand_mode="saved", forehand_name="", forehand_handle=handles[1],
         middlehand_mode="saved", middlehand_name="", middlehand_handle=handles[2],
         rearhand_name="", rearhand_mode="saved"))
+    follow(browser, browser.submit(form, platform="in_person", cent_tariff="5",
+        perspective_mode="own", perspective_seat="", own_seat="rearhand", **roster))
     state = app.managed_stateful.active_session.state
     assert tuple(p.player_label for p in state.players) == ("B", "C", "A")
     assert state.local_player_id == state.players[2].player_id
+    players = app.frontend_profile.document.known_players
+    assert tuple(p.player_id for p in state.players) == (
+        players[1].player_id, players[2].player_id, players[0].player_id)
     assert app.frontend_profile.profile_path.read_bytes() == profile
 
 

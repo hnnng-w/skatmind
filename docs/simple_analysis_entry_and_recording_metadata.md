@@ -16,7 +16,11 @@ The maintainer has accepted and closed #321/#322. Their Tournament/Cent evidence
 accepted Learning evidence and other earlier valid acceptances remain valid.
 #208 remains open.
 
-## Ordinary entry
+## Ordinary entry at #324
+
+#334 subsequently grouped formats under Live play and Retrospective recording
+and added [direct Cent entry](mode_accounting_and_cent_rounds.md#direct-cent-entry-334).
+The navigation list below records the earlier #324 layout.
 
 Home presents three native task links in two ordered groups:
 
@@ -47,7 +51,7 @@ expectations remain compatible; no new route or form owner is introduced.
 
 The existing Match form owns every control exactly once:
 
-1. Required editable Match title.
+1. Required editable Match title, initially proposed for a fresh draft (#335).
 2. Initially closed **Optional details**, immediately below the title and before
    player setup: date-only display field, nested native exact-time editor, then
    one contiguous Source fieldset. URL and source-kind selection share a responsive
@@ -58,6 +62,12 @@ The existing Match form owns every control exactly once:
 5. Initially closed Advanced Match details, containing external Match ID,
    platform-player IDs and the nested read-only technical format definition.
 6. Existing reviewed-perspective and explicit Create actions.
+
+The individual-game title is also proposed and editable. Retained input,
+including an explicitly emptied title, takes precedence over both proposals.
+Entering a matching saved name or selecting that player gives the same
+participant and perspective; the save checkbox applies only to new names.
+See [recording start](profile_driven_stateful_creation.md#recording-start-issue-335).
 
 The shared Session renderer groups only its existing `save_players` choice. There
 is no new Session source/metadata contract or profile preference. Legacy

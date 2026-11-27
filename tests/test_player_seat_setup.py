@@ -31,10 +31,10 @@ def own_profile():
         preferred_perspective_player_id=players[2].player_id)
 
 
+@pytest.mark.parametrize("typed", (False, True))
 @pytest.mark.parametrize("family", ("sessions", "matches"))
 @pytest.mark.parametrize("seat", SEATS)
-def test_duplicate_saved_own_uat_payload_equals_placeholder_roster(own_profile, family, seat):
-    """R02 compatibility: submit saved A at the chosen own seat, without clearing it."""
+def test_entered_or_selected_own_player_equals_projected_roster(own_profile, family, seat, typed):
     values = {**initial_seat_values_v1(own_profile), "own_seat": seat,
         "game_name": "Exact roster", "match_title": "Exact roster", "capture_mode": "live",
         "platform_choice": "unknown"}
@@ -43,7 +43,10 @@ def test_duplicate_saved_own_uat_payload_equals_placeholder_roster(own_profile, 
         if place != seat:
             values[f"{place}_handle"] = build_known_player_handle_v1(next(others).player_id)
     reference, _ = project_own_seat_v1(values, own_profile)
-    values[f"{seat}_handle"] = values["own_player_handle"]
+    if typed:
+        values.update({f"{seat}_mode": "new", f"{seat}_name": " a "})
+    else:
+        values[f"{seat}_handle"] = values["own_player_handle"]
     before = dict(values)
     actual, auto = project_own_seat_v1(values, own_profile)
     assert values == before
@@ -83,7 +86,8 @@ def test_exact_own_bundle_moves_losslessly(own_profile, source, target, accounts
 
 @pytest.mark.parametrize("overrides", (
     {"rearhand_handle": "other"}, {"rearhand_handle": "f" * 64},
-    {"rearhand_mode": "new", "rearhand_name": "A"},
+    {"rearhand_mode": "new", "rearhand_name": "B"},
+    {"rearhand_mode": "new", "rearhand_name": "A", "forehand_handle": "own"},
     {"rearhand_mode": "new", "rearhand_handle": "own"},
     {"rearhand_handle": "own", "rearhand_name": "A"},
     {"rearhand_platform_id": "account-only"},

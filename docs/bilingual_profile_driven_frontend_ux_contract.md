@@ -467,8 +467,11 @@ whether the Player represents the local user.
 
 Normal users must enter or select Player names, not internal IDs. Generated IDs
 must not be editable in normal forms and must contain no semantic claim.
-Imported Product documents must preserve their exact supplied IDs. Duplicate
-display names require explicit disambiguation. The frontend must perform no
+Imported Product documents must preserve their exact supplied IDs. In recording
+setup, a typed name matching a saved display name after trimming, NFC and
+casefold selects that player. Distinct directory entries require distinct
+normalized display names. Every seat requires a name; no unknown-player option
+or special placeholder identity is required. The frontend must perform no
 fuzzy Player merging, automatic identity merge, Player Statistics derivation,
 or behavior inference. Technical IDs may be visible only under explicit
 Technical details.
@@ -642,6 +645,10 @@ filenames must remain non-authoritative.
 
 ## Normal creation forms
 
+Fresh individual-game and Match forms propose localized titles in their
+existing editable fields. Retained titles are user data and are not translated.
+See [current creation guidance](profile_driven_stateful_creation.md#recording-start-issue-335).
+
 ### Session
 
 The normal Session creation form must ask for these user concepts and German
@@ -699,7 +706,9 @@ The normal form must not ask for a Match ID or expose raw
 `euroskat_36_standard_v1`. It must show a friendly fixed-format label. It must
 not use raw `RFC 3339` wording and must use locale-appropriate date controls and
 text. Video-time fields must appear only when a media source is selected.
-Perspective must use a visible seat choice alongside the named Players.
+In manual setup the user chooses a person in their game-1 row. The reviewed
+perspective follows that person across a reorder. Own setup derives perspective
+from the explicitly chosen own seat.
 
 Hidden fields must never remain conditionally required without explanation.
 Required source metadata must either be visibly requested with a reason or

@@ -382,7 +382,7 @@ must not be presented as official-rule requirements.
 | Live position | A position analyzed using only facts legitimately available to the selected player at that decision time. | Post-game skat, future plays, later outcomes, and retrospective labels must be rejected or redacted. |
 | Retrospective single-decision review | One historical decision reconstructed with the actual card and facts available at that point, then compared with the engine recommendation. | It is not a complete-game replay. Retrospective facts may explain the result but must not leak into the reconstructed decision analysis. |
 | Complete historical game review | All eligible decisions from one complete historical game, independently reconstructed from decision-time snapshots and compared with Immediate or, in the separate Search workflow, bounded Search plus an independent Immediate baseline. | It is not a perfect-information solver, complete-contract optimization, player rating, or training/evaluation record. |
-| Complete historical game | One coherent record of the deal, players/seats, final bid and declaration facts, skat handling, ordered play events, end reason, result, and settlement. | A position plus selected completed tricks is not a complete historical game; a full auction sequence is planned after v1.0. |
+| Complete historical game | One coherent record of the deal, players/seats, final bid and declaration facts, skat handling, ordered play events, end reason, result, and settlement. | A position plus selected completed tricks is not a complete historical game. Final bid facts alone do not support review of bidding decisions. |
 | Historical game used as training or evaluation data | A complete historical game wrapped in a validated record with provenance, stable identity, intended labels/targets, and explicit dataset partition metadata. | Representation and evaluation use do not imply that a machine-learning model is trained. |
 | Externally captured opponent statistics | A versioned record of supplied total games and percentage-point statistics with stable player identity, source provenance, capture time, and deterministic explainable profile derivation. | Explicit live side bindings or strict pre-game historical participant matching may apply confidence-gated actionable presets; external values do not imply exact counts, predict behavior, or learn a profile. |
 | Statistics derived from historical player data | Reproducible exact aggregates computed from selected timestamped supported historical dataset games for a stable case-sensitive player identity, with per-player source provenance and reusable export. | Bounded aggregation differs from manually supplied values and learned parameters; it does not weight or merge sources, manage multiple captures, or apply a policy automatically. |
@@ -437,6 +437,16 @@ claim equilibrium play, calibrated probabilities, or completed user acceptance.
 
 The following directions are required for `v1.0.0`:
 
+* Support 36er Standard, Cent-Skat and individual games. Skat Open is outside
+  v1. Each seat requires an entered or selected player name. No anonymous-player
+  option is required.
+* Support advice and review across the complete decision chain: bidding
+  (including pass, hold and raise), game choice, declarations, discarding and
+  card play. Recording the final bid, contract or discards is not pre-play
+  decision support. The full chain remains incomplete.
+* Complete mandatory maintainer UAT under #208 and the current comprehensive
+  architecture/code review, including treatment of material findings. The
+  completed #333 and #334 work does not close either gate.
 * Analyze live game situations at fixed three-player tables.
 * Enforce field-level live-information provenance across inputs, analysis,
   simulation, recommendations, and output. Issue #202 completes this internal
@@ -657,7 +667,7 @@ These areas are useful planned later work, not requirements for the first major
 release. Their implementation details and acceptance criteria are not yet
 approved:
 
-* Full bidding and auction sequence modeling.
+* 18er Rangliste under Tournaments.
 * Learned opponent profiles.
 * Machine-learning models for the engine's own card decisions.
 * Online-platform adapters, browser extensions, or hosted/remote browser
@@ -706,7 +716,9 @@ Coaching, Tactical, private-surface, persistence, and Rating boundaries are
 accepted, post-v1, or not required exactly as classified in the Issue #200 audit.
 In the historical completion rows below, `open`, `absent`, or `unsupported`
 continues to describe factual capability only; it is not a v1 blocker unless the
-Issue #200 ledger classifies it as one.
+Issue #200 ledger classifies it as one or subsequent approved scope requires it.
+The current decision-chain, format and acceptance requirements above supersede
+conflicting historical classifications.
 
 For the Search gate, Issue #114 added opt-in live Multi-Step and Policy
 Comparison routing to the flat strict/auto baseline described in the compact
@@ -836,8 +848,8 @@ bounded flat 4.4.4 continuation hand constraint and bounded flat 4.4.5/4.1.6 ret
 constraint are implemented for flat and timed historical play. At most one
 supported non-terminal continuation may be followed by normal completion or at
 most one supported terminal shortening. Multiple non-terminal continuation events and
-arbitrary event streams are `not_supported_v1`. Full auction representation is
-planned after v1.0.
+arbitrary event streams are `not_supported_v1`. Review of the bidding sequence
+remains required before v1 and is not supplied by the current Historical record.
 
 Replay Coaching contract version `1` uses
 `decision_time_then_retrospective_attachment`. Its decision-time value contains
@@ -983,9 +995,10 @@ See [Learning Corpus Tactical Cross-game Coaching](learning_corpus_tactical_cros
 
 ## Release decision rule
 
-The authoritative current technical conclusion, accepted limitations, closed
-B-01 through B-06 and B-08, remaining B-09 and B-07 blockers, and exact next
-action are in the [final technical Release-readiness audit](v1_0_final_technical_release_readiness_audit.md).
+The [final technical Release-readiness audit](v1_0_final_technical_release_readiness_audit.md)
+records the earlier technical conclusion and closure of B-01 through B-06 and
+B-08. Use the [current requirements](#required-before-v100) for the decision
+chain, full #208 UAT and comprehensive architecture/code review gates.
 
 The historical Issue #207 conclusion remains unchanged. Its post-audit note
 records the failed Issue #208 UAT-01 and the implemented Issue #209 through #213

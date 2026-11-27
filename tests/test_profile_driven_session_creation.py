@@ -7,7 +7,7 @@ from skatmind.app_web.frontend_profile_codec import build_local_frontend_profile
 from skatmind.app_web.profile_driven_creation import (
     prepare_profile_driven_session_creation_v1,
 )
-from skatmind.app_web.profile_player_contracts import KnownPlayerV1
+from skatmind.app_web.profile_player_contracts import KnownPlayerPlatformIdV1, KnownPlayerV1
 
 
 def _entropy_source():
@@ -135,22 +135,25 @@ def test_session_validation_precedes_entropy_and_rejects_duplicate_seats() -> No
     assert calls == 0
 
 
-def test_session_rejects_mixed_saved_and_new_duplicate_names_before_entropy() -> None:
+@pytest.mark.parametrize("typed_first", (False, True))
+def test_reused_saved_player_cannot_occupy_two_seats(typed_first) -> None:
     known = KnownPlayerV1("frontend-player-" + "a" * 64, "Anna", (), ())
     profile = build_local_frontend_profile_v1(known_players=(known,))
 
     def entropy(_size: int) -> bytes:
         raise AssertionError("Duplicate Player names must be rejected before entropy.")
 
-    with pytest.raises(ValueError, match="Duplicate saved Player name"):
+    with pytest.raises(ValueError, match="same known Player cannot occupy two seats"):
         prepare_profile_driven_session_creation_v1(
             {
                 "game_name": "Game",
                 "capture_mode": "retrospective",
                 "perspective_mode": "manual",
-                "forehand_mode": "saved", "middlehand_mode": "new", "rearhand_mode": "new",
-                "forehand_handle": build_known_player_handle_v1(known.player_id),
-                "forehand_name": "",
+                "forehand_mode": "new" if typed_first else "saved",
+                "middlehand_mode": "new", "rearhand_mode": "new",
+                "forehand_handle": "" if typed_first else build_known_player_handle_v1(
+                    known.player_id),
+                "forehand_name": "Anna" if typed_first else "",
                 "middlehand_handle": "",
                 "middlehand_name": "anna",
                 "rearhand_handle": "",
@@ -163,6 +166,32 @@ def test_session_rejects_mixed_saved_and_new_duplicate_names_before_entropy() ->
             existing_session_ids=(),
             entropy_source=entropy,
         )
+
+
+@pytest.mark.parametrize("save", (False, True))
+def test_typed_saved_name_reuses_exact_identity_and_only_saves_new_players(save):
+    known = KnownPlayerV1("frontend-player-" + "a" * 64, "René  Weiß", ("Alias",),
+                          (KnownPlayerPlatformIdV1("Club", "Account"),))
+    profile = build_local_frontend_profile_v1(known_players=(known,))
+    values = dict(game_name="Game", capture_mode="live", perspective_mode="manual",
+                  perspective_seat="forehand", forehand_mode="new",
+                  forehand_name=" RENE\u0301  WEISS ",
+                  middlehand_mode="new", middlehand_name="René Weiß", rearhand_mode="new",
+                  rearhand_name="Alias", save_players="on" if save else "")
+
+    def prepare(fields):
+        return prepare_profile_driven_session_creation_v1(
+            fields, profile=profile, expected_profile_generation=1,
+            existing_session_ids=(), entropy_source=_entropy_source())
+
+    actual = prepare(values)
+    assert actual == prepare(dict(values, forehand_mode="saved", forehand_name="",
+        forehand_handle=build_known_player_handle_v1(known.player_id)))
+    assert actual.players[0].player_label == known.display_name
+    assert actual.local_player_id == actual.players[0].player_id == known.player_id
+    directory = actual.profile_document.known_players
+    assert directory[0] == known
+    assert [p.display_name for p in directory[1:]] == (["René Weiß", "Alias"] if save else [])
 
 
 def test_retrospective_empty_perspective_preserves_the_legacy_preference() -> None:

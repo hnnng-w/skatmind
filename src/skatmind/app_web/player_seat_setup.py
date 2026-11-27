@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from .frontend_identifier_generation import build_known_player_handle_v1
 from .frontend_profile_operations import StaleFrontendProfileGenerationError
+from .profile_player_contracts import normalize_player_display_name_v1
 from .profile_player_operations import resolve_known_player_handle_v1
 
 SEATS = ("forehand", "middlehand", "rearhand")
@@ -74,9 +75,34 @@ def current_seat_setup_v1(context, family, profile):
         return current
 
 
+def resolve_entered_player_names_v1(values, profile):
+    """Project matching name-only rows to the same selection as a saved-player control."""
+    result = dict(values)
+    if profile is None or not profile.known_players:
+        return result
+    for seat in SEATS:
+        handle = values.get(f"{seat}_handle", "")
+        name = values.get(f"{seat}_name", "")
+        if (values.get(f"{seat}_mode") != "new" or type(handle) is not str or handle.strip()
+                or type(name) is not str or not name.strip()):
+            continue
+        try:
+            normalized = normalize_player_display_name_v1(name.strip())
+        except ValueError:
+            continue  # Keep invalid input for the existing field-specific validation.
+        # A valid profile enforces uniqueness under this exact normalization.
+        for player in profile.known_players:
+            if normalize_player_display_name_v1(player.display_name) == normalized:
+                result[f"{seat}_mode"] = "saved"
+                result[f"{seat}_handle"] = build_known_player_handle_v1(player.player_id)
+                result[f"{seat}_name"] = ""
+                break
+    return result
+
+
 def project_own_seat_v1(values, profile, *, auto_seat=""):
     """Move only the server-retained automatic bundle; collisions never swap rows."""
-    result = dict(values)
+    result = resolve_entered_player_names_v1(values, profile)
     own = own_handle_v1(profile)
     mode = result.get("perspective_mode")
     seat = result.get("own_seat", "")
@@ -283,6 +309,11 @@ def submit_seat_setup_v1(context, family, profile, values, *, generation, local_
                 expected_profile_generation=generation, existing_match_ids=(),
                 entropy_source=None, validation_only=True, allow_missing_perspective=True)
             complete = bool(match_perspective_seat_v1(values))
+    if complete:
+        # Both Product adapters accept trimmed labels. Show that exact accepted
+        # title before final comparison; incomplete and rejected drafts keep the input.
+        title_field = "game_name" if family == "sessions" else "match_title"
+        values[title_field] = values[title_field].strip()
     with context.lock:
         if (context.creation_setups.get(family) is not current
                 or context.frontend_profile.generation != generation):
