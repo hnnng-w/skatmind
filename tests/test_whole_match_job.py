@@ -93,14 +93,20 @@ def test_plan_uses_only_real_perspective_plays_and_per_game_inputs():
 
 
 def test_selected_execution_reuse_restart_and_changed_settings(tmp_path, calls):
+    from skatmind.app_web.settings_forms import set_ordinary_preferences_v1
+
     app, active = make_managed(tmp_path / "home")
     execute(app, active, analysis_effort="quick", settings_mode="ordinary")
     assert len(calls) == 1
     state = finish(app, active, submit(app, active))
     assert state["phase"] == "finished" and state["refs"]["2:3"][0] == "reused"
+    set_ordinary_preferences_v1(app, {"own_player_handle": "", "platform_choice": "",
+        "custom_platform": "", "analysis_effort": "more_time"},
+        generation=app.frontend_profile.generation)
     app, active = restart(app, active)
     assert progress_file(app, active).read() == state
-    assert finish(app, active, submit(app, active, "resume"))["refs"] == state["refs"]
+    resumed = finish(app, active, submit(app, active, "resume"))
+    assert resumed["refs"] == state["refs"] and resumed["settings"] == state["settings"]
     assert len(calls) == 1
     changed = finish(app, active, submit(app, active, random_seed="19"))
     assert changed["refs"]["2:3"][0] == "computed" and len(calls) == 2

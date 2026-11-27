@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .analysis_controls import DEFAULT_ANALYSIS_EFFORT, DEFAULT_LIVE_EFFORT, EFFORTS
 from .profile_player_contracts import (
     MAX_KNOWN_PLAYERS,
     MAX_MANAGED_ITEM_DISPLAY_LABELS,
@@ -51,13 +52,26 @@ class FrontendInterfacePreferencesV1:
 class FrontendWorkflowPreferencesV1:
     position_analysis: None = None
     historical_review: None = None
+    live_effort: str = DEFAULT_LIVE_EFFORT
+    analysis_effort: str = DEFAULT_ANALYSIS_EFFORT
 
     def __post_init__(self) -> None:
         if self.position_analysis is not None or self.historical_review is not None:
-            raise ValueError("Workflow preferences must remain null in Issue #216.")
+            raise ValueError("Reserved workflow preferences must be null.")
+        if self.live_effort not in EFFORTS or self.analysis_effort not in EFFORTS:
+            raise ValueError("Expected an ordinary effort level.")
 
     def to_dict(self) -> dict[str, object]:
-        return {"position_analysis": None, "historical_review": None}
+        result: dict[str, object] = {"position_analysis": None, "historical_review": None}
+        if self.live_effort != DEFAULT_LIVE_EFFORT:
+            result["live_effort"] = self.live_effort
+        if self.analysis_effort != DEFAULT_ANALYSIS_EFFORT:
+            result["analysis_effort"] = self.analysis_effort
+        return result
+
+
+def effort_preferences(profile: LocalFrontendProfileV1 | None) -> FrontendWorkflowPreferencesV1:
+    return profile.workflow_preferences if profile is not None else FrontendWorkflowPreferencesV1()
 
 
 @dataclass(frozen=True, slots=True)

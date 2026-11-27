@@ -5,8 +5,10 @@ from __future__ import annotations
 import hashlib
 import hmac
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
+from .analysis_controls import EFFORTS
+from .frontend_profile_contracts import effort_preferences
 from .frontend_profile_operations import (
     FRONTEND_SETTINGS_PLAYER_ACTION_ROUTES,
     StaleFrontendProfileGenerationError,
@@ -97,10 +99,16 @@ def set_ordinary_preferences_v1(context, values, *, generation):
     advanced = values.get("advanced_settings_expanded", "")
     if advanced not in {"", "on"}:
         raise ValueError("advanced_settings_expanded must be one explicit checkbox value.")
+    efforts = {field: values[field] for field in ("live_effort", "analysis_effort")
+               if field in values}
+    for field, value in efforts.items():
+        if value not in EFFORTS:
+            raise SettingsFieldError(field, "Choose one supported effort level.")
     return set_frontend_creation_preferences_v1(context, own_player_id=own_id,
         preferred_perspective_player_id=(
             None if document is None else document.preferred_perspective_player_id),
         preferred_game_platform=platform, advanced_settings_expanded=advanced == "on",
+        workflow_preferences=replace(effort_preferences(document), **efforts),
         expected_generation=generation)
 
 
@@ -150,6 +158,7 @@ def dispatch_settings_form_v1(context, path, values, *, generation, entropy_sour
         fields |= {"own_player_handle", "platform_choice", "custom_platform",
                    "advanced_settings_expanded"}
         values.setdefault("advanced_settings_expanded", "")
+        fields.update(values.keys() & {"live_effort", "analysis_effort"})
     else:
         if action != "add":
             fields.add("player_handle")

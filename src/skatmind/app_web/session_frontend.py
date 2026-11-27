@@ -15,7 +15,10 @@ from skatmind.errors import SkatMindInvariantError
 from skatmind.session_checkpoint_collection import (
     collect_session_decision_checkpoint_v1,
 )
-from skatmind.session_persistence import _build_session_persistence_file_bytes_v1
+from skatmind.session_persistence import (
+    _build_session_persistence_file_bytes_v1,
+    save_session_persistence_file_v1,
+)
 from skatmind.simulation import DEFAULT_IMMEDIATE_ANALYSIS_SAMPLE_COUNT
 
 from .cent_continuity import save_cent_member_edit
@@ -24,6 +27,7 @@ from .execution import (
     execute_guided_frontend_analysis_v1,
     execute_guided_frontend_review_v1,
 )
+from .live_effort_preferences import SESSION_GAME, advance_recording_choices, recording_choices_path
 from .managed_item_contracts import DiscoveredManagedItemV1
 from .managed_item_storage import (
     build_managed_item_storage_path_v1,
@@ -392,7 +396,19 @@ def _persist_session_mutation(
         state,
         decision_checkpoints=checkpoints,
     ).value
-    status = save_cent_member_edit(context, persistence)
+    guard = None
+    if os.path.lexists(recording_choices_path(context.path)):
+        def guard(staged):
+            previous_game = game_identity(context.state)
+            same_game = previous_game is None or previous_game == game_identity(state)
+            advance_recording_choices(context.path, staged, context.document.content_fingerprint,
+                persistence.content_fingerprint, (SESSION_GAME,) if same_game else ())
+
+    status = save_cent_member_edit(context, persistence, before_replace=guard)
+    if status is None and guard is not None:
+        status = save_session_persistence_file_v1(context.path, persistence,
+            expected_content_fingerprint=context.document.content_fingerprint,
+            before_replace=guard).status
     if status is None:
         status = session_files.save_session_file(context.path, persistence,
             expected_content_fingerprint=context.document.content_fingerprint).value.status

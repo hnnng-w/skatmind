@@ -5,8 +5,13 @@ incomplete. A declaration, hand/evidence edit, card, applied correction or
 truncation can make the next perspective turn ready. Only the accepted save
 counts. Draft declaration fields accompanying an evidence submission have no
 effect. A page refresh, language change, preview, unchanged edit or change to
-Match metadata does not run an analysis. The controls apply to this game only;
-Stop, a different position, clear/pass, reload and reopening drop assistance.
+Match metadata does not run an analysis. Start and Stop apply to this game only;
+a different position, clear/pass, reload and reopening also drop assistance.
+Effort changes are saved for the game. **Apply to this Match** additionally
+sets the default for games without a deliberate selection. Neither saving nor
+inheriting this default starts advice on another game. Private choices follow
+the selected managed file across its guarded saves; a separately imported or
+replaced copy does not acquire the original's choices by Match ID or title.
 
 The private adapter uses the recording projection's validated trace, including
 the current incomplete trick, rotated player order and **all** remaining cards

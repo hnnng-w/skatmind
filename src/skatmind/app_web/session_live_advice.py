@@ -7,16 +7,21 @@ from contextlib import nullcontext
 from dataclasses import dataclass
 
 import skatmind.api.v1.session as api
+from skatmind.accounting_store import accounting_publication_lock
 from skatmind.api.v1.schema_validation import validate_input_document
+from skatmind.errors import SkatMindError
 from skatmind.live_whole_game import LiveGameOutcome, evaluate_live_game, live_rollout_view
 from skatmind.match_source_coordination import SavedSourceEpoch, match_source_coordinator
 from skatmind.session_persistence import _build_session_persistence_file_bytes_v1
 
 from .analysis_controls import COUNTS, EFFORTS, TIMEOUTS
 from .forced_card_guidance import ForcedCardGuidance, forced_card_guidance
+from .frontend_profile_contracts import effort_preferences
+from .live_effort_preferences import cent_scope, resolve_session_effort, submitted_effort
 from .managed_item_storage import validate_managed_direct_child_path_v1
 from .session_form_translation import build_session_position_options_from_form_v1
 from .session_live_cent import CentAuthority, capture_cent_authority
+from .whole_match_progress import file_identity
 from .workflow_state import StaleFrontendWorkflowRevisionError
 
 LIVE_ROUTES = ("/sessions/live-start", "/sessions/live-effort", "/sessions/live-stop")
@@ -61,33 +66,44 @@ def game_identity(state):
                  if r.command.kind == "set_game_metadata" and r.command.game_id is not None), None)
 
 
-def control_binding(active, route):
+def control_binding(active, route, *, scope=None):
     serial = active.live.control_revision if route in LIVE_ROUTES else ""
     material = (f"live:{route}:{active.generation}:"
-                f"{active.document.content_fingerprint}:{serial}").encode()
+                f"{active.document.content_fingerprint}:{serial}:{scope}").encode()
     return hmac.digest(active.review_selection_key, material, "sha256").hex()
 
 
-def configure_live(active, route, values):
+def configure_live(active, route, values, *, profile=None):
     from .card_entry_http import _fresh
 
     token = values.pop("live_binding", "")
-    if not token.isascii() or not hmac.compare_digest(token, control_binding(active, route)):
-        raise StaleFrontendWorkflowRevisionError()
     enabled = active.live.effort is not None
     if (route == LIVE_ROUTES[0]) == enabled:
         raise StaleFrontendWorkflowRevisionError()
-    if route == LIVE_ROUTES[1]:
-        if set(values) != {"analysis_effort"} or values["analysis_effort"] not in EFFORTS:
-            raise ValueError("Expected one ordinary analysis effort.")
-        effort = values["analysis_effort"]
-    else:
-        if values:
+    coordinator = match_source_coordinator(active.category_root)
+    with accounting_publication_lock(), coordinator.lock:
+        scope = None
+        if route != LIVE_ROUTES[2]:
+            try:
+                _fresh(active, session=True)
+                if file_identity(active.path) != active.saved_file_identity:
+                    raise StaleFrontendWorkflowRevisionError()
+                scope = cent_scope(active)
+            except (ValueError, OSError, SkatMindError) as error:
+                raise StaleFrontendWorkflowRevisionError() from error
+        bound_scope = scope if route == LIVE_ROUTES[1] else None
+        if not token.isascii() or not hmac.compare_digest(
+                token, control_binding(active, route, scope=bound_scope)):
+            raise StaleFrontendWorkflowRevisionError()
+        selected = None
+        block = False
+        if route == LIVE_ROUTES[1]:
+            selected, block = submitted_effort(values)
+        elif values:
             raise ValueError("Unexpected Live control fields.")
-        effort = "quick" if route == LIVE_ROUTES[0] else None
-    if effort is not None:
-        _fresh(active, session=True)
-    active.live.configure(effort)
+        effort = None if route == LIVE_ROUTES[2] else resolve_session_effort(
+            active, scope, effort_preferences(profile).live_effort, selected=selected, block=block)
+        active.live.configure(effort)
 
 
 def reserve_live_attempt(app, active):

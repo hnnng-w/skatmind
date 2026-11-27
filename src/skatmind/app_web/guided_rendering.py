@@ -3,7 +3,13 @@ from __future__ import annotations
 
 from html import escape
 
-from .analysis_controls import effort_fields, mode_fields, restore_controls, values_dict
+from .analysis_controls import (
+    DEFAULT_ANALYSIS_EFFORT,
+    effort_fields,
+    mode_fields,
+    restore_controls,
+    values_dict,
+)
 from .card_form import CANONICAL_CARD_CONTROLS_V1
 from .compact_card_rendering import compact_card_groups
 from .guided_contracts import (
@@ -357,6 +363,7 @@ def _completed_trick_controls(
 def _advanced_position(
     draft: PositionFormDraftV1 | None,
     messages: dict[str, tuple[str, ...]],
+    default_effort=DEFAULT_ANALYSIS_EFFORT,
 ) -> str:
     method = draft.analysis_method if draft else "immediate"
     sample_count = draft.sample_count if draft else DEFAULT_POSITION_SAMPLE_COUNT_V1
@@ -388,7 +395,8 @@ def _advanced_position(
         )
 
     controls = values_dict(draft.form_values) if draft else {}
-    return restore_controls(effort_fields(_RENDER_LOCALE.get(), controls, fresh=draft is None, position=True) + f'''
+    return restore_controls(effort_fields(_RENDER_LOCALE.get(), controls, fresh=draft is None,
+                                          position=True, default_effort=default_effort) + f'''
       <section class="advanced-settings" aria-labelledby="advanced-heading">
         <details><summary id="advanced-heading">{_t("analysis.technical")}</summary>
         {mode_fields(_RENDER_LOCALE.get(), controls, fresh=draft is None)}
@@ -436,7 +444,8 @@ def _advanced_position(
 
 
 @localized_render
-def render_analyze_workflow_v1(state: ProcessLocalFrontendWorkflowStateV1) -> str:
+def render_analyze_workflow_v1(state: ProcessLocalFrontendWorkflowStateV1, *,
+                               default_effort=DEFAULT_ANALYSIS_EFFORT) -> str:
     if type(state) is not ProcessLocalFrontendWorkflowStateV1:
         raise ValueError("state must be exact process-local workflow state.")
     messages = _messages(state)
@@ -500,7 +509,7 @@ def render_analyze_workflow_v1(state: ProcessLocalFrontendWorkflowStateV1) -> st
         _field_group(messages, "defender_points", f'<label>{_t("guided.defender_points")}<input name="defender_points" type="number" min="0" max="120" value="{draft.defender_points if draft else 0}"></label>'),
         _field_group(messages, "actual_card_played", _card_select("actual_card_played", draft.actual_card_played if draft else None, label=_m("guided.actual_card"), field_id="actual-card-played"), feedback_boundary=True),
         f'<p>{_t("guided.sizes_help")}</p></section>',
-        _advanced_position(draft, messages),
+        _advanced_position(draft, messages, default_effort),
         f'<section aria-labelledby="run-heading"><h2 id="run-heading">{_t("guided.run")}</h2>',
         f'<p>{_t("guided.run_help")}</p>{run_control}</section></form>',
         _import_form(action=ANALYZE_IMPORT_JSON_ACTION_ROUTE_PATH, revision=state.revision),

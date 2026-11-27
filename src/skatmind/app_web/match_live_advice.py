@@ -12,8 +12,11 @@ from skatmind.match_workspace_persistence import load_match_workspace_file_v1
 
 from .analysis_controls import COUNTS, EFFORTS
 from .forced_card_guidance import ForcedCardGuidance, forced_card_guidance
+from .frontend_profile_contracts import effort_preferences
+from .live_effort_preferences import match_game_key, resolve_recording_effort, submitted_effort
 from .managed_item_storage import validate_managed_direct_child_path_v1
 from .session_live_advice import evaluate_live_position
+from .whole_match_progress import file_identity
 from .workflow_state import StaleFrontendWorkflowRevisionError
 
 MATCH_LIVE_ROUTES = ("/matches/live-start", "/matches/live-effort", "/matches/live-stop")
@@ -31,17 +34,20 @@ class MatchLiveAttempt:
     feedback: object
     source: SavedSourceEpoch
     epoch: int
+    file_stamp: str
 
 
 @dataclass(slots=True)
 class MatchLiveAssistance:
     effort: str | None = None
     control_revision: int = 0
+    preference_revision: int = 0
     attempt: MatchLiveAttempt | None = None
     outcome: ForcedCardGuidance | LiveGameOutcome | None = None
     unavailable: bool = False
     source: SavedSourceEpoch | None = None
     epoch: int = 0
+    file_stamp: str | None = None
 
     def invalidate(self):
         self.attempt = self.outcome = None
@@ -53,41 +59,68 @@ class MatchLiveAssistance:
         self.control_revision += 1
         if effort is None:
             self.source = None
+            self.file_stamp = None
 
 
-def match_live_binding(active, route):
+def match_live_binding(active, route, *, stamp=None):
+    if route == MATCH_LIVE_ROUTES[2]:
+        stamp = ""
+    elif stamp is None:
+        try:
+            stamp = file_identity(active.path)
+        except (OSError, ValueError):
+            stamp = ""
+    choice = active.live.preference_revision if route == MATCH_LIVE_ROUTES[1] else ""
     material = (f"{route}:{active.handle}:{active.selected_position}:{active.position_generation}:"
-                f"{active.capture.content_fingerprint}:{active.live.control_revision}").encode()
+                f"{active.capture.content_fingerprint}:{active.live.control_revision}:"
+                f"{choice}:{stamp}").encode()
     return hmac.digest(active.card_entry_key, material, "sha256").hex()
 
 
-def configure_match_live(active, route, values):
+def configure_match_live(active, route, values, *, profile=None):
+    # Serialize the file identity check and preference write with managed replacements.
+    coordinator = match_source_coordinator(active.category_root)
+    with coordinator.lock:
+        _configure_match_live(active, route, values, profile, coordinator)
+
+
+def _configure_match_live(active, route, values, profile, coordinator):
     from .card_entry_http import _fresh
 
     token = values.pop("live_binding", "")
+    try:
+        stamp = "" if route == MATCH_LIVE_ROUTES[2] else file_identity(active.path)
+    except (OSError, ValueError) as error:
+        raise StaleFrontendWorkflowRevisionError() from error
     game = active.workspace.slots[active.selected_position - 1].observed_game
     if (game is None or not token.isascii()
-            or not hmac.compare_digest(token, match_live_binding(active, route))
+            or not hmac.compare_digest(token, match_live_binding(active, route, stamp=stamp))
             or values.pop("expected_revision", None) != str(active.workspace.revision)
             or (route == MATCH_LIVE_ROUTES[0]) != (active.live.effort is None)):
         raise StaleFrontendWorkflowRevisionError()
+    effort = selected = None
+    block = False
     if route == MATCH_LIVE_ROUTES[1]:
-        if set(values) != {"analysis_effort"} or values["analysis_effort"] not in EFFORTS:
-            raise ValueError("Expected one ordinary analysis effort.")
-        effort = values["analysis_effort"]
-    else:
-        if values:
-            raise ValueError("Unexpected Match Live fields.")
-        effort = "quick" if route == MATCH_LIVE_ROUTES[0] else None
-    if effort is not None:
-        source = (active.live.source or
-                  match_source_coordinator(active.category_root).watch_source(active.path.name))
+        selected, block = submitted_effort(values)
+    elif values:
+        raise ValueError("Unexpected Match Live fields.")
+    if route != MATCH_LIVE_ROUTES[2]:
+        source = active.live.source or coordinator.watch_source(active.path.name)
         epoch = source.generation
         _fresh(active, session=False)
-        if (source.generation != epoch
+        if (source.generation != epoch or file_identity(active.path) != stamp
+                or active.live.file_stamp not in (None, stamp)
                 or active.live.source is not None and active.live.epoch != epoch):
             raise StaleFrontendWorkflowRevisionError()
+        effort = resolve_recording_effort(active.path, active.capture.content_fingerprint, stamp,
+            match_game_key(game), effort_preferences(profile).live_effort,
+            selected=selected, block=block)
         active.live.source, active.live.epoch = source, epoch
+        active.live.file_stamp = stamp
+        if selected is not None:
+            # Consume the Apply form even when only the saved scope changes.
+            # The current turn's unchanged calculation can still finish.
+            active.live.preference_revision += 1
     if effort != active.live.effort:
         active.operation_feedback.begin()
         active.live.configure(effort)
@@ -120,6 +153,7 @@ def reserve_match_live(active, before, previous_control):
         live.configure(None)
         return None
     if before is not active.workspace:
+        live.file_stamp = file_identity(active.path)
         live.invalidate()
     if previous_control == live.control_revision and (
             before is active.workspace or _play_facts(prior) == _play_facts(game)):
@@ -129,7 +163,7 @@ def reserve_match_live(active, before, previous_control):
     attempt = MatchLiveAttempt(
         active.path, active.workspace, active.capture.content_fingerprint, position,
         active.position_generation, live.control_revision, live.effort,
-        active.operation_feedback.attempt, live.source, epoch)
+        active.operation_feedback.attempt, live.source, epoch, live.file_stamp)
     live.attempt = attempt
     return attempt
 
@@ -149,7 +183,8 @@ def _owned(app, active, attempt):
 def _require_file(active, attempt):
     validate_managed_direct_child_path_v1(active.category_root, attempt.path, expected_kind="file")
     doc = load_match_workspace_file_v1(attempt.path).document
-    if doc.workspace != attempt.workspace or doc.content_fingerprint != attempt.fingerprint:
+    if (doc.workspace != attempt.workspace or doc.content_fingerprint != attempt.fingerprint
+            or file_identity(attempt.path) != attempt.file_stamp):
         raise ValueError("Match Live source changed.")
 
 
@@ -160,10 +195,11 @@ def expire_changed_match_live(active):
     live = active.live
     if live.source is not None:
         try:
-            if live.source.generation == live.epoch:
+            if (live.source.generation == live.epoch
+                    and file_identity(active.path) == live.file_stamp):
                 _fresh(active, session=False)
                 return
-        except CardEntryConflict:
+        except (OSError, ValueError, CardEntryConflict):
             pass
         live.configure(None)
 

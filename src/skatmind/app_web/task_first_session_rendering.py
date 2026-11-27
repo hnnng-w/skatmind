@@ -7,6 +7,7 @@ from skatmind.deck import get_full_deck
 from skatmind.game_declaration import build_serializable_game_declaration
 from skatmind.session_commands import SESSION_COMMAND_KINDS
 
+from .analysis_controls import DEFAULT_ANALYSIS_EFFORT
 from .card_entry_http import session_card_binding
 from .compact_card_rendering import compact_card_selector
 from .compact_declaration_http import declaration_binding
@@ -14,6 +15,7 @@ from .compact_declaration_rendering import (
     accepted_declaration_summary,
     compact_declaration_fields,
 )
+from .frontend_profile_contracts import effort_preferences
 from .local_time_http import local_time_context
 from .local_time_rendering import render_local_time_editor
 from .recorded_decision_context_sources import session_decision_context, session_information_source
@@ -271,7 +273,7 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
     return form(locale, "/sessions/command", fields, label, primary=normal)
 
 
-def _analysis_controls(context, locale, view):
+def _analysis_controls(context, locale, view, default_effort=DEFAULT_ANALYSIS_EFFORT):
     from .analysis_controls import (
         ADDITIONAL_FIELDS,
         effort_fields,
@@ -311,7 +313,7 @@ def _analysis_controls(context, locale, view):
         if available:
             remembered, _ = remembered_controls(context, "session." + route, session_scope(context))
             values = values_dict(remembered)
-            content = (effort_fields(locale, values, fresh=remembered is None)
+            content = (effort_fields(locale, values, fresh=remembered is None, default_effort=default_effort)
                 + disclosure(locale, "analysis.technical",
                     mode_fields(locale, values, fresh=remembered is None) + fields)
                 + (disclosure(locale, "analysis.additional", additional) if route == "review" else ""))
@@ -429,6 +431,8 @@ def render_task_first_session_v1(
 ) -> str:
     with context.lock:
         view = project_task_first_session_v1(context.state)
+        profile = app_context.frontend_profile.document if app_context else None
+        default_effort = effort_preferences(profile).analysis_effort
         correction_links = correction_actions(context, locale)
         recorded = project_recorded_session_decisions_v1(context)
         facts = view.facts
@@ -488,7 +492,8 @@ def render_task_first_session_v1(
         normal += render_unplayed_cards(unplayed, locale,
             original_skat=facts.known_skat or None, discarded_cards=facts.discarded_cards or None)
         if not separate:
-            normal += render_recorded_session_decisions_v1(context, locale=locale, view=recorded)
+            normal += render_recorded_session_decisions_v1(context, locale=locale, view=recorded,
+                                                          default_effort=default_effort)
         normal += render_recorded_history(progress, locale, anchor_prefix="session-play")
         entered = ""
         if ended:
@@ -546,7 +551,7 @@ def render_task_first_session_v1(
             if kind not in correction_links)
         normal += disclosure(locale, "task.session.optional", optional)
         if not separate:
-            normal += _analysis_controls(context, locale, view)
+            normal += _analysis_controls(context, locale, view, default_effort)
             normal += _analysis_result(context, locale, game_label or text(locale, "page.session_current.title"))
         corrections = paragraph(locale, "task.session.correction_help")
         corrections += ''.join(disclosure(locale, f"task.command.{kind}",

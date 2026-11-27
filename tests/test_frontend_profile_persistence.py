@@ -92,8 +92,14 @@ def test_profile_resume_rejects_unknown_future_and_forged_values() -> None:
     profile = build_local_frontend_profile_v1()
     valid = profile.to_dict()
     assert resume_local_frontend_profile_v1(valid) == profile
+    workflow = valid["workflow_preferences"]
+    assert (profile.workflow_preferences.live_effort,
+            profile.workflow_preferences.analysis_effort) == ("quick", "standard")
     for mutation in (
         {**valid, "unknown": None},
+        {**valid, "workflow_preferences": {**workflow, "unknown": None}},
+        {**valid, "workflow_preferences": {**workflow, "live_effort": "custom"}},
+        {**valid, "workflow_preferences": {**workflow, "analysis_effort": None}},
         {**valid, "language": "fr"},
         {**valid, "revision": True},
         {**valid, "known_players": [{"player_id": "future"}]},

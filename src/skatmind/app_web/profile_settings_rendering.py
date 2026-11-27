@@ -3,8 +3,9 @@ from __future__ import annotations
 import time
 from html import escape
 
+from .analysis_controls import effort_select
 from .frontend_identifier_generation import build_known_player_handle_v1
-from .frontend_profile_contracts import LocalFrontendProfileV1
+from .frontend_profile_contracts import LocalFrontendProfileV1, effort_preferences
 from .frontend_profile_operations import (
     FRONTEND_PROFILE_PLAYER_ADD_ACTION_ROUTE,
     FRONTEND_PROFILE_PLAYER_REMOVE_ACTION_ROUTE,
@@ -86,6 +87,7 @@ def _preferences(
     locale: str,
 ) -> str:
     own_player_id = None if profile is None else profile.own_player_id
+    efforts = effort_preferences(profile)
     advanced = (
         False if profile is None else profile.interface_preferences.advanced_settings_expanded
     )
@@ -101,6 +103,10 @@ def _preferences(
         f"{_player_options(profile, selected_id=own_player_id, locale=locale)}"
         "</select></label>"
         + _platform_fields(profile, locale=locale)
+        + effort_select(locale, "live_effort", "settings.preferences.live_effort",
+                         efforts.live_effort)
+        + effort_select(locale, "analysis_effort", "settings.preferences.analysis_effort",
+                         efforts.analysis_effort)
         + '<input type="hidden" name="advanced_settings_expanded" '
         f'value="{"on" if advanced else ""}">'
         f'<button type="submit" class="primary">{_t(locale, "settings.preferences.save")}</button>'

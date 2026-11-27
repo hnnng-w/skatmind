@@ -4,6 +4,8 @@ from collections.abc import Mapping
 
 CONTROL_FIELDS = ("analysis_effort", "settings_mode")
 EFFORTS = ("quick", "standard", "more_time")
+DEFAULT_LIVE_EFFORT = "quick"
+DEFAULT_ANALYSIS_EFFORT = "standard"
 MODES = ("ordinary", "custom")
 COUNTS = (25, 100, 400)
 POSITION_COUNTS = (250, 1000, 4000)
@@ -30,7 +32,7 @@ def resolve_analysis_controls(values: Mapping, *, path: str, retained_timeout=No
     """
     result = dict(values)
     mode = result.pop("settings_mode", "custom")
-    effort = result.pop("analysis_effort", "standard")
+    effort = result.pop("analysis_effort", DEFAULT_ANALYSIS_EFFORT)
     if mode not in MODES:
         raise AnalysisControlError("settings_mode")
     if effort not in EFFORTS:
@@ -72,20 +74,28 @@ def resolve_analysis_controls(values: Mapping, *, path: str, retained_timeout=No
     return result
 
 
-def control_values(values=None, *, fresh=False):
+def control_values(values=None, *, fresh=False, default_effort=DEFAULT_ANALYSIS_EFFORT):
     values = values or {}
-    return {"analysis_effort": values.get("analysis_effort", "standard"),
+    return {"analysis_effort": values.get("analysis_effort", default_effort),
             "settings_mode": values.get("settings_mode", "ordinary" if fresh else "custom")}
 
 
-def effort_fields(locale, values=None, *, fresh=False, position=False, compact=False):
+def effort_select(locale, name, label, selected):
     from .stateful_localization import text
-    from .task_first_rendering import paragraph, select_field
+    from .task_first_rendering import select_field
 
-    values = control_values(values, fresh=fresh)
-    control = (select_field(locale, "analysis_effort", "analysis.effort", (
-        (value, text(locale, "analysis.effort." + value)) for value in EFFORTS),
-        values["analysis_effort"])
+    return select_field(locale, name, label, (
+        (value, text(locale, "analysis.effort." + value)) for value in EFFORTS), selected)
+
+
+def effort_fields(locale, values=None, *, fresh=False, position=False, compact=False,
+                  default_effort=DEFAULT_ANALYSIS_EFFORT):
+    from .stateful_localization import text
+    from .task_first_rendering import paragraph
+
+    values = control_values(values, fresh=fresh, default_effort=default_effort)
+    control = (effort_select(locale, "analysis_effort", "analysis.effort",
+                             values["analysis_effort"])
           + '<p class="analysis-custom-state">' + text(locale, "analysis.mode.custom") + '</p>')
     return control if compact else (control + paragraph(locale, "analysis.effort.help")
         + paragraph(locale, "analysis.effort.position" if position else "analysis.effort.decisions")

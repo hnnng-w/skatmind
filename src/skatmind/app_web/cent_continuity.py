@@ -131,7 +131,7 @@ def validate_binding(row, document, path):
     return binding
 
 
-def save_cent_member_edit(active, candidate):
+def save_cent_member_edit(active, candidate, *, before_replace=None):
     """Return the guarded save status, or None for the ordinary Session adapter."""
     home = active.category_root.parent
     source = recording_version_v1(active.document).source
@@ -164,6 +164,8 @@ def save_cent_member_edit(active, candidate):
                    _endpoint(owner, binding, active.path, candidate, file_identity(staged)))
             if file_identity(active.path) != stamp:
                 raise AccountingFormError("source")
+            if before_replace is not None:
+                before_replace(staged)
 
         try:
             return save_session_persistence_file_v1(active.path, candidate,

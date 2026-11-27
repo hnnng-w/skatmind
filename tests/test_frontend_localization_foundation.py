@@ -121,7 +121,7 @@ def test_catalog_resources_are_strict_ordered_and_have_exact_parity() -> None:
     assert tuple(catalogs) == ("de", "en")
     assert tuple(catalogs["de"]) == tuple(catalogs["en"])
     assert tuple(catalogs["en"]) == tuple(sorted(catalogs["en"]))
-    assert len(catalogs["en"]) == 2695
+    assert len(catalogs["en"]) == 2699
     assert {key for key in catalogs["en"] if key.startswith("analysis.live.money_")} == {
         "analysis.live.money_gross", "analysis.live.money_missing_bid",
         "analysis.live.money_net", "analysis.live.money_objective",

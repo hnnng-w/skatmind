@@ -65,6 +65,8 @@ def populate_profile(browser):
         preferred_game_platform="Synthetic club", advanced_settings_expanded=True,
         expected_generation=context.frontend_profile.generation) == "saved"
     page = browser.page("/settings")
+    page = follow(browser, browser.submit(Forms(page).find("/actions/profile/preferences"),
+                                          live_effort="standard", analysis_effort="more_time"))
     follow(browser, browser.submit(Forms(page).find("/actions/profile/time-zone"),
                                   time_zone="America/New_York"))
     switch(browser, browser.page("/settings"), "de")

@@ -9,7 +9,8 @@ from skatmind.session_transitions import replay_session_state_v1
 from skatmind.whole_game_rollout_workflow import parse_rollout_settings
 
 from . import session_batch as job
-from .analysis_controls import EFFORTS, AnalysisControlError
+from .analysis_controls import AnalysisControlError, effort_select
+from .frontend_profile_contracts import effort_preferences
 from .language_context import capture_language_source_v1
 from .recorded_review_opening import RecordingOpenConflict, require_recording_fresh_v1
 from .saved_match_analyses import (
@@ -191,6 +192,7 @@ def comparisons(app, active, state, locale):
 
 def render(handler, path, status=200, *, origin=None):
     app = handler.server.app_context
+    default_effort = effort_preferences(app.frontend_profile.document).analysis_effort
     active = handler._active_session() if origin is None else require_origin(app, origin)
     locale = handler._frontend_state().locale
     progress = job.progress_file(app, active)
@@ -249,9 +251,9 @@ def render(handler, path, status=200, *, origin=None):
                         + _decision_label(locale, document.state.players, row) + '</a></li>'
                         for row in view.decisions) + '</ul>'
                 body += render_recorded_session_decisions_v1(active, locale=locale,
-                    view=view, selected=chosen)
+                    view=view, selected=chosen, default_effort=default_effort)
                 body += disclosure(locale, "analysis.technical", _analysis_controls(active, locale,
-                    project_task_first_session_v1(active.state)))
+                    project_task_first_session_v1(active.state), default_effort))
                 body += session_receipt(active, locale) + _analysis_result(
                     active, locale, title, decision_page=True)
                 guard = session_delivery_guard(app, active)
@@ -326,8 +328,8 @@ def render(handler, path, status=200, *, origin=None):
                 fields = hidden("binding", binding) + select_field(locale, "objective",
                     "rollout.objective", [(v, text(locale, "rollout.objective." + v)) for v in (
                         "complete_settlement", "played_game_goal")], "complete_settlement")
-                fields += select_field(locale, "analysis_effort", "analysis.effort",
-                     [(v, text(locale, "analysis.effort." + v)) for v in EFFORTS], "standard")
+                fields += effort_select(locale, "analysis_effort", "analysis.effort",
+                                        default_effort)
                 feedback = start_feedback(app, active, binding)
                 if feedback:
                     fields += hidden("retry_generation", feedback.feedback_generation)

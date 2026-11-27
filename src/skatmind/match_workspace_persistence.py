@@ -5,7 +5,7 @@ import json
 import os
 import stat
 import tempfile
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 from skatmind.errors import SkatMindInvariantError, SkatMindValidationError
@@ -232,6 +232,7 @@ def save_match_workspace_file_v1(
     document: MatchWorkspacePersistenceDocumentV1,
     *,
     expected_content_fingerprint: str | None,
+    before_replace: Callable[[Path], None] | None = None,
 ) -> MatchWorkspaceWriteResultV1:
     """Optimistically saves one private Workspace through atomic replacement."""
     requested = _validate_requested_document(document)
@@ -288,6 +289,8 @@ def save_match_workspace_file_v1(
                     existing_content_fingerprint=current,
                 )
 
+            if before_replace is not None:
+                before_replace(temporary_path)
             os.replace(temporary_path, path)
             coordinator.accepted_write(path.name)
             temporary_path = None

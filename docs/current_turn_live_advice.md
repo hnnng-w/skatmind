@@ -14,6 +14,15 @@ start before entering the hand. Recording from one player's perspective, opening
 a saved recording, and visiting the card-entry page do not start assistance.
 Start, stop, and effort changes are native forms; no JavaScript is required.
 
+Start resolves effort in this order: the game's deliberate selection, the
+explicit default for its Match or managed three-game Cent round, then the
+Live preference in Settings (initially Quick). **Apply** saves the selected
+effort for this game. The optional **Apply to this Match** or **Apply to this
+Cent round** checkbox starts unchecked. Checking it also replaces that block's
+default; games with their own choices keep them. A Cent session's next round
+inherits its tariff independently and starts without a round effort override.
+Reopen or restart retains the choices; assistance itself still starts off.
+
 After an accepted change is saved, the card-entry area shows advice only for
 the **current** perspective player's decision. This includes a declaration,
 the last required discard, and an opponent's card that passes play to you.
@@ -225,7 +234,7 @@ completing #328. #208 remains open.
 
 ## Ownership and execution
 
-The Session owner has one process-local preference and at most one automatic
+The Session owner has one process-local active effort and at most one automatic
 attempt/result. Generation-bound editable forms, explicit Result downloads and
 recorded-review evidence remain independent. The native card, compact
 declaration, generic command, Undo and applied correction handlers reserve work

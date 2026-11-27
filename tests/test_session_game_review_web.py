@@ -11,6 +11,7 @@ from test_session_recorded_review_web import Browser, Forms, record_live_game
 from skatmind.app_web import session_batch_routes as routes
 from skatmind.app_web.automatic_match_learning import AutomaticMatchLearningServiceV1
 from skatmind.app_web.saved_match_analyses import SELECTION_ROUTE, archive_store
+from skatmind.app_web.session_batch import progress_file
 from skatmind.automatic_learning_store import StoreConflictError
 
 
@@ -74,6 +75,14 @@ def test_native_scope_progress_original_selection_language_and_foreign_return(
     downloads = {r: browser.request("GET", r)[2] for r in re.findall(
         r'href="([^"]+/(?:request|result).json)"', page)}
     assert len(downloads) == 2
+    progress = progress_file(app, active)
+    checkpoint = progress.path.read_bytes()
+    assert progress.read()["settings"]["requested_worlds"] == 25
+    follow(browser, browser.submit(Forms(browser.page("/settings")).find(
+        "/actions/profile/preferences"), analysis_effort="more_time"))
+    fresh = Forms(browser.page(routes.PAGE)).find(routes.PAGE + "/start")
+    assert fresh["values"]["analysis_effort"] == "more_time"
+    assert progress.path.read_bytes() == checkpoint and len(calls) == 2
     service = AutomaticMatchLearningServiceV1.open(app)
     previous = service.update().generation
     former_delivery = service.capture_delivery()

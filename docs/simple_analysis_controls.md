@@ -5,7 +5,7 @@ ordinary forced-card guidance, bounded saved-Review delivery reuse and clarified
 input/analysis captions. Effort mappings and explicit custom calculations below
 remain unchanged; a rule-only hint creates no statistical Result or saved evidence.
 The separate [current-turn Live assistance](current_turn_live_advice.md) starts
-at Quick when explicitly enabled for one active Session. It does not inherit
+with its own saved effort (initially Quick) when explicitly enabled. It does not inherit
 the specialist form's method or change its defaults.
 
 ## Authority and ordinary behavior
@@ -18,7 +18,7 @@ clean. Issue #324 and its waiting-time/Learning exclusion boundary are accepted.
 One private `app_web/analysis_controls.py` boundary supplies native controls,
 strict mode/effort resolution, and source-scoped submitted-value retention.
 Concrete values reach the existing executors and original Request/Result exports;
-the UI names are not public settings or persisted analysis preferences.
+the UI names are private frontend choices.
 
 | Ordinary path | Quick | Standard | More time |
 | --- | ---: | ---: | ---: |
@@ -27,7 +27,11 @@ the UI names are not public settings or persisted analysis preferences.
 | Recorded Match/Session whole-game requested worlds | 25 | 100 | 400 |
 | Recorded whole-game timeout, milliseconds | 5000 | 30000 | 60000 |
 
-Fresh forms select Standard. Position/current-position/legacy Match decision uses
+Fresh ordinary forms use **Effort for analyses** from Settings (initially
+Standard), including single-decision, game and whole-Match review. Saving
+defaults, refreshing and switching language do not start work. A retained
+current-form selection, Custom configuration, started/resumed job or saved
+original keeps its own settings. Position/current-position/legacy Match decision uses
 Immediate; recorded whole-game review keeps rollout. Historical Match/Session
 keeps Immediate Review. Only a newly started frontend manual Historical draft
 explicitly enables Immediate Review. `HistoricalFormOptionsV1`, public API/CLI

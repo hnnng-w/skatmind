@@ -2,24 +2,37 @@
 
 from html import escape
 
-from .analysis_controls import EFFORTS
+from skatmind.errors import SkatMindError
+
+from .analysis_controls import effort_select
 from .compact_card_rendering import _card_face, card_set_display_order
 from .forced_card_guidance import ForcedCardGuidance
+from .live_effort_preferences import cent_scope
 from .ordinary_result_numbers import ordinary_scalar
 from .session_live_advice import LIVE_ROUTES, control_binding
 from .stateful_localization import card_name, text, translated
-from .task_first_rendering import form, hidden, paragraph, select_field
+from .task_first_rendering import form, hidden, paragraph
+from .workflow_state import StaleFrontendWorkflowRevisionError
 
 
 def live_controls(active, locale, ended):
+    scope = None
+    if active.live.effort is not None and not ended:
+        try:
+            scope = cent_scope(active)
+        except (OSError, ValueError, SkatMindError, StaleFrontendWorkflowRevisionError):
+            pass  # Do not offer a round scope when its recording cannot be verified.
+
     def fields(route):
         return (hidden("managed_handle", active.handle)
                 + hidden("expected_revision", active.state.revision)
-                + hidden("live_binding", control_binding(active, route)))
-    return render_live_controls(locale, active.live.effort, ended, LIVE_ROUTES, fields)
+                + hidden("live_binding", control_binding(active, route,
+                         scope=scope if route == LIVE_ROUTES[1] else None)))
+    return render_live_controls(locale, active.live.effort, ended, LIVE_ROUTES, fields,
+                                block_label="analysis.live.apply_cent" if scope else None)
 
 
-def render_live_controls(locale, effort, ended, routes, binding_fields):
+def render_live_controls(locale, effort, ended, routes, binding_fields, *, block_label=None):
     status = paragraph(locale, "analysis.live.inactive" if effort is None
                        else "analysis.live.active")
 
@@ -28,9 +41,10 @@ def render_live_controls(locale, effort, ended, routes, binding_fields):
 
     if effort is None:
         return status if ended else status + control(routes[0], "analysis.live.start")
-    choices = select_field(locale, "analysis_effort", "analysis.effort",
-                           tuple((v, text(locale, "analysis.effort." + v)) for v in EFFORTS),
-                           effort)
+    choices = effort_select(locale, "analysis_effort", "analysis.effort", effort)
+    if block_label:
+        choices += ('<label><input type="checkbox" name="apply_block" value="on"> '
+                    + translated(locale, block_label) + '</label>')
     return (status + ("" if ended else control(routes[1], "analysis.live.apply", choices))
             + control(routes[2], "analysis.live.stop"))
 

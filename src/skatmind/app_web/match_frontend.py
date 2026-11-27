@@ -46,6 +46,11 @@ from skatmind.match_workspace_persistence import (
 from skatmind.match_workspace_persistence_codec import resume_match_workspace_document_v1
 from skatmind.observed_trace_diagnostics import ObservedTraceError
 
+from .live_effort_preferences import (
+    advance_recording_choices,
+    match_game_key,
+    recording_choices_path,
+)
 from .managed_item_contracts import DiscoveredManagedItemV1
 from .managed_item_storage import (
     build_managed_item_storage_path_v1,
@@ -132,6 +137,15 @@ def _context(
     capture: MatchCaptureWebContextV1,
     last_result: MatchCaptureWebResultV1 | None = None,
 ) -> UnifiedMatchContextV1:
+    choices_path = recording_choices_path(path)
+
+    def carry_effort(staged, previous, document):
+        if previous is not None and os.path.lexists(choices_path):
+            games = (match_game_key(slot.observed_game) for slot in document.workspace.slots
+                     if slot.observed_game is not None)
+            advance_recording_choices(path, staged, previous, document.content_fingerprint, games)
+
+    capture.before_replace = carry_effort
     return UnifiedMatchContextV1(
         category_root=category_root,
         path=path,

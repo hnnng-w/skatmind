@@ -11,6 +11,7 @@ from skatmind.corpus_web.contracts import LEARNING_CORPUS_WEB_MAX_REQUEST_BYTES
 from skatmind.session_commands import SESSION_COMMAND_KINDS
 
 from .accounting_forms import ACCOUNTING_FIELDS, ACCOUNTING_ROUTES, CENT_ROUTES, CENT_SETUP_FIELDS
+from .analysis_controls import EFFORTS
 from .automatic_learning_routes import AUTOMATIC_BODY_LIMIT, AUTOMATIC_PAGE, AUTOMATIC_POST_ROUTES
 from .card_entry_http import CARD_ENTRY_ROUTES, MATCH_CARD_OPERATIONS, MATCH_EVIDENCE_FORMS
 from .compact_declaration_form import DECLARATION_FIELDS
@@ -120,7 +121,8 @@ _FILE_FIELDS = {
 }
 _BOOLEAN_CHOICES = ("false", "true")
 _SELECT_CHOICES = {
-    "analysis_effort": ("quick", "standard", "more_time"),
+    "analysis_effort": EFFORTS,
+    "live_effort": EFFORTS,
     "settings_mode": ("ordinary", "custom"),
     "perspective_mode": ("own", "manual"),
     "own_seat": ("", "forehand", "middlehand", "rearhand"),
@@ -139,6 +141,7 @@ _SELECT_CHOICES = {
 }
 _LABEL_KEYS = {
     "analysis_effort": "validation.field.analysis_effort",
+    "live_effort": "validation.field.analysis_effort",
     "settings_mode": "validation.field.settings_mode",
     "own_seat": "validation.field.own_seat",
     **{f"{seat}_{suffix}": f"validation.field.{seat}_{label}"
@@ -899,6 +902,8 @@ _FORMS: list[FrontendFormDefinitionV1] = [
             "own_player_handle",
             "platform_choice",
             "custom_platform",
+            "live_effort",
+            "analysis_effort",
             "profile_generation",
         ),
         page="/settings",

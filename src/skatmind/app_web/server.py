@@ -82,6 +82,7 @@ from .form_registry import (
     validate_frontend_form_registry_v1,
 )
 from .friendly_creation_rendering import render_profile_driven_match_creation_v1
+from .frontend_profile_contracts import effort_preferences
 from .frontend_profile_operations import (
     FRONTEND_LANGUAGE_ACTION_ROUTE,
     FRONTEND_PROFILE_ACTION_ROUTES,
@@ -1020,6 +1021,7 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 route,
                 storage_root=storage_root,
                 analyze_state=self.server.app_context.analyze_state,
+                analysis_effort=effort_preferences(profile).analysis_effort,
                 review_state=self.server.app_context.review_state,
                 review_receipt=manual_receipt(self.server.app_context, frontend.locale)
                     if route == "/review" else "",
@@ -2488,8 +2490,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                 self._retained_delivery_guard = match_live_delivery_guard(
                     self.server.app_context, active)
             if review:
+                state["analysis_effort"] = effort_preferences(
+                    self.server.app_context.frontend_profile.document).analysis_effort
                 state["rollout_form"] = project_match_rollout_form(
-                    active, state["decision_preparation"])
+                    active, state["decision_preparation"], default_effort=state["analysis_effort"])
                 state["decision_source_scope"] = match_decision_source_scope(active)
                 state["decision_selection_context"] = match_decision_selection_binding(
                     active, return_to)
@@ -3400,7 +3404,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
         if path in LIVE_ROUTES:
             if self.server.app_context.recording_task == "/record-after":
                 raise StaleFrontendWorkflowRevisionError()
-            configure_live(active, path, values)
+            configure_live(active, path, values,
+                           profile=self.server.app_context.frontend_profile.document)
             return "/sessions/current#session-recording"
         binding = values.pop("input_binding", None)
         if binding is not None and (not binding.isascii()

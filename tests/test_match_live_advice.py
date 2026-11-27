@@ -165,7 +165,7 @@ def test_combined_native_readiness_noops_effort_correction_and_reload(
     page = submit(browser, page, "/matches/api/v1/reload")
     assert active.live.effort is None and not active.live.outcome
     page = submit(browser, page, START)
-    assert len(calls) == 5 and active.live.effort == "quick"
+    assert len(calls) == 5 and active.live.effort == "standard"
     old = Forms(page).find(STOP)
     browser.page("/matches/position/1")
     page = browser.page("/matches/position/2")

@@ -7,6 +7,7 @@ from html import escape
 from importlib.resources import files
 from pathlib import Path
 
+from .analysis_controls import DEFAULT_ANALYSIS_EFFORT
 from .contracts import APP_ROUTE_PATHS, BrowserSafeApplicationStateV1
 from .entry_rendering import render_entry_introduction_v1
 from .frontend_profile_contracts import LocalFrontendProfileV1
@@ -371,6 +372,7 @@ def render_app_page_v1(
     *,
     storage_root: Path | None = None,
     analyze_state: ProcessLocalFrontendWorkflowStateV1 | None = None,
+    analysis_effort: str = DEFAULT_ANALYSIS_EFFORT,
     review_state: ProcessLocalFrontendWorkflowStateV1 | None = None,
     review_player_names: tuple[str, ...] = (),
     review_receipt: str = "",
@@ -414,7 +416,8 @@ def render_app_page_v1(
     elif route == "/analyze":
         title = _text(frontend_state, "page.analyze.title")
         content = render_analyze_workflow_v1(
-            analyze_state or ProcessLocalFrontendWorkflowStateV1(), locale=frontend_state.locale)
+            analyze_state or ProcessLocalFrontendWorkflowStateV1(), default_effort=analysis_effort,
+            locale=frontend_state.locale)
     elif route == "/review":
         title = _text(frontend_state, "page.review.title")
         content = review_receipt + render_review_workflow_v1(

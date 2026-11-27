@@ -8,6 +8,7 @@ from skatmind.game_result import COMPLETED_TRICK_COUNT
 from .analysis_controls import (
     ADDITIONAL_FIELDS,
     CONTROL_FIELDS,
+    DEFAULT_ANALYSIS_EFFORT,
     effort_fields,
     mode_fields,
     native_analysis_form,
@@ -127,7 +128,8 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
     remembered = state.get("analysis_forms", {}).get(f"match.analysis.{operation}")
     simplified = analysis and operation in {"analyze_decision", "analyze_historical_game"}
     if simplified:
-        fields += effort_fields(locale, values_dict(remembered), fresh=remembered is None)
+        fields += effort_fields(locale, values_dict(remembered), fresh=remembered is None,
+                                default_effort=state.get("analysis_effort", DEFAULT_ANALYSIS_EFFORT))
         advanced += mode_fields(locale, values_dict(remembered), fresh=remembered is None)
     actor = next((row["acting_player_id"] for row in state.get("decision_preparation", {}).get(
         "decisions", ()) if bound is not None and row["decision_index"] == bound["decision"]), None)
@@ -411,7 +413,7 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
         if "live" in state:
             task += render_live_controls(locale, state["live"].effort, terminal, MATCH_LIVE_ROUTES,
                 lambda route: hidden("managed_handle", handle) + hidden("expected_revision", state["workspace_revision"])
-                + hidden("live_binding", state["live_bindings"][route]))
+                + hidden("live_binding", state["live_bindings"][route]), block_label="analysis.live.apply_match")
         if game["declaration"] is None:
             task += '<div id="match-declaration"><h3>' + translated(locale, "declaration.title") + '</h3>'
             task += operation_form(state, handle, locale, "set_declaration", primary=True) + '</div>'

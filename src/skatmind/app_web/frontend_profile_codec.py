@@ -187,11 +187,17 @@ def resume_local_frontend_profile_v1(
         raise ValueError("interface_preferences must contain exact canonical fields in order.")
     if "time_zone" in interface and type(interface["time_zone"]) is not str:
         raise ValueError("Present time_zone must be text, never null.")
-    workflow = _exact_mapping(
-        document["workflow_preferences"],
-        ("position_analysis", "historical_review"),
-        "workflow_preferences",
+    workflow = document["workflow_preferences"]
+    if not isinstance(workflow, Mapping):
+        raise ValueError("workflow_preferences must be an object.")
+    preferences = FrontendWorkflowPreferencesV1(
+        position_analysis=workflow.get("position_analysis"),
+        historical_review=workflow.get("historical_review"),
+        live_effort=workflow.get("live_effort", _DEFAULT_WORKFLOW_PREFERENCES.live_effort),
+        analysis_effort=workflow.get("analysis_effort",
+                                     _DEFAULT_WORKFLOW_PREFERENCES.analysis_effort),
     )
+    _exact_mapping(workflow, tuple(preferences.to_dict()), "workflow_preferences")
     known_players = document["known_players"]
     labels = document["managed_item_display_labels"]
     if type(known_players) is not list:
@@ -258,10 +264,7 @@ def resume_local_frontend_profile_v1(
         known_players=tuple(resumed_players),
         preferred_perspective_player_id=document["preferred_perspective_player_id"],
         preferred_game_platform=document["preferred_game_platform"],
-        workflow_preferences=FrontendWorkflowPreferencesV1(
-            position_analysis=workflow["position_analysis"],
-            historical_review=workflow["historical_review"],
-        ),
+        workflow_preferences=preferences,
         managed_item_display_labels=tuple(resumed_labels),
         content_fingerprint=document["content_fingerprint"],
     )

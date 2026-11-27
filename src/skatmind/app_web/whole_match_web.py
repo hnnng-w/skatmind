@@ -9,7 +9,13 @@ from skatmind.errors import SkatMindError
 from skatmind.game_declaration import validate_bid_value, validate_matadors
 from skatmind.whole_game_rollout_contracts import WholeGameRolloutSettingsV1
 
-from .analysis_controls import EFFORTS, AnalysisControlError, resolve_analysis_controls
+from .analysis_controls import (
+    DEFAULT_ANALYSIS_EFFORT,
+    AnalysisControlError,
+    effort_select,
+    resolve_analysis_controls,
+)
+from .frontend_profile_contracts import effort_preferences
 from .language_context import LanguageContextConflict, capture_language_source_v1
 from .match_navigation import match_navigation
 from .recorded_review_opening import RecordingOpenConflict, require_recording_fresh_v1
@@ -77,14 +83,14 @@ def configuration(values, workspace, rows):
     return settings, supplements
 
 
-def start_form(locale, rows, binding, feedback, game=None):
+def start_form(locale, rows, binding, feedback, game=None, *,
+               default_effort=DEFAULT_ANALYSIS_EFFORT):
     inputs = hidden("binding", binding)
     if game is not None:
         inputs += hidden("game", game)
     if feedback is not None:
         inputs += hidden("retry_generation", feedback.feedback_generation)
-    inputs += select_field(locale, "analysis_effort", "analysis.effort",
-        [(e, text(locale, "analysis.effort." + e)) for e in EFFORTS], "standard")
+    inputs += effort_select(locale, "analysis_effort", "analysis.effort", default_effort)
     inputs += select_field(locale, "objective", "rollout.objective",
         [(o, text(locale, "rollout.objective." + o))
          for o in ("complete_settlement", "played_game_goal")], "complete_settlement")
@@ -307,7 +313,8 @@ def handle_get(handler, path, *, rejection=None, origin=None):
         elif state and game is None and path != WHOLE_SETUP:
             body += paragraph(locale, "whole_review.changed")
         if not running and not reading and not (current and scope_game and game is None):
-            fields = start_form(locale, rows, binding, feedback, game)
+            fields = start_form(locale, rows, binding, feedback, game,
+                                default_effort=effort_preferences(profile).analysis_effort)
             body += disclosure(locale, "whole_review.new", fields) if current else fields
             if feedback and not current:
                 body += '<p>' + link(locale, PAGE, "whole_review.refresh") + '</p>'

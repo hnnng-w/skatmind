@@ -146,6 +146,27 @@ An invalid profile is trusted for no preference and forces English fallback.
 
 ## Profile document
 
+**Effort defaults (#336).** In Settings, **Effort for Live assistance** starts
+at Quick and **Effort for analyses** at Standard. Both use Quick, Standard or
+More time. Saving uses the existing profile generation and file-fingerprint
+checks. It preserves language, players, display labels and the other settings.
+The ordered `workflow_preferences` extension omits `live_effort` and
+`analysis_effort` individually at their initial values. A profile with neither
+key already means Quick/Standard; loading it does not rewrite its bytes.
+Reset preferences restores both defaults. Deliberate choices for a recording
+belong to the recording's private Live controls, outside the global profile.
+
+**Narrow maintainer-installed acceptance, after hosted acceptance:** With
+disposable data, save different defaults, restart, and check Settings and a
+fresh decision/game/Match form in both languages. Check that an explicit
+current-form value or Custom mode still wins. Start Live on an incomplete
+game; apply once without the checkbox, then explicitly apply a block default
+on another game. Reopen the first game and start it again. Confirm its own
+choice, inheritance on a third game, and independence of a second Match and
+the next three-game round of the same Cent session. No hand analysis or
+Learning update is needed to check these selections. #208 and the
+comprehensive architecture/code review remain open.
+
 One profile may exist as the regular non-link direct child:
 
 ```text

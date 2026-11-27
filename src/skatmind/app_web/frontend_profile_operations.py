@@ -8,6 +8,7 @@ from .automatic_learning_routes import automatic_html_route
 from .frontend_profile_codec import build_local_frontend_profile_v1
 from .frontend_profile_contracts import (
     FrontendInterfacePreferencesV1,
+    FrontendWorkflowPreferencesV1,
     LocalFrontendProfileV1,
 )
 from .frontend_profile_persistence import save_frontend_profile_file_v1
@@ -261,6 +262,7 @@ def reset_frontend_recommended_defaults_v1(
             document.preferred_perspective_player_id is None
             and document.preferred_game_platform is None
             and document.interface_preferences.advanced_settings_expanded is False
+            and document.workflow_preferences == FrontendWorkflowPreferencesV1()
         ):
             return "unchanged"
         requested = build_local_frontend_profile_v1(
@@ -272,7 +274,7 @@ def reset_frontend_recommended_defaults_v1(
             known_players=document.known_players,
             preferred_perspective_player_id=None,
             preferred_game_platform=None,
-            workflow_preferences=document.workflow_preferences,
+            workflow_preferences=FrontendWorkflowPreferencesV1(),
             managed_item_display_labels=document.managed_item_display_labels,
         )
     return save_prepared_frontend_profile_v1(

@@ -16,6 +16,7 @@ from .execution import (
 )
 from .form_parsing import FormFieldErrorV1
 from .form_registry import resolve_frontend_form_v1
+from .frontend_profile_contracts import effort_preferences
 from .guided_contracts import (
     ANALYZE_RUN_GUIDED_ACTION_ROUTE_PATH,
     ANALYZE_RUN_IMPORTED_ACTION_ROUTE_PATH,
@@ -344,7 +345,8 @@ def start_review_v1(context: AppWebContextV1, *, expected_revision: int) -> None
             draft=replace(create_historical_form_draft_v1(),
                 options=HistoricalFormOptionsV1(immediate_review=True),
                 analysis_form_values=safe_controls({"settings_mode": "ordinary",
-                    "analysis_effort": "standard"})),
+                    "analysis_effort": effort_preferences(
+                        context.frontend_profile.document).analysis_effort})),
         )
         context.historical_reviews.new("guided")
 

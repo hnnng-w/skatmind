@@ -136,8 +136,8 @@ def test_activation_before_setup_then_discard_and_generic_play(localized_server,
     follow(browser, browser.submit(old_stop))
     assert active.live.effort is None
     follow(browser, post(browser, START))
-    assert active.live.effort == "quick" and len(calls) == count
-    assert browser.submit(old_stop)[0] == 409 and active.live.effort == "quick"
+    assert active.live.effort == "more_time" and len(calls) == count
+    assert browser.submit(old_stop)[0] == 409 and active.live.effort == "more_time"
 
 
 @pytest.mark.parametrize("fault", ["timeout", "exception"])

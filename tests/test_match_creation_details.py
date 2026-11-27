@@ -145,7 +145,8 @@ def test_real_settings_hidden_multimap_and_unrelated_noop_saves(localized_server
     assert "Optionale Match-Angaben werden anfangs aufgeklappt." not in page
     form = Forms(page).find(PREFERENCES)
     assert set(form["values"]) == {FIELD, "profile_generation", "own_player_handle",
-        "platform_choice", "custom_platform", "_frontend_form_instance"}
+        "platform_choice", "custom_platform", "live_effort", "analysis_effort",
+        "_frontend_form_instance"}
     assert parse_qs(urlencode(form["values"]), keep_blank_values=True)[FIELD] == [
         "on" if stored else ""]
     assert profile_bytes(app) == before
@@ -167,7 +168,8 @@ def test_real_settings_hidden_multimap_and_unrelated_noop_saves(localized_server
 def test_compatibility_field_is_not_editable_registry_metadata():
     form = next(f for f in FRONTEND_FORM_REGISTRY if f.form_key == "profile.preferences")
     assert tuple(f.field_key for f in form.safe_fields) == (
-        "own_player_handle", "platform_choice", "custom_platform", "profile_generation")
+        "own_player_handle", "platform_choice", "custom_platform",
+        "live_effort", "analysis_effort", "profile_generation")
 
 
 @pytest.mark.parametrize("stored", (False, True))

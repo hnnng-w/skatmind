@@ -10,7 +10,9 @@ from .frontend_identifier_generation import (
 from .frontend_profile_codec import build_local_frontend_profile_v1
 from .frontend_profile_contracts import (
     FrontendInterfacePreferencesV1,
+    FrontendWorkflowPreferencesV1,
     LocalFrontendProfileV1,
+    effort_preferences,
 )
 from .frontend_profile_operations import (
     InvalidFrontendProfileResetRequiredError,
@@ -64,6 +66,7 @@ def _build_updated(
     preferred_game_platform: str | None = None,
     preserve_preferred_platform: bool = True,
     interface_preferences: FrontendInterfacePreferencesV1 | None = None,
+    workflow_preferences: FrontendWorkflowPreferencesV1 | None = None,
     managed_item_display_labels: tuple[ManagedItemDisplayLabelV1, ...] | None = None,
 ) -> LocalFrontendProfileV1:
     return build_local_frontend_profile_v1(
@@ -88,11 +91,7 @@ def _build_updated(
         preferred_game_platform=(None if document is None else document.preferred_game_platform)
         if preserve_preferred_platform
         else preferred_game_platform,
-        workflow_preferences=(
-            build_local_frontend_profile_v1().workflow_preferences
-            if document is None
-            else document.workflow_preferences
-        ),
+        workflow_preferences=workflow_preferences or effort_preferences(document),
         managed_item_display_labels=(
             () if document is None else document.managed_item_display_labels
         )
@@ -231,6 +230,7 @@ def set_frontend_creation_preferences_v1(
     preferred_perspective_player_id: str | None,
     preferred_game_platform: str | None,
     advanced_settings_expanded: bool,
+    workflow_preferences: FrontendWorkflowPreferencesV1 | None = None,
     expected_generation: int,
 ) -> str:
     document = _current_document(context, expected_generation=expected_generation)
@@ -245,6 +245,7 @@ def set_frontend_creation_preferences_v1(
         and preferred_perspective_player_id == current_perspective
         and preferred_game_platform == current_platform
         and advanced_settings_expanded == current_advanced
+        and (workflow_preferences is None or workflow_preferences == effort_preferences(document))
     ):
         return "unchanged"
     requested = _build_updated(
@@ -255,6 +256,7 @@ def set_frontend_creation_preferences_v1(
         preserve_preferred_perspective=False,
         preferred_game_platform=preferred_game_platform,
         preserve_preferred_platform=False,
+        workflow_preferences=workflow_preferences,
         interface_preferences=FrontendInterfacePreferencesV1(
             advanced_settings_expanded=advanced_settings_expanded,
             time_zone=None if document is None else document.interface_preferences.time_zone,

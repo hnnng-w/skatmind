@@ -4,7 +4,12 @@ from html import escape
 
 from skatmind.rollout_derivation import missing_rollout_settlement_inputs
 
-from .analysis_controls import remembered_controls, session_scope, values_dict
+from .analysis_controls import (
+    DEFAULT_ANALYSIS_EFFORT,
+    remembered_controls,
+    session_scope,
+    values_dict,
+)
 from .rollout_form_rendering import rollout_basic_fields, rollout_technical_fields
 from .session_frontend import GuidedSessionContextV1
 from .session_recorded_review import (
@@ -31,6 +36,7 @@ def render_recorded_session_decisions_v1(
     context: GuidedSessionContextV1, *, locale: str,
     view: RecordedReviewProjectionV1 | None = None,
     selected=None,
+    default_effort=DEFAULT_ANALYSIS_EFFORT,
 ) -> str:
     view = project_recorded_session_decisions_v1(context) if view is None else view
     content = ""
@@ -68,7 +74,7 @@ def render_recorded_session_decisions_v1(
                   + hidden("decision_selection", row.selection))
         # Presentation initialization only; core and public defaults are independent.
         settings = {"objective": "complete_settlement", "requested_worlds": 100, "random_seed": 0,
-                    "settings_mode": "ordinary", "analysis_effort": "standard"}
+                    "settings_mode": "ordinary", "analysis_effort": default_effort}
         if (context.rollout_review_source is not None
                 and context.rollout_review_source.decision.selection == row.selection):
             settings = dict(context.rollout_execution.request.document[

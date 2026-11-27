@@ -170,7 +170,7 @@ def test_settings_renders_bilingual_local_settings_without_internal_player_ids(
     assert status == 200
     assert "Local settings and players" in html
     assert "Players" in html
-    assert "Creation defaults" in html
+    assert "Recording and analysis defaults" in html
     assert "/actions/profile/players/edit" in html
     assert FRONTEND_PROFILE_PLAYER_ADD_ACTION_ROUTE not in html
 
@@ -200,7 +200,7 @@ def test_settings_renders_bilingual_local_settings_without_internal_player_ids(
     german = body.decode()
     assert "Lokale Einstellungen und Spieler" in german
     assert "Spieler" in german
-    assert "Erfassungsvorgaben" in german
+    assert "Vorgaben für Erfassung und Analyse" in german
 
 
 def test_player_edit_preferences_and_referenced_removal_use_profile_cas(

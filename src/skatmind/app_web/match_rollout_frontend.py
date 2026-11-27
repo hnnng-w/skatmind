@@ -15,6 +15,7 @@ from skatmind.match_decision_analysis import (
 from skatmind.rollout_derivation import missing_rollout_settlement_inputs
 
 from .analysis_controls import (
+    DEFAULT_ANALYSIS_EFFORT,
     match_scope,
     remember_controls,
     remembered_controls,
@@ -35,7 +36,7 @@ def match_rollout_binding(active, decision):
     return hmac.new(active.card_entry_key, repr(source).encode(), hashlib.sha256).hexdigest()
 
 
-def project_match_rollout_form(active, preparation):
+def project_match_rollout_form(active, preparation, *, default_effort=DEFAULT_ANALYSIS_EFFORT):
     ready = [row["decision_index"] for row in preparation["decisions"]
              if row["state"] == "prepared"]
     if not ready:
@@ -53,7 +54,7 @@ def project_match_rollout_form(active, preparation):
         options=MatchDecisionAnalysisOptionsV1(use_profile_presets=False)).request
     root = request.to_dict()["document"]
     settings = {"objective": "complete_settlement", "requested_worlds": 100, "random_seed": 0,
-                "settings_mode": "ordinary", "analysis_effort": "standard"}
+                "settings_mode": "ordinary", "analysis_effort": default_effort}
     supplied = {}
     for report in reversed(active.capture.report_store.list()):
         if (report.match_position == active.selected_position and report.decision_index == decision

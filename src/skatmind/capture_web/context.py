@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import stat
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -14,6 +15,7 @@ from skatmind.match_workspace_persistence import (
 from skatmind.match_workspace_persistence_codec import (
     build_match_workspace_persistence_document_v1,
 )
+from skatmind.match_workspace_persistence_contracts import MatchWorkspacePersistenceDocumentV1
 
 from .report_store import MatchAnalysisReportStoreV1
 
@@ -30,6 +32,9 @@ class MatchCaptureWebContextV1:
         repr=False,
     )
     lock: threading.RLock = field(default_factory=threading.RLock, repr=False)
+    before_replace: Callable[
+        [Path, str | None, MatchWorkspacePersistenceDocumentV1], None
+    ] | None = field(default=None, repr=False)
 
     @property
     def workspace_filename(self) -> str:
@@ -76,10 +81,14 @@ class MatchCaptureWebContextV1:
         """Saves once and replaces context only after confirmed persisted content."""
         with self.lock:
             document = build_match_workspace_persistence_document_v1(workspace)
+            guard = self.before_replace
+            previous = self.content_fingerprint
             result = save_match_workspace_file_v1(
                 self.workspace_path,
                 document,
-                expected_content_fingerprint=self.content_fingerprint,
+                expected_content_fingerprint=previous,
+                before_replace=(
+                    (lambda staged: guard(staged, previous, document)) if guard else None),
             )
             if result.status in {"saved", "unchanged"}:
                 self.workspace = workspace
