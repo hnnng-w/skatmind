@@ -4,9 +4,9 @@ from typing import Any
 
 from skatmind.errors import SkatMindInvariantError
 from skatmind.session_contracts import (
-    SESSION_CONTRACT_VERSION,
     SessionCommandRecordV1,
     SessionStateV1,
+    log_contract_version,
 )
 from skatmind.session_decision_checkpoint import (
     SessionDecisionCheckpointV1,
@@ -102,7 +102,7 @@ def _build_state_from_projection_v1(
         revision=revision,
     )
     return SessionStateV1(
-        session_contract_version=SESSION_CONTRACT_VERSION,
+        session_contract_version=log_contract_version(command_log),
         session_id=source_state.session_id,
         initial_capture_mode=source_state.initial_capture_mode,
         capture_mode=projection.capture_mode,
@@ -320,7 +320,7 @@ def correct_session_command_v1(
         raise ValueError("state must be a SessionStateV1.")
     if type(correction) is not SessionCommandCorrectionV1:
         raise ValueError("correction must be a SessionCommandCorrectionV1.")
-    replay_session_state_v1(state)
+    original_projection = replay_session_state_v1(state)
 
     source_revision = state.revision
     common = {
@@ -420,6 +420,16 @@ def correct_session_command_v1(
             source_record,
             expected_revision=source_index + 1,
         )
+        if (original_projection.bidding and validated_record.command.kind == "set_declaration"
+                and projection.declarer_player_id != original_projection.declarer_player_id):
+            failed_revision = validated_record.revision
+            discarded_records = state.command_log[source_index:]
+            diagnostics = (SessionValidationDiagnosticV1(
+                code="declaration_violation", path="/command/declaration",
+                message="The declaration was recorded for another auction winner.",
+                severity="error", blocks_command=True, blocks_position_export=False,
+                blocks_historical_export=False),)
+            break
         application = apply_session_command_to_projection_v1(
             projection,
             validated_record.command,

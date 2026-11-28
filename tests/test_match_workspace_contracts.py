@@ -239,6 +239,9 @@ def test_versions_policies_tuples_and_contract_fields_are_exact() -> None:
         "slot_kind",
         "observed_game",
         "passed_deal",
+        "bidding",
+        "bidding_hands",
+        "passed_game",
     ]
     assert [item.name for item in fields(MatchWorkspaceV1)] == [
         "match_workspace_contract_version",

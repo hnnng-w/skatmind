@@ -8,6 +8,7 @@ from skatmind.game_declaration import build_serializable_game_declaration
 from skatmind.session_commands import SESSION_COMMAND_KINDS
 
 from .analysis_controls import DEFAULT_ANALYSIS_EFFORT
+from .bidding_capture import bidding_binding, render_bidding
 from .card_entry_http import session_card_binding
 from .compact_card_rendering import compact_card_selector
 from .compact_declaration_http import declaration_binding
@@ -252,15 +253,16 @@ def _command(context, locale, view, kind, *, normal=False, correction=False, pro
                 return ""
             target = str(record.revision)
             values = build_serializable_game_declaration(record.command.declaration)
-            declarer = next((item.command.declarer_player_id for item in context.state.command_log
-                if item.revision < record.revision and item.command.kind == "set_declarer"), None)
             fields += hidden("target_revision", target) + paragraph(
                 locale, "declaration.correction", revision=target)
         fields += hidden("declaration_form", marker) + hidden(
             "declaration_selection", declaration_binding(context, marker, target))
         fields += paragraph(locale, "task.session.declarer",
             player=player_name(locale, view.facts.players, declarer))
-        fields += compact_declaration_fields(locale, values, count_id=marker + "-matadors", session=True)
+        if view.facts.bidding:
+            values = dict(values or {}, bid_value=view.facts.bidding_turn.effective_value)
+        fields += compact_declaration_fields(locale, values, count_id=marker + "-matadors", session=True,
+                                             derived_bid=bool(view.facts.bidding))
         return form(locale, "/sessions/command", fields, "declaration.save", primary=normal)
     if correction:
         fields += paragraph(locale, "task.session.correction_help") + input_field(
@@ -404,6 +406,8 @@ def _task_heading(locale, view):
 
 
 def _completion_content(locale, view, progress, recorded):
+    if view.facts.game_end_reason == "passed_deal":
+        return '<h2>' + translated(locale, "task.value.passed_deal") + '</h2>'
     content = '<h2>' + _task_heading(locale, view) + '</h2>'
     if progress.rule_end is not None:
         content += paragraph(locale, "recording.null_end.detail", player=player_name(
@@ -462,6 +466,7 @@ def render_task_first_session_v1(
                         locale, "recorded_review.history") + '</a></p>')
         live_play = primary == "record_play" and context.live.effort is not None
         task_content = '<h2>' + _task_heading(locale, view) + '</h2>' + controls
+        bidding_details = ""
         if ended:
             task_content = _completion_content(locale, view, progress, recorded)
             if separate:
@@ -469,6 +474,20 @@ def render_task_first_session_v1(
         elif not set_entry and not live_play:
             task_content = ('<div class="recording-progress-layout"><div>' + task_content
                             + '</div>' + render_recorded_summary(progress, locale) + '</div>')
+        if facts.bidding or (facts.phase in {"setup", "deal", "declaration"}
+                             and facts.declarer_player_id is None and facts.declaration is None):
+            fields = (hidden("managed_handle", context.handle) + hidden("expected_revision",
+                      context.state.revision) + hidden("bidding_binding", bidding_binding(context, True)))
+            bidding = render_bidding(locale, seats=facts.player_ids, names=dict(_players(locale, facts)),
+                events=facts.bidding, route="/sessions/command", fields=fields)
+            if primary == "set_declarer":
+                task_content = bidding
+                if not facts.bidding:
+                    bidding_details = disclosure(locale, "bidding.short", controls)
+            else:
+                bidding_details = bidding
+        elif facts.declarer_player_id or facts.declaration:
+            task_content += paragraph(locale, "bidding.unknown")
         variant = ' class="session-set-entry"' if set_entry else ''
         if primary == "record_play":
             variant = ' class="session-play-entry live-play"' if live_play else ' class="session-play-entry"'
@@ -476,7 +495,7 @@ def render_task_first_session_v1(
             variant = ' class="session-completion"'
         normal += ('<div id="session-recording"' + variant + ' tabindex="-1"><div id="session-card-feedback"></div>'
             + '<!-- operation-feedback -->'
-            + '<section class="panel">' + task_content + '</section></div>')
+            + '<section class="panel">' + task_content + '</section></div>' + bidding_details)
         if app_context is None or app_context.recording_task != "/record-after":
             normal += live_controls(context, locale, ended)
         if facts.declaration is not None:
@@ -548,7 +567,8 @@ def render_task_first_session_v1(
                 "reloaded" if context.last_operation.status == "reloaded" else "rejected"))
         optional = ''.join(disclosure(locale, "task.session.metadata_title" if kind == "set_game_metadata" else f"task.command.{kind}",
             _command(context, locale, view, kind, app=app_context)) for kind in view.workflow.secondary_actions
-            if kind not in correction_links)
+            if kind not in correction_links and not (facts.bidding and (
+                kind == "set_declarer" or kind == "set_declaration" and facts.declarer_player_id is None)))
         normal += disclosure(locale, "task.session.optional", optional)
         if not separate:
             normal += _analysis_controls(context, locale, view, default_effort)

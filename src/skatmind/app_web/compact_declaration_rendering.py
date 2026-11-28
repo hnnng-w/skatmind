@@ -8,20 +8,29 @@ from html import escape
 from skatmind.game_declaration import VALID_DECLARATION_GAME_TYPES
 
 from .stateful_localization import text, translated
-from .task_first_rendering import input_field, paragraph, select_field
+from .task_first_rendering import disclosure, hidden, input_field, paragraph, select_field
 
 _ANNOUNCEMENT_PRESENTATION_ORDER = (
     "hand_game", "schneider_announced", "schwarz_announced", "ouvert",
 )
 
 
-def compact_declaration_fields(locale, values=None, *, count_id, session=False):
+def compact_declaration_fields(locale, values=None, *, count_id, session=False, derived_bid=False,
+                               short_selector=None):
     values = values or {}
     core = select_field(locale, "game_type", "declaration.game_type",
         (("", text(locale, "declaration.choose")), *(
             (value, text(locale, "task.value." + value)) for value in VALID_DECLARATION_GAME_TYPES)),
         values.get("game_type", ""), required=True)
-    core += input_field(locale, "bid_value", "declaration.bid_value", values.get("bid_value"))
+    if derived_bid:
+        bid = values.get("bid_value")
+        core += hidden("bid_value", "" if bid is None else bid)
+        if bid is not None:
+            core += paragraph(locale, "bidding.final", value=bid)
+    else:
+        bid = input_field(locale, "bid_value", "declaration.bid_value", values.get("bid_value"))
+        core += (bid if short_selector is None else
+                 disclosure(locale, "bidding.short", short_selector + bid))
     flags = ''.join(
         '<label><input type="checkbox" name="' + name + '" value="true"'
         + (' checked' if values.get(name) is True else '') + '><span>'

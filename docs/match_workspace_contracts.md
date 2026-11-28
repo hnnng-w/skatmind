@@ -409,3 +409,6 @@ CLI contracts, 63 authoritative and packaged Schemas, six Session examples, and
 85 generated-output scenarios remain unchanged. The maintainer published
 `v0.15.0` manually at commit `ec1c154`, and Issue #170 synchronizes publication
 status.
+
+For the version-2 slot, partial auctions and correction of passed slots, see
+[Recording the bidding sequence](bidding_capture.md#persistence-and-correction).

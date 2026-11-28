@@ -505,6 +505,37 @@ def test_correction_collects_missing_checkpoint_from_local_play_prefix(
     assert resumed.decision_checkpoints[0].source_revision == source.revision
 
 
+def test_correct_bidding_retains_ready_suffix_without_collecting_card_checkpoint(tmp_path):
+    from test_session_transitions import _live_declaration_state
+
+    state = _live_declaration_state()
+    start = state.revision
+    for player, action, value in (("player-b", "bid", 18), ("player-a", "pass", None),
+                                  ("player-c", "bid", 24), ("player-b", "pass", None)):
+        command = {"kind": "record_bid", "command_version": 2, "expected_revision": state.revision,
+                   "player_id": player, "action": action, "value": value}
+        applied = session_api.apply_session_command(state, command).value
+        assert applied.status == "applied"
+        state = applied.state
+    declaration = _ready_live_state().command_log[-1].command.to_dict()
+    state = session_api.apply_session_command(
+        state, declaration | {"expected_revision": state.revision}).value.state
+    assert state.validation.position_export.status == "available"
+    session_path = tmp_path / "auction.json"
+    correction_path = tmp_path / "bid-correction.json"
+    _persist_state(session_path, state)
+    original = state.command_log[start].command.to_dict()
+    _write_json(correction_path, {"session_history_edit_version": 1,
+        "expected_revision": state.revision, "target_revision": start + 1,
+        "replacement_command": original | {"value": 20}})
+    assert session_cli.run_session_cli(["correct", "--session", str(session_path),
+        "--input", str(correction_path), "--include-provenance", "--quiet"]) == 0
+    document = session_files.load_session_file(session_path).value.document
+    assert document.state.command_log[start].command.observation.value == 20
+    assert document.state.command_log[start + 1:] == state.command_log[start + 1:]
+    assert document.decision_checkpoints == ()
+
+
 def test_optimistic_save_conflict_returns_failure_without_replacing_target(
     tmp_path: Path,
     capsys,

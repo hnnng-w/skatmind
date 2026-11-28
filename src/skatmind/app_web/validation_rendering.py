@@ -580,10 +580,12 @@ def apply_validation_feedback_to_html_v1(
         "/matches/cards", "/matches/recording-input"} and any(
         issue.message_key == "validation.card_entry.file_changed"
         for issue in state.validation_issues))
+    stale_bidding = any(issue.message_key == "validation.bidding.stale"
+                        for issue in state.validation_issues)
     unresolved_legacy = (definition.form_key.startswith("match.cards.")
                          and not definition.form_key.endswith("append_plays"))
     bounds = (None if (source_bound and not form_identity) or changed_evidence_source
-              or unresolved_legacy else
+              or stale_bidding or unresolved_legacy else
               _find_form_bounds(html, definition, form_instance, form_identity))
     learning_report = definition.form_key == "learning.operation.import_strategy_teacher_report"
     if bounds is None:

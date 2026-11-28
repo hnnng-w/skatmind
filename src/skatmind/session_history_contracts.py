@@ -4,9 +4,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from skatmind.session_commands import (
-    SessionCommandV1,
-    is_session_command_v1,
-    serialize_session_command_v1,
+    RecordingCommand,
+    is_recording_command,
 )
 from skatmind.session_contracts import SessionCommandRecordV1, SessionStateV1
 from skatmind.session_validation import (
@@ -259,7 +258,7 @@ class SessionCommandCorrectionV1:
     session_history_edit_version: int = SESSION_HISTORY_EDIT_VERSION
     expected_revision: int
     target_revision: int
-    replacement_command: SessionCommandV1
+    replacement_command: RecordingCommand
 
     def __post_init__(self) -> None:
         if (
@@ -274,7 +273,7 @@ class SessionCommandCorrectionV1:
         _require_positive_integer(self.target_revision, "target_revision")
         if self.target_revision > self.expected_revision:
             raise ValueError("target_revision must not exceed expected_revision.")
-        if not is_session_command_v1(self.replacement_command):
+        if not is_recording_command(self.replacement_command):
             raise ValueError("replacement_command must be one exact SessionCommandV1.")
         if self.replacement_command.expected_revision != self.target_revision - 1:
             raise ValueError(
@@ -286,9 +285,7 @@ class SessionCommandCorrectionV1:
             "session_history_edit_version": self.session_history_edit_version,
             "expected_revision": self.expected_revision,
             "target_revision": self.target_revision,
-            "replacement_command": serialize_session_command_v1(
-                self.replacement_command
-            ),
+            "replacement_command": self.replacement_command.to_dict(),
         }
 
 
@@ -303,7 +300,7 @@ class SessionCorrectionResultV1:
     source_revision: int
     target_revision: int
     current_revision: int
-    replacement_command: SessionCommandV1
+    replacement_command: RecordingCommand
     state: SessionStateV1
     original_record: SessionCommandRecordV1 | None
     replayed_suffix_records: tuple[SessionCommandRecordV1, ...]
@@ -331,7 +328,7 @@ class SessionCorrectionResultV1:
         _require_non_negative_integer(self.current_revision, "current_revision")
         if self.target_revision > self.expected_revision:
             raise ValueError("target_revision must not exceed expected_revision.")
-        if not is_session_command_v1(self.replacement_command):
+        if not is_recording_command(self.replacement_command):
             raise ValueError("replacement_command must be one exact SessionCommandV1.")
         if self.replacement_command.expected_revision != self.target_revision - 1:
             raise ValueError(
@@ -521,9 +518,7 @@ class SessionCorrectionResultV1:
             "source_revision": self.source_revision,
             "target_revision": self.target_revision,
             "current_revision": self.current_revision,
-            "replacement_command": serialize_session_command_v1(
-                self.replacement_command
-            ),
+            "replacement_command": self.replacement_command.to_dict(),
             "state": self.state.to_dict(),
             "original_record": (
                 None if self.original_record is None else self.original_record.to_dict()

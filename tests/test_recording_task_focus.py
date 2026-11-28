@@ -142,6 +142,11 @@ def test_accepted_session_prefix_matrix_keeps_one_task_with_its_form(tmp_path, l
             else:
                 fields = [node["attrs"] for node in markup.nodes if node["tag"] == "input"
                           and any(parent is normal[0] for parent in node["parents"])]
+                if view.workflow.primary_action == "set_declarer":
+                    assert ("bidding_form", "auction") in {
+                        (field.get("name"), field.get("value")) for field in fields}
+                    assert headings[0]["text"] == text(locale, "bidding.title")
+                    continue
                 kind = next(field["value"] for field in fields if field.get("name") == "kind")
                 assert kind == ("set_game_end" if facts.played_card_count == 30 else
                     "set_public_hand" if state == public_missing else

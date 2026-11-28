@@ -5,9 +5,8 @@ from typing import Any
 
 from skatmind.field_provenance import parse_json_pointer
 from skatmind.session_commands import (
-    SessionCommandV1,
-    is_session_command_v1,
-    serialize_session_command_v1,
+    RecordingCommand,
+    is_recording_command,
 )
 from skatmind.session_contracts import (
     SESSION_CONTRACT_VERSION,
@@ -263,7 +262,7 @@ class SessionTransitionResultV1:
     expected_revision: int
     previous_revision: int
     current_revision: int
-    command: SessionCommandV1
+    command: RecordingCommand
     state: SessionStateV1
     diagnostics: tuple[SessionValidationDiagnosticV1, ...]
 
@@ -282,7 +281,7 @@ class SessionTransitionResultV1:
         _require_non_negative_integer(self.expected_revision, "expected_revision")
         _require_non_negative_integer(self.previous_revision, "previous_revision")
         _require_non_negative_integer(self.current_revision, "current_revision")
-        if not is_session_command_v1(self.command):
+        if not is_recording_command(self.command):
             raise ValueError("command must be one SessionCommandV1 member.")
         if self.command.expected_revision != self.expected_revision:
             raise ValueError(
@@ -352,7 +351,7 @@ class SessionTransitionResultV1:
             "expected_revision": self.expected_revision,
             "previous_revision": self.previous_revision,
             "current_revision": self.current_revision,
-            "command": serialize_session_command_v1(self.command),
+            "command": self.command.to_dict(),
             "state": self.state.to_dict(),
             "diagnostics": [diagnostic.to_dict() for diagnostic in self.diagnostics],
         }

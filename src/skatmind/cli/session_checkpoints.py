@@ -122,10 +122,15 @@ def persist_mutation_with(
     export_options: session_api.SessionPositionExportOptionsV1,
     collect_checkpoint: CheckpointCollector,
     source_collection: SessionCheckpointCollectionResultV1 | None = None,
+    bidding_correction: bool = False,
 ) -> tuple[
     session_files.SessionPersistenceWriteResultV1,
     tuple[SessionCheckpointCollectionResultV1, ...],
 ]:
+    if bidding_correction:
+        saved = save_context(context, state=resulting_state,
+                             decision_checkpoints=context.decision_checkpoints)
+        return saved, ()
     checkpoints, collections = collect_mutation_checkpoints_with(
         source_state=context.state,
         resulting_state=resulting_state,
@@ -150,6 +155,7 @@ def persist_mutation(
     source_play_command: session_api.SessionCommandV1 | None,
     export_options: session_api.SessionPositionExportOptionsV1,
     source_collection: SessionCheckpointCollectionResultV1 | None = None,
+    bidding_correction: bool = False,
 ) -> tuple[
     session_files.SessionPersistenceWriteResultV1,
     tuple[SessionCheckpointCollectionResultV1, ...],
@@ -160,6 +166,7 @@ def persist_mutation(
         source_play_command=source_play_command,
         export_options=export_options,
         source_collection=source_collection,
+        bidding_correction=bidding_correction,
         collect_checkpoint=collect_session_decision_checkpoint_v1,
     )
 

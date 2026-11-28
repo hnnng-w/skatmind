@@ -60,6 +60,7 @@ from .match_live_advice import MatchLiveAssistance
 from .match_recovery import MatchRecoveryState, retain_recording_error
 from .operation_feedback import PendingOperationFeedback, feedback_source
 from .operation_feedback_mapping import match_operation_message
+from .whole_match_progress import file_identity
 
 _SAFE_WORKSPACE_FILENAME = "managed-match.json"
 UNIFIED_MATCH_EXPORT_KINDS = (
@@ -79,6 +80,7 @@ class UnifiedMatchContextV1:
     path: Path = field(repr=False)
     handle: str
     capture: MatchCaptureWebContextV1 = field(repr=False)
+    saved_file_identity: str | None = field(default=None, repr=False)
     selected_position: int = 1
     retired: bool = field(default=False, repr=False)
     position_generation: int = field(default=0, repr=False)
@@ -141,8 +143,8 @@ def _context(
 
     def carry_effort(staged, previous, document):
         if previous is not None and os.path.lexists(choices_path):
-            games = (match_game_key(slot.observed_game) for slot in document.workspace.slots
-                     if slot.observed_game is not None)
+            games = (match_game_key(game) for slot in document.workspace.slots
+                     if (game := slot.observed_game or slot.passed_game) is not None)
             advance_recording_choices(path, staged, previous, document.content_fingerprint, games)
 
     capture.before_replace = carry_effort
@@ -152,6 +154,7 @@ def _context(
         handle=handle,
         capture=capture,
         last_result=last_result,
+        saved_file_identity=file_identity(path),
     )
 
 
@@ -256,6 +259,8 @@ def reload_unified_match_v1(
             context.capture,
             selected_position=context.selected_position,
         )
+        if result.http_status == 200 and context.capture.workspace is not None:
+            context.saved_file_identity = file_identity(context.path)
         context.live.configure(None)
         context.recovery.clear()
         context.card_entry_key = secrets.token_bytes(32)
@@ -293,6 +298,7 @@ def apply_unified_match_operation_v1(
                 len(game.plays) + 1 if values.get("operation") == "append_plays" else None)
             raise
         if result.status == "applied":
+            context.saved_file_identity = file_identity(context.path)
             context.live.invalidate()
             if context.workspace.slots[position - 1].observed_game is None:
                 context.live.configure(None)

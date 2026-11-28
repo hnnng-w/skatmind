@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING, Any
 from skatmind.historical_game import HISTORICAL_SEATS
 from skatmind.session_commands import (
     PromoteSessionToRetrospectiveCommandV1,
+    RecordingCommand,
+    RecordSessionBidCommandV2,
     RecordSessionDealtCardCommandV1,
     RecordSessionPlayCommandV1,
-    SessionCommandV1,
     SetSessionDeclarerCommandV1,
     SetSessionPublicHandCommandV1,
-    is_session_command_v1,
-    serialize_session_command_v1,
+    is_recording_command,
 )
 
 if TYPE_CHECKING:
@@ -91,14 +91,14 @@ class SessionCommandRecordV1:
     """One accepted Command at its resulting positive Session revision."""
 
     revision: int
-    command: SessionCommandV1
+    command: RecordingCommand
 
     def __post_init__(self) -> None:
         if isinstance(self.revision, bool) or not isinstance(self.revision, int):
             raise ValueError("revision must be a positive integer.")
         if self.revision <= 0:
             raise ValueError("revision must be a positive integer.")
-        if not is_session_command_v1(self.command):
+        if not is_recording_command(self.command):
             raise ValueError("command must be one SessionCommandV1 member.")
         if self.command.expected_revision != self.revision - 1:
             raise ValueError(
@@ -108,7 +108,7 @@ class SessionCommandRecordV1:
     def to_dict(self) -> dict[str, Any]:
         return {
             "revision": self.revision,
-            "command": serialize_session_command_v1(self.command),
+            "command": self.command.to_dict(),
         }
 
 
@@ -128,6 +128,10 @@ def _canonicalize_players(value: object) -> tuple[SessionPlayerV1, ...]:
         )
     player_by_seat = {player.seat: player for player in players}
     return tuple(player_by_seat[seat] for seat in HISTORICAL_SEATS)
+
+
+def log_contract_version(records: tuple[SessionCommandRecordV1, ...]) -> int:
+    return max((record.command.command_version for record in records), default=1)
 
 
 def _canonicalize_command_log(value: object) -> tuple[SessionCommandRecordV1, ...]:
@@ -168,6 +172,9 @@ def _validate_log_player_references(
                         "Before promotion, a Live Session may record only the local "
                         "Player's concrete initial hand."
                     )
+        elif isinstance(command, RecordSessionBidCommandV2):
+            if command.observation.player_id not in player_ids:
+                raise ValueError("A bidding action must reference a seated Session Player.")
         elif isinstance(command, SetSessionDeclarerCommandV1):
             if command.declarer_player_id not in player_ids:
                 raise ValueError(
@@ -205,7 +212,7 @@ class SessionStateV1:
     def __post_init__(self) -> None:
         if (
             type(self.session_contract_version) is not int
-            or self.session_contract_version != SESSION_CONTRACT_VERSION
+            or self.session_contract_version not in (1, 2)
         ):
             raise ValueError(
                 f"session_contract_version must equal {SESSION_CONTRACT_VERSION}."
@@ -231,6 +238,8 @@ class SessionStateV1:
             raise ValueError("An initially Live Session requires local_player_id.")
 
         command_log = _canonicalize_command_log(self.command_log)
+        if self.session_contract_version != log_contract_version(command_log):
+            raise ValueError("session_contract_version must match the accepted command language.")
         if self.revision != len(command_log):
             raise ValueError("revision must equal the accepted command_log length.")
         promotion_count = _validate_log_player_references(

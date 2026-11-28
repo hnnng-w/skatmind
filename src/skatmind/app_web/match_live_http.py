@@ -2,6 +2,7 @@
 
 from http import HTTPStatus
 
+from .bidding_capture import save_bidding
 from .card_entry_http import dispatch_card_entry
 from .compact_declaration_http import dispatch_compact_declaration
 from .local_time_http import dispatch_local_metadata
@@ -33,6 +34,8 @@ def _apply(handler, app, active, path, body, content_type):
     values = handler._flat_form(body, content_type, repeated_cards=True)
     if path == "/matches/cards":
         return dispatch_card_entry(app, path, values)
+    if path == "/matches/api/v1/operation" and "bidding_form" in values:
+        return save_bidding(active, values, session=False)
     if "time_form" in values or "time_selection" in values:
         return dispatch_local_metadata(app, path, values)
     if "declaration_form" in values or "declaration_selection" in values:
@@ -70,7 +73,8 @@ def handle_match_input(handler, path, body, content_type):
             if location is None:  # The native handler already delivered a rejection.
                 return
             try:
-                attempt = reserve_match_live(active, before, control)
+                attempt = reserve_match_live(active, before, control,
+                                             recording_only=location.endswith("#bidding"))
             except Exception:
                 # Optional advice must never turn a committed edit into a failed save.
                 active.live.invalidate()

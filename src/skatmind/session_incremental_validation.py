@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
+from skatmind.bidding import replay_bidding
 from skatmind.deck import get_full_deck
 from skatmind.historical_declarer_card_exposure_continuation import (
     build_historical_declarer_card_exposure_continuation_event,
@@ -31,17 +32,18 @@ from skatmind.rules import get_legal_cards, get_trick_points, get_trick_winner
 from skatmind.session_commands import (
     SESSION_COMMAND_ALLOWED_PHASES,
     PromoteSessionToRetrospectiveCommandV1,
+    RecordingCommand,
+    RecordSessionBidCommandV2,
     RecordSessionDealtCardCommandV1,
     RecordSessionDiscardCommandV1,
     RecordSessionPlayCommandV1,
-    SessionCommandV1,
     SetSessionDeclarationCommandV1,
     SetSessionDeclarerCommandV1,
     SetSessionGameEndCommandV1,
     SetSessionGameEventCommandV1,
     SetSessionGameMetadataCommandV1,
     SetSessionPublicHandCommandV1,
-    is_session_command_v1,
+    is_recording_command,
 )
 from skatmind.session_projection import (
     SessionProjectedHandV1,
@@ -1112,13 +1114,32 @@ def _apply_promotion(
 
 def apply_session_command_to_projection_v1(
     projection: SessionProjectionV1,
-    command: SessionCommandV1,
+    command: RecordingCommand,
 ) -> SessionProjectionApplicationV1:
     """Validates and applies exactly one candidate Command to one projection."""
     if not isinstance(projection, SessionProjectionV1):
         raise ValueError("projection must be a SessionProjectionV1.")
-    if not is_session_command_v1(command):
+    if not is_recording_command(command):
         raise ValueError("command must be one SessionCommandV1 member.")
+    if isinstance(command, RecordSessionBidCommandV2):
+        if (projection.phase not in {"setup", "deal", "declaration"}
+                or projection.declarer_player_id is not None or projection.declaration is not None):
+            return _rejected("phase_violation", "/command/kind", "Bidding is no longer open.")
+        events = (*projection.bidding, command.observation)
+        try:
+            turn = replay_bidding(projection.player_ids, events)
+        except ValueError as error:
+            return _rejected("event_sequence_violation", "/command", str(error))
+        passed = turn.actor is None and turn.declarer is None
+        return _applied(replace(projection, session_projection_version=2, bidding=events,
+            declarer_player_id=turn.declarer, phase="ended" if passed else projection.phase,
+            game_end_reason="passed_deal" if passed else None))
+    if projection.bidding and command.kind in {"set_declarer", "set_declaration"}:
+        turn = projection.bidding_turn
+        if (command.kind == "set_declarer" or turn.declarer is None
+                or command.declaration.bid_value != turn.effective_value):
+            return _rejected("declaration_violation", "/command",
+                             "The declaration must agree with the completed bidding.")
     if projection.phase not in SESSION_COMMAND_ALLOWED_PHASES[command.kind]:
         return _rejected(
             "phase_violation",

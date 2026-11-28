@@ -35,6 +35,7 @@ from .automatic_learning_routes import (
     AUTOMATIC_VIEW,
     automatic_html_route,
 )
+from .bidding_capture import bidding_binding, save_bidding
 from .card_entry_http import (
     CARD_ENTRY_ROUTES,
     MATCH_CARD_OPERATIONS,
@@ -2510,6 +2511,10 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                              for operation in MATCH_CARD_OPERATIONS}
             state["declaration_bindings"] = {marker: declaration_binding(active, marker)
                 for marker in ("match-declaration", "match-clear")}
+            if not review:
+                slot = active.workspace.slots[position - 1]
+                state["bidding"] = slot.bidding
+                state["bidding_binding"] = bidding_binding(active, False)
             draft = None
             draft_conflict = False
             if not review:
@@ -3361,7 +3366,9 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     was_ready = active.state.validation.position_export.status == "available"
                     active.require_attached()
                     values = self._flat_form(body, content_type, repeated_cards=True)
-                    if path in CARD_ENTRY_ROUTES:
+                    if path == "/sessions/command" and "bidding_form" in values:
+                        location = save_bidding(active, values, session=True)
+                    elif path in CARD_ENTRY_ROUTES:
                         location = dispatch_card_entry(app, path, values)
                     elif path == "/sessions/command" and (
                             "declaration_form" in values or "declaration_selection" in values):
@@ -3378,7 +3385,8 @@ class SkatMindAppWebRequestHandlerV1(BaseHTTPRequestHandler):
                     attempt = None
                     if path in LIVE_ROUTES:
                         attempt = reserve_live_attempt(app, active)
-                    elif values.get("kind") != "set_game_metadata" or not was_ready:
+                    elif "bidding_form" not in values and (
+                            values.get("kind") != "set_game_metadata" or not was_ready):
                         attempt = after_live_edit(app, active, before)
                     if attempt is not None:
                         location = "/sessions/current#session-recording"

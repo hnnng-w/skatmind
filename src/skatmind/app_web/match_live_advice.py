@@ -134,7 +134,7 @@ def _play_facts(game):
             tuple((p.player_id, p.card) for p in game.plays))
 
 
-def reserve_match_live(active, before, previous_control):
+def reserve_match_live(active, before, previous_control, *, recording_only=False):
     """Called under the save lock. No trace projection or analysis here."""
     live = active.live
     if live.effort is None:
@@ -155,6 +155,8 @@ def reserve_match_live(active, before, previous_control):
     if before is not active.workspace:
         live.file_stamp = file_identity(active.path)
         live.invalidate()
+    if recording_only:
+        return None
     if previous_control == live.control_revision and (
             before is active.workspace or _play_facts(prior) == _play_facts(game)):
         return None

@@ -21,7 +21,7 @@ from skatmind.errors import (
 from skatmind.session_checkpoint_review import (
     export_session_checkpoint_review_request_v1,
 )
-from skatmind.session_commands import SessionCommandV1, is_session_command_v1
+from skatmind.session_commands import RecordingCommand, is_recording_command
 from skatmind.session_contracts import SessionPlayerV1, SessionStateV1
 from skatmind.session_decision_checkpoint import (
     SessionDecisionCheckpointV1,
@@ -105,7 +105,7 @@ def _result(
     return result
 
 
-def _parse_session_command(document: Mapping[str, object]) -> SessionCommandV1:
+def _parse_session_command(document: Mapping[str, object]) -> RecordingCommand:
     if not isinstance(document, Mapping):
         raise SkatMindValidationError(
             "Session Command document must be an object.",
@@ -116,7 +116,7 @@ def _parse_session_command(document: Mapping[str, object]) -> SessionCommandV1:
     return _build_command(mutable_document, path="")
 
 
-def parse_session_command(document: Mapping[str, object]) -> SessionCommandV1:
+def parse_session_command(document: Mapping[str, object]) -> RecordingCommand:
     """Validates and reconstructs one immutable Session Command."""
     return _at_public_boundary(lambda: _parse_session_command(document))
 
@@ -155,7 +155,7 @@ def create_session(
 
 def apply_session_command(
     state: SessionStateV1,
-    command: SessionCommandV1 | Mapping[str, object],
+    command: RecordingCommand | Mapping[str, object],
     *,
     options: SessionApiOptionsV1 = _DEFAULT_OPTIONS,
 ) -> SessionApiResultV1:
@@ -163,7 +163,7 @@ def apply_session_command(
         validated_options = _require_options(options)
         typed_command = (
             command
-            if is_session_command_v1(command)
+            if is_recording_command(command)
             else _parse_session_command(command)
         )
         value = apply_session_command_v1(state, typed_command)

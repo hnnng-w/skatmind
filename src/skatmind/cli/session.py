@@ -211,6 +211,7 @@ def _persist_mutation(
     source_play_command: session_api.SessionCommandV1 | None,
     export_options: session_api.SessionPositionExportOptionsV1,
     source_collection: SessionCheckpointCollectionResultV1 | None = None,
+    bidding_correction: bool = False,
 ) -> tuple[
     session_files.SessionPersistenceWriteResultV1,
     tuple[SessionCheckpointCollectionResultV1, ...],
@@ -221,6 +222,7 @@ def _persist_mutation(
         source_play_command=source_play_command,
         export_options=export_options,
         source_collection=source_collection,
+        bidding_correction=bidding_correction,
         collect_checkpoint=collect_session_decision_checkpoint_v1,
     )
 

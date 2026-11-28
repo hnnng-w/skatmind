@@ -26,7 +26,6 @@ from skatmind.field_provenance_coverage import (
 from skatmind.field_provenance_policy import (
     redact_field_provenance_ledger_for_public_output,
 )
-from skatmind.session_commands import serialize_session_command_v1
 from skatmind.session_contracts import SessionStateV1
 from skatmind.session_decision_checkpoint import SessionDecisionCheckpointV1
 from skatmind.session_history_contracts import (
@@ -309,7 +308,7 @@ def _decision_index(state: SessionStateV1, value: object) -> int:
     if isinstance(decision_index, int):
         return decision_index
     play_count = sum(
-        serialize_session_command_v1(record.command)["kind"] == "record_play"
+        record.command.kind == "record_play"
         for record in state.command_log
     )
     return play_count + 1
@@ -317,7 +316,7 @@ def _decision_index(state: SessionStateV1, value: object) -> int:
 
 def _event_index(state: SessionStateV1) -> int:
     return sum(
-        serialize_session_command_v1(record.command)["kind"]
+        record.command.kind
         in {"set_game_event", "set_public_hand"}
         for record in state.command_log
     )

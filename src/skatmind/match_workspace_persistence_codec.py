@@ -573,10 +573,12 @@ def _build_slot(
     match_definition: MatchCaptureDefinitionV1,
     path: str,
 ) -> MatchWorkspaceSlotV1:
-    data = _require_object(value, fields=_SLOT_FIELDS, path=path)
+    extended = isinstance(value, Mapping) and value.get("match_workspace_slot_version") == 2
+    fields = _SLOT_FIELDS | {"bidding", "passed_game"} if extended else _SLOT_FIELDS
+    data = _require_object(value, fields=fields, path=path)
     _require_version(
         data["match_workspace_slot_version"],
-        MATCH_WORKSPACE_SLOT_VERSION,
+        2 if extended else MATCH_WORKSPACE_SLOT_VERSION,
         field_name="match_workspace_slot_version",
         path=f"{path}/match_workspace_slot_version",
     )
@@ -594,12 +596,29 @@ def _build_slot(
         if data["passed_deal"] is None
         else _build_passed_deal(data["passed_deal"], path=f"{path}/passed_deal")
     )
+    bidding, hands = [], []
+    retained = None
+    if extended:
+        from skatmind.bidding import BidAction
+
+        for i, raw in enumerate(_require_array(data["bidding"], path=f"{path}/bidding")):
+            location = f"{path}/bidding/{i}"
+            action = dict(_require_object(raw, fields={"player_id", "action", "value",
+                                                       "actor_initial_hand"}, path=location))
+            hands.append(_require_optional_array(action.pop("actor_initial_hand"), path=location))
+            bidding.append(_construct(BidAction, path=location, **action))
+        if not bidding:
+            _raise_validation("A version-2 slot requires recorded bidding.", path=path)
+        if data["passed_game"] is not None:
+            retained = _build_observed_game(data["passed_game"], match_definition=match_definition,
+                                            path=f"{path}/passed_game")
     try:
         slot = MatchWorkspaceSlotV1._from_validated(
             match_position=data["match_position"],
             slot_kind=data["slot_kind"],
             observed_game=observed_game,
             passed_deal=passed_deal,
+            bidding=tuple(bidding), bidding_hands=tuple(hands), passed_game=retained,
         )
     except (AttributeError, KeyError, TypeError, ValueError) as error:
         raise SkatMindValidationError(str(error), path=path) from error

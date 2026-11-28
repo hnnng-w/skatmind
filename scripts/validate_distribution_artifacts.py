@@ -1184,7 +1184,7 @@ assert LOCAL_FRONTEND_PROFILE_VERSION == 1
 assert FRONTEND_INFORMATION_ARCHITECTURE_VERSION == 1
 assert FRONTEND_VALIDATION_PRESERVATION_VERSION == 1
 assert len(UNIFIED_FRONTEND_POST_ROUTES) == 119
-assert len(FRONTEND_FORM_REGISTRY) == 171
+assert len(FRONTEND_FORM_REGISTRY) == 173
 assert {form.action_route for form in FRONTEND_FORM_REGISTRY
         if form.form_key.startswith("session.batch.")} == {
     "/sessions/game-review/start", "/sessions/game-review/resume", "/sessions/game-review/cancel"}

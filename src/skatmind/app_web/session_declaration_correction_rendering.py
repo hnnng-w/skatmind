@@ -66,6 +66,12 @@ def _change(context, locale, original, replacement):
 def _record(context, locale, record):
     """Every removed typed record remains inspectable, with human Player/Card labels."""
     command = record.command
+    if command.kind == "record_bid":
+        event = command.observation
+        return translated(locale, "bidding.entry",
+            player=player_name(locale, context.state.players, event.player_id),
+            action=text(locale, "bidding." + event.action),
+            value="" if event.value is None else str(event.value))
     label = translated(locale, "task.command." + command.kind)
     if command.kind == "record_play":
         index = sum(r.command.kind == "record_play" for r in context.state.command_log
@@ -157,7 +163,8 @@ def render_session_correction(context, locale):
         else:
             fields += compact_declaration_fields(locale,
                 build_serializable_game_declaration(proposal.declaration),
-                count_id="session-correction-matadors", session=True)
+                count_id="session-correction-matadors", session=True,
+                derived_bid=any(r.command.kind == "record_bid" for r in context.state.command_log))
         main = _action(context, locale, "preview", selected.token,
                        "session.correction.preview", fields, primary=True)
     else:

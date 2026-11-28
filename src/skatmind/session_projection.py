@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from skatmind.bidding import BidAction, replay_bidding
 from skatmind.deck import get_full_deck
 from skatmind.game_declaration import (
     GameDeclaration,
@@ -186,13 +187,19 @@ class SessionProjectionV1:
     game_end_reason: str | None
     game_end: HistoricalGameEnd | None
     played_card_count: int
+    bidding: tuple[BidAction, ...] = ()
+
+    @property
+    def bidding_turn(self):
+        return replay_bidding(self.player_ids, self.bidding)
 
     def __post_init__(self) -> None:
+        expected_version = 2 if self.bidding else SESSION_PROJECTION_VERSION
         if (
             type(self.session_projection_version) is not int
-            or self.session_projection_version != SESSION_PROJECTION_VERSION
+            or self.session_projection_version != expected_version
         ):
-            raise ValueError(f"session_projection_version must equal {SESSION_PROJECTION_VERSION}.")
+            raise ValueError(f"session_projection_version must equal {expected_version}.")
         _require_identifier(self.session_id, "session_id")
         if self.initial_capture_mode not in SESSION_CAPTURE_MODES:
             raise ValueError(f"initial_capture_mode must be one of {list(SESSION_CAPTURE_MODES)}.")
@@ -310,6 +317,7 @@ class SessionProjectionV1:
     def to_dict(self) -> dict[str, Any]:
         return {
             "session_projection_version": self.session_projection_version,
+            **({"bidding": [action.to_dict() for action in self.bidding]} if self.bidding else {}),
             "session_id": self.session_id,
             "initial_capture_mode": self.initial_capture_mode,
             "capture_mode": self.capture_mode,

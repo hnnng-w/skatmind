@@ -396,3 +396,6 @@ Validation, fingerprints, Checkpoints and file bytes, including older nine-Card
 prefixes and longer archives. Capture/current-export guards consume the derived
 end separately. No duplicated terminal flag, migration Save or invented End
 Command is required. Existing atomic Save and correction consent remain unchanged.
+
+For the version-2 bidding Command and its replay-derived State, see
+[Recording the bidding sequence](bidding_capture.md#persistence-and-correction).

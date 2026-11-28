@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from skatmind.errors import SkatMindInvariantError
-from skatmind.session_commands import SessionCommandV1, is_session_command_v1
+from skatmind.session_commands import RecordingCommand, is_recording_command
 from skatmind.session_contracts import (
     SESSION_CONTRACT_VERSION,
     SessionCommandRecordV1,
     SessionPlayerV1,
     SessionStateV1,
+    log_contract_version,
 )
 from skatmind.session_incremental_validation import (
     apply_session_command_to_projection_v1,
@@ -77,7 +78,7 @@ def replay_session_state_v1(state: SessionStateV1) -> SessionProjectionV1:
             capture_mode=state.initial_capture_mode,
             local_player_id=state.local_player_id,
         )
-        if state.session_contract_version != SESSION_CONTRACT_VERSION:
+        if state.session_contract_version != log_contract_version(state.command_log):
             _raise_replay_invariant(
                 "Session State has a forged contract version.",
                 path="/session_contract_version",
@@ -124,7 +125,7 @@ def replay_session_state_v1(state: SessionStateV1) -> SessionProjectionV1:
             revision=len(state.command_log),
         )
         expected_state = SessionStateV1(
-            session_contract_version=SESSION_CONTRACT_VERSION,
+            session_contract_version=state.session_contract_version,
             session_id=state.session_id,
             initial_capture_mode=state.initial_capture_mode,
             capture_mode=projection.capture_mode,
@@ -193,11 +194,11 @@ def _revision_conflict_diagnostic(
 
 def apply_session_command_v1(
     state: SessionStateV1,
-    command: SessionCommandV1,
+    command: RecordingCommand,
 ) -> SessionTransitionResultV1:
     """Atomically applies one Command after one full replay of the prior Log."""
     projection = replay_session_state_v1(state)
-    if not is_session_command_v1(command):
+    if not is_recording_command(command):
         raise ValueError("command must be one SessionCommandV1 member.")
 
     previous_revision = state.revision
@@ -250,7 +251,7 @@ def apply_session_command_v1(
         command=command,
     )
     candidate_state = SessionStateV1(
-        session_contract_version=SESSION_CONTRACT_VERSION,
+        session_contract_version=max(state.session_contract_version, command.command_version),
         session_id=state.session_id,
         initial_capture_mode=state.initial_capture_mode,
         capture_mode=candidate_projection.capture_mode,

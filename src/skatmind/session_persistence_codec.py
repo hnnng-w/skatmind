@@ -14,10 +14,10 @@ from skatmind.game_declaration import GameDeclaration
 from skatmind.input_loader import build_position_from_document
 from skatmind.session_commands import (
     PromoteSessionToRetrospectiveCommandV1,
+    RecordingCommand,
     RecordSessionDealtCardCommandV1,
     RecordSessionDiscardCommandV1,
     RecordSessionPlayCommandV1,
-    SessionCommandV1,
     SetSessionDeclarationCommandV1,
     SetSessionDeclarerCommandV1,
     SetSessionGameEndCommandV1,
@@ -123,6 +123,7 @@ _CHECKPOINT_FIELDS = {
 }
 
 _COMMAND_FIELDS = {
+    "record_bid": {"command_version", "kind", "expected_revision", "player_id", "action", "value"},
     "set_game_metadata": {
         "command_version",
         "kind",
@@ -535,7 +536,7 @@ def _build_declaration(value: object, *, path: str) -> GameDeclaration:
     )
 
 
-def _build_command(value: object, *, path: str) -> SessionCommandV1:
+def _build_command(value: object, *, path: str) -> RecordingCommand:
     if not isinstance(value, Mapping):
         _raise_validation("Value must be a JSON object.", path=path)
     kind = value.get("kind")
@@ -546,7 +547,15 @@ def _build_command(value: object, *, path: str) -> SessionCommandV1:
         "command_version": data["command_version"],
         "expected_revision": data["expected_revision"],
     }
-    if kind == "set_game_metadata":
+    if kind == "record_bid":
+        from skatmind.bidding import BidAction
+        from skatmind.session_commands import RecordSessionBidCommandV2
+
+        observation = _construct(BidAction, path=path, player_id=data["player_id"],
+                                 action=data["action"], value=data["value"])
+        command = _construct(RecordSessionBidCommandV2, path=path, **common,
+                             observation=observation)
+    elif kind == "set_game_metadata":
         command = _construct(
             SetSessionGameMetadataCommandV1,
             path=path,

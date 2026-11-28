@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Final
 
+from skatmind.bidding import BidAction, replay_bidding
 from skatmind.match_capture_contracts import MatchCaptureDefinitionV1
 from skatmind.match_player_snapshot import MatchParticipantV1
 from skatmind.match_source_metadata import MatchSourceMetadataV1, MediaTimecodeV1
@@ -156,6 +157,9 @@ class MatchWorkspaceSlotV1:
     slot_kind: str
     observed_game: ObservedGameRecordV1 | None
     passed_deal: MatchPassedDealV1 | None
+    bidding: tuple[BidAction, ...]
+    bidding_hands: tuple[tuple[str, ...] | None, ...]
+    passed_game: ObservedGameRecordV1 | None
 
     def __init__(self, *_args: object, **_kwargs: object) -> None:
         raise TypeError("MatchWorkspaceSlotV1 must be constructed by its focused builder.")
@@ -168,24 +172,30 @@ class MatchWorkspaceSlotV1:
         slot_kind: str,
         observed_game: ObservedGameRecordV1 | None,
         passed_deal: MatchPassedDealV1 | None,
+        bidding: tuple[BidAction, ...] = (),
+        bidding_hands: tuple[tuple[str, ...] | None, ...] = (),
+        passed_game: ObservedGameRecordV1 | None = None,
     ) -> MatchWorkspaceSlotV1:
         value = object.__new__(cls)
         object.__setattr__(
             value,
             "match_workspace_slot_version",
-            MATCH_WORKSPACE_SLOT_VERSION,
+            2 if bidding else MATCH_WORKSPACE_SLOT_VERSION,
         )
         object.__setattr__(value, "match_position", match_position)
         object.__setattr__(value, "slot_kind", slot_kind)
         object.__setattr__(value, "observed_game", observed_game)
         object.__setattr__(value, "passed_deal", passed_deal)
+        object.__setattr__(value, "bidding", bidding)
+        object.__setattr__(value, "bidding_hands", bidding_hands)
+        object.__setattr__(value, "passed_game", passed_game)
         value._validate_relationships()
         return value
 
     def _validate_relationships(self) -> None:
         _require_version(
             self.match_workspace_slot_version,
-            MATCH_WORKSPACE_SLOT_VERSION,
+            2 if self.bidding else MATCH_WORKSPACE_SLOT_VERSION,
             "match_workspace_slot_version",
         )
         _require_match_position(self.match_position)
@@ -199,10 +209,48 @@ class MatchWorkspaceSlotV1:
             valid = self.observed_game is None and type(self.passed_deal) is MatchPassedDealV1
         if not valid:
             raise ValueError("slot_kind and Slot payloads are inconsistent.")
+        if self.passed_game is not None and not (self.bidding and self.slot_kind == "passed_deal"):
+            raise ValueError("Retained pre-play evidence requires a recorded passed auction.")
+        if type(self.bidding) is not tuple or type(self.bidding_hands) is not tuple or (
+                len(self.bidding_hands) != len(self.bidding)):
+            raise ValueError("Each auction action requires its own recorder knowledge cutoff.")
+        if self.bidding:
+            self._validate_bidding()
+
+    def _validate_bidding(self):
+        from skatmind.observed_game_trace import canonicalize_observed_cards_v1
+
+        game = self.observed_game or self.passed_game
+        if type(game) is not ObservedGameRecordV1 or game.match_position != self.match_position:
+            raise ValueError("Bidding requires a game bound to this position.")
+        turn = replay_bidding(tuple(p.player_id for p in game.players), self.bidding)
+        for action, hand in zip(self.bidding, self.bidding_hands, strict=True):
+            if hand is None:
+                continue
+            canonical = canonicalize_observed_cards_v1(
+                hand, "actor_initial_hand", allowed_counts=frozenset({10}))
+            if hand != canonical or action.player_id != game.perspective_player_id:
+                raise ValueError("Bidding may retain only the actor's observed initial hand.")
+        passed = turn.actor is None and turn.declarer is None
+        if passed != (self.slot_kind == "passed_deal"):
+            raise ValueError("The slot must agree with the passed bidding outcome.")
+        if game.declaration is not None and (
+                game.declarer_player_id != turn.declarer
+                or game.declaration.bid_value != turn.effective_value):
+            raise ValueError("The declaration conflicts with the bidding outcome.")
+        if passed and (game.discarded_cards is not None or game.plays or game.declaration):
+            raise ValueError("A passed auction cannot have any declaration, discards or plays.")
+        if passed and self.passed_deal.game_timecode != game.game_timecode:
+            raise ValueError("The passed deal must retain its original timecode.")
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "match_workspace_slot_version": self.match_workspace_slot_version,
+            **({"bidding": [action.to_dict() | {"actor_initial_hand":
+                    list(hand) if hand is not None else None}
+                for action, hand in zip(self.bidding, self.bidding_hands, strict=True)],
+                "passed_game": self.passed_game.to_dict() if self.passed_game else None}
+                if self.bidding else {}),
             "match_position": self.match_position,
             "slot_kind": self.slot_kind,
             "observed_game": (None if self.observed_game is None else self.observed_game.to_dict()),
@@ -409,7 +457,16 @@ def _build_match_workspace_v1(
                 slot_kind=source_slot.slot_kind,
                 observed_game=copied_game,
                 passed_deal=None,
+                bidding=source_slot.bidding,
+                bidding_hands=source_slot.bidding_hands,
             )
+        elif source_slot.passed_game is not None:
+            retained = _copy_observed_game_record_v1(source_slot.passed_game,
+                                                     match_definition=copied_definition)
+            copied_slot = MatchWorkspaceSlotV1._from_validated(
+                match_position=expected_position, slot_kind="passed_deal", observed_game=None,
+                passed_deal=source_slot.passed_deal, bidding=source_slot.bidding,
+                bidding_hands=source_slot.bidding_hands, passed_game=retained)
         else:
             copied_slot = _build_match_workspace_slot_v1(
                 match_position=source_slot.match_position,
@@ -454,6 +511,13 @@ def _build_match_workspace_v1(
             game_ids.add(game.game_id)
             timecode = game.game_timecode
         elif copied_slot.passed_deal is not None:
+            retained = copied_slot.passed_game
+            if retained is not None:
+                if (tuple(p.player_id for p in retained.players) != (
+                        assignment.forehand_player_id, assignment.middlehand_player_id,
+                        assignment.rearhand_player_id) or retained.game_id in game_ids):
+                    raise ValueError("Retained passed-game identity or seat rotation conflicts.")
+                game_ids.add(retained.game_id)
             occupied_slot_count += 1
             timecode = copied_slot.passed_deal.game_timecode
             validate_observed_timecode_containment_v1(

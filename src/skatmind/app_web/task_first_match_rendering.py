@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from html import escape
 
+from skatmind.bidding import replay_bidding
 from skatmind.game_result import COMPLETED_TRICK_COUNT
 
 from .analysis_controls import (
@@ -15,6 +16,7 @@ from .analysis_controls import (
     restore_controls,
     values_dict,
 )
+from .bidding_capture import render_bidding
 from .compact_card_rendering import compact_card_selector
 from .compact_declaration_rendering import accepted_declaration_summary, compact_declaration_fields
 from .form_registry import get_frontend_form_by_key_v1
@@ -104,13 +106,27 @@ def operation_form(state, handle, locale, operation, *, values=None, primary=Fal
     if operation == "set_declaration":
         fields = _hidden(state, handle, operation) + hidden("declaration_form", "match-declaration")
         fields += hidden("declaration_selection", state.get("declaration_bindings", {}).get("match-declaration", ""))
-        fields += select_field(locale, "declarer_player_id", "task.field.declarer_player_id",
+        selector = select_field(locale, "declarer_player_id", "task.field.declarer_player_id",
             (("", text(locale, "declaration.choose_declarer")), *(
                 (state["position_view"][f"{seat}_player_id"], _named_seat(
                     state, locale, state["position_view"][f"{seat}_player_id"]))
                 for seat in ("forehand", "middlehand", "rearhand"))), values.get("declarer_player_id"), required=True)
-        fields += compact_declaration_fields(locale, values, count_id="match-declaration-matadors")
-        markup = form(locale, MATCH_RECORDING_INPUT_ROUTE, fields, "declaration.save", primary=primary,
+        events = state.get("bidding", ())
+        incomplete = False
+        if events:
+            seats = tuple(state["position_view"][seat + "_player_id"] for seat in
+                          ("forehand", "middlehand", "rearhand"))
+            outcome = replay_bidding(seats, events)
+            incomplete = outcome.actor is not None
+            fields += hidden("declarer_player_id", outcome.declarer or "")
+            values = dict(values, bid_value=outcome.effective_value)
+        elif values.get("declarer_player_id"):
+            fields += selector
+        fields += compact_declaration_fields(locale, values, count_id="match-declaration-matadors",
+            derived_bid=bool(events), short_selector=(
+                selector if not events and not values.get("declarer_player_id") else None))
+        markup = form(locale, MATCH_RECORDING_INPUT_ROUTE, fields, "declaration.save",
+                      primary=primary and not incomplete, disabled=incomplete,
                       submitter=("recording_action", "set_declaration"))
         return markup.replace('<form ', f'<form id="{MATCH_RECORDING_FORM_ID}" ', 1)
     definition = get_frontend_form_by_key_v1(
@@ -409,6 +425,16 @@ def render_task_first_match_v1(state, view, *, managed_handle: str, locale="en",
             state, locale, state.get("perspective_player_id"))) + '</p>'
     task += '<div id="match-recovery-feedback"></div>' + ("" if recovery is None else recovery[0])
     recorded = state.get("recorded_progress")
+    if state.get("bidding") or game and game["declaration"] is None and "bidding_binding" in state:
+        seats = tuple(getattr(view.selected, seat + "_player_id") for seat in
+                      ("forehand", "middlehand", "rearhand"))
+        fields = (hidden("managed_handle", handle) + hidden("expected_revision",
+                  state["workspace_revision"]) + hidden("match_position", view.selected_position)
+                  + hidden("bidding_binding", state["bidding_binding"]))
+        task += render_bidding(locale, seats=seats, names={p: _named_seat(state, locale, p) for p in seats},
+            events=state["bidding"], route="/matches/api/v1/operation", fields=fields)
+    elif game and game["declaration"] or view.selected.slot_kind == "passed_deal":
+        task += paragraph(locale, "bidding.unknown")
     if game is not None:
         if "live" in state:
             task += render_live_controls(locale, state["live"].effort, terminal, MATCH_LIVE_ROUTES,

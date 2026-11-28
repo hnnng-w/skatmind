@@ -15,6 +15,7 @@ from skatmind.errors import SkatMindInvariantError
 from skatmind.session_checkpoint_collection import (
     collect_session_decision_checkpoint_v1,
 )
+from skatmind.session_commands import RecordingCommand
 from skatmind.session_persistence import (
     _build_session_persistence_file_bytes_v1,
     save_session_persistence_file_v1,
@@ -385,6 +386,7 @@ def _persist_session_mutation(
     checkpoints: tuple[session_api.SessionDecisionCheckpointV1, ...],
     result_status: str,
     diagnostics: tuple[str, ...],
+    verify_file_identity: bool = False,
 ) -> GuidedSessionOperationResultV1:
     context.require_attached()
     validate_managed_direct_child_path_v1(
@@ -397,12 +399,18 @@ def _persist_session_mutation(
         decision_checkpoints=checkpoints,
     ).value
     guard = None
-    if os.path.lexists(recording_choices_path(context.path)):
+    carry_effort = os.path.lexists(recording_choices_path(context.path))
+    if carry_effort or verify_file_identity:
         def guard(staged):
-            previous_game = game_identity(context.state)
-            same_game = previous_game is None or previous_game == game_identity(state)
-            advance_recording_choices(context.path, staged, context.document.content_fingerprint,
-                persistence.content_fingerprint, (SESSION_GAME,) if same_game else ())
+            if verify_file_identity and file_identity(context.path) != context.saved_file_identity:
+                from .workflow_state import StaleFrontendWorkflowRevisionError
+                raise StaleFrontendWorkflowRevisionError()
+            if carry_effort:
+                previous_game = game_identity(context.state)
+                same_game = previous_game is None or previous_game == game_identity(state)
+                advance_recording_choices(
+                    context.path, staged, context.document.content_fingerprint,
+                    persistence.content_fingerprint, (SESSION_GAME,) if same_game else ())
 
     status = save_cent_member_edit(context, persistence, before_replace=guard)
     if status is None and guard is not None:
@@ -437,7 +445,7 @@ def _persist_session_mutation(
 
 def apply_guided_session_command_v1(
     context: GuidedSessionContextV1,
-    command: session_api.SessionCommandV1,
+    command: RecordingCommand,
     *,
     export_options: session_api.SessionPositionExportOptionsV1 | None = None,
 ) -> GuidedSessionOperationResultV1:
@@ -445,11 +453,10 @@ def apply_guided_session_command_v1(
     with context.lock:
         context.require_attached()
         attempt = context.operation_feedback.begin()
-        checkpoints = _collect_current_checkpoint(
-            state=context.state,
-            checkpoints=context.decision_checkpoints,
-            export_options=options,
-        )
+        checkpoints = context.decision_checkpoints
+        if command.kind != "record_bid":
+            checkpoints = _collect_current_checkpoint(
+                state=context.state, checkpoints=checkpoints, export_options=options)
         result = session_api.apply_session_command(context.state, command)
         diagnostics = _diagnostic_messages(result.value)
         if result.value.status != "applied":
@@ -461,17 +468,16 @@ def apply_guided_session_command_v1(
             )
             context.last_operation = operation
             return operation
-        checkpoints = _collect_current_checkpoint(
-            state=result.value.state,
-            checkpoints=checkpoints,
-            export_options=options,
-        )
+        if command.kind != "record_bid":
+            checkpoints = _collect_current_checkpoint(
+                state=result.value.state, checkpoints=checkpoints, export_options=options)
         operation = _persist_session_mutation(
             context,
             state=result.value.state,
             checkpoints=checkpoints,
             result_status="applied",
             diagnostics=diagnostics,
+            verify_file_identity=command.kind == "record_bid",
         )
         if operation.status == "applied" and not diagnostics:
             context.operation_feedback.publish(attempt, feedback_source(context),
@@ -481,7 +487,7 @@ def apply_guided_session_command_v1(
 
 def apply_guided_session_edit_v1(
     context: GuidedSessionContextV1,
-    edit: session_api.SessionCommandV1 | session_api.SessionCommandCorrectionV1,
+    edit: RecordingCommand | session_api.SessionCommandCorrectionV1,
 ) -> GuidedSessionOperationResultV1:
     if type(edit) is session_api.SessionCommandCorrectionV1:
         return correct_guided_session_command_v1(context, edit)
@@ -549,7 +555,8 @@ def correct_guided_session_command_v1(
             expected_revision=context.state.revision,
             target_revision=correction.target_revision - 1,
         )
-        if source.value.status in {"applied", "unchanged"}:
+        bidding = correction.replacement_command.kind == "record_bid"
+        if not bidding and source.value.status in {"applied", "unchanged"}:
             checkpoints = _collect_current_checkpoint(
                 state=source.value.state,
                 checkpoints=checkpoints,
@@ -573,17 +580,19 @@ def correct_guided_session_command_v1(
             )
             context.last_operation = operation
             return operation
-        checkpoints = _collect_current_checkpoint(
-            state=result.value.state,
-            checkpoints=checkpoints,
-            export_options=options,
-        )
+        if not bidding:
+            checkpoints = _collect_current_checkpoint(
+                state=result.value.state,
+                checkpoints=checkpoints,
+                export_options=options,
+            )
         operation = _persist_session_mutation(
             context,
             state=result.value.state,
             checkpoints=checkpoints,
             result_status=result.value.status,
             diagnostics=diagnostics,
+            verify_file_identity=bidding,
         )
         if operation.status == "applied" and not diagnostics:
             command = correction.replacement_command

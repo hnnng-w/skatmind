@@ -116,6 +116,8 @@ def finish_mutation(
             export_options=session_parser.position_export_options(args),
             source_collection=source_collection,
             collect_checkpoint=services.collect_checkpoint,
+            bidding_correction=(result.operation == "correct"
+                                and result.value.replacement_command.kind == "record_bid"),
         )
         if saved.status == "conflict":
             session_presentation.print_save_conflict()

@@ -220,11 +220,17 @@ def set_match_workspace_observed_game_v1(
     if type(observed_game) is not ObservedGameRecordV1:
         raise ValueError("observed_game must be an ObservedGameRecordV1.")
     match_position = _require_match_position(observed_game.match_position)
+    previous = workspace.slots[match_position - 1]
+    if previous.bidding and (previous.observed_game is None
+                             or previous.observed_game.game_id != observed_game.game_id):
+        raise ValueError("Clear the position explicitly before replacing a recorded auction.")
     candidate_slot = MatchWorkspaceSlotV1._from_validated(
         match_position=match_position,
         slot_kind="observed_game",
         observed_game=observed_game,
         passed_deal=None,
+        bidding=previous.bidding,
+        bidding_hands=previous.bidding_hands,
     )
     return _replace_slot(
         workspace,
@@ -255,6 +261,8 @@ def mark_match_workspace_passed_deal_v1(
             previous_slot=workspace.slots[position - 1],
         )
     position = _require_match_position(match_position)
+    if workspace.slots[position - 1].bidding:
+        raise ValueError("Correct the recorded bidding to change its passed outcome.")
     candidate_slot = MatchWorkspaceSlotV1._from_validated(
         match_position=position,
         slot_kind="passed_deal",

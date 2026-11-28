@@ -529,3 +529,6 @@ declarer Trick can restore normal capture; an independently valid explicit End
 is preserved. Existing suffix validation and removal consent remain authoritative.
 Inspection replay retains older post-terminal Cards, while new normal append and
 post-terminal decision preparation are blocked.
+
+[Bidding corrections](bidding_capture.md#persistence-and-correction) use the
+same first-rejection boundary and retain the valid prefix of the recording.

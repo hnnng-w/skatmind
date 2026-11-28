@@ -440,6 +440,7 @@ def _correct(
         source_play_command=None,
         export_options=export_options,
         source_collection=source_collection,
+        bidding_correction=correction.replacement_command.kind == "record_bid",
     )
     _emit(output_fn, "Persistence status:", saved.status)
     return saved.status != "conflict"

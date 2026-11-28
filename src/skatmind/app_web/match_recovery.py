@@ -17,6 +17,7 @@ from skatmind.observed_trace_diagnostics import ObservedTraceDiagnostic, Observe
 
 from .managed_item_storage import validate_managed_direct_child_path_v1
 from .operation_feedback import feedback_source
+from .whole_match_progress import file_identity
 from .workflow_state import StaleFrontendWorkflowRevisionError
 
 if TYPE_CHECKING:
@@ -191,6 +192,7 @@ def apply_match_recovery(context: UnifiedMatchContextV1, token: str) -> str:
             raise MatchRecoveryConflict("save_failed") from error
         if status == "conflict":
             raise MatchRecoveryConflict("file_changed")
+        context.saved_file_identity = file_identity(context.path)
         context.capture.report_store.clear()
         context.last_result = None
         context.transfer_notice = None

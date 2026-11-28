@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any
 
+from skatmind.bidding import BidAction
 from skatmind.deck import get_full_deck
 from skatmind.game_declaration import (
     GameDeclaration,
@@ -467,6 +468,33 @@ type SessionCommandV1 = (
     | PromoteSessionToRetrospectiveCommandV1
     | SetSessionPublicHandCommandV1
 )
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class RecordSessionBidCommandV2:
+    expected_revision: int
+    observation: BidAction
+    command_version: int = 2
+    kind: str = field(init=False, default="record_bid")
+
+    def __post_init__(self):
+        if type(self.command_version) is not int or self.command_version != 2:
+            raise ValueError("A bidding command requires command_version 2.")
+        _require_non_negative_integer(self.expected_revision, "expected_revision")
+        if type(self.observation) is not BidAction:
+            raise ValueError("A bidding command requires one observed action.")
+        _require_player_identifier(self.observation.player_id, "player_id")
+
+    def to_dict(self):
+        return {"command_version": self.command_version, "kind": self.kind,
+                "expected_revision": self.expected_revision, **self.observation.to_dict()}
+
+
+type RecordingCommand = SessionCommandV1 | RecordSessionBidCommandV2
+
+
+def is_recording_command(value: object) -> bool:
+    return type(value) is RecordSessionBidCommandV2 or is_session_command_v1(value)
 
 SESSION_COMMAND_TYPES = (
     SetSessionGameMetadataCommandV1,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from skatmind.bidding import BiddingContinuationConflict
 from skatmind.declaration_diagnostics import DeclarationValueError
 from skatmind.errors import SkatMindWorkflowError
 from skatmind.observed_trace_diagnostics import ObservedTraceError
@@ -112,6 +113,11 @@ def map_frontend_exception_v1(
     *,
     status: int,
 ) -> tuple[FrontendValidationIssueV1, ...]:
+    if definition.discriminator_field == "bidding_form":
+        if isinstance(error, BiddingContinuationConflict):
+            return (_issue(None, "validation.bidding.continuation", count=error.count),)
+        return (_issue(None, "validation.bidding.stale" if status == 409 else
+                       "validation.bidding.action"),)
     if isinstance(error, AccountingFormError):
         return (_issue(_known_field(definition, error.field_key),
                        "validation.accounting." + error.reason),)

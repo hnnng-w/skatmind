@@ -201,7 +201,8 @@ def build_recording_facts_v1(document, *, through_position=36, decision_position
             signatures.append(_signature(1, projection.players, projection.declarer_player_id,
                                          projection.declaration, projection.plays))
             fact = OutcomeFactV1(position=1,
-                status="unfinished" if projection.phase != "ended" else "unsettled")
+                status="passed" if projection.game_end_reason == "passed_deal" else
+                "unfinished" if projection.phase != "ended" else "unsettled")
             if (projection.game_end_reason in ESTABLISHED_SESSION_ENDINGS
                     and document.state.validation.historical_export.status == "available"):
                 exported = export_session_historical_game_request_v1(document.state)

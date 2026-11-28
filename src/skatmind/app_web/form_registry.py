@@ -604,6 +604,13 @@ for _trick_number in range(1, 10):
 
 
 _FORMS: list[FrontendFormDefinitionV1] = [
+    *(_definition(key, route, ("choice",), page=page, active=family,
+        success="contextual", discriminator=("bidding_form", "auction"),
+        body_limit=8192, control_overrides={"choice": "select"},
+        label_overrides={"choice": "validation.field.bidding_action"})
+        for key, route, page, family in (
+            ("session.bidding", "/sessions/command", "/sessions/current", "sessions"),
+            ("match.bidding", "/matches/api/v1/operation", "/matches/current", "matches"))),
     *(_definition(
         key, route, ("time_selection", *LOCAL_TIME_VISIBLE_FIELDS, *fields),
         page=page, active=family, success=success, discriminator=("time_form", marker),
