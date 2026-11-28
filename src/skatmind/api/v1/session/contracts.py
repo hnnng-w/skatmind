@@ -73,7 +73,7 @@ def _validate_version(value: object, expected: int, *, path: str) -> None:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class SessionApiVersionInfoV1:
-    """Stable version information for the public in-memory Session API."""
+    """V1 baseline descriptor with read-only discovery of supported recording versions."""
 
     api_contract_version: int = PUBLIC_API_CONTRACT_VERSION
     public_session_api_version: int = PUBLIC_SESSION_API_VERSION
@@ -91,6 +91,18 @@ class SessionApiVersionInfoV1:
     persistence_version: int = SESSION_PERSISTENCE_VERSION
     decision_observation_version: int = SESSION_DECISION_OBSERVATION_VERSION
     checkpoint_review_export_version: int = SESSION_CHECKPOINT_REVIEW_EXPORT_VERSION
+
+    @property
+    def supported_session_contract_versions(self) -> tuple[int, ...]:
+        return (SESSION_CONTRACT_VERSION, 2)
+
+    @property
+    def supported_session_command_versions(self) -> tuple[int, ...]:
+        return (SESSION_COMMAND_VERSION, 2)
+
+    @property
+    def supported_projection_versions(self) -> tuple[int, ...]:
+        return (SESSION_PROJECTION_VERSION, 2)
 
     def __post_init__(self) -> None:
         _validate_version(
@@ -179,7 +191,7 @@ class SessionApiVersionInfoV1:
 
 
 def get_session_api_version_info_v1() -> SessionApiVersionInfoV1:
-    """Returns deterministic public Session API compatibility information."""
+    """Return the V1 baseline and the supported state, command, and projection versions."""
     return SessionApiVersionInfoV1()
 
 

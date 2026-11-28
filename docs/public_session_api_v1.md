@@ -103,6 +103,13 @@ export_session_checkpoint_review_request
 files
 ```
 
+Issue #337 appends `RecordingCommand`, `RecordSessionBidCommandV2`, and
+`BidAction`, in that order. `SessionCommandV1` remains the closed union of the
+ten original command types. `RecordingCommand` is the public type accepted by
+`apply_session_command` and returned by `parse_session_command`:
+`SessionCommandV1 | RecordSessionBidCommandV2`. `apply_session_command` also
+accepts a JSON-object mapping.
+
 The exposed domain types are the exact existing frozen internal types, not
 copies or adapters. Type identity is therefore preserved. Projection values,
 low-level validators, persistence codec and fingerprint helpers, temporary-file
@@ -112,11 +119,21 @@ low-level helpers.
 
 ## Versions and options
 
-`SessionApiVersionInfoV1` reports Public API, Public Session API, Session,
-Command, transition, projection, Request Export, Decision Checkpoint, history,
-lineage, persistence, Decision Observation, and Checkpoint Review Export
-contract versions. Package and Schema versions are intentionally absent because
-those version axes are independent.
+Use `get_session_api_version_info_v1()` to discover supported recording
+versions. Its read-only Python properties give all supported versions:
+
+| Property | Versions | Version used for a particular record |
+| --- | --- | --- |
+| `supported_session_command_versions` | `(1, 2)` | The ten original commands use 1; `record_bid` uses 2. |
+| `supported_session_contract_versions` | `(1, 2)` | A state uses 2 exactly when its accepted log contains a `record_bid`; otherwise 1. |
+| `supported_projection_versions` | `(1, 2)` | Replay of that log follows the same rule, including when rewound to a prefix. |
+
+The singular fields `session_command_version`, `session_contract_version`, and
+`projection_version` report the **V1 baseline** (`1`), not the maximum supported
+versions. The constructor and `to_dict()` retain the original descriptor shape
+and values; the three discovery properties are not serialized. The public API,
+transition, export, checkpoint, history, persistence and other envelope versions
+keep their existing meanings. Package and Schema versions are independent.
 
 `SessionApiOptionsV1` has two strict booleans:
 
@@ -157,9 +174,22 @@ normal typed Results, not transport failures.
 ## Parsing and execution
 
 `parse_session_command()` validates a JSON-object mapping against the packaged
-Session Schema, strictly reconstructs all ten Command kinds through the existing
-persistence codec, preserves explicit nulls, and rejects missing, unknown, or
-invalid fields. It performs no transition.
+Session Schema and uses the persistence codec to reconstruct the ten V1 command
+kinds and the V2 `record_bid`. It preserves explicit nulls and rejects missing,
+unknown, or invalid fields. It performs no transition.
+
+For example, with a state at revision zero and middlehand player ID `M`, a
+caller can submit the typed command or its JSON-object mapping:
+
+```python
+from skatmind.api.v1 import session
+
+bid: session.RecordingCommand = session.RecordSessionBidCommandV2(
+    expected_revision=0, observation=session.BidAction("M", "bid", 18),
+)
+assert session.parse_session_command(bid.to_dict()) == bid
+result = session.apply_session_command(state, bid)
+```
 
 Each operation wrapper invokes exactly one corresponding internal operation.
 Position and Historical exports return existing immutable `RequestDocumentV1`

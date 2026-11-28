@@ -35,6 +35,10 @@ winner and value. Short entry retains the previous declaration validation.
   `value` (null for `pass` or `take`). A log containing such a command has
   State and projection version 2. Replay derives both the turn and outcome.
   A prefix containing only version-1 commands keeps its original representation.
+  The [public Session API](public_session_api_v1.md#versions-and-options)
+  exposes both supported versions through `get_session_api_version_info_v1()`.
+  Its `RecordingCommand` union includes `RecordSessionBidCommandV2`, which can
+  be constructed with the public `BidAction` or parsed from a command mapping.
 * Match Workspace slots with bidding use `match_workspace_slot_version: 2`.
   The ordered `bidding` entries retain only the actor's then-known perspective
   initial hand, or null. A passed slot keeps its pre-play facts in `passed_game`

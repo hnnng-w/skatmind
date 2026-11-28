@@ -32,12 +32,15 @@ from skatmind.api.v1.session.provenance import (
     SessionFieldProvenanceBundleV1,
     SessionProvenanceContextV1,
 )
+from skatmind.bidding import BidAction
 from skatmind.session_checkpoint_review import (
     SESSION_CHECKPOINT_REVIEW_EXPORT_VERSION,
     SessionCheckpointReviewExportV1,
 )
 from skatmind.session_commands import (
     PromoteSessionToRetrospectiveCommandV1,
+    RecordingCommand,
+    RecordSessionBidCommandV2,
     RecordSessionDealtCardCommandV1,
     RecordSessionDiscardCommandV1,
     RecordSessionPlayCommandV1,
@@ -138,4 +141,7 @@ __all__ = (
     "observe_session_decision_checkpoint",
     "export_session_checkpoint_review_request",
     "files",
+    "RecordingCommand",
+    "RecordSessionBidCommandV2",
+    "BidAction",
 )

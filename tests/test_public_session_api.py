@@ -3,6 +3,7 @@ import json
 from dataclasses import FrozenInstanceError, fields
 from pathlib import Path
 from types import MappingProxyType
+from typing import get_args, get_type_hints
 from unittest.mock import patch
 
 import pytest
@@ -87,6 +88,9 @@ SESSION_EXPORTS = (
     "observe_session_decision_checkpoint",
     "export_session_checkpoint_review_request",
     "files",
+    "RecordingCommand",
+    "RecordSessionBidCommandV2",
+    "BidAction",
 )
 
 
@@ -144,7 +148,7 @@ def _position_options() -> session.SessionPositionExportOptionsV1:
 def test_public_session_namespace_and_version_contract_are_exact() -> None:
     assert api_v1.session is session
     assert session.__all__ == SESSION_EXPORTS
-    assert len(session.__all__) == 59
+    assert len(session.__all__) == 62
     assert session.PUBLIC_SESSION_API_VERSION == 1
     assert session.PUBLIC_SESSION_API_NAMESPACE == "skatmind.api.v1.session"
     assert session.PUBLIC_SESSION_API_COMPATIBILITY_POLICY == "additive_until_v1_0"
@@ -188,11 +192,18 @@ def test_public_session_namespace_and_version_contract_are_exact() -> None:
         "checkpoint_review_export_version",
     ]
     assert info.to_dict()["operations"] == list(session.SESSION_API_OPERATIONS)
+    assert (info.session_contract_version, info.session_command_version,
+            info.projection_version) == (1, 1, 1)
+    assert info.supported_session_contract_versions == (1, 2)
+    assert info.supported_session_command_versions == (1, 2)
+    assert info.supported_projection_versions == (1, 2)
     with pytest.raises(FrozenInstanceError):
         info.namespace = "changed"
 
 
 def test_public_session_reexports_preserve_internal_type_identity() -> None:
+    from skatmind.bidding import BidAction
+    from skatmind.session_commands import RecordingCommand, RecordSessionBidCommandV2
     from skatmind.session_commands import SetSessionGameMetadataCommandV1 as InternalCommand
     from skatmind.session_contracts import SessionPlayerV1 as InternalPlayer
     from skatmind.session_persistence_contracts import (
@@ -202,6 +213,16 @@ def test_public_session_reexports_preserve_internal_type_identity() -> None:
     assert session.SetSessionGameMetadataCommandV1 is InternalCommand
     assert session.SessionPlayerV1 is InternalPlayer
     assert session.SessionPersistenceDocumentV1 is InternalDocument
+    assert session.RecordingCommand is RecordingCommand
+    assert session.RecordSessionBidCommandV2 is RecordSessionBidCommandV2
+    assert session.BidAction is BidAction
+    assert get_type_hints(session.parse_session_command)["return"] is session.RecordingCommand
+    accepted = get_type_hints(session.apply_session_command)["command"]
+    assert session.RecordingCommand in get_args(accepted)
+    assert get_args(session.RecordingCommand.__value__) == (
+        session.SessionCommandV1, session.RecordSessionBidCommandV2,
+    )
+    assert set(get_args(session.SessionCommandV1.__value__)) == {type(cmd) for cmd in _commands()}
 
 
 def test_options_and_result_are_strict_immutable_and_omit_null_provenance() -> None:
@@ -250,13 +271,65 @@ def test_command_parser_uses_strict_schema_and_exact_internal_type() -> None:
             session.parse_session_command(invalid)
 
 
-def test_command_parser_reconstructs_all_ten_command_kinds() -> None:
+def test_command_parser_reconstructs_all_ten_v1_command_kinds() -> None:
     commands = _commands()
     assert len(commands) == 10
     for command in commands:
         parsed = session.parse_session_command(command.to_dict())
         assert type(parsed) is type(command)
         assert parsed == command
+
+
+def test_public_recording_versions_match_typed_use_replay_and_persistence() -> None:
+    from skatmind.session_transitions import replay_session_state_v1
+
+    info = session.get_session_api_version_info_v1()
+    options = session.SessionApiOptionsV1(validate_output=True, include_provenance=True)
+    legacy = session.apply_session_command(_created_state().value, _metadata_document()).value.state
+    original = session.build_session_persistence_document(legacy).value
+    bid = session.RecordSessionBidCommandV2(
+        expected_revision=legacy.revision, observation=session.BidAction("player-b", "bid", 18),
+    )
+    document = bid.to_dict()
+    parsed = session.parse_session_command(document)
+    assert type(parsed) is session.RecordSessionBidCommandV2 and parsed == bid
+    applied = session.apply_session_command(legacy, parsed, options=options)
+    state = applied.value.state
+    assert applied.value.status == "applied"
+    assert session.serialize_session_result(applied)["value"]["command"] == document
+    states = (legacy, state)
+    state_versions = tuple(s.session_contract_version for s in states)
+    command_versions = tuple(r.command.command_version for r in state.command_log)
+    projection_versions = tuple(
+        replay_session_state_v1(s).session_projection_version for s in states
+    )
+    assert state_versions == info.supported_session_contract_versions
+    assert command_versions == info.supported_session_command_versions
+    assert projection_versions == info.supported_projection_versions
+
+    built = session.build_session_persistence_document(state, options=options)
+    saved = session.serialize_session_result(built)["value"]
+    assert saved["session_persistence_version"] == info.persistence_version == 1
+    resumed = session.resume_session_document(saved, options=options)
+    assert resumed.value.document == built.value
+    prefix = session.rewind_session(resumed.value.document.state, expected_revision=2,
+                                    target_revision=1, options=options)
+    assert session.build_session_persistence_document(prefix.value.state).value == original
+    for result in (applied, built, resumed, prefix):
+        assert result.field_provenance.result.coverage_summary["provenance_complete"]
+        assert "field_provenance" in session.serialize_session_result(result)
+
+    for invalid in (
+        document | {"command_version": 1},
+        _metadata_document() | {"command_version": 2},
+        document | {"unexpected": True},
+    ):
+        with pytest.raises(SkatMindSchemaError):
+            session.parse_session_command(invalid)
+    for source, wrong_version in ((original.to_dict(), 2), (saved, 1)):
+        source["state"]["session_contract_version"] = wrong_version
+        with pytest.raises(SkatMindSchemaError):
+            session.resume_session_document(source)
 
 
 def test_create_apply_history_export_persistence_and_resume_facade_parity() -> None:
